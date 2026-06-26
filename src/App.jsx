@@ -591,39 +591,39 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen text-gray-100 flex flex-col font-sans bg-bg-primary">
+    <div className="app-container">
       {/* Dynamic Toast Alert */}
       <div 
         className={clsx(
-          "fixed bottom-6 left-1/2 -translate-x-1/2 px-5 py-3 rounded-xl bg-bg-panel-solid border border-accent-cyan/30 text-accent-cyan text-sm font-semibold shadow-2xl transition-all duration-300 z-[100] tracking-wide backdrop-blur-md flex items-center justify-center gap-2",
-          toast.visible ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0 pointer-events-none"
+          "toast-alert",
+          toast.visible && "visible"
         )}
       >
-        <span className="w-2 h-2 rounded-full bg-accent-cyan animate-ping" />
+        <span className="toast-ping" />
         {toast.message}
       </div>
 
       {/* Header */}
-      <header className="px-6 py-4 border-b border-white/5 bg-bg-secondary/40 backdrop-blur-md flex justify-between items-center z-50 shadow-md">
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-gradient-to-br from-accent-gold to-yellow-600 rounded-xl shadow-lg shadow-accent-gold/15">
-            <Compass className="text-black" size={24} />
+      <header className="app-header">
+        <div className="header-brand">
+          <div className="header-icon-wrap">
+            <Compass size={24} />
           </div>
           <div>
-            <h1 className="text-xl font-bold bg-gradient-to-br from-white via-gray-100 to-accent-gold bg-clip-text text-transparent flex items-center gap-2 tracking-tight">
+            <h1 className="header-title">
               Labyrinth Strategist
             </h1>
-            <p className="text-[10px] text-gray-400 font-medium tracking-wide uppercase mt-0.5">Amaze-ing Labyrinth Board Helper</p>
+            <p className="header-subtitle">Amaze-ing Labyrinth Board Helper</p>
           </div>
         </div>
         
         {/* Header toolbar control actions */}
-        <div className="flex gap-2">
+        <div className="header-toolbar">
           {/* Undo/Redo */}
           <button 
             onClick={handleUndo} 
             disabled={historyIndex <= 0}
-            className="p-2 bg-white/5 hover:bg-white/10 disabled:opacity-30 disabled:pointer-events-none border border-white/10 rounded-xl transition-all cursor-pointer active:scale-95" 
+            className="btn-icon" 
             title="Undo"
           >
             <Undo2 size={16} />
@@ -631,35 +631,35 @@ export default function App() {
           <button 
             onClick={handleRedo} 
             disabled={historyIndex >= history.length - 1}
-            className="p-2 bg-white/5 hover:bg-white/10 disabled:opacity-30 disabled:pointer-events-none border border-white/10 rounded-xl transition-all cursor-pointer active:scale-95" 
+            className="btn-icon" 
             title="Redo"
           >
             <Redo2 size={16} />
           </button>
           
-          <div className="w-px h-6 bg-white/10 self-center mx-1" />
+          <div className="toolbar-divider" />
 
           <button 
             onClick={handleSaveState}
-            className="flex items-center gap-1.5 px-3.5 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-all text-xs font-semibold cursor-pointer active:scale-95"
+            className="btn-text"
           >
             <Save size={14} /> Save State
           </button>
           <button 
             onClick={handleLoadState}
-            className="flex items-center gap-1.5 px-3.5 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-all text-xs font-semibold cursor-pointer active:scale-95"
+            className="btn-text"
           >
             <FolderOpen size={14} /> Load State
           </button>
           <button 
             onClick={handleResetBoard}
-            className="flex items-center gap-1.5 px-3.5 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-all text-xs font-semibold cursor-pointer active:scale-95 text-red-400"
+            className="btn-text btn-danger"
           >
             <RefreshCcw size={14} /> Reset
           </button>
           <button 
             onClick={handleShuffleBoard}
-            className="flex items-center gap-1.5 px-4 py-2 bg-gradient-to-br from-accent-gold to-yellow-600 text-black font-bold rounded-xl hover:shadow-[0_0_15px_rgba(255,190,26,0.3)] transition-all text-xs cursor-pointer active:scale-95"
+            className="btn-text btn-primary"
           >
             <Shuffle size={14} /> Shuffle Movable
           </button>
@@ -667,61 +667,46 @@ export default function App() {
       </header>
 
       {/* Main Container Layout */}
-      <main className="flex-1 p-6 grid grid-cols-1 lg:grid-cols-[1fr_420px] gap-8 max-w-[1500px] mx-auto w-full items-start">
+      <main className="main-content">
         {/* Left Side: Board and Spare Tile */}
-        <section className="glass-panel rounded-3xl p-6 flex flex-col items-center justify-center border border-white/10 shadow-2xl relative">
+        <section className="glass-panel board-section">
           {/* Painting Toolbar */}
-          <div className="w-full flex flex-wrap justify-between items-center mb-5 gap-3 border-b border-white/5 pb-4 px-2">
-            <div className="flex gap-1.5 bg-black/30 p-1 rounded-xl border border-white/5">
+          <div className="board-toolbar">
+            <div className="tool-group">
               <button 
                 onClick={() => setActiveTool('select')}
-                className={clsx(
-                  "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer",
-                  activeTool === 'select' ? "bg-accent-gold text-black font-bold shadow-md" : "text-gray-400 hover:text-white"
-                )}
+                className={clsx("btn-tool", activeTool === 'select' && "active")}
               >
                 <Wrench size={13} /> Inspect Mode
               </button>
               <button 
                 onClick={() => setActiveTool('rotate')}
-                className={clsx(
-                  "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer",
-                  activeTool === 'rotate' ? "bg-accent-gold text-black font-bold shadow-md" : "text-gray-400 hover:text-white"
-                )}
+                className={clsx("btn-tool", activeTool === 'rotate' && "active")}
               >
                 <RefreshCcw size={13} /> Quick Rotate
               </button>
               <button 
                 onClick={() => setActiveTool('paint-I')}
-                className={clsx(
-                  "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer",
-                  activeTool === 'paint-I' ? "bg-accent-gold text-black font-bold shadow-md" : "text-gray-400 hover:text-white"
-                )}
+                className={clsx("btn-tool", activeTool === 'paint-I' && "active")}
               >
                 <Edit3 size={13} /> Paint Straight (I)
               </button>
               <button 
                 onClick={() => setActiveTool('paint-L')}
-                className={clsx(
-                  "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer",
-                  activeTool === 'paint-L' ? "bg-accent-gold text-black font-bold shadow-md" : "text-gray-400 hover:text-white"
-                )}
+                className={clsx("btn-tool", activeTool === 'paint-L' && "active")}
               >
                 <Edit3 size={13} /> Paint Corner (L)
               </button>
               <button 
                 onClick={() => setActiveTool('paint-T')}
-                className={clsx(
-                  "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer",
-                  activeTool === 'paint-T' ? "bg-accent-gold text-black font-bold shadow-md" : "text-gray-400 hover:text-white"
-                )}
+                className={clsx("btn-tool", activeTool === 'paint-T' && "active")}
               >
                 <Edit3 size={13} /> Paint Junction (T)
               </button>
             </div>
             
-            <div className="text-xs text-gray-400 font-semibold uppercase tracking-wider bg-white/5 px-3.5 py-1.5 rounded-lg border border-white/5">
-              Last shift: <span className="text-accent-cyan font-bold font-mono ml-1">{getLastShiftText()}</span>
+            <div className="status-badge">
+              Last shift: <span className="status-badge-val">{getLastShiftText()}</span>
             </div>
           </div>
 
@@ -743,17 +728,17 @@ export default function App() {
           />
 
           {/* Extra Spare Tile Section */}
-          <div className="mt-8 p-4.5 bg-black/35 rounded-2xl border border-white/10 w-full max-w-[650px] flex items-center justify-between shadow-lg">
-            <div className="space-y-1">
-              <h3 className="font-semibold text-sm flex items-center gap-1.5 text-white">
+          <div className="spare-section">
+            <div className="spare-info">
+              <h3>
                 Extra Spare Tile 🧩
               </h3>
-              <p className="text-xs text-gray-400 leading-relaxed max-w-[320px]">
+              <p>
                 Drag this spare tile and drop it on any board arrow, or select configuration options.
               </p>
             </div>
             
-            <div className="flex gap-4 items-center bg-white/5 p-3 rounded-xl border border-white/5">
+            <div className="spare-controls">
               {/* Draggable Spare Tile Wrapper */}
               <div 
                 draggable
@@ -762,7 +747,7 @@ export default function App() {
                   e.dataTransfer.effectAllowed = 'move';
                   playClickSound();
                 }}
-                className="w-16 h-16 cursor-grab active:cursor-grabbing hover:scale-105 transition-transform duration-200"
+                className="spare-tile-wrapper"
                 onClick={handleOpenSpareEditor}
                 title="Drag this tile onto grid arrows, or click to edit in modal"
               >
@@ -772,14 +757,13 @@ export default function App() {
                   treasure={spareTile.treasure}
                   isFixed={false}
                   pawns={[]}
-                  className="rounded-lg shadow-md border-white/15"
                 />
               </div>
 
-              <div className="flex flex-col gap-2">
+              <div className="spare-actions">
                 <button
                   onClick={handleRotateSpare}
-                  className="p-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg transition-colors cursor-pointer text-gray-300 hover:text-white self-center active:scale-95"
+                  className="btn-rotate"
                   title="Rotate Spare 90° Clockwise"
                 >
                   <RotateCw size={14} />
@@ -787,7 +771,7 @@ export default function App() {
                 <select
                   value={spareTile.shape}
                   onChange={(e) => handleUpdateSpareConfig('shape', e.target.value)}
-                  className="bg-bg-secondary border border-white/10 rounded-lg px-2 py-1 text-xs text-gray-200 focus:outline-none focus:border-accent-gold"
+                  className="select-control"
                 >
                   <option value="I">Straight (I)</option>
                   <option value="L">Corner (L)</option>
@@ -796,7 +780,7 @@ export default function App() {
                 <select
                   value={spareTile.treasure}
                   onChange={(e) => handleUpdateSpareConfig('treasure', e.target.value)}
-                  className="bg-bg-secondary border border-white/10 rounded-lg px-2 py-1 text-xs text-gray-200 focus:outline-none focus:border-accent-gold"
+                  className="select-control"
                 >
                   <option value="">No Treasure</option>
                   {TREASURES.map(t => (
@@ -828,39 +812,38 @@ export default function App() {
 
       {/* Floating Detailed Tile Editor Context Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-          <div className="glass-panel border border-white/15 rounded-3xl w-full max-w-[420px] shadow-2xl p-6 flex flex-col gap-5 bg-bg-panel-solid/95 animate-in fade-in zoom-in-95 duration-200">
-            <div className="flex justify-between items-center border-b border-white/5 pb-3">
-              <h3 className="text-md font-bold text-white">
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--color-border-subtle)', paddingBottom: '12px', marginBottom: '20px'}}>
+              <h3 style={{fontSize: '16px', fontWeight: 'bold', color: 'white'}}>
                 {selectedTileCoord 
                   ? `Configure Tile at (${selectedTileCoord.r}, ${selectedTileCoord.c})` 
                   : 'Configure Extra Spare Tile'}
               </h3>
               <button 
                 onClick={() => setShowModal(false)}
-                className="text-gray-400 hover:text-white text-xl leading-none font-bold cursor-pointer"
+                style={{color: '#9ca3af', fontSize: '24px', fontWeight: 'bold'}}
               >
                 &times;
               </button>
             </div>
 
-            <div className="space-y-4">
+            <div style={{display: 'flex', flexDirection: 'column', gap: '16px'}}>
               {/* Path Shape Option */}
-              <div className="space-y-2">
-                <label className="text-xs font-semibold text-gray-400">Exit Corridor Shape</label>
-                <div className="grid grid-cols-3 gap-2">
+              <div style={{display: 'flex', flexDirection: 'column', gap: '8px'}}>
+                <label style={{fontSize: '12px', fontWeight: 600, color: '#9ca3af'}}>Exit Corridor Shape</label>
+                <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px'}}>
                   {['I', 'L', 'T'].map(sh => (
                     <button
                       key={sh}
                       onClick={() => setModalState(prev => ({ ...prev, shape: sh }))}
                       disabled={selectedTileCoord && board[selectedTileCoord.r][selectedTileCoord.c].isFixed}
                       className={clsx(
-                        "py-2 rounded-xl text-xs font-bold transition-all border cursor-pointer",
-                        modalState.shape === sh
-                          ? "bg-accent-gold text-black border-accent-gold shadow-md font-bold"
-                          : "bg-white/5 text-gray-300 border-white/10 hover:bg-white/10",
+                        "btn-text",
+                        modalState.shape === sh && "btn-primary",
                         selectedTileCoord && board[selectedTileCoord.r][selectedTileCoord.c].isFixed && "opacity-50 cursor-not-allowed"
                       )}
+                      style={{justifyContent: 'center'}}
                     >
                       {sh === 'I' ? 'Straight (I)' : sh === 'L' ? 'Corner (L)' : 'Junction (T)'}
                     </button>
@@ -869,21 +852,20 @@ export default function App() {
               </div>
 
               {/* Rotation Option */}
-              <div className="space-y-2">
-                <label className="text-xs font-semibold text-gray-400">Exits Rotation Angle</label>
-                <div className="grid grid-cols-4 gap-2">
+              <div style={{display: 'flex', flexDirection: 'column', gap: '8px'}}>
+                <label style={{fontSize: '12px', fontWeight: 600, color: '#9ca3af'}}>Exits Rotation Angle</label>
+                <div style={{display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px'}}>
                   {[0, 1, 2, 3].map(rot => (
                     <button
                       key={rot}
                       onClick={() => setModalState(prev => ({ ...prev, dir: rot }))}
                       disabled={selectedTileCoord && board[selectedTileCoord.r][selectedTileCoord.c].isFixed}
                       className={clsx(
-                        "py-2 rounded-xl text-xs font-bold transition-all border cursor-pointer",
-                        modalState.dir === rot
-                          ? "bg-accent-gold text-black border-accent-gold shadow-md font-bold"
-                          : "bg-white/5 text-gray-300 border-white/10 hover:bg-white/10",
+                        "btn-text",
+                        modalState.dir === rot && "btn-primary",
                         selectedTileCoord && board[selectedTileCoord.r][selectedTileCoord.c].isFixed && "opacity-50 cursor-not-allowed"
                       )}
+                      style={{justifyContent: 'center'}}
                     >
                       {rot * 90}°
                     </button>
@@ -892,16 +874,14 @@ export default function App() {
               </div>
 
               {/* Assigned Treasure Option */}
-              <div className="space-y-2">
-                <label className="text-xs font-semibold text-gray-400">Assigned Treasure</label>
+              <div style={{display: 'flex', flexDirection: 'column', gap: '8px'}}>
+                <label style={{fontSize: '12px', fontWeight: 600, color: '#9ca3af'}}>Assigned Treasure</label>
                 <select
                   value={modalState.treasure}
                   onChange={(e) => setModalState(prev => ({ ...prev, treasure: e.target.value }))}
                   disabled={selectedTileCoord && board[selectedTileCoord.r][selectedTileCoord.c].isFixed}
-                  className={clsx(
-                    "w-full bg-bg-secondary border border-white/15 rounded-xl px-3 py-2 text-sm text-gray-200 focus:outline-none focus:border-accent-gold transition-colors",
-                    selectedTileCoord && board[selectedTileCoord.r][selectedTileCoord.c].isFixed && "opacity-50 cursor-not-allowed"
-                  )}
+                  className="select-control"
+                  style={{padding: '8px 12px', fontSize: '14px', borderRadius: '12px'}}
                 >
                   <option value="">No Treasure</option>
                   {TREASURES.map(t => (
@@ -914,9 +894,9 @@ export default function App() {
 
               {/* Pawns Present Option */}
               {selectedTileCoord && (
-                <div className="space-y-2">
-                  <label className="text-xs font-semibold text-gray-400">Pawns Present on Tile</label>
-                  <div className="grid grid-cols-4 gap-2">
+                <div style={{display: 'flex', flexDirection: 'column', gap: '8px'}}>
+                  <label style={{fontSize: '12px', fontWeight: 600, color: '#9ca3af'}}>Pawns Present on Tile</label>
+                  <div style={{display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px'}}>
                     {['red', 'blue', 'green', 'yellow'].map(color => {
                       const present = modalState.pawns.includes(color);
                       return (
@@ -934,14 +914,15 @@ export default function App() {
                             });
                           }}
                           className={clsx(
-                            "py-2 rounded-xl text-xs font-semibold transition-all border cursor-pointer capitalize",
-                            present
-                              ? color === 'red' ? "bg-pawn-red border-pawn-red text-white shadow-md font-bold"
-                                : color === 'blue' ? "bg-pawn-blue border-pawn-blue text-white shadow-md font-bold"
-                                : color === 'green' ? "bg-pawn-green border-pawn-green text-white shadow-md font-bold"
-                                : "bg-pawn-yellow border-pawn-yellow text-black shadow-md font-bold"
-                              : "bg-white/5 text-gray-300 border-white/10 hover:bg-white/10"
+                            "btn-text",
+                            present && `pawn-${color}`
                           )}
+                          style={{
+                            justifyContent: 'center', 
+                            textTransform: 'capitalize',
+                            background: present ? `var(--color-pawn-${color})` : undefined,
+                            color: present ? (color === 'yellow' ? 'black' : 'white') : undefined
+                          }}
                         >
                           {color}
                         </button>
@@ -952,16 +933,16 @@ export default function App() {
               )}
             </div>
 
-            <div className="flex gap-3 justify-end border-t border-white/5 pt-4 mt-2">
+            <div style={{display: 'flex', gap: '12px', justifyContent: 'flex-end', borderTop: '1px solid var(--color-border-subtle)', paddingTop: '16px', marginTop: '16px'}}>
               <button
                 onClick={() => setShowModal(false)}
-                className="px-4.5 py-2 bg-white/5 hover:bg-white/10 text-xs font-semibold rounded-xl transition-colors cursor-pointer border border-white/10"
+                className="btn-text"
               >
                 Cancel
               </button>
               <button
                 onClick={handleSaveModal}
-                className="px-5 py-2 bg-gradient-to-br from-accent-gold to-yellow-600 text-black font-bold text-xs rounded-xl hover:shadow-lg transition-all cursor-pointer"
+                className="btn-text btn-primary"
               >
                 Save Changes
               </button>

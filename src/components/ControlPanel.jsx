@@ -25,13 +25,13 @@ export default function ControlPanel({
   };
 
   return (
-    <aside className="w-full flex flex-col gap-6">
+    <aside className="control-panel">
       {/* Active Player Pawn Manager */}
-      <section className="glass-panel rounded-2xl p-5 border border-white/10">
-        <h2 className="text-md font-semibold mb-3.5 flex items-center gap-2 text-white">
-          <User className="text-accent-gold" size={18} /> Active Player Pawn
+      <section className="glass-panel cp-section" style={{padding: '20px'}}>
+        <h2 className="cp-header">
+          <User className="cp-header-icon text-accent-gold" size={18} style={{color: 'var(--color-accent-gold)'}} /> Active Player Pawn
         </h2>
-        <div className="grid grid-cols-4 gap-2">
+        <div className="pawn-selector">
           {PAWNS.map(p => {
             const isActive = activePawn === p.id;
             return (
@@ -39,13 +39,13 @@ export default function ControlPanel({
                 key={p.id}
                 onClick={() => setActivePawn(p.id)}
                 className={clsx(
-                  "py-2 rounded-xl text-sm font-semibold transition-all duration-200 cursor-pointer border",
-                  p.colorClass,
-                  p.textClass,
-                  isActive
-                    ? "ring-2 ring-white scale-[1.03] opacity-100 border-white shadow-[0_0_12px_rgba(255,255,255,0.2)]"
-                    : "opacity-45 hover:opacity-85 border-transparent scale-100"
+                  "pawn-btn",
+                  isActive && "active"
                 )}
+                style={{
+                  color: isActive ? 'white' : 'var(--color-bg-primary)',
+                  backgroundColor: isActive ? `var(--color-pawn-${p.id})` : 'var(--color-bg-white-5)'
+                }}
               >
                 {p.name}
               </button>
@@ -55,15 +55,15 @@ export default function ControlPanel({
       </section>
 
       {/* Hand Cards Manager */}
-      <section className="glass-panel rounded-2xl p-5 border border-white/10">
-        <h2 className="text-md font-semibold mb-3 flex items-center gap-2 text-white">
-          <CreditCard className="text-accent-gold" size={18} /> Your Hand Cards
+      <section className="glass-panel cp-section" style={{padding: '20px'}}>
+        <h2 className="cp-header">
+          <CreditCard className="cp-header-icon" size={18} style={{color: 'var(--color-accent-gold)'}} /> Your Hand Cards
         </h2>
         
         {/* Hand Cards List */}
-        <div className="min-h-[96px] max-h-[180px] overflow-y-auto border border-white/10 rounded-xl mb-4 p-3 bg-black/35 flex flex-wrap gap-2 items-start justify-start">
+        <div className="hand-list">
           {handCards.length === 0 ? (
-            <span className="text-xs text-gray-500 w-full text-center py-6 font-medium">
+            <span style={{fontSize: '12px', color: '#9ca3af', width: '100%', textAlign: 'center', padding: '24px 0'}}>
               No cards in hand. Select below to add cards.
             </span>
           ) : (
@@ -77,13 +77,12 @@ export default function ControlPanel({
                   key={cardId}
                   onClick={() => setActiveTarget(cardId)}
                   className={clsx(
-                    "px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all duration-200 border cursor-pointer",
-                    isActive
-                      ? "bg-accent-gold text-black border-accent-gold shadow-[0_0_10px_rgba(255,190,26,0.3)] font-bold scale-[1.03]"
-                      : "bg-white/5 text-gray-300 border-white/10 hover:bg-white/10 hover:text-white"
+                    "hand-item",
+                    isActive && "active-target"
                   )}
+                  style={{cursor: 'pointer'}}
                 >
-                  <span className="text-base leading-none">{tr.symbol}</span>
+                  <span style={{fontSize: '16px'}}>{tr.symbol}</span>
                   <span>{tr.name}</span>
                 </button>
               );
@@ -92,11 +91,12 @@ export default function ControlPanel({
         </div>
 
         {/* Add Card Controls */}
-        <div className="flex gap-2.5">
+        <div style={{display: 'flex', gap: '10px'}}>
           <select
             value={selectedTreasure}
             onChange={(e) => setSelectedTreasure(e.target.value)}
-            className="flex-1 bg-bg-secondary border border-white/15 rounded-xl px-3 py-2 text-sm text-gray-200 focus:outline-none focus:border-accent-gold transition-colors"
+            className="select-control"
+            style={{flex: 1, padding: '8px 12px', fontSize: '14px', borderRadius: '12px'}}
           >
             {TREASURES.map(t => (
               <option key={t.id} value={t.id}>
@@ -106,7 +106,7 @@ export default function ControlPanel({
           </select>
           <button
             onClick={handleAddCard}
-            className="flex items-center justify-center gap-1.5 px-4 py-2 bg-white/10 hover:bg-white/20 text-white text-xs font-semibold rounded-xl transition-all border border-white/10 cursor-pointer active:scale-95"
+            className="btn-text"
           >
             <Plus size={14} /> Add
           </button>
@@ -114,17 +114,17 @@ export default function ControlPanel({
       </section>
 
       {/* Pathfinder Solver Panel */}
-      <section className="glass-panel rounded-2xl p-5 border border-white/10 flex-1 flex flex-col min-h-[300px]">
-        <div className="flex justify-between items-center mb-4.5">
-          <h2 className="text-md font-semibold flex items-center gap-2 text-white">
-            <Brain className="text-accent-cyan" size={18} /> Path Strategist Solver
+      <section className="glass-panel cp-section" style={{padding: '20px', flex: 1, minHeight: '300px'}}>
+        <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px'}}>
+          <h2 className="cp-header">
+            <Brain className="cp-header-icon" size={18} style={{color: 'var(--color-accent-cyan)'}} /> Path Strategist Solver
           </h2>
-          <div className="flex items-center gap-2">
-            <label className="text-[11px] text-gray-400 font-semibold uppercase tracking-wider">Depth:</label>
+          <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
+            <label style={{fontSize: '11px', color: '#9ca3af', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em'}}>Depth:</label>
             <select
               value={maxTurns}
               onChange={(e) => setMaxTurns(parseInt(e.target.value, 10))}
-              className="bg-bg-secondary border border-white/15 rounded-lg px-2 py-1 text-xs text-gray-200 focus:outline-none focus:border-accent-cyan cursor-pointer"
+              className="select-control"
             >
               <option value={1}>1 Turn</option>
               <option value={2}>2 Turns</option>
@@ -134,14 +134,15 @@ export default function ControlPanel({
         </div>
 
         {/* Suggestion list */}
-        <div className="flex-1 overflow-y-auto space-y-3.5 pr-1 max-h-[420px]">
+        <div className="solutions-list">
           {handCards.length === 0 ? (
-            <div className="h-full flex flex-col items-center justify-center text-center p-6 border border-dashed border-white/10 rounded-xl bg-black/10">
-              <span className="text-xs text-gray-500 font-medium">Add cards to your hand to activate search recommendations.</span>
+            <div className="empty-state">
+              <p>Add cards to your hand to activate search recommendations.</p>
             </div>
           ) : solutions.length === 0 ? (
-            <div className="h-full flex flex-col items-center justify-center text-center p-6 border border-dashed border-white/10 rounded-xl bg-black/10">
-              <span className="text-xs text-red-400/80 font-medium">No valid moves found. Try shifting columns or rotating tiles to clear path corridors.</span>
+            <div className="empty-state">
+              <p style={{color: 'var(--color-accent-red)'}}>No valid moves found.</p>
+              <span>Try shifting columns or rotating tiles to clear path corridors.</span>
             </div>
           ) : (
             solutions.map((path, idx) => {
@@ -152,13 +153,13 @@ export default function ControlPanel({
               // Safety/Block index properties
               const safety = path.safetyScore || 0;
               let safetyLabel = 'High';
-              let safetyClass = 'text-pawn-green';
+              let safetyColor = 'var(--color-pawn-green)';
               if (safety < 45) {
                 safetyLabel = 'Low';
-                safetyClass = 'text-accent-red';
+                safetyColor = 'var(--color-accent-red)';
               } else if (safety < 75) {
                 safetyLabel = 'Medium';
-                safetyClass = 'text-yellow-500';
+                safetyColor = 'var(--color-pawn-yellow)';
               }
 
               return (
@@ -167,42 +168,41 @@ export default function ControlPanel({
                   onMouseEnter={() => onHoverSolution(path)}
                   onMouseLeave={() => onHoverSolution(null)}
                   onClick={() => onExecuteSolution(path)}
-                  className={clsx(
-                    "relative p-4 rounded-xl border transition-all duration-300 cursor-pointer flex flex-col gap-2 hover:scale-[1.015]",
-                    isSelected 
-                      ? "bg-accent-cyan/5 border-accent-cyan/45 shadow-[inset_0_0_12px_rgba(0,240,255,0.06)] hover:border-accent-cyan/70"
-                      : "bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20"
-                  )}
+                  className="solution-card"
+                  style={{
+                    cursor: 'pointer',
+                    borderColor: isSelected ? 'var(--color-accent-cyan)' : undefined,
+                    background: isSelected ? 'rgba(0, 240, 255, 0.05)' : undefined
+                  }}
                 >
-                  <div className="flex justify-between items-start">
-                    <span className="text-xs font-bold text-gray-200">
+                  <div className="sol-header">
+                    <span className="sol-title">
                       {path.isFallback ? `Approach: ${trLabel}` : `${path.length} Turn Solution to ${trLabel}`}
                     </span>
-                    <span className={clsx(
-                      "text-[9px] font-bold px-2 py-0.5 rounded-full border uppercase tracking-wider",
-                      path.isFallback 
-                        ? "bg-yellow-950/20 border-yellow-700/30 text-yellow-500" 
-                        : "bg-emerald-950/20 border-emerald-700/30 text-emerald-400"
-                    )}>
+                    <span className="sol-badge" style={{
+                      color: path.isFallback ? 'var(--color-pawn-yellow)' : 'var(--color-pawn-green)',
+                      borderColor: path.isFallback ? 'var(--color-pawn-yellow)' : 'var(--color-pawn-green)',
+                      background: path.isFallback ? 'rgba(255, 204, 0, 0.1)' : 'rgba(52, 199, 89, 0.1)'
+                    }}>
                       {path.isFallback ? 'Proximity' : `${path.length} Turn${path.length > 1 ? 's' : ''}`}
                     </span>
                   </div>
 
                   {/* Moves list */}
-                  <div className="text-[11px] text-gray-400 font-mono space-y-1 mt-1 leading-relaxed">
+                  <div className="sol-path" style={{fontSize: '12px', color: '#9ca3af', fontFamily: 'monospace'}}>
                     {path.isFallback ? (
                       <div>
                         Pawn target coordinate: ({path[path.length - 1].endPos.r}, {path[path.length - 1].endPos.c})
                         <br />
-                        Distance remaining: <span className="text-accent-gold font-bold">{path[path.length - 1].minDistance} blocks</span>
+                        Distance remaining: <span style={{color: 'var(--color-accent-gold)', fontWeight: 'bold'}}>{path[path.length - 1].minDistance} blocks</span>
                       </div>
                     ) : (
                       path.map((step, sIdx) => {
                         const arrowIdParts = step.arrowId.split('-');
                         const formatted = `${arrowIdParts[0].toUpperCase()} ${arrowIdParts[1]} ${arrowIdParts[2].toUpperCase()}`;
                         return (
-                          <div key={sIdx} className="flex items-center gap-1">
-                            <span className="text-accent-gold font-semibold">T{sIdx + 1}:</span>
+                          <div key={sIdx} style={{display: 'flex', gap: '4px'}}>
+                            <span style={{color: 'var(--color-accent-gold)', fontWeight: 600}}>T{sIdx + 1}:</span>
                             <span>Slide {formatted} (Rot: {step.rotation * 90}°)</span>
                           </div>
                         );
@@ -210,11 +210,11 @@ export default function ControlPanel({
                     )}
                   </div>
 
-                  <div className="flex justify-between items-center border-t border-white/5 pt-2 mt-1">
-                    <span className="text-[10px] text-gray-500 font-medium">
-                      Opponent Block Resistance: <span className={clsx("font-bold", safetyClass)}>{safety}% ({safetyLabel})</span>
+                  <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--color-border-subtle)', paddingTop: '8px', marginTop: '12px'}}>
+                    <span style={{fontSize: '10px', color: '#9ca3af'}}>
+                      Opponent Block Resistance: <span style={{fontWeight: 'bold', color: safetyColor}}>{safety}% ({safetyLabel})</span>
                     </span>
-                    <span className="text-[10px] text-accent-cyan opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5 font-semibold">
+                    <span style={{fontSize: '10px', color: 'var(--color-accent-cyan)', display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 600}}>
                       Execute <ArrowRight size={10} />
                     </span>
                   </div>
@@ -226,21 +226,21 @@ export default function ControlPanel({
       </section>
 
       {/* Rules & Reference Info */}
-      <section className="glass-panel rounded-2xl p-5 border border-white/10 text-xs text-gray-400 space-y-2.5">
-        <h2 className="text-md font-semibold flex items-center gap-2 text-white pb-1 border-b border-white/5">
-          <HelpCircle className="text-accent-gold" size={16} /> Reference Manual
+      <section className="glass-panel cp-section" style={{padding: '20px', fontSize: '12px', color: '#9ca3af'}}>
+        <h2 className="cp-header" style={{borderBottom: '1px solid var(--color-border-subtle)', paddingBottom: '8px', marginBottom: '8px'}}>
+          <HelpCircle className="cp-header-icon" size={16} style={{color: 'var(--color-accent-gold)'}} /> Reference Manual
         </h2>
-        <p>1. <strong>Slide spare tile</strong>: Drag the spare tile and drop it on an arrow, or click the green arrows surrounding the grid.</p>
-        <p>2. <strong>Rotate corridor exit paths</strong>: Click on tiles to rotate their exits 90° clockwise to build custom pathways.</p>
-        <p>3. <strong>Define pawn coordinates</strong>: Double click a board tile to jump your active solver pawn to that cell coordinate.</p>
-        <div className="flex gap-4 pt-1.5">
-          <div className="flex items-center gap-2">
-            <span className="w-3 h-3 rounded bg-bg-panel-solid border border-accent-gold/40 shadow-sm" />
-            <span className="text-[10px] text-gray-300">Fixed Anchor</span>
+        <p style={{marginBottom: '8px'}}>1. <strong>Slide spare tile</strong>: Drag the spare tile and drop it on an arrow, or click the arrows surrounding the grid.</p>
+        <p style={{marginBottom: '8px'}}>2. <strong>Rotate corridor exit paths</strong>: Click on tiles to rotate their exits 90° clockwise to build custom pathways.</p>
+        <p style={{marginBottom: '8px'}}>3. <strong>Define pawn coordinates</strong>: Double click a board tile to jump your active solver pawn to that cell coordinate.</p>
+        <div style={{display: 'flex', gap: '16px', paddingTop: '8px'}}>
+          <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
+            <span style={{width: '12px', height: '12px', borderRadius: '4px', background: 'var(--color-bg-panel-solid)', border: '1px solid var(--color-accent-gold)'}} />
+            <span style={{fontSize: '10px', color: '#d1d5db'}}>Fixed Anchor</span>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="w-3 h-3 rounded bg-white/5 border border-white/10" />
-            <span className="text-[10px] text-gray-300">Movable Tile</span>
+          <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
+            <span style={{width: '12px', height: '12px', borderRadius: '4px', background: 'var(--color-bg-white-5)', border: '1px solid var(--color-border-subtle)'}} />
+            <span style={{fontSize: '10px', color: '#d1d5db'}}>Movable Tile</span>
           </div>
         </div>
       </section>

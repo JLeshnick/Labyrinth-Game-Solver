@@ -58,12 +58,9 @@ export default function Board({
   };
 
   return (
-    <div className="relative w-full max-w-[650px] aspect-square bg-black/40 rounded-3xl p-4 border border-white/10 shadow-2xl flex items-center justify-center">
+    <div className="board-grid-wrapper">
       {/* 9x9 CSS Grid Wrapper */}
-      <div 
-        className="w-full h-full grid grid-cols-[40px_repeat(7,1fr)_40px] grid-rows-[40px_repeat(7,1fr)_40px] gap-1.5"
-        style={{ contentVisibility: 'auto' }}
-      >
+      <div className="board-grid">
         {/* Shifting Arrows */}
         {SHIFT_ARROWS.map(arrow => {
           const isForbidden = lastShiftArrowId && isOppositeArrow(arrow.id, lastShiftArrowId);
@@ -78,13 +75,10 @@ export default function Board({
               onDrop={(e) => !isForbidden && handleDrop(e, arrow.id)}
               disabled={isForbidden}
               className={clsx(
-                "w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-200 border",
+                "shift-arrow",
                 arrow.class,
-                isForbidden
-                  ? "bg-red-950/20 border-red-900/30 text-red-800 cursor-not-allowed opacity-30"
-                  : isHighlighted
-                    ? "bg-accent-cyan text-black border-accent-cyan shadow-[0_0_15px_rgba(0,240,255,0.6)] scale-110"
-                    : "bg-white/5 border-white/10 text-accent-gold hover:bg-accent-gold hover:text-black hover:border-accent-gold hover:scale-105 active:scale-95"
+                isForbidden && "forbidden",
+                isHighlighted && "highlighted"
               )}
               title={
                 isForbidden 
@@ -92,7 +86,7 @@ export default function Board({
                   : `Slide extra tile into ${arrow.label}`
               }
             >
-              <ChevronRight size={16} className="transform transition-transform" />
+              <ChevronRight size={16} style={{transform: arrow.class.includes('rotate-90') ? 'rotate(90deg)' : arrow.class.includes('-rotate-90') ? 'rotate(-90deg)' : arrow.class.includes('rotate-180') ? 'rotate(180deg)' : 'none'}} />
             </button>
           );
         })}
@@ -117,7 +111,6 @@ export default function Board({
                 isHighlightEnd={isHighlightEnd}
                 onClick={() => onTileClick(r, c)}
                 onDoubleClick={() => onTileDoubleClick(r, c)}
-                className="transition-all"
                 style={{
                   gridRow: r + 2,
                   gridColumn: c + 2
