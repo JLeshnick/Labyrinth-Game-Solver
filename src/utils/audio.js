@@ -112,3 +112,27 @@ export function playSuccessSound() {
     console.warn("Audio Context failed to initialize:", e);
   }
 }
+
+export function playPawnMoveSound() {
+  try {
+    const ctx = getAudioContext();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(300, ctx.currentTime);
+    osc.frequency.setValueAtTime(450, ctx.currentTime + 0.08);
+    
+    gain.gain.setValueAtTime(0.08, ctx.currentTime);
+    gain.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.18);
+    
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    
+    osc.start();
+    osc.stop(ctx.currentTime + 0.18);
+  } catch (e) {
+    console.warn("Audio Context failed to initialize:", e);
+  }
+}
+

@@ -12,6 +12,7 @@ export default function Tile({
   isHighlightPath = false,
   isHighlightStart = false,
   isHighlightEnd = false,
+  isReachable = false,
   onClick,
   onDoubleClick,
   className,
@@ -44,6 +45,7 @@ export default function Tile({
         isHighlightPath && "highlight-path",
         isHighlightStart && "highlight-start",
         isHighlightEnd && "highlight-end",
+        isReachable && "reachable",
         className
       )}
       style={style || {}}

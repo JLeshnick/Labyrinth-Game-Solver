@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import './App.css';
-import { Compass, RotateCw, Save, FolderOpen, RefreshCcw, Shuffle, Undo2, Redo2, Wrench, Edit3, Trash2 } from 'lucide-react';
+import { Compass, RotateCw, Save, FolderOpen, RefreshCcw, Shuffle, Undo2, Redo2, Wrench, Edit3, Trash2, Play, Square, Lock, Unlock } from 'lucide-react';
 import Board from './components/Board';
 import ControlPanel from './components/ControlPanel';
 import Tile from './components/Tile';
@@ -10,14 +10,17 @@ import {
   parseArrowId, 
   executeSlideInGrid, 
   solveAllHand,
-  isOppositeArrow
+  isOppositeArrow,
+  getReachableCells
 } from './solver';
 import { 
   playClickSound, 
   playSlideSound, 
   playRotateSound, 
-  playSuccessSound 
+  playSuccessSound,
+  playPawnMoveSound
 } from './utils/audio';
+
 import clsx from 'clsx';
 
 export default function App() {
@@ -29,6 +32,12 @@ export default function App() {
   const [activeTarget, setActiveTarget] = useState(null);
   const [lastShiftArrowId, setLastShiftArrowId] = useState(null);
   const [maxTurns, setMaxTurns] = useState(2);
+
+  // Game Setup vs Play Mode States
+  const [isGameStarted, setIsGameStarted] = useState(false);
+  const [gameStartState, setGameStartState] = useState(null);
+  const [reachableCells, setReachableCells] = useState([]);
+
 
   // Interaction Tools
   const [activeTool, setActiveTool] = useState('select'); // 'select', 'rotate', 'paint-I', 'paint-L', 'paint-T'
@@ -180,6 +189,29 @@ export default function App() {
     setSolutions(computed);
   }, [board, spareTile, activePawn, handCards, lastShiftArrowId, maxTurns]);
 
+  // Compute reachable cells for active player in play mode
+  useEffect(() => {
+    if (!isGameStarted || board.length === 0) {
+      setReachableCells([]);
+      return;
+    }
+    let pawnPos = null;
+    for (let r = 0; r < 7; r++) {
+      for (let c = 0; c < 7; c++) {
+        if (board[r][c].pawns && board[r][c].pawns.includes(activePawn)) {
+          pawnPos = { r, c };
+          break;
+        }
+      }
+    }
+    if (pawnPos) {
+      const { cells } = getReachableCells(board, pawnPos.r, pawnPos.c);
+      setReachableCells(cells);
+    } else {
+      setReachableCells([]);
+    }
+  }, [board, activePawn, isGameStarted]);
+
   // History Recording Helper
   const pushStateToHistory = (nextBoard, nextSpare, nextLastShift, nextTarget, nextPawn, nextHand) => {
     const record = {
@@ -194,6 +226,118 @@ export default function App() {
     const newHistory = history.slice(0, historyIndex + 1);
     setHistory([...newHistory, record]);
     setHistoryIndex(newHistory.length);
+  };
+
+  const handleStartGame = () => {
+    playSuccessSound();
+    const currentSetup = {
+      board: cloneBoard(board),
+      spareTile: { ...spareTile },
+      activePawn,
+      handCards: [...handCards],
+      activeTarget,
+      lastShiftArrowId
+    };
+    setGameStartState(currentSetup);
+    setIsGameStarted(true);
+    try {
+      const state = {
+        board,
+        spareTile,
+        activePawn,
+        handCards,
+        activeTarget,
+        lastShiftArrowId,
+        isGameStarted: true,
+        gameStartState: currentSetup
+      };
+      localStorage.setItem('labyrinth_strategist_state', JSON.stringify(state));
+    } catch (e) {
+      console.warn("Could not auto-save game start state:", e);
+    }
+    showToast('Game Started! Board locked. Click to move pawn legally along corridors. 🎮');
+  };
+
+  const handleEndGame = () => {
+    playClickSound();
+    setIsGameStarted(false);
+    showToast('Game ended. Board editing unlocked! 🔧');
+  };
+
+  const handleRestartGame = () => {
+    if (!gameStartState) {
+      showToast('No game start state saved.');
+      return;
+    }
+    playSuccessSound();
+    const setup = gameStartState;
+    setBoard(cloneBoard(setup.board));
+    setSpareTile({ ...setup.spareTile });
+    setActivePawn(setup.activePawn);
+    setHandCards([...setup.handCards]);
+    setActiveTarget(setup.activeTarget);
+    setLastShiftArrowId(setup.lastShiftArrowId);
+
+    const record = {
+      board: cloneBoard(setup.board),
+      spareTile: { ...setup.spareTile },
+      lastShiftArrowId: setup.lastShiftArrowId,
+      activeTarget: setup.activeTarget,
+      activePawn: setup.activePawn,
+      handCards: [...setup.handCards]
+    };
+    setHistory([record]);
+    setHistoryIndex(0);
+    showToast('Game restarted back to setup starting configuration! 🔄');
+  };
+
+  const handleClearBoard = () => {
+    playClickSound();
+    const tempBoard = Array(7).fill(null).map((_, r) => 
+      Array(7).fill(null).map((_, c) => ({
+        r,
+        c,
+        shape: 'I',
+        dir: 0,
+        treasure: null,
+        isFixed: false,
+        pawns: []
+      }))
+    );
+
+    FIXED_TILES.forEach(ft => {
+      tempBoard[ft.r][ft.c].shape = ft.shape;
+      tempBoard[ft.r][ft.c].dir = ft.dir;
+      tempBoard[ft.r][ft.c].treasure = ft.treasure;
+      tempBoard[ft.r][ft.c].isFixed = true;
+      tempBoard[ft.r][ft.c].pawns = ft.pawns ? [...ft.pawns] : [];
+    });
+
+    const spare = {
+      shape: 'I',
+      dir: 0,
+      treasure: '',
+      isFixed: false,
+      pawns: []
+    };
+
+    setBoard(tempBoard);
+    setSpareTile(spare);
+    setLastShiftArrowId(null);
+    setHandCards([]);
+    setActiveTarget(null);
+
+    const startState = {
+      board: tempBoard,
+      spareTile: spare,
+      activePawn: 'red',
+      handCards: [],
+      activeTarget: null,
+      lastShiftArrowId: null
+    };
+    setHistory([startState]);
+    setHistoryIndex(0);
+    showToast('Cleared board to a blank layout from scratch! 🧹');
   };
 
   // Reset preset action
@@ -220,8 +364,66 @@ export default function App() {
     showToast('Shuffled all movable tiles randomly!');
   };
 
-  // Brush click actions
+  // Brush click actions or legal pawn movement
   const handleTileClick = (r, c) => {
+    if (isGameStarted) {
+      // PLAY MODE: Handle legal pawn movement
+      let pawnPos = null;
+      for (let row = 0; row < 7; row++) {
+        for (let col = 0; col < 7; col++) {
+          if (board[row][col].pawns && board[row][col].pawns.includes(activePawn)) {
+            pawnPos = { r: row, c: col };
+            break;
+          }
+        }
+      }
+
+      if (!pawnPos) {
+        showToast(`Active pawn ${activePawn.toUpperCase()} is not placed on the board! Switch to Edit mode to place it.`);
+        return;
+      }
+
+      // Check if clicked cell is the same as current position
+      if (pawnPos.r === r && pawnPos.c === c) {
+        return;
+      }
+
+      // Find reachable cells using BFS
+      const { cells } = getReachableCells(board, pawnPos.r, pawnPos.c);
+      const isReachable = cells.some(cell => cell.r === r && cell.c === c);
+
+      if (isReachable) {
+        playPawnMoveSound();
+        const nextBoard = cloneBoard(board);
+        
+        nextBoard[pawnPos.r][pawnPos.c].pawns = (nextBoard[pawnPos.r][pawnPos.c].pawns || []).filter(p => p !== activePawn);
+        if (!nextBoard[r][c].pawns) nextBoard[r][c].pawns = [];
+        nextBoard[r][c].pawns.push(activePawn);
+
+        let nextHand = [...handCards];
+        let nextTarget = activeTarget;
+
+        if (nextBoard[r][c].treasure === activeTarget) {
+          playSuccessSound();
+          showToast(`Goal Target Achieved: ${activeTarget.toUpperCase()}! 🏆`);
+          
+          nextHand = nextHand.filter(c => c !== activeTarget);
+          nextTarget = nextHand.length > 0 ? nextHand[0] : null;
+          
+          setHandCards(nextHand);
+          setActiveTarget(nextTarget);
+        } else {
+          showToast(`Moved pawn to (${r}, ${c})`);
+        }
+
+        setBoard(nextBoard);
+        pushStateToHistory(nextBoard, spareTile, lastShiftArrowId, nextTarget, activePawn, nextHand);
+      } else {
+        showToast(`Tile (${r}, ${c}) is not reachable from your current position!`);
+      }
+      return;
+    }
+
     const tile = board[r][c];
 
     if (activeTool === 'select') {
@@ -262,8 +464,9 @@ export default function App() {
     }
   };
 
-  // Double click moves active pawn directly to coordinate
+  // Double click moves active pawn directly to coordinate (Setup Mode Only)
   const handleTileDoubleClick = (r, c) => {
+    if (isGameStarted) return;
     playClickSound();
     const nextBoard = cloneBoard(board);
     
@@ -336,6 +539,10 @@ export default function App() {
 
   // Open spare editor modal
   const handleOpenSpareEditor = () => {
+    if (isGameStarted) {
+      showToast('Spare tile configuration is locked during the game. You can only rotate and place it.');
+      return;
+    }
     playClickSound();
     setSelectedTileCoord(null);
     setModalState({
@@ -522,7 +729,9 @@ export default function App() {
         activePawn,
         handCards,
         activeTarget,
-        lastShiftArrowId
+        lastShiftArrowId,
+        isGameStarted,
+        gameStartState
       };
       localStorage.setItem('labyrinth_strategist_state', JSON.stringify(state));
       playSuccessSound();
@@ -547,6 +756,8 @@ export default function App() {
       setHandCards(state.handCards || []);
       setActiveTarget(state.activeTarget || null);
       setLastShiftArrowId(state.lastShiftArrowId || null);
+      setIsGameStarted(state.isGameStarted || false);
+      setGameStartState(state.gameStartState || null);
       
       // Record initial history
       const record = {
@@ -652,18 +863,72 @@ export default function App() {
           >
             <FolderOpen size={14} /> Load State
           </button>
-          <button 
-            onClick={handleResetBoard}
-            className="btn-text btn-danger"
-          >
-            <RefreshCcw size={14} /> Reset
-          </button>
-          <button 
-            onClick={handleShuffleBoard}
-            className="btn-text btn-primary"
-          >
-            <Shuffle size={14} /> Shuffle Movable
-          </button>
+          
+          <div className="toolbar-divider" />
+
+          {!isGameStarted ? (
+            <>
+              <button 
+                onClick={handleClearBoard}
+                className="btn-text btn-danger"
+                title="Wipe board and restart layout from scratch"
+              >
+                <Trash2 size={14} /> Clear Board
+              </button>
+              <button 
+                onClick={handleResetBoard}
+                className="btn-text btn-danger"
+              >
+                <RefreshCcw size={14} /> Reset Layout
+              </button>
+              <button 
+                onClick={handleShuffleBoard}
+                className="btn-text btn-primary"
+              >
+                <Shuffle size={14} /> Shuffle Movable
+              </button>
+              <button 
+                onClick={handleStartGame}
+                className="btn-text btn-success"
+                style={{
+                  background: 'linear-gradient(135deg, #10b981, #059669)',
+                  color: 'white',
+                  border: 'none',
+                  boxShadow: '0 0 12px rgba(16, 185, 129, 0.4)',
+                  fontWeight: 700
+                }}
+              >
+                <Play size={14} /> Start Game
+              </button>
+            </>
+          ) : (
+            <>
+              <button 
+                onClick={handleRestartGame}
+                className="btn-text"
+                style={{
+                  background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+                  color: 'black',
+                  border: 'none',
+                  fontWeight: 700
+                }}
+              >
+                <RefreshCcw size={14} /> Restart Game
+              </button>
+              <button 
+                onClick={handleEndGame}
+                className="btn-text"
+                style={{
+                  background: 'linear-gradient(135deg, var(--color-accent-cyan), #0284c7)',
+                  color: 'black',
+                  border: 'none',
+                  fontWeight: 700
+                }}
+              >
+                <Wrench size={14} /> Edit Board
+              </button>
+            </>
+          )}
         </div>
       </header>
 
@@ -673,38 +938,45 @@ export default function App() {
         <section className="glass-panel board-section">
           {/* Painting Toolbar */}
           <div className="board-toolbar">
-            <div className="tool-group">
-              <button 
-                onClick={() => setActiveTool('select')}
-                className={clsx("btn-tool", activeTool === 'select' && "active")}
-              >
-                <Wrench size={13} /> Inspect Mode
-              </button>
-              <button 
-                onClick={() => setActiveTool('rotate')}
-                className={clsx("btn-tool", activeTool === 'rotate' && "active")}
-              >
-                <RefreshCcw size={13} /> Quick Rotate
-              </button>
-              <button 
-                onClick={() => setActiveTool('paint-I')}
-                className={clsx("btn-tool", activeTool === 'paint-I' && "active")}
-              >
-                <Edit3 size={13} /> Paint Straight (I)
-              </button>
-              <button 
-                onClick={() => setActiveTool('paint-L')}
-                className={clsx("btn-tool", activeTool === 'paint-L' && "active")}
-              >
-                <Edit3 size={13} /> Paint Corner (L)
-              </button>
-              <button 
-                onClick={() => setActiveTool('paint-T')}
-                className={clsx("btn-tool", activeTool === 'paint-T' && "active")}
-              >
-                <Edit3 size={13} /> Paint Junction (T)
-              </button>
-            </div>
+            {isGameStarted ? (
+              <div className="mode-badge play-mode-active" style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 14px', background: 'rgba(0, 240, 255, 0.1)', borderRadius: '8px', border: '1px solid rgba(0, 240, 255, 0.3)' }}>
+                <Lock size={14} style={{ color: 'var(--color-accent-cyan)' }} />
+                <span style={{ color: 'var(--color-accent-cyan)', fontWeight: 'bold', fontSize: '12px', letterSpacing: '0.05em' }}>GAME MODE: BOARD LOCKED</span>
+              </div>
+            ) : (
+              <div className="tool-group">
+                <button 
+                  onClick={() => setActiveTool('select')}
+                  className={clsx("btn-tool", activeTool === 'select' && "active")}
+                >
+                  <Wrench size={13} /> Inspect Mode
+                </button>
+                <button 
+                  onClick={() => setActiveTool('rotate')}
+                  className={clsx("btn-tool", activeTool === 'rotate' && "active")}
+                >
+                  <RefreshCcw size={13} /> Quick Rotate
+                </button>
+                <button 
+                  onClick={() => setActiveTool('paint-I')}
+                  className={clsx("btn-tool", activeTool === 'paint-I' && "active")}
+                >
+                  <Edit3 size={13} /> Paint Straight (I)
+                </button>
+                <button 
+                  onClick={() => setActiveTool('paint-L')}
+                  className={clsx("btn-tool", activeTool === 'paint-L' && "active")}
+                >
+                  <Edit3 size={13} /> Paint Corner (L)
+                </button>
+                <button 
+                  onClick={() => setActiveTool('paint-T')}
+                  className={clsx("btn-tool", activeTool === 'paint-T' && "active")}
+                >
+                  <Edit3 size={13} /> Paint Junction (T)
+                </button>
+              </div>
+            )}
             
             <div className="status-badge">
               Last shift: <span className="status-badge-val">{getLastShiftText()}</span>
@@ -726,6 +998,8 @@ export default function App() {
             onDragOver={setDragOverArrowId}
             onDropSpareTile={handleDropSpareTile}
             previewArrowId={previewArrowId}
+            isGameStarted={isGameStarted}
+            reachableCells={reachableCells}
           />
 
           {/* Extra Spare Tile Section */}
@@ -735,7 +1009,9 @@ export default function App() {
                 Extra Spare Tile 🧩
               </h3>
               <p>
-                Drag this spare tile and drop it on any board arrow, or select configuration options.
+                {isGameStarted 
+                  ? "Drag this spare tile and drop it on an arrow to slide, or rotate it."
+                  : "Drag this spare tile and drop it on any board arrow, or select configuration options."}
               </p>
             </div>
             
@@ -750,7 +1026,7 @@ export default function App() {
                 }}
                 className="spare-tile-wrapper"
                 onClick={handleOpenSpareEditor}
-                title="Drag this tile onto grid arrows, or click to edit in modal"
+                title={isGameStarted ? "Drag this tile onto grid arrows, or click rotate" : "Drag this tile onto grid arrows, or click to edit in modal"}
               >
                 <Tile
                   shape={spareTile.shape}
@@ -773,6 +1049,8 @@ export default function App() {
                   value={spareTile.shape}
                   onChange={(e) => handleUpdateSpareConfig('shape', e.target.value)}
                   className="select-control"
+                  disabled={isGameStarted}
+                  style={isGameStarted ? { opacity: 0.6, cursor: 'not-allowed' } : {}}
                 >
                   <option value="I">Straight (I)</option>
                   <option value="L">Corner (L)</option>
@@ -782,6 +1060,8 @@ export default function App() {
                   value={spareTile.treasure}
                   onChange={(e) => handleUpdateSpareConfig('treasure', e.target.value)}
                   className="select-control"
+                  disabled={isGameStarted}
+                  style={isGameStarted ? { opacity: 0.6, cursor: 'not-allowed' } : {}}
                 >
                   <option value="">No Treasure</option>
                   {TREASURES.map(t => (
@@ -808,6 +1088,7 @@ export default function App() {
           solutions={solutions}
           onHoverSolution={setHoveredSolution}
           onExecuteSolution={handleExecuteSolution}
+          isGameStarted={isGameStarted}
         />
       </main>
 

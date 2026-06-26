@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { TREASURES, PAWNS } from '../constants';
-import { RotateCw, Plus, Brain, User, CreditCard, HelpCircle, ArrowRight } from 'lucide-react';
+import { RotateCw, Plus, Brain, User, CreditCard, HelpCircle, ArrowRight, Lock, Unlock } from 'lucide-react';
 import clsx from 'clsx';
 
 export default function ControlPanel({
@@ -14,7 +14,8 @@ export default function ControlPanel({
   setMaxTurns,
   solutions = [],
   onHoverSolution,
-  onExecuteSolution
+  onExecuteSolution,
+  isGameStarted = false
 }) {
   const [selectedTreasure, setSelectedTreasure] = useState(TREASURES[0].id);
 
@@ -26,6 +27,35 @@ export default function ControlPanel({
 
   return (
     <aside className="control-panel">
+      {/* Game Mode Status Card */}
+      {isGameStarted ? (
+        <section className="glass-panel cp-section cp-game-status" style={{padding: '20px', borderLeft: '4px solid var(--color-accent-cyan)'}}>
+          <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+            <div>
+              <span style={{fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--color-accent-cyan)', fontWeight: 'bold'}}>Game Status</span>
+              <h3 style={{fontSize: '16px', color: 'white', marginTop: '4px'}}>🎮 Play Mode Active</h3>
+            </div>
+            <Lock size={20} style={{color: 'var(--color-accent-cyan)'}} />
+          </div>
+          <p style={{fontSize: '12px', color: '#9ca3af', marginTop: '8px', lineHeight: '1.5'}}>
+            All board layout configuration is locked. Slide the extra spare tile using the arrows or click connected paths to move your active pawn legally.
+          </p>
+        </section>
+      ) : (
+        <section className="glass-panel cp-section cp-game-status" style={{padding: '20px', borderLeft: '4px solid var(--color-accent-gold)'}}>
+          <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+            <div>
+              <span style={{fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--color-accent-gold)', fontWeight: 'bold'}}>Game Status</span>
+              <h3 style={{fontSize: '16px', color: 'white', marginTop: '4px'}}>🔧 Setup Mode</h3>
+            </div>
+            <Unlock size={20} style={{color: 'var(--color-accent-gold)'}} />
+          </div>
+          <p style={{fontSize: '12px', color: '#9ca3af', marginTop: '8px', lineHeight: '1.5'}}>
+            Configure the board exits, place treasures, set starting pawn locations, and add cards. Click <strong>Start Game</strong> in the top header once finished.
+          </p>
+        </section>
+      )}
+
       {/* Active Player Pawn Manager */}
       <section className="glass-panel cp-section" style={{padding: '20px'}}>
         <h2 className="cp-header">

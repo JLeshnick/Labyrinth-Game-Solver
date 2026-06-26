@@ -846,3 +846,50 @@
   max-width: 400px;
   box-shadow: var(--shadow-panel);
 }
+
+/* Play Mode Locked & Reachable Visuals */
+.board-locked .tile-container:hover {
+  transform: none;
+  border-color: rgba(255, 255, 255, 0.15);
+  cursor: default;
+}
+
+.board-locked .tile-container.reachable {
+  cursor: pointer;
+  border-color: rgba(0, 240, 255, 0.4);
+  box-shadow: inset 0 0 10px rgba(0, 240, 255, 0.1);
+}
+
+.board-locked .tile-container.reachable:hover {
+  transform: scale(1.04);
+  border-color: var(--color-accent-cyan);
+  box-shadow: 0 0 15px var(--color-accent-cyan-glow), inset 0 0 10px rgba(0, 240, 255, 0.2);
+  z-index: 10;
+}
+
+.btn-success {
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: white;
+  border: none;
+}
+
+.btn-success:hover:not(:disabled) {
+  background: linear-gradient(135deg, #34d399, #059669);
+  box-shadow: 0 0 15px rgba(16, 185, 129, 0.4);
+}
+
+.play-mode-active {
+  animation: pulse-border 2s infinite ease-in-out;
+}
+
+@keyframes pulse-border {
+  0%, 100% {
+    border-color: rgba(0, 240, 255, 0.3);
+    box-shadow: 0 0 4px rgba(0, 240, 255, 0.1);
+  }
+  50% {
+    border-color: rgba(0, 240, 255, 0.7);
+    box-shadow: 0 0 12px rgba(0, 240, 255, 0.3);
+  }
+}
+

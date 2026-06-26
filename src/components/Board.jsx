@@ -18,7 +18,9 @@ export default function Board({
   onSlide,
   onDragOver,
   onDropSpareTile,
-  previewArrowId = null
+  previewArrowId = null,
+  isGameStarted = false,
+  reachableCells = []
 }) {
   if (!board || board.length === 0) return null;
 
@@ -58,7 +60,7 @@ export default function Board({
   };
 
   return (
-    <div className="board-grid-wrapper">
+    <div className={clsx("board-grid-wrapper", isGameStarted && "board-locked")}>
       {/* 9x9 CSS Grid Wrapper */}
       <div className="board-grid">
         {/* Shifting Arrows */}
@@ -102,6 +104,7 @@ export default function Board({
           row.map((tileData, c) => {
             const isSelected = selectedTileCoord && selectedTileCoord.r === r && selectedTileCoord.c === c;
             const { isHighlightPath, isHighlightStart, isHighlightEnd } = getHighlightState(r, c);
+            const isReachable = isGameStarted && reachableCells.some(cell => cell.r === r && cell.c === c);
 
             return (
               <Tile
@@ -115,6 +118,7 @@ export default function Board({
                 isHighlightPath={isHighlightPath}
                 isHighlightStart={isHighlightStart}
                 isHighlightEnd={isHighlightEnd}
+                isReachable={isReachable}
                 onClick={() => onTileClick(r, c)}
                 onDoubleClick={() => onTileDoubleClick(r, c)}
                 style={{
