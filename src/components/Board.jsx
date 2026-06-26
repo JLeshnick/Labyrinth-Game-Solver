@@ -63,6 +63,17 @@ export default function Board({
     <div className={clsx("board-grid-wrapper", isGameStarted && "board-locked")}>
       {/* 9x9 CSS Grid Wrapper */}
       <div className="board-grid">
+        {/* Fixed unmovable background tracks */}
+        <div className="board-track-horizontal" style={{ gridRow: 2, gridColumn: '2 / 9' }} />
+        <div className="board-track-horizontal" style={{ gridRow: 4, gridColumn: '2 / 9' }} />
+        <div className="board-track-horizontal" style={{ gridRow: 6, gridColumn: '2 / 9' }} />
+        <div className="board-track-horizontal" style={{ gridRow: 8, gridColumn: '2 / 9' }} />
+
+        <div className="board-track-vertical" style={{ gridColumn: 2, gridRow: '2 / 9' }} />
+        <div className="board-track-vertical" style={{ gridColumn: 4, gridRow: '2 / 9' }} />
+        <div className="board-track-vertical" style={{ gridColumn: 6, gridRow: '2 / 9' }} />
+        <div className="board-track-vertical" style={{ gridColumn: 8, gridRow: '2 / 9' }} />
+
         {/* Shifting Arrows */}
         {SHIFT_ARROWS.map(arrow => {
           const isForbidden = lastShiftArrowId && isOppositeArrow(arrow.id, lastShiftArrowId);

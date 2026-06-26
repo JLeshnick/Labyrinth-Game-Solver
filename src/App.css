@@ -910,3 +910,50 @@
   }
 }
 
+/* Fixed lock badges inside fixed tiles */
+.fixed-lock-badge {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  background: rgba(255, 190, 26, 0.15);
+  border: 1px solid rgba(255, 190, 26, 0.4);
+  color: var(--color-accent-gold);
+  border-radius: 4px;
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+  z-index: 5;
+  pointer-events: none;
+}
+
+/* Background tracks for unmovable rows/columns */
+.board-track-horizontal, .board-track-vertical {
+  background-image: repeating-linear-gradient(
+    45deg, 
+    rgba(255, 190, 26, 0.02) 0px, 
+    rgba(255, 190, 26, 0.02) 2px, 
+    transparent 2px, 
+    transparent 8px
+  );
+  background-color: rgba(30, 26, 50, 0.3);
+  border: 1px dashed rgba(255, 255, 255, 0.04);
+  border-radius: 8px;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.board-track-horizontal {
+  height: 100%;
+}
+
+.board-track-vertical {
+  width: 100%;
+}
+
+.tile-container {
+  z-index: 2;
+}
+

@@ -1,5 +1,6 @@
 import React from 'react';
 import { TREASURES } from '../constants';
+import { Lock } from 'lucide-react';
 import clsx from 'clsx';
 
 export default function Tile({
@@ -90,6 +91,13 @@ export default function Tile({
               className={`pawn-marker pawn-${color}`}
             />
           ))}
+        </div>
+      )}
+
+      {/* Fixed lock indicator */}
+      {isFixed && (
+        <div className="fixed-lock-badge" title="Fixed Anchor (Cannot slide)">
+          <Lock size={10} />
         </div>
       )}
     </div>
