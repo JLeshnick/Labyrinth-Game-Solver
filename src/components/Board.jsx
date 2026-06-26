@@ -76,17 +76,23 @@ export default function Board({
               disabled={isForbidden}
               className={clsx(
                 "shift-arrow",
-                arrow.class,
                 isForbidden && "forbidden",
                 isHighlighted && "highlighted"
               )}
+              style={{
+                gridRow: arrow.gridRow,
+                gridColumn: arrow.gridColumn,
+                justifySelf: arrow.justifySelf,
+                alignSelf: arrow.alignSelf,
+                margin: arrow.margin
+              }}
               title={
                 isForbidden 
                   ? "Forbidden: Cannot immediately reverse the previous shift" 
                   : `Slide extra tile into ${arrow.label}`
               }
             >
-              <ChevronRight size={16} style={{transform: arrow.class.includes('rotate-90') ? 'rotate(90deg)' : arrow.class.includes('-rotate-90') ? 'rotate(-90deg)' : arrow.class.includes('rotate-180') ? 'rotate(180deg)' : 'none'}} />
+              <ChevronRight size={16} style={{transform: `rotate(${arrow.rotation}deg)`}} />
             </button>
           );
         })}

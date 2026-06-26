@@ -14,7 +14,8 @@ export default function Tile({
   isHighlightEnd = false,
   onClick,
   onDoubleClick,
-  className
+  className,
+  style
 }) {
   // Exits mapping for SVG drawing and verification
   const getExitsPath = () => {
@@ -42,9 +43,10 @@ export default function Tile({
         isSelected && "selected",
         isHighlightPath && "highlight-path",
         isHighlightStart && "highlight-start",
-        isHighlightEnd && "highlight-end"
+        isHighlightEnd && "highlight-end",
+        className
       )}
-      style={className ? className : {}}
+      style={style || {}}
     >
       <div className="path-layer" style={{ transform: `rotate(${dir * 90}deg)` }}>
         {shape === 'I' && (

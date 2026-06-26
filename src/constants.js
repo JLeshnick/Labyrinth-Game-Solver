@@ -26,10 +26,10 @@ export const TREASURES = [
 ];
 
 export const PAWNS = [
-  { id: 'red', name: 'Red', colorClass: 'bg-pawn-red', textClass: 'text-white' },
-  { id: 'blue', name: 'Blue', colorClass: 'bg-pawn-blue', textClass: 'text-white' },
-  { id: 'green', name: 'Green', colorClass: 'bg-pawn-green', textClass: 'text-white' },
-  { id: 'yellow', name: 'Yellow', colorClass: 'bg-pawn-yellow', textClass: 'text-black' }
+  { id: 'red', name: 'Red', textColor: 'white' },
+  { id: 'blue', name: 'Blue', textColor: 'white' },
+  { id: 'green', name: 'Green', textColor: 'white' },
+  { id: 'yellow', name: 'Yellow', textColor: 'black' }
 ];
 
 export const FIXED_TILES = [
@@ -56,17 +56,17 @@ export const FIXED_TILES = [
 ];
 
 export const SHIFT_ARROWS = [
-  { id: 'row-1-left', type: 'row', index: 1, dir: 'left', label: 'Row 1 Right', class: 'col-start-1 row-start-3 justify-self-end mr-2 rotate-0' },
-  { id: 'row-1-right', type: 'row', index: 1, dir: 'right', label: 'Row 1 Left', class: 'col-start-9 row-start-3 justify-self-start ml-2 rotate-180' },
-  { id: 'row-3-left', type: 'row', index: 3, dir: 'left', label: 'Row 3 Right', class: 'col-start-1 row-start-5 justify-self-end mr-2 rotate-0' },
-  { id: 'row-3-right', type: 'row', index: 3, dir: 'right', label: 'Row 3 Left', class: 'col-start-9 row-start-5 justify-self-start ml-2 rotate-180' },
-  { id: 'row-5-left', type: 'row', index: 5, dir: 'left', label: 'Row 5 Right', class: 'col-start-1 row-start-7 justify-self-end mr-2 rotate-0' },
-  { id: 'row-5-right', type: 'row', index: 5, dir: 'right', label: 'Row 5 Left', class: 'col-start-9 row-start-7 justify-self-start ml-2 rotate-180' },
+  { id: 'row-1-left', type: 'row', index: 1, dir: 'left', label: 'Row 1 Right', gridRow: 3, gridColumn: 1, justifySelf: 'end', alignSelf: 'center', margin: '0 8px 0 0', rotation: 0 },
+  { id: 'row-1-right', type: 'row', index: 1, dir: 'right', label: 'Row 1 Left', gridRow: 3, gridColumn: 9, justifySelf: 'start', alignSelf: 'center', margin: '0 0 0 8px', rotation: 180 },
+  { id: 'row-3-left', type: 'row', index: 3, dir: 'left', label: 'Row 3 Right', gridRow: 5, gridColumn: 1, justifySelf: 'end', alignSelf: 'center', margin: '0 8px 0 0', rotation: 0 },
+  { id: 'row-3-right', type: 'row', index: 3, dir: 'right', label: 'Row 3 Left', gridRow: 5, gridColumn: 9, justifySelf: 'start', alignSelf: 'center', margin: '0 0 0 8px', rotation: 180 },
+  { id: 'row-5-left', type: 'row', index: 5, dir: 'left', label: 'Row 5 Right', gridRow: 7, gridColumn: 1, justifySelf: 'end', alignSelf: 'center', margin: '0 8px 0 0', rotation: 0 },
+  { id: 'row-5-right', type: 'row', index: 5, dir: 'right', label: 'Row 5 Left', gridRow: 7, gridColumn: 9, justifySelf: 'start', alignSelf: 'center', margin: '0 0 0 8px', rotation: 180 },
   
-  { id: 'col-1-top', type: 'col', index: 1, dir: 'top', label: 'Col 1 Down', class: 'col-start-3 row-start-1 self-end mb-2 rotate-90' },
-  { id: 'col-1-bottom', type: 'col', index: 1, dir: 'bottom', label: 'Col 1 Up', class: 'col-start-3 row-start-9 self-start mt-2 -rotate-90' },
-  { id: 'col-3-top', type: 'col', index: 3, dir: 'top', label: 'Col 3 Down', class: 'col-start-5 row-start-1 self-end mb-2 rotate-90' },
-  { id: 'col-3-bottom', type: 'col', index: 3, dir: 'bottom', label: 'Col 3 Up', class: 'col-start-5 row-start-9 self-start mt-2 -rotate-90' },
-  { id: 'col-5-top', type: 'col', index: 5, dir: 'top', label: 'Col 5 Down', class: 'col-start-7 row-start-1 self-end mb-2 rotate-90' },
-  { id: 'col-5-bottom', type: 'col', index: 5, dir: 'bottom', label: 'Col 5 Up', class: 'col-start-7 row-start-9 self-start mt-2 -rotate-90' }
+  { id: 'col-1-top', type: 'col', index: 1, dir: 'top', label: 'Col 1 Down', gridRow: 1, gridColumn: 3, justifySelf: 'center', alignSelf: 'end', margin: '0 0 8px 0', rotation: 90 },
+  { id: 'col-1-bottom', type: 'col', index: 1, dir: 'bottom', label: 'Col 1 Up', gridRow: 9, gridColumn: 3, justifySelf: 'center', alignSelf: 'start', margin: '8px 0 0 0', rotation: -90 },
+  { id: 'col-3-top', type: 'col', index: 3, dir: 'top', label: 'Col 3 Down', gridRow: 1, gridColumn: 5, justifySelf: 'center', alignSelf: 'end', margin: '0 0 8px 0', rotation: 90 },
+  { id: 'col-3-bottom', type: 'col', index: 3, dir: 'bottom', label: 'Col 3 Up', gridRow: 9, gridColumn: 5, justifySelf: 'center', alignSelf: 'start', margin: '8px 0 0 0', rotation: -90 },
+  { id: 'col-5-top', type: 'col', index: 5, dir: 'top', label: 'Col 5 Down', gridRow: 1, gridColumn: 7, justifySelf: 'center', alignSelf: 'end', margin: '0 0 8px 0', rotation: 90 },
+  { id: 'col-5-bottom', type: 'col', index: 5, dir: 'bottom', label: 'Col 5 Up', gridRow: 9, gridColumn: 7, justifySelf: 'center', alignSelf: 'start', margin: '8px 0 0 0', rotation: -90 }
 ];

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import './App.css';
 import { Compass, RotateCw, Save, FolderOpen, RefreshCcw, Shuffle, Undo2, Redo2, Wrench, Edit3, Trash2 } from 'lucide-react';
 import Board from './components/Board';
 import ControlPanel from './components/ControlPanel';

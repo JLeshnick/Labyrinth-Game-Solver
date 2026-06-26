@@ -43,7 +43,7 @@ export default function ControlPanel({
                   isActive && "active"
                 )}
                 style={{
-                  color: isActive ? 'white' : 'var(--color-bg-primary)',
+                  color: isActive ? p.textColor : '#9ca3af',
                   backgroundColor: isActive ? `var(--color-pawn-${p.id})` : 'var(--color-bg-white-5)'
                 }}
               >
