@@ -893,3 +893,20 @@
   }
 }
 
+/* Wizard Highlight Pulsing outline border for active config guides */
+.wizard-highlight-pulse {
+  animation: pulse-gold-border 1.5s infinite ease-in-out;
+  border: 2px solid var(--color-accent-gold) !important;
+}
+
+@keyframes pulse-gold-border {
+  0%, 100% {
+    border-color: rgba(255, 190, 26, 0.3);
+    box-shadow: 0 0 6px rgba(255, 190, 26, 0.1);
+  }
+  50% {
+    border-color: rgba(255, 190, 26, 0.9);
+    box-shadow: 0 0 16px rgba(255, 190, 26, 0.4);
+  }
+}
+

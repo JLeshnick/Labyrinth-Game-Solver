@@ -37,6 +37,7 @@ export default function App() {
   const [isGameStarted, setIsGameStarted] = useState(false);
   const [gameStartState, setGameStartState] = useState(null);
   const [reachableCells, setReachableCells] = useState([]);
+  const [setupStep, setSetupStep] = useState(1);
 
 
   // Interaction Tools
@@ -228,6 +229,22 @@ export default function App() {
     setHistoryIndex(newHistory.length);
   };
 
+  const handleNextStep = () => {
+    playClickSound();
+    if (setupStep < 6) {
+      setSetupStep(prev => prev + 1);
+    } else if (setupStep === 6) {
+      handleStartGame();
+    }
+  };
+
+  const handlePrevStep = () => {
+    playClickSound();
+    if (setupStep > 1) {
+      setSetupStep(prev => prev - 1);
+    }
+  };
+
   const handleStartGame = () => {
     playSuccessSound();
     const currentSetup = {
@@ -261,6 +278,7 @@ export default function App() {
   const handleEndGame = () => {
     playClickSound();
     setIsGameStarted(false);
+    setSetupStep(6);
     showToast('Game ended. Board editing unlocked! 🔧');
   };
 
@@ -424,6 +442,16 @@ export default function App() {
       return;
     }
 
+    if (setupStep !== 2 && setupStep !== 4 && setupStep !== 6) {
+      showToast(`Please advance to Step 2 (Corridors) or Step 4 (Pawns) to configure board tiles!`);
+      return;
+    }
+
+    if (setupStep === 4 && activeTool !== 'select') {
+      showToast('Paint tools are disabled in Pawn placement step. Switch back to Step 2 to edit tile corridors.');
+      return;
+    }
+
     const tile = board[r][c];
 
     if (activeTool === 'select') {
@@ -467,6 +495,10 @@ export default function App() {
   // Double click moves active pawn directly to coordinate (Setup Mode Only)
   const handleTileDoubleClick = (r, c) => {
     if (isGameStarted) return;
+    if (setupStep !== 4 && setupStep !== 6) {
+      showToast('Pawn positions can only be configured in Setup Step 4 (Pawns).');
+      return;
+    }
     playClickSound();
     const nextBoard = cloneBoard(board);
     
@@ -867,40 +899,9 @@ export default function App() {
           <div className="toolbar-divider" />
 
           {!isGameStarted ? (
-            <>
-              <button 
-                onClick={handleClearBoard}
-                className="btn-text btn-danger"
-                title="Wipe board and restart layout from scratch"
-              >
-                <Trash2 size={14} /> Clear Board
-              </button>
-              <button 
-                onClick={handleResetBoard}
-                className="btn-text btn-danger"
-              >
-                <RefreshCcw size={14} /> Reset Layout
-              </button>
-              <button 
-                onClick={handleShuffleBoard}
-                className="btn-text btn-primary"
-              >
-                <Shuffle size={14} /> Shuffle Movable
-              </button>
-              <button 
-                onClick={handleStartGame}
-                className="btn-text btn-success"
-                style={{
-                  background: 'linear-gradient(135deg, #10b981, #059669)',
-                  color: 'white',
-                  border: 'none',
-                  boxShadow: '0 0 12px rgba(16, 185, 129, 0.4)',
-                  fontWeight: 700
-                }}
-              >
-                <Play size={14} /> Start Game
-              </button>
-            </>
+            <div className="mode-badge setup-header-badge" style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', padding: '6px 12px', background: 'rgba(255, 190, 26, 0.05)', borderRadius: '8px', border: '1px solid rgba(255, 190, 26, 0.2)', color: 'var(--color-accent-gold)', fontWeight: 600 }}>
+              <Unlock size={12} /> Setup Wizard Mode
+            </div>
           ) : (
             <>
               <button 
@@ -944,37 +945,59 @@ export default function App() {
                 <span style={{ color: 'var(--color-accent-cyan)', fontWeight: 'bold', fontSize: '12px', letterSpacing: '0.05em' }}>GAME MODE: BOARD LOCKED</span>
               </div>
             ) : (
-              <div className="tool-group">
-                <button 
-                  onClick={() => setActiveTool('select')}
-                  className={clsx("btn-tool", activeTool === 'select' && "active")}
-                >
-                  <Wrench size={13} /> Inspect Mode
-                </button>
-                <button 
-                  onClick={() => setActiveTool('rotate')}
-                  className={clsx("btn-tool", activeTool === 'rotate' && "active")}
-                >
-                  <RefreshCcw size={13} /> Quick Rotate
-                </button>
-                <button 
-                  onClick={() => setActiveTool('paint-I')}
-                  className={clsx("btn-tool", activeTool === 'paint-I' && "active")}
-                >
-                  <Edit3 size={13} /> Paint Straight (I)
-                </button>
-                <button 
-                  onClick={() => setActiveTool('paint-L')}
-                  className={clsx("btn-tool", activeTool === 'paint-L' && "active")}
-                >
-                  <Edit3 size={13} /> Paint Corner (L)
-                </button>
-                <button 
-                  onClick={() => setActiveTool('paint-T')}
-                  className={clsx("btn-tool", activeTool === 'paint-T' && "active")}
-                >
-                  <Edit3 size={13} /> Paint Junction (T)
-                </button>
+              <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+                <div className="mode-badge setup-step-badge" style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 14px', background: 'rgba(255, 190, 26, 0.1)', borderRadius: '8px', border: '1px solid rgba(255, 190, 26, 0.3)' }}>
+                  <Unlock size={14} style={{ color: 'var(--color-accent-gold)' }} />
+                  <span style={{ color: 'var(--color-accent-gold)', fontWeight: 'bold', fontSize: '11px', letterSpacing: '0.05em' }}>
+                    STEP {setupStep}/6: {
+                      setupStep === 1 ? 'BASE LAYOUT' :
+                      setupStep === 2 ? 'PAINT TILE CORRIDORS' :
+                      setupStep === 3 ? 'EXTRA SPARE TILE' :
+                      setupStep === 4 ? 'PLACE PLAYER PAWNS' :
+                      setupStep === 5 ? 'SET PLAYER HAND' :
+                      'READY TO PLAY!'
+                    }
+                  </span>
+                </div>
+                {setupStep === 2 && (
+                  <div className="tool-group">
+                    <button 
+                      onClick={() => setActiveTool('select')}
+                      className={clsx("btn-tool", activeTool === 'select' && "active")}
+                    >
+                      <Wrench size={13} /> Inspect Mode
+                    </button>
+                    <button 
+                      onClick={() => setActiveTool('rotate')}
+                      className={clsx("btn-tool", activeTool === 'rotate' && "active")}
+                    >
+                      <RefreshCcw size={13} /> Quick Rotate
+                    </button>
+                    <button 
+                      onClick={() => setActiveTool('paint-I')}
+                      className={clsx("btn-tool", activeTool === 'paint-I' && "active")}
+                    >
+                      <Edit3 size={13} /> Paint Straight (I)
+                    </button>
+                    <button 
+                      onClick={() => setActiveTool('paint-L')}
+                      className={clsx("btn-tool", activeTool === 'paint-L' && "active")}
+                    >
+                      <Edit3 size={13} /> Paint Corner (L)
+                    </button>
+                    <button 
+                      onClick={() => setActiveTool('paint-T')}
+                      className={clsx("btn-tool", activeTool === 'paint-T' && "active")}
+                    >
+                      <Edit3 size={13} /> Paint Junction (T)
+                    </button>
+                  </div>
+                )}
+                {setupStep === 4 && (
+                  <span style={{ fontSize: '11px', color: '#9ca3af', fontWeight: 500 }}>
+                    💡 Double click cells on grid to position pawns
+                  </span>
+                )}
               </div>
             )}
             
@@ -1003,7 +1026,7 @@ export default function App() {
           />
 
           {/* Extra Spare Tile Section */}
-          <div className="spare-section">
+          <div className={clsx("spare-section", !isGameStarted && setupStep === 3 && "wizard-highlight-pulse")}>
             <div className="spare-info">
               <h3>
                 Extra Spare Tile 🧩
@@ -1089,6 +1112,18 @@ export default function App() {
           onHoverSolution={setHoveredSolution}
           onExecuteSolution={handleExecuteSolution}
           isGameStarted={isGameStarted}
+          setupStep={setupStep}
+          setSetupStep={setSetupStep}
+          onNextStep={handleNextStep}
+          onPrevStep={handlePrevStep}
+          onClearBoard={handleClearBoard}
+          onResetBoard={handleResetBoard}
+          onShuffleBoard={handleShuffleBoard}
+          onStartGame={handleStartGame}
+          onEndGame={handleEndGame}
+          onRestartGame={handleRestartGame}
+          activeTool={activeTool}
+          setActiveTool={setActiveTool}
         />
       </main>
 

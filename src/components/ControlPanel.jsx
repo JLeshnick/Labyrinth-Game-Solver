@@ -15,7 +15,19 @@ export default function ControlPanel({
   solutions = [],
   onHoverSolution,
   onExecuteSolution,
-  isGameStarted = false
+  isGameStarted = false,
+  setupStep = 1,
+  setSetupStep,
+  onNextStep,
+  onPrevStep,
+  onClearBoard,
+  onResetBoard,
+  onShuffleBoard,
+  onStartGame,
+  onEndGame,
+  onRestartGame,
+  activeTool,
+  setActiveTool
 }) {
   const [selectedTreasure, setSelectedTreasure] = useState(TREASURES[0].id);
 
@@ -27,37 +39,178 @@ export default function ControlPanel({
 
   return (
     <aside className="control-panel">
-      {/* Game Mode Status Card */}
+      {/* Setup Wizard Progress Stepper (Only in Setup Mode) */}
+      {!isGameStarted && (
+        <section className="glass-panel cp-section wizard-stepper-card" style={{padding: '16px 12px', marginBottom: '16px'}}>
+          <div className="stepper-bar" style={{display: 'flex', justifyContent: 'space-between', position: 'relative', padding: '0 8px'}}>
+            <div className="stepper-line" style={{position: 'absolute', top: '14px', left: '20px', right: '20px', height: '2px', backgroundColor: 'var(--color-bg-white-10)', zIndex: 1}} />
+            <div className="stepper-line-progress" style={{
+              position: 'absolute', 
+              top: '14px', 
+              left: '20px', 
+              width: `${((setupStep - 1) / 5) * 100}%`, 
+              height: '2px', 
+              backgroundColor: 'var(--color-accent-gold)', 
+              zIndex: 2,
+              transition: 'width 0.3s ease'
+            }} />
+            {[1, 2, 3, 4, 5, 6].map(stepNum => {
+              const active = stepNum === setupStep;
+              const completed = stepNum < setupStep;
+              return (
+                <button
+                  key={stepNum}
+                  onClick={() => setSetupStep(stepNum)}
+                  style={{
+                    width: '30px',
+                    height: '30px',
+                    borderRadius: '50%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '11px',
+                    fontWeight: 'bold',
+                    zIndex: 3,
+                    transition: 'all 0.2s',
+                    backgroundColor: completed ? 'var(--color-accent-gold)' : active ? '#ffffff' : 'var(--color-bg-panel-solid)',
+                    color: completed ? '#0a0813' : active ? '#0a0813' : '#9ca3af',
+                    border: active ? '2px solid var(--color-accent-gold)' : '2px solid var(--color-border-subtle)',
+                    boxShadow: active ? '0 0 10px var(--color-accent-gold-glow)' : 'none'
+                  }}
+                  title={`Go to Step ${stepNum}`}
+                >
+                  {completed ? '✓' : stepNum}
+                </button>
+              );
+            })}
+          </div>
+          <div style={{display: 'flex', justifyContent: 'space-between', marginTop: '8px', fontSize: '9px', textTransform: 'uppercase', color: '#9ca3af', fontWeight: 600, padding: '0 4px'}}>
+            <span>Layout</span>
+            <span>Corridors</span>
+            <span>Extra Tile</span>
+            <span>Pawns</span>
+            <span>Hand</span>
+            <span>Ready</span>
+          </div>
+        </section>
+      )}
+
+      {/* Wizard Guidance Card / Active Status Card */}
       {isGameStarted ? (
-        <section className="glass-panel cp-section cp-game-status" style={{padding: '20px', borderLeft: '4px solid var(--color-accent-cyan)'}}>
+        <section className="glass-panel cp-section cp-game-status play-mode-active" style={{padding: '20px', borderLeft: '4px solid var(--color-accent-cyan)', marginBottom: '16px'}}>
           <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
             <div>
               <span style={{fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--color-accent-cyan)', fontWeight: 'bold'}}>Game Status</span>
-              <h3 style={{fontSize: '16px', color: 'white', marginTop: '4px'}}>🎮 Play Mode Active</h3>
+              <h3 style={{fontSize: '16px', color: 'white', marginTop: '4px', fontWeight: 700}}>🎮 Play Mode Active</h3>
             </div>
             <Lock size={20} style={{color: 'var(--color-accent-cyan)'}} />
           </div>
-          <p style={{fontSize: '12px', color: '#9ca3af', marginTop: '8px', lineHeight: '1.5'}}>
-            All board layout configuration is locked. Slide the extra spare tile using the arrows or click connected paths to move your active pawn legally.
+          <p style={{fontSize: '12px', color: '#d1d5db', marginTop: '8px', lineHeight: '1.5'}}>
+            All board configuration is locked. Slide the extra spare tile using grid arrows, rotate it, and click connected paths to move your active pawn legally.
           </p>
         </section>
       ) : (
-        <section className="glass-panel cp-section cp-game-status" style={{padding: '20px', borderLeft: '4px solid var(--color-accent-gold)'}}>
-          <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
-            <div>
-              <span style={{fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--color-accent-gold)', fontWeight: 'bold'}}>Game Status</span>
-              <h3 style={{fontSize: '16px', color: 'white', marginTop: '4px'}}>🔧 Setup Mode</h3>
-            </div>
-            <Unlock size={20} style={{color: 'var(--color-accent-gold)'}} />
+        <section className="glass-panel cp-section wizard-instruction-card" style={{padding: '20px', borderLeft: '4px solid var(--color-accent-gold)', marginBottom: '16px'}}>
+          <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px'}}>
+            <span style={{fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--color-accent-gold)', fontWeight: 'bold'}}>
+              Step {setupStep} of 6
+            </span>
+            <Unlock size={16} style={{color: 'var(--color-accent-gold)'}} />
           </div>
+
+          <h3 style={{fontSize: '16px', color: 'white', fontWeight: 700}}>
+            {setupStep === 1 && "1. Base Board Layout"}
+            {setupStep === 2 && "2. Paint Tile Corridors"}
+            {setupStep === 3 && "3. Configure Extra Spare Tile"}
+            {setupStep === 4 && "4. Place Player Pawns"}
+            {setupStep === 5 && "5. Define Player Hand Cards"}
+            {setupStep === 6 && "6. Confirm Setup & Play!"}
+          </h3>
+
           <p style={{fontSize: '12px', color: '#9ca3af', marginTop: '8px', lineHeight: '1.5'}}>
-            Configure the board exits, place treasures, set starting pawn locations, and add cards. Click <strong>Start Game</strong> in the top header once finished.
+            {setupStep === 1 && "Establish the base grid of tiles. You can wipe all movable tiles to start from scratch, load standard aligned coordinates, or shuffle them randomly."}
+            {setupStep === 2 && "Select a corridor shape brush below (Straight, Corner, or Junction) and click or rotate movable cells directly on the board to customize paths."}
+            {setupStep === 3 && "Choose the corridor exits shape and target treasure assigned to the Extra Spare Tile. You can also rotate the extra tile."}
+            {setupStep === 4 && "Position pawns for Red, Blue, Green, and Yellow players. Select a player pawn color below, then double-click any board tile to place them."}
+            {setupStep === 5 && "Add target cards to the player's hand list. These are the treasures they need to reach. The strategist solver will immediately plan recommendations once added."}
+            {setupStep === 6 && "Verify your board state looks correct! Click Start Game to lock the board configuration controls and begin playing."}
           </p>
+
+          {/* Inline wizard controls */}
+          {setupStep === 1 && (
+            <div style={{display: 'flex', gap: '8px', marginTop: '16px', flexWrap: 'wrap'}}>
+              <button onClick={onClearBoard} className="btn-text btn-danger" style={{fontSize: '11px', padding: '6px 12px'}}>
+                Clear Slate
+              </button>
+              <button onClick={onResetBoard} className="btn-text" style={{fontSize: '11px', padding: '6px 12px'}}>
+                Reset Default
+              </button>
+              <button onClick={onShuffleBoard} className="btn-text btn-primary" style={{fontSize: '11px', padding: '6px 12px'}}>
+                Shuffle Movable
+              </button>
+            </div>
+          )}
+
+          {setupStep === 2 && (
+            <div style={{marginTop: '16px', display: 'flex', gap: '8px', flexWrap: 'wrap'}}>
+              {['select', 'rotate', 'paint-I', 'paint-L', 'paint-T'].map(tool => (
+                <button
+                  key={tool}
+                  onClick={() => setActiveTool(tool)}
+                  className={clsx("btn-text", activeTool === tool && "btn-primary")}
+                  style={{fontSize: '10px', padding: '6px 10px'}}
+                >
+                  {tool === 'select' ? 'Inspect' : tool === 'rotate' ? 'Rotate' : tool.split('-')[1]}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Navigation Controls */}
+          <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '20px', borderTop: '1px solid var(--color-border-subtle)', paddingTop: '16px'}}>
+            <button 
+              onClick={onPrevStep} 
+              disabled={setupStep === 1}
+              className="btn-text"
+              style={{padding: '6px 14px', fontSize: '11px'}}
+            >
+              Back
+            </button>
+            
+            <div style={{display: 'flex', gap: '8px'}}>
+              <button
+                onClick={() => setSetupStep(6)}
+                className="btn-text"
+                style={{fontSize: '11px', padding: '6px 8px', color: '#9ca3af', border: 'none', background: 'transparent'}}
+              >
+                Skip Wizard
+              </button>
+              <button
+                onClick={onNextStep}
+                className="btn-text btn-success"
+                style={{
+                  padding: '6px 14px', 
+                  fontSize: '11px',
+                  background: setupStep === 6 ? 'linear-gradient(135deg, #10b981, #059669)' : undefined,
+                  color: setupStep === 6 ? 'white' : undefined,
+                  fontWeight: 700
+                }}
+              >
+                {setupStep === 6 ? 'Start Game' : 'Next Step'}
+              </button>
+            </div>
+          </div>
         </section>
       )}
 
       {/* Active Player Pawn Manager */}
-      <section className="glass-panel cp-section" style={{padding: '20px'}}>
+      <section 
+        className={clsx(
+          "glass-panel cp-section",
+          !isGameStarted && setupStep === 4 && "wizard-highlight-pulse"
+        )} 
+        style={{padding: '20px'}}
+      >
         <h2 className="cp-header">
           <User className="cp-header-icon text-accent-gold" size={18} style={{color: 'var(--color-accent-gold)'}} /> Active Player Pawn
         </h2>
@@ -85,7 +238,13 @@ export default function ControlPanel({
       </section>
 
       {/* Hand Cards Manager */}
-      <section className="glass-panel cp-section" style={{padding: '20px'}}>
+      <section 
+        className={clsx(
+          "glass-panel cp-section",
+          !isGameStarted && setupStep === 5 && "wizard-highlight-pulse"
+        )} 
+        style={{padding: '20px'}}
+      >
         <h2 className="cp-header">
           <CreditCard className="cp-header-icon" size={18} style={{color: 'var(--color-accent-gold)'}} /> Your Hand Cards
         </h2>
@@ -144,7 +303,8 @@ export default function ControlPanel({
       </section>
 
       {/* Pathfinder Solver Panel */}
-      <section className="glass-panel cp-section" style={{padding: '20px', flex: 1, minHeight: '300px'}}>
+      {(isGameStarted || setupStep === 6) && (
+        <section className="glass-panel cp-section" style={{padding: '20px', flex: 1, minHeight: '300px'}}>
         <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px'}}>
           <h2 className="cp-header">
             <Brain className="cp-header-icon" size={18} style={{color: 'var(--color-accent-cyan)'}} /> Path Strategist Solver
@@ -254,6 +414,7 @@ export default function ControlPanel({
           )}
         </div>
       </section>
+      )}
 
       {/* Rules & Reference Info */}
       <section className="glass-panel cp-section" style={{padding: '20px', fontSize: '12px', color: '#9ca3af'}}>
