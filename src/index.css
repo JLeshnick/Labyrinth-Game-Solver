@@ -1,32 +1,32 @@
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap');
 
 :root {
-  --color-bg-primary: #0a0813;
-  --color-bg-secondary: #131022;
-  --color-bg-panel: rgba(30, 26, 50, 0.45);
-  --color-bg-panel-solid: #1e1a32;
-  --color-bg-white-5: rgba(255, 255, 255, 0.05);
-  --color-bg-white-10: rgba(255, 255, 255, 0.1);
-  --color-border-subtle: rgba(255, 255, 255, 0.1);
+  --color-bg-primary: #0f172a;       /* Slate 900 */
+  --color-bg-secondary: #1e293b;     /* Slate 800 */
+  --color-bg-panel: #1e293b;         /* Solid Slate 800 */
+  --color-bg-panel-solid: #1e293b;   /* Solid Slate 800 */
+  --color-bg-white-5: #334155;       /* Slate 700 */
+  --color-bg-white-10: #475569;      /* Slate 600 */
+  --color-border-subtle: #334155;    /* Slate 700, clean borders */
   
-  --color-accent-gold: #ffbe1a;
-  --color-accent-gold-glow: rgba(255, 190, 26, 0.3);
-  --color-accent-cyan: #00f0ff;
-  --color-accent-cyan-glow: rgba(0, 240, 255, 0.6);
-  --color-accent-red: #ff3860;
+  --color-accent-gold: #f59e0b;       /* Amber 500 */
+  --color-accent-gold-glow: rgba(245, 158, 11, 0.15);
+  --color-accent-cyan: #0ea5e9;       /* Sky 500 */
+  --color-accent-cyan-glow: rgba(14, 165, 233, 0.2);
+  --color-accent-red: #ef4444;       /* Red 500 */
   
-  --color-pawn-red: #ff3b30;
-  --color-pawn-blue: #007aff;
-  --color-pawn-green: #34c759;
-  --color-pawn-yellow: #ffcc00;
+  --color-pawn-red: #ef4444;
+  --color-pawn-blue: #3b82f6;
+  --color-pawn-green: #10b981;
+  --color-pawn-yellow: #eab308;
   
   --font-sans: 'Outfit', sans-serif;
 
-  --shadow-panel: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
-  --shadow-btn: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
+  --shadow-panel: 0 4px 6px -1px rgba(0, 0, 0, 0.2), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+  --shadow-btn: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
   
-  --transition-fast: 0.15s ease-in-out;
-  --transition-normal: 0.3s ease-in-out;
+  --transition-fast: 0.1s ease-in-out;
+  --transition-normal: 0.2s ease-in-out;
 }
 
 * {
@@ -37,15 +37,13 @@
 
 body {
   background-color: var(--color-bg-primary);
-  color: #f3f4f6; /* gray-100 */
+  color: #f1f5f9; /* Slate 100 */
   font-family: var(--font-sans);
   min-height: 100vh;
   display: flex;
   flex-direction: column;
   overflow-x: hidden;
-  background-image: 
-    radial-gradient(circle at 0% 0%, rgba(38, 24, 75, 0.15) 0%, transparent 50%),
-    radial-gradient(circle at 100% 100%, rgba(13, 50, 77, 0.15) 0%, transparent 50%);
+  background-image: none;
   background-attachment: fixed;
 }
 
@@ -57,14 +55,12 @@ button {
   cursor: pointer;
 }
 
-/* Glassmorphism Panel Utilities */
+/* Professional Card Panel Utilities */
 .glass-panel {
   background: var(--color-bg-panel);
   border: 1px solid var(--color-border-subtle);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
   box-shadow: var(--shadow-panel);
-  border-radius: 24px;
+  border-radius: 12px;
 }
 
 /* Beautiful Scrollbar */

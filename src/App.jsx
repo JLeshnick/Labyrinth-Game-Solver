@@ -203,21 +203,25 @@ export default function App() {
 
   // Setup Initial Game Board & Initialize Web Worker
   useEffect(() => {
-    // Spawn solver web worker
-    workerRef.current = new Worker(
-      new URL('./solver.worker.js', import.meta.url),
-      { type: 'module' }
-    );
+    try {
+      // Spawn solver web worker
+      workerRef.current = new Worker(
+        new URL('./solver.worker.js', import.meta.url),
+        { type: 'module' }
+      );
 
-    workerRef.current.onmessage = (e) => {
-      const { success, solutions: computed, error } = e.data;
-      if (success) {
-        setSolutions(computed || []);
-      } else {
-        console.error('Solver worker failed:', error);
-      }
-      setIsLoadingSolutions(false);
-    };
+      workerRef.current.onmessage = (e) => {
+        const { success, solutions: computed, error } = e.data;
+        if (success) {
+          setSolutions(computed || []);
+        } else {
+          console.error('Solver worker failed:', error);
+        }
+        setIsLoadingSolutions(false);
+      };
+    } catch (workerError) {
+      console.warn("Could not start Web Worker. Pathfinder solver will not run on background thread.", workerError);
+    }
 
     // Hydrate state from localStorage or generate defaults
     const success = loadStateFromLocalStorage(true);
@@ -706,6 +710,16 @@ export default function App() {
     setShowModal(false);
   };
 
+  const handleSetActiveTarget = (targetId) => {
+    playClickSound();
+    const nextActiveTargets = {
+      ...playerActiveTargets,
+      [activePawn]: targetId
+    };
+    setPlayerActiveTargets(nextActiveTargets);
+    pushStateToHistory(board, spareTile, lastShiftArrowId, activePawn, playerHands, nextActiveTargets);
+  };
+
   // Hand card triggers for active player
   const handleAddCard = (cardId) => {
     if (handCards.includes(cardId)) {
@@ -1179,7 +1193,7 @@ export default function App() {
           setActivePawn={setActivePawn}
           handCards={handCards}
           activeTarget={activeTarget}
-          setActiveTarget={setActiveTarget}
+          setActiveTarget={handleSetActiveTarget}
           onAddCard={handleAddCard}
           onRemoveCard={handleRemoveCard}
           maxTurns={maxTurns}
