@@ -2,6 +2,10 @@
 
 let audioCtx = null;
 
+function isAudioMuted() {
+  return localStorage.getItem('labyrinth_audio_muted') === 'true';
+}
+
 function getAudioContext() {
   if (!audioCtx) {
     audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -13,6 +17,7 @@ function getAudioContext() {
 }
 
 export function playClickSound() {
+  if (isAudioMuted()) return;
   try {
     const ctx = getAudioContext();
     const osc = ctx.createOscillator();
@@ -36,6 +41,7 @@ export function playClickSound() {
 }
 
 export function playSlideSound() {
+  if (isAudioMuted()) return;
   try {
     const ctx = getAudioContext();
     const osc = ctx.createOscillator();
@@ -59,6 +65,7 @@ export function playSlideSound() {
 }
 
 export function playRotateSound() {
+  if (isAudioMuted()) return;
   try {
     const ctx = getAudioContext();
     const osc = ctx.createOscillator();
@@ -82,6 +89,7 @@ export function playRotateSound() {
 }
 
 export function playSuccessSound() {
+  if (isAudioMuted()) return;
   try {
     const ctx = getAudioContext();
     const now = ctx.currentTime;
@@ -114,6 +122,7 @@ export function playSuccessSound() {
 }
 
 export function playPawnMoveSound() {
+  if (isAudioMuted()) return;
   try {
     const ctx = getAudioContext();
     const osc = ctx.createOscillator();
@@ -135,4 +144,3 @@ export function playPawnMoveSound() {
     console.warn("Audio Context failed to initialize:", e);
   }
 }
-

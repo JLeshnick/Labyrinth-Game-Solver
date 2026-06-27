@@ -76,13 +76,30 @@ function areConnected(board, r1, c1, r2, c2) {
 }
 
 /**
- * Creates a deep clone of the board.
+ * Creates a deep clone of the board using fast nested loops.
  */
 function cloneBoard(board) {
-  return board.map(row => row.map(tile => ({
-    ...tile,
-    pawns: [...(tile.pawns || [])]
-  })));
+  const len = board.length;
+  const nextBoard = new Array(len);
+  for (let r = 0; r < len; r++) {
+    const row = board[r];
+    const rowLen = row.length;
+    const nextRow = new Array(rowLen);
+    for (let c = 0; c < rowLen; c++) {
+      const tile = row[c];
+      nextRow[c] = {
+        r: tile.r,
+        c: tile.c,
+        shape: tile.shape,
+        dir: tile.dir,
+        treasure: tile.treasure,
+        isFixed: tile.isFixed,
+        pawns: tile.pawns ? [...tile.pawns] : []
+      };
+    }
+    nextBoard[r] = nextRow;
+  }
+  return nextBoard;
 }
 
 /**
@@ -237,20 +254,20 @@ function reconstructPath(parentMap, target) {
 }
 
 /**
- * Hashes the configurations of all movable tiles plus the spare tile.
+ * Hashes the configurations of all movable tiles plus the spare tile efficiently.
  */
 function hashBoard(board, spareTile) {
-  let hash = '';
+  const parts = [];
   for (let r = 0; r < 7; r++) {
     for (let c = 0; c < 7; c++) {
       const t = board[r][c];
       if (!t.isFixed) {
-        hash += `${t.shape}${t.dir}${t.treasure || ''},`;
+        parts.push(t.shape, t.dir, t.treasure || '');
       }
     }
   }
-  hash += `|${spareTile.shape}${spareTile.dir}${spareTile.treasure || ''}`;
-  return hash;
+  parts.push('|', spareTile.shape, spareTile.dir, spareTile.treasure || '');
+  return parts.join('');
 }
 
 /**

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { TREASURES, PAWNS } from '../constants';
-import { RotateCw, Plus, Brain, User, CreditCard, HelpCircle, ArrowRight, Lock, Unlock } from 'lucide-react';
+import { RotateCw, Plus, Brain, User, CreditCard, HelpCircle, ArrowRight, Lock, Unlock, Save } from 'lucide-react';
 import clsx from 'clsx';
 
 export default function ControlPanel({
@@ -27,9 +27,16 @@ export default function ControlPanel({
   onEndGame,
   onRestartGame,
   activeTool,
-  setActiveTool
+  setActiveTool,
+  slots = [],
+  onSaveSlot,
+  onLoadSlot,
+  onDeleteSlot,
+  onRemoveCard,
+  isLoadingSolutions = false
 }) {
   const [selectedTreasure, setSelectedTreasure] = useState(TREASURES[0].id);
+  const [newProfileName, setNewProfileName] = useState('');
 
   const handleAddCard = () => {
     if (onAddCard) {
@@ -265,11 +272,13 @@ export default function ControlPanel({
                 <button
                   key={cardId}
                   onClick={() => setActiveTarget(cardId)}
+                  onDoubleClick={() => onRemoveCard && onRemoveCard(cardId)}
                   className={clsx(
                     "hand-item",
                     isActive && "active-target"
                   )}
                   style={{cursor: 'pointer'}}
+                  title="Click to select target, Double-click to remove card"
                 >
                   <span style={{fontSize: '16px'}}>{tr.symbol}</span>
                   <span>{tr.name}</span>
@@ -306,8 +315,14 @@ export default function ControlPanel({
       {(isGameStarted || setupStep === 6) && (
         <section className="glass-panel cp-section" style={{padding: '20px', flex: 1, minHeight: '300px'}}>
         <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px'}}>
-          <h2 className="cp-header">
-            <Brain className="cp-header-icon" size={18} style={{color: 'var(--color-accent-cyan)'}} /> Path Strategist Solver
+          <h2 className="cp-header" style={{display: 'flex', alignItems: 'center', gap: '8px', margin: 0}}>
+            <Brain className="cp-header-icon" size={18} style={{color: 'var(--color-accent-cyan)'}} /> 
+            <span>Path Strategist Solver</span>
+            {isLoadingSolutions && (
+              <span className="solver-loading-spinner" style={{fontSize: '10px', color: 'var(--color-accent-cyan)', fontWeight: 'normal', opacity: 0.8}}>
+                (thinking...)
+              </span>
+            )}
           </h2>
           <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
             <label style={{fontSize: '11px', color: '#9ca3af', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em'}}>Depth:</label>
@@ -415,6 +430,71 @@ export default function ControlPanel({
         </div>
       </section>
       )}
+
+      {/* Save Profiles Card */}
+      <section className="glass-panel cp-section" style={{padding: '20px', marginBottom: '16px'}}>
+        <h2 className="cp-header" style={{borderBottom: '1px solid var(--color-border-subtle)', paddingBottom: '8px', marginBottom: '12px'}}>
+          <Save className="cp-header-icon" size={18} style={{color: 'var(--color-accent-gold)'}} /> Saved Profiles
+        </h2>
+        <div style={{display: 'flex', gap: '8px', marginBottom: '12px'}}>
+          <input
+            type="text"
+            placeholder="Profile name..."
+            value={newProfileName}
+            onChange={(e) => setNewProfileName(e.target.value)}
+            className="select-control"
+            style={{flex: 1, padding: '8px 12px', fontSize: '12px', borderRadius: '8px', border: '1px solid var(--color-border-subtle)', background: 'rgba(0,0,0,0.3)', color: 'white'}}
+          />
+          <button
+            onClick={() => {
+              if (newProfileName.trim()) {
+                onSaveSlot(newProfileName.trim());
+                setNewProfileName('');
+              }
+            }}
+            className="btn-text btn-primary"
+            style={{fontSize: '11px', padding: '6px 12px', borderRadius: '8px'}}
+          >
+            Save
+          </button>
+        </div>
+        {slots.length > 0 ? (
+          <div style={{display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '150px', overflowY: 'auto'}}>
+            {slots.map(slot => (
+              <div key={slot.key} style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255,255,255,0.03)', padding: '6px 10px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)'}}>
+                <div style={{display: 'flex', flexDirection: 'column', gap: '2px', overflow: 'hidden'}}>
+                  <span style={{fontWeight: 600, color: 'white', fontSize: '11px', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap'}} title={slot.name}>
+                    {slot.name}
+                  </span>
+                  <span style={{fontSize: '9px', color: '#9ca3af'}}>
+                    {new Date(slot.timestamp).toLocaleDateString()}
+                  </span>
+                </div>
+                <div style={{display: 'flex', gap: '4px', flexShrink: 0}}>
+                  <button
+                    onClick={() => onLoadSlot(slot.key)}
+                    className="btn-text"
+                    style={{fontSize: '9px', padding: '4px 8px', borderRadius: '6px', minWidth: 'unset'}}
+                  >
+                    Load
+                  </button>
+                  <button
+                    onClick={() => onDeleteSlot(slot.name)}
+                    className="btn-text btn-danger"
+                    style={{fontSize: '9px', padding: '4px 8px', borderRadius: '6px', color: '#f87171', minWidth: 'unset'}}
+                  >
+                    Del
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <span style={{fontSize: '11px', color: '#9ca3af', display: 'block', textAlign: 'center', padding: '8px 0'}}>
+            No saved profiles yet.
+          </span>
+        )}
+      </section>
 
       {/* Rules & Reference Info */}
       <section className="glass-panel cp-section" style={{padding: '20px', fontSize: '12px', color: '#9ca3af'}}>

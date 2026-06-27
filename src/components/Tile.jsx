@@ -14,8 +14,10 @@ export default function Tile({
   isHighlightStart = false,
   isHighlightEnd = false,
   isReachable = false,
+  isShiftingPreview = false,
   onClick,
   onDoubleClick,
+  onContextMenu,
   className,
   style
 }) {
@@ -39,6 +41,7 @@ export default function Tile({
     <div
       onClick={onClick}
       onDoubleClick={onDoubleClick}
+      onContextMenu={onContextMenu}
       className={clsx(
         "tile-container",
         isFixed && "fixed",
@@ -47,6 +50,7 @@ export default function Tile({
         isHighlightStart && "highlight-start",
         isHighlightEnd && "highlight-end",
         isReachable && "reachable",
+        isShiftingPreview && "shifting-preview",
         className
       )}
       style={style || {}}

@@ -957,3 +957,13 @@
   z-index: 2;
 }
 
+/* Shifting Preview Highlight */
+.tile-container.shifting-preview {
+  border-color: rgba(255, 190, 26, 0.6);
+  box-shadow: 0 0 12px rgba(255, 190, 26, 0.25), inset 0 0 8px rgba(255, 190, 26, 0.15);
+  opacity: 0.9;
+  filter: brightness(1.1);
+  transition: all var(--transition-fast);
+}
+
+

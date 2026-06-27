@@ -1,15 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import './App.css';
-import { Compass, RotateCw, Save, FolderOpen, RefreshCcw, Shuffle, Undo2, Redo2, Wrench, Edit3, Trash2, Play, Square, Lock, Unlock } from 'lucide-react';
+import { Compass, RotateCw, Save, FolderOpen, RefreshCcw, Undo2, Redo2, Wrench, Edit3, Lock, Unlock, Volume2, VolumeX } from 'lucide-react';
 import Board from './components/Board';
 import ControlPanel from './components/ControlPanel';
 import Tile from './components/Tile';
-import { TREASURES, PAWNS, FIXED_TILES, SHIFT_ARROWS } from './constants';
+import TileEditorModal from './components/TileEditorModal';
+import { TREASURES, FIXED_TILES } from './constants';
 import { 
   cloneBoard, 
   parseArrowId, 
   executeSlideInGrid, 
-  solveAllHand,
   isOppositeArrow,
   getReachableCells
 } from './solver';
@@ -20,6 +20,8 @@ import {
   playSuccessSound,
   playPawnMoveSound
 } from './utils/audio';
+import { useLabyrinthHistory } from './hooks/useLabyrinthHistory';
+import { useLabyrinthStorage } from './hooks/useLabyrinthStorage';
 
 import clsx from 'clsx';
 
@@ -28,8 +30,6 @@ export default function App() {
   const [board, setBoard] = useState([]);
   const [spareTile, setSpareTile] = useState({ shape: 'L', dir: 0, treasure: '', isFixed: false, pawns: [] });
   const [activePawn, setActivePawn] = useState('red');
-  const [handCards, setHandCards] = useState([]);
-  const [activeTarget, setActiveTarget] = useState(null);
   const [lastShiftArrowId, setLastShiftArrowId] = useState(null);
   const [maxTurns, setMaxTurns] = useState(2);
 
@@ -39,28 +39,86 @@ export default function App() {
   const [reachableCells, setReachableCells] = useState([]);
   const [setupStep, setSetupStep] = useState(1);
 
+  // Multi-player Hands & Active Targets
+  const [playerHands, setPlayerHands] = useState({ red: [], blue: [], green: [], yellow: [] });
+  const [playerActiveTargets, setPlayerActiveTargets] = useState({ red: null, blue: null, green: null, yellow: null });
+
+  // Convenient derived states
+  const handCards = useMemo(() => playerHands[activePawn] || [], [playerHands, activePawn]);
+  const activeTarget = playerActiveTargets[activePawn] || null;
 
   // Interaction Tools
   const [activeTool, setActiveTool] = useState('select'); // 'select', 'rotate', 'paint-I', 'paint-L', 'paint-T'
   const [selectedTileCoord, setSelectedTileCoord] = useState(null); // Coordinate of tile currently open in the modal
-  const [modalState, setModalState] = useState({ shape: 'I', dir: 0, treasure: '', pawns: [] });
   const [showModal, setShowModal] = useState(false);
+
+  // Audio Muted State
+  const [isMuted, setIsMuted] = useState(() => localStorage.getItem('labyrinth_audio_muted') === 'true');
+
+  // Toggle Audio Mute
+  const handleToggleMute = () => {
+    const nextMuted = !isMuted;
+    setIsMuted(nextMuted);
+    localStorage.setItem('labyrinth_audio_muted', String(nextMuted));
+    showToast(nextMuted ? 'Sound effects muted 🔇' : 'Sound effects unmuted 🔊');
+  };
 
   // Solver Solutions & Visual Highlights
   const [solutions, setSolutions] = useState([]);
   const [hoveredSolution, setHoveredSolution] = useState(null);
   const [dragOverArrowId, setDragOverArrowId] = useState(null);
+  const [isLoadingSolutions, setIsLoadingSolutions] = useState(false);
 
-  // Undo / Redo History Stack
-  const [history, setHistory] = useState([]);
-  const [historyIndex, setHistoryIndex] = useState(-1);
+  // Web Worker for Solver
+  const workerRef = useRef(null);
+
+  // Instantiate Hooks
+  const { pushStateToHistory, resetHistory, undo, redo, canUndo, canRedo } = useLabyrinthHistory(null);
+  const { slots, saveSlot, loadSlot, deleteSlot, saveAutosave, loadAutosave } = useLabyrinthStorage();
 
   // Toast System
   const [toast, setToast] = useState({ message: '', visible: false });
 
-  const showToast = (message) => {
+  const showToast = useCallback((message) => {
     setToast({ message, visible: true });
-  };
+  }, []);
+
+  // Load layout state from LocalStorage
+  const loadStateFromLocalStorage = useCallback((quiet = false) => {
+    try {
+      const state = loadAutosave();
+      if (!state || !state.board || !state.spareTile) return false;
+
+      setBoard(state.board);
+      setSpareTile(state.spareTile);
+      setActivePawn(state.activePawn || 'red');
+      setPlayerHands(state.playerHands || { red: [], blue: [], green: [], yellow: [] });
+      setPlayerActiveTargets(state.playerActiveTargets || { red: null, blue: null, green: null, yellow: null });
+      setLastShiftArrowId(state.lastShiftArrowId || null);
+      setIsGameStarted(state.isGameStarted || false);
+      setGameStartState(state.gameStartState || null);
+      
+      // Record initial history
+      const record = {
+        board: state.board,
+        spareTile: state.spareTile,
+        lastShiftArrowId: state.lastShiftArrowId || null,
+        activePawn: state.activePawn || 'red',
+        playerHands: state.playerHands || { red: [], blue: [], green: [], yellow: [] },
+        playerActiveTargets: state.playerActiveTargets || { red: null, blue: null, green: null, yellow: null }
+      };
+      resetHistory(record);
+
+      if (!quiet) {
+        playSuccessSound();
+        showToast('Layout state loaded successfully! 📂');
+      }
+      return true;
+    } catch (e) {
+      console.warn(e);
+      return false;
+    }
+  }, [loadAutosave, resetHistory, showToast]);
 
   useEffect(() => {
     if (toast.visible) {
@@ -143,31 +201,55 @@ export default function App() {
     return { initialBoard: tempBoard, initialSpare: spare };
   };
 
-  // Setup Initial Game Board
+  // Setup Initial Game Board & Initialize Web Worker
   useEffect(() => {
+    // Spawn solver web worker
+    workerRef.current = new Worker(
+      new URL('./solver.worker.js', import.meta.url),
+      { type: 'module' }
+    );
+
+    workerRef.current.onmessage = (e) => {
+      const { success, solutions: computed, error } = e.data;
+      if (success) {
+        setSolutions(computed || []);
+      } else {
+        console.error('Solver worker failed:', error);
+      }
+      setIsLoadingSolutions(false);
+    };
+
+    // Hydrate state from localStorage or generate defaults
     const success = loadStateFromLocalStorage(true);
     if (!success) {
       const { initialBoard, initialSpare } = generateInitialPreset(true);
       setBoard(initialBoard);
       setSpareTile(initialSpare);
       setLastShiftArrowId(null);
+      setPlayerHands({ red: [], blue: [], green: [], yellow: [] });
+      setPlayerActiveTargets({ red: null, blue: null, green: null, yellow: null });
       
       const startState = {
         board: initialBoard,
         spareTile: initialSpare,
         activePawn: 'red',
-        handCards: [],
-        activeTarget: null,
+        playerHands: { red: [], blue: [], green: [], yellow: [] },
+        playerActiveTargets: { red: null, blue: null, green: null, yellow: null },
         lastShiftArrowId: null
       };
-      setHistory([startState]);
-      setHistoryIndex(0);
+      resetHistory(startState);
     }
-  }, []);
 
-  // Compute solver solutions dynamically
+    return () => {
+      if (workerRef.current) {
+        workerRef.current.terminate();
+      }
+    };
+  }, [loadStateFromLocalStorage, resetHistory]);
+
+  // Compute solver solutions dynamically using Web Worker (prevents main thread freeze!)
   useEffect(() => {
-    if (board.length === 0) return;
+    if (board.length === 0 || !workerRef.current) return;
 
     // Locate active pawn
     let pawnPos = null;
@@ -185,9 +267,15 @@ export default function App() {
       return;
     }
 
-    // Solve paths
-    const computed = solveAllHand(board, spareTile, pawnPos, handCards, lastShiftArrowId, maxTurns);
-    setSolutions(computed);
+    setIsLoadingSolutions(true);
+    workerRef.current.postMessage({
+      board,
+      spareTile,
+      pawnPos,
+      handCards,
+      lastShiftArrowId,
+      maxTurns
+    });
   }, [board, spareTile, activePawn, handCards, lastShiftArrowId, maxTurns]);
 
   // Compute reachable cells for active player in play mode
@@ -213,22 +301,6 @@ export default function App() {
     }
   }, [board, activePawn, isGameStarted]);
 
-  // History Recording Helper
-  const pushStateToHistory = (nextBoard, nextSpare, nextLastShift, nextTarget, nextPawn, nextHand) => {
-    const record = {
-      board: cloneBoard(nextBoard),
-      spareTile: { ...nextSpare },
-      lastShiftArrowId: nextLastShift,
-      activeTarget: nextTarget,
-      activePawn: nextPawn,
-      handCards: [...nextHand]
-    };
-
-    const newHistory = history.slice(0, historyIndex + 1);
-    setHistory([...newHistory, record]);
-    setHistoryIndex(newHistory.length);
-  };
-
   const handleNextStep = () => {
     playClickSound();
     if (setupStep < 6) {
@@ -251,27 +323,25 @@ export default function App() {
       board: cloneBoard(board),
       spareTile: { ...spareTile },
       activePawn,
-      handCards: [...handCards],
-      activeTarget,
+      playerHands: JSON.parse(JSON.stringify(playerHands)),
+      playerActiveTargets: { ...playerActiveTargets },
       lastShiftArrowId
     };
     setGameStartState(currentSetup);
     setIsGameStarted(true);
-    try {
-      const state = {
-        board,
-        spareTile,
-        activePawn,
-        handCards,
-        activeTarget,
-        lastShiftArrowId,
-        isGameStarted: true,
-        gameStartState: currentSetup
-      };
-      localStorage.setItem('labyrinth_strategist_state', JSON.stringify(state));
-    } catch (e) {
-      console.warn("Could not auto-save game start state:", e);
-    }
+    
+    // Save to autosave slot
+    saveAutosave({
+      board,
+      spareTile,
+      activePawn,
+      playerHands,
+      playerActiveTargets,
+      lastShiftArrowId,
+      isGameStarted: true,
+      gameStartState: currentSetup
+    });
+    
     showToast('Game Started! Board locked. Click to move pawn legally along corridors. 🎮');
   };
 
@@ -292,20 +362,19 @@ export default function App() {
     setBoard(cloneBoard(setup.board));
     setSpareTile({ ...setup.spareTile });
     setActivePawn(setup.activePawn);
-    setHandCards([...setup.handCards]);
-    setActiveTarget(setup.activeTarget);
+    setPlayerHands(setup.playerHands);
+    setPlayerActiveTargets(setup.playerActiveTargets);
     setLastShiftArrowId(setup.lastShiftArrowId);
 
     const record = {
       board: cloneBoard(setup.board),
       spareTile: { ...setup.spareTile },
       lastShiftArrowId: setup.lastShiftArrowId,
-      activeTarget: setup.activeTarget,
       activePawn: setup.activePawn,
-      handCards: [...setup.handCards]
+      playerHands: JSON.parse(JSON.stringify(setup.playerHands)),
+      playerActiveTargets: { ...setup.playerActiveTargets }
     };
-    setHistory([record]);
-    setHistoryIndex(0);
+    resetHistory(record);
     showToast('Game restarted back to setup starting configuration! 🔄');
   };
 
@@ -339,22 +408,24 @@ export default function App() {
       pawns: []
     };
 
+    const emptyHands = { red: [], blue: [], green: [], yellow: [] };
+    const emptyTargets = { red: null, blue: null, green: null, yellow: null };
+
     setBoard(tempBoard);
     setSpareTile(spare);
     setLastShiftArrowId(null);
-    setHandCards([]);
-    setActiveTarget(null);
+    setPlayerHands(emptyHands);
+    setPlayerActiveTargets(emptyTargets);
 
     const startState = {
       board: tempBoard,
       spareTile: spare,
       activePawn: 'red',
-      handCards: [],
-      activeTarget: null,
+      playerHands: emptyHands,
+      playerActiveTargets: emptyTargets,
       lastShiftArrowId: null
     };
-    setHistory([startState]);
-    setHistoryIndex(0);
+    resetHistory(startState);
     showToast('Cleared board to a blank layout from scratch! 🧹');
   };
 
@@ -362,12 +433,17 @@ export default function App() {
   const handleResetBoard = () => {
     playClickSound();
     const { initialBoard, initialSpare } = generateInitialPreset(false);
+    
+    const emptyHands = { red: [], blue: [], green: [], yellow: [] };
+    const emptyTargets = { red: null, blue: null, green: null, yellow: null };
+
     setBoard(initialBoard);
     setSpareTile(initialSpare);
     setLastShiftArrowId(null);
-    setHandCards([]);
-    setActiveTarget(null);
-    pushStateToHistory(initialBoard, initialSpare, null, null, activePawn, []);
+    setPlayerHands(emptyHands);
+    setPlayerActiveTargets(emptyTargets);
+    
+    pushStateToHistory(initialBoard, initialSpare, null, activePawn, emptyHands, emptyTargets);
     showToast('Reset board layout to standard aligned coordinates!');
   };
 
@@ -378,7 +454,7 @@ export default function App() {
     setBoard(initialBoard);
     setSpareTile(initialSpare);
     setLastShiftArrowId(null);
-    pushStateToHistory(initialBoard, initialSpare, null, activeTarget, activePawn, handCards);
+    pushStateToHistory(initialBoard, initialSpare, null, activePawn, playerHands, playerActiveTargets);
     showToast('Shuffled all movable tiles randomly!');
   };
 
@@ -418,24 +494,24 @@ export default function App() {
         if (!nextBoard[r][c].pawns) nextBoard[r][c].pawns = [];
         nextBoard[r][c].pawns.push(activePawn);
 
-        let nextHand = [...handCards];
-        let nextTarget = activeTarget;
+        const nextHands = JSON.parse(JSON.stringify(playerHands));
+        const nextActiveTargets = { ...playerActiveTargets };
 
         if (nextBoard[r][c].treasure === activeTarget) {
           playSuccessSound();
           showToast(`Goal Target Achieved: ${activeTarget.toUpperCase()}! 🏆`);
           
-          nextHand = nextHand.filter(c => c !== activeTarget);
-          nextTarget = nextHand.length > 0 ? nextHand[0] : null;
+          nextHands[activePawn] = nextHands[activePawn].filter(c => c !== activeTarget);
+          nextActiveTargets[activePawn] = nextHands[activePawn].length > 0 ? nextHands[activePawn][0] : null;
           
-          setHandCards(nextHand);
-          setActiveTarget(nextTarget);
+          setPlayerHands(nextHands);
+          setPlayerActiveTargets(nextActiveTargets);
         } else {
           showToast(`Moved pawn to (${r}, ${c})`);
         }
 
         setBoard(nextBoard);
-        pushStateToHistory(nextBoard, spareTile, lastShiftArrowId, nextTarget, activePawn, nextHand);
+        pushStateToHistory(nextBoard, spareTile, lastShiftArrowId, activePawn, nextHands, nextActiveTargets);
       } else {
         showToast(`Tile (${r}, ${c}) is not reachable from your current position!`);
       }
@@ -447,75 +523,77 @@ export default function App() {
       return;
     }
 
-    if (setupStep === 4 && activeTool !== 'select') {
-      showToast('Paint tools are disabled in Pawn placement step. Switch back to Step 2 to edit tile corridors.');
+    const tile = board[r][c];
+
+    // MOBILE FRIENDLY: Tap pawn color first in Panel, then single tap tile in step 4 to jump
+    if (setupStep === 4) {
+      playClickSound();
+      const nextBoard = cloneBoard(board);
+      
+      // Wipe pawn color from old grid position
+      for (let row = 0; row < 7; row++) {
+        for (let col = 0; col < 7; col++) {
+          nextBoard[row][col].pawns = (nextBoard[row][col].pawns || []).filter(p => p !== activePawn);
+        }
+      }
+
+      // Add to new position
+      if (!nextBoard[r][c].pawns) nextBoard[r][c].pawns = [];
+      nextBoard[r][c].pawns.push(activePawn);
+
+      setBoard(nextBoard);
+      pushStateToHistory(nextBoard, spareTile, lastShiftArrowId, activePawn, playerHands, playerActiveTargets);
+      showToast(`Jumped active player pawn ${activePawn.toUpperCase()} to (${r}, ${c})`);
       return;
     }
 
-    const tile = board[r][c];
-
-    if (activeTool === 'select') {
-      playClickSound();
-      setSelectedTileCoord({ r, c });
-      setModalState({
-        shape: tile.shape,
-        dir: tile.dir,
-        treasure: tile.treasure || '',
-        pawns: [...(tile.pawns || [])]
-      });
-      setShowModal(true);
-    } else {
+    if (setupStep === 2) {
+      // In Corridors Step: click rotates tile directly for streamlined layout setup
       if (tile.isFixed) {
         showToast('Fixed anchor tiles cannot be configured!');
         return;
       }
-
+      playRotateSound();
       const nextBoard = cloneBoard(board);
-      const targetTile = nextBoard[r][c];
-
-      if (activeTool === 'rotate') {
-        playRotateSound();
-        targetTile.dir = (targetTile.dir + 1) % 4;
-      } else if (activeTool === 'paint-I') {
-        playClickSound();
-        targetTile.shape = 'I';
-      } else if (activeTool === 'paint-L') {
-        playClickSound();
-        targetTile.shape = 'L';
-      } else if (activeTool === 'paint-T') {
-        playClickSound();
-        targetTile.shape = 'T';
-      }
-
+      nextBoard[r][c].dir = (nextBoard[r][c].dir + 1) % 4;
       setBoard(nextBoard);
-      pushStateToHistory(nextBoard, spareTile, lastShiftArrowId, activeTarget, activePawn, handCards);
+      pushStateToHistory(nextBoard, spareTile, lastShiftArrowId, activePawn, playerHands, playerActiveTargets);
+    } else if (setupStep === 6 && activeTool === 'select') {
+      playClickSound();
+      setSelectedTileCoord({ r, c });
+      setShowModal(true);
     }
   };
 
-  // Double click moves active pawn directly to coordinate (Setup Mode Only)
+  // Double click opens detailed tile editor modal
   const handleTileDoubleClick = (r, c) => {
     if (isGameStarted) return;
-    if (setupStep !== 4 && setupStep !== 6) {
-      showToast('Pawn positions can only be configured in Setup Step 4 (Pawns).');
+    if (setupStep !== 2 && setupStep !== 4 && setupStep !== 6) {
+      showToast('Tile configurations can only be edited during corridor setup!');
       return;
     }
     playClickSound();
-    const nextBoard = cloneBoard(board);
-    
-    // Wipe pawn color from old grid position
-    for (let row = 0; row < 7; row++) {
-      for (let col = 0; col < 7; col++) {
-        nextBoard[row][col].pawns = (nextBoard[row][col].pawns || []).filter(p => p !== activePawn);
-      }
+    setSelectedTileCoord({ r, c });
+    setShowModal(true);
+  };
+
+  // Right click cycles shapes on board tiles in setup step 2
+  const handleTileRightClick = (r, c) => {
+    if (isGameStarted) return;
+    if (setupStep === 2) {
+      const tile = board[r][c];
+      if (tile.isFixed) return;
+      
+      playClickSound();
+      const nextBoard = cloneBoard(board);
+      const shapes = ['I', 'L', 'T'];
+      const nextIdx = (shapes.indexOf(tile.shape) + 1) % 3;
+      nextBoard[r][c].shape = shapes[nextIdx];
+      
+      setBoard(nextBoard);
+      pushStateToHistory(nextBoard, spareTile, lastShiftArrowId, activePawn, playerHands, playerActiveTargets);
+      showToast(`Cycled shape to ${shapes[nextIdx]}!`);
     }
-
-    // Add to new position
-    if (!nextBoard[r][c].pawns) nextBoard[r][c].pawns = [];
-    nextBoard[r][c].pawns.push(activePawn);
-
-    setBoard(nextBoard);
-    pushStateToHistory(nextBoard, spareTile, lastShiftArrowId, activeTarget, activePawn, handCards);
-    showToast(`Jumped active player pawn ${activePawn.toUpperCase()} to (${r}, ${c})`);
   };
 
   // Shifting grid slider
@@ -535,7 +613,7 @@ export default function App() {
     setSpareTile(result.newSpare);
     setLastShiftArrowId(arrowId);
 
-    pushStateToHistory(nextBoard, result.newSpare, arrowId, activeTarget, activePawn, handCards);
+    pushStateToHistory(nextBoard, result.newSpare, arrowId, activePawn, playerHands, playerActiveTargets);
     
     const arrowParts = parseArrowId(arrowId);
     showToast(`Shifted ${arrowParts.type.toUpperCase()} ${arrowParts.index} ${arrowParts.dir.toUpperCase()}!`);
@@ -555,7 +633,7 @@ export default function App() {
       dir: (spareTile.dir + 1) % 4
     };
     setSpareTile(nextSpare);
-    pushStateToHistory(board, nextSpare, lastShiftArrowId, activeTarget, activePawn, handCards);
+    pushStateToHistory(board, nextSpare, lastShiftArrowId, activePawn, playerHands, playerActiveTargets);
   };
 
   // Quick select configuration changes
@@ -566,7 +644,7 @@ export default function App() {
       [field]: value
     };
     setSpareTile(nextSpare);
-    pushStateToHistory(board, nextSpare, lastShiftArrowId, activeTarget, activePawn, handCards);
+    pushStateToHistory(board, nextSpare, lastShiftArrowId, activePawn, playerHands, playerActiveTargets);
   };
 
   // Open spare editor modal
@@ -577,17 +655,11 @@ export default function App() {
     }
     playClickSound();
     setSelectedTileCoord(null);
-    setModalState({
-      shape: spareTile.shape,
-      dir: spareTile.dir,
-      treasure: spareTile.treasure || '',
-      pawns: []
-    });
     setShowModal(true);
   };
 
-  // Modal actions
-  const handleSaveModal = () => {
+  // Save details from TileEditorModal
+  const handleSaveModal = (modalState) => {
     playClickSound();
     const nextBoard = cloneBoard(board);
     
@@ -616,7 +688,7 @@ export default function App() {
       });
 
       setBoard(nextBoard);
-      pushStateToHistory(nextBoard, spareTile, lastShiftArrowId, activeTarget, activePawn, handCards);
+      pushStateToHistory(nextBoard, spareTile, lastShiftArrowId, activePawn, playerHands, playerActiveTargets);
       showToast(`Saved layout edits for cell (${r}, ${c})`);
     } else {
       // Spare tile update
@@ -627,45 +699,54 @@ export default function App() {
         treasure: modalState.treasure || ''
       };
       setSpareTile(nextSpare);
-      pushStateToHistory(board, nextSpare, lastShiftArrowId, activeTarget, activePawn, handCards);
+      pushStateToHistory(board, nextSpare, lastShiftArrowId, activePawn, playerHands, playerActiveTargets);
       showToast('Saved extra spare tile configuration');
     }
 
     setShowModal(false);
   };
 
-  // Hand card triggers
+  // Hand card triggers for active player
   const handleAddCard = (cardId) => {
     if (handCards.includes(cardId)) {
       showToast('Card treasure is already in your hand!');
       return;
     }
     playClickSound();
-    const nextHand = [...handCards, cardId];
-    setHandCards(nextHand);
-    if (!activeTarget) {
-      setActiveTarget(cardId);
+    const nextHands = JSON.parse(JSON.stringify(playerHands));
+    const nextActiveTargets = { ...playerActiveTargets };
+
+    nextHands[activePawn] = [...(nextHands[activePawn] || []), cardId];
+    if (!nextActiveTargets[activePawn]) {
+      nextActiveTargets[activePawn] = cardId;
     }
-    pushStateToHistory(board, spareTile, lastShiftArrowId, activeTarget || cardId, activePawn, nextHand);
-    showToast('Added card to hand list!');
+
+    setPlayerHands(nextHands);
+    setPlayerActiveTargets(nextActiveTargets);
+    
+    pushStateToHistory(board, spareTile, lastShiftArrowId, activePawn, nextHands, nextActiveTargets);
+    showToast(`Added card to ${activePawn.toUpperCase()}'s hand list!`);
   };
 
   const handleRemoveCard = (cardId) => {
     playClickSound();
-    const nextHand = handCards.filter(c => c !== cardId);
-    setHandCards(nextHand);
+    const nextHands = JSON.parse(JSON.stringify(playerHands));
+    const nextActiveTargets = { ...playerActiveTargets };
+
+    nextHands[activePawn] = (nextHands[activePawn] || []).filter(c => c !== cardId);
     
-    let nextTarget = activeTarget;
-    if (activeTarget === cardId) {
-      nextTarget = nextHand.length > 0 ? nextHand[0] : null;
-      setActiveTarget(nextTarget);
+    if (nextActiveTargets[activePawn] === cardId) {
+      nextActiveTargets[activePawn] = nextHands[activePawn].length > 0 ? nextHands[activePawn][0] : null;
     }
+
+    setPlayerHands(nextHands);
+    setPlayerActiveTargets(nextActiveTargets);
     
-    pushStateToHistory(board, spareTile, lastShiftArrowId, nextTarget, activePawn, nextHand);
-    showToast('Removed card from hand list.');
+    pushStateToHistory(board, spareTile, lastShiftArrowId, activePawn, nextHands, nextActiveTargets);
+    showToast(`Removed card from ${activePawn.toUpperCase()}'s hand.`);
   };
 
-  // Execute recommendation path
+  // Execute recommendation path for active player
   const handleExecuteSolution = (path) => {
     if (!path || path.length === 0) return;
 
@@ -691,19 +772,19 @@ export default function App() {
     }
     nextBoard[finalPos.r][finalPos.c].pawns.push(activePawn);
 
-    let nextHand = [...handCards];
-    let nextTarget = activeTarget;
+    const nextHands = JSON.parse(JSON.stringify(playerHands));
+    const nextActiveTargets = { ...playerActiveTargets };
 
     // Check target achievement
     if (nextBoard[finalPos.r][finalPos.c].treasure === path.cardId) {
       playSuccessSound();
       showToast(`Goal Target Achieved: ${path.cardId.toUpperCase()}! 🏆`);
       
-      nextHand = nextHand.filter(c => c !== path.cardId);
-      nextTarget = nextHand.length > 0 ? nextHand[0] : null;
+      nextHands[activePawn] = nextHands[activePawn].filter(c => c !== path.cardId);
+      nextActiveTargets[activePawn] = nextHands[activePawn].length > 0 ? nextHands[activePawn][0] : null;
       
-      setHandCards(nextHand);
-      setActiveTarget(nextTarget);
+      setPlayerHands(nextHands);
+      setPlayerActiveTargets(nextActiveTargets);
     } else {
       showToast(`Step 1 executed. Pawn moved to (${finalPos.r}, ${finalPos.c})`);
     }
@@ -713,111 +794,96 @@ export default function App() {
     setLastShiftArrowId(turn1.arrowId);
     setHoveredSolution(null);
 
-    pushStateToHistory(nextBoard, result.newSpare, turn1.arrowId, nextTarget, activePawn, nextHand);
+    pushStateToHistory(nextBoard, result.newSpare, turn1.arrowId, activePawn, nextHands, nextActiveTargets);
   };
 
   // Undo Action
   const handleUndo = () => {
-    if (historyIndex > 0) {
-      playClickSound();
-      const prevIdx = historyIndex - 1;
-      const state = history[prevIdx];
-      
+    playClickSound();
+    const success = undo((state) => {
       setBoard(state.board);
       setSpareTile(state.spareTile);
       setLastShiftArrowId(state.lastShiftArrowId);
-      setActiveTarget(state.activeTarget);
       setActivePawn(state.activePawn);
-      setHandCards(state.handCards);
-      setHistoryIndex(prevIdx);
-      showToast('Undo executed');
+      setPlayerHands(state.playerHands);
+      setPlayerActiveTargets(state.playerActiveTargets);
+    });
+    if (success) {
+      showToast('Undo executed ↩️');
     }
   };
 
   // Redo Action
   const handleRedo = () => {
-    if (historyIndex < history.length - 1) {
-      playClickSound();
-      const nextIdx = historyIndex + 1;
-      const state = history[nextIdx];
-      
+    playClickSound();
+    const success = redo((state) => {
       setBoard(state.board);
       setSpareTile(state.spareTile);
       setLastShiftArrowId(state.lastShiftArrowId);
-      setActiveTarget(state.activeTarget);
       setActivePawn(state.activePawn);
-      setHandCards(state.handCards);
-      setHistoryIndex(nextIdx);
-      showToast('Redo executed');
+      setPlayerHands(state.playerHands);
+      setPlayerActiveTargets(state.playerActiveTargets);
+    });
+    if (success) {
+      showToast('Redo executed ↪️');
     }
   };
 
   // Save layout state to LocalStorage
   const handleSaveState = () => {
-    try {
-      const state = {
-        board,
-        spareTile,
-        activePawn,
-        handCards,
-        activeTarget,
-        lastShiftArrowId,
-        isGameStarted,
-        gameStartState
-      };
-      localStorage.setItem('labyrinth_strategist_state', JSON.stringify(state));
+    const state = {
+      board,
+      spareTile,
+      activePawn,
+      playerHands,
+      playerActiveTargets,
+      lastShiftArrowId,
+      isGameStarted,
+      gameStartState
+    };
+    const success = saveSlot('Manual Save / Checkpoint', state);
+    if (success) {
       playSuccessSound();
-      showToast('Layout state saved successfully! 💾');
-    } catch (e) {
-      showToast('Failed to save state to storage.');
+      showToast('State checkpoint saved successfully! 💾');
+    } else {
+      showToast('Failed to save state profile.');
     }
   };
 
-  // Load layout state from LocalStorage
-  const loadStateFromLocalStorage = (quiet = false) => {
-    try {
-      const raw = localStorage.getItem('labyrinth_strategist_state');
-      if (!raw) return false;
 
-      const state = JSON.parse(raw);
-      if (!state.board || !state.spareTile) return false;
 
-      setBoard(state.board);
-      setSpareTile(state.spareTile);
-      setActivePawn(state.activePawn || 'red');
-      setHandCards(state.handCards || []);
-      setActiveTarget(state.activeTarget || null);
-      setLastShiftArrowId(state.lastShiftArrowId || null);
-      setIsGameStarted(state.isGameStarted || false);
-      setGameStartState(state.gameStartState || null);
-      
-      // Record initial history
-      const record = {
-        board: state.board,
-        spareTile: state.spareTile,
-        lastShiftArrowId: state.lastShiftArrowId || null,
-        activeTarget: state.activeTarget || null,
-        activePawn: state.activePawn || 'red',
-        handCards: state.handCards || []
-      };
-      setHistory([record]);
-      setHistoryIndex(0);
-
-      if (!quiet) {
-        playSuccessSound();
-        showToast('Layout state loaded successfully! 📂');
-      }
-      return true;
-    } catch (e) {
-      console.warn(e);
-      return false;
-    }
-  };
 
   const handleLoadState = () => {
     const success = loadStateFromLocalStorage(false);
     if (!success) {
       showToast('No saved state found in browser memory.');
+    }
+  };
+
+  const handleLoadSlot = (key) => {
+    const state = loadSlot(key);
+    if (state) {
+      setBoard(state.board);
+      setSpareTile(state.spareTile);
+      setActivePawn(state.activePawn || 'red');
+      setPlayerHands(state.playerHands || { red: [], blue: [], green: [], yellow: [] });
+      setPlayerActiveTargets(state.playerActiveTargets || { red: null, blue: null, green: null, yellow: null });
+      setLastShiftArrowId(state.lastShiftArrowId || null);
+      setIsGameStarted(state.isGameStarted || false);
+      setGameStartState(state.gameStartState || null);
+      
+      const record = {
+        board: state.board,
+        spareTile: state.spareTile,
+        lastShiftArrowId: state.lastShiftArrowId || null,
+        activePawn: state.activePawn || 'red',
+        playerHands: state.playerHands || { red: [], blue: [], green: [], yellow: [] },
+        playerActiveTargets: state.playerActiveTargets || { red: null, blue: null, green: null, yellow: null }
+      };
+      resetHistory(record);
+      showToast('Profile loaded successfully! 📂');
+    } else {
+      showToast('Failed to load profile.');
     }
   };
 
@@ -866,7 +932,7 @@ export default function App() {
           {/* Undo/Redo */}
           <button 
             onClick={handleUndo} 
-            disabled={historyIndex <= 0}
+            disabled={!canUndo}
             className="btn-icon" 
             title="Undo"
           >
@@ -874,7 +940,7 @@ export default function App() {
           </button>
           <button 
             onClick={handleRedo} 
-            disabled={historyIndex >= history.length - 1}
+            disabled={!canRedo}
             className="btn-icon" 
             title="Redo"
           >
@@ -894,6 +960,14 @@ export default function App() {
             className="btn-text"
           >
             <FolderOpen size={14} /> Load State
+          </button>
+
+          <button 
+            onClick={handleToggleMute}
+            className="btn-icon"
+            title={isMuted ? "Unmute Sounds" : "Mute Sounds"}
+          >
+            {isMuted ? <VolumeX size={16} /> : <Volume2 size={16} />}
           </button>
           
           <div className="toolbar-divider" />
@@ -995,7 +1069,7 @@ export default function App() {
                 )}
                 {setupStep === 4 && (
                   <span style={{ fontSize: '11px', color: '#9ca3af', fontWeight: 500 }}>
-                    💡 Double click cells on grid to position pawns
+                    💡 Tap/Click cells on grid to position pawns
                   </span>
                 )}
               </div>
@@ -1017,6 +1091,7 @@ export default function App() {
             activeTool={activeTool}
             onTileClick={handleTileClick}
             onTileDoubleClick={handleTileDoubleClick}
+            onTileRightClick={handleTileRightClick}
             onSlide={handleSlide}
             onDragOver={setDragOverArrowId}
             onDropSpareTile={handleDropSpareTile}
@@ -1106,9 +1181,11 @@ export default function App() {
           activeTarget={activeTarget}
           setActiveTarget={setActiveTarget}
           onAddCard={handleAddCard}
+          onRemoveCard={handleRemoveCard}
           maxTurns={maxTurns}
           setMaxTurns={setMaxTurns}
           solutions={solutions}
+          isLoadingSolutions={isLoadingSolutions}
           onHoverSolution={setHoveredSolution}
           onExecuteSolution={handleExecuteSolution}
           isGameStarted={isGameStarted}
@@ -1124,149 +1201,21 @@ export default function App() {
           onRestartGame={handleRestartGame}
           activeTool={activeTool}
           setActiveTool={setActiveTool}
+          slots={slots}
+          onSaveSlot={saveSlot}
+          onLoadSlot={handleLoadSlot}
+          onDeleteSlot={deleteSlot}
         />
       </main>
 
       {/* Floating Detailed Tile Editor Context Modal */}
-      {showModal && (
-        <div className="modal-overlay">
-          <div className="modal-content">
-            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--color-border-subtle)', paddingBottom: '12px', marginBottom: '20px'}}>
-              <h3 style={{fontSize: '16px', fontWeight: 'bold', color: 'white'}}>
-                {selectedTileCoord 
-                  ? `Configure Tile at (${selectedTileCoord.r}, ${selectedTileCoord.c})` 
-                  : 'Configure Extra Spare Tile'}
-              </h3>
-              <button 
-                onClick={() => setShowModal(false)}
-                style={{color: '#9ca3af', fontSize: '24px', fontWeight: 'bold'}}
-              >
-                &times;
-              </button>
-            </div>
-
-            <div style={{display: 'flex', flexDirection: 'column', gap: '16px'}}>
-              {/* Path Shape Option */}
-              <div style={{display: 'flex', flexDirection: 'column', gap: '8px'}}>
-                <label style={{fontSize: '12px', fontWeight: 600, color: '#9ca3af'}}>Exit Corridor Shape</label>
-                <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px'}}>
-                  {['I', 'L', 'T'].map(sh => (
-                    <button
-                      key={sh}
-                      onClick={() => setModalState(prev => ({ ...prev, shape: sh }))}
-                      disabled={selectedTileCoord && board[selectedTileCoord.r][selectedTileCoord.c].isFixed}
-                      className={clsx(
-                        "btn-text",
-                        modalState.shape === sh && "btn-primary",
-                        selectedTileCoord && board[selectedTileCoord.r][selectedTileCoord.c].isFixed && "opacity-50 cursor-not-allowed"
-                      )}
-                      style={{justifyContent: 'center'}}
-                    >
-                      {sh === 'I' ? 'Straight (I)' : sh === 'L' ? 'Corner (L)' : 'Junction (T)'}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Rotation Option */}
-              <div style={{display: 'flex', flexDirection: 'column', gap: '8px'}}>
-                <label style={{fontSize: '12px', fontWeight: 600, color: '#9ca3af'}}>Exits Rotation Angle</label>
-                <div style={{display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px'}}>
-                  {[0, 1, 2, 3].map(rot => (
-                    <button
-                      key={rot}
-                      onClick={() => setModalState(prev => ({ ...prev, dir: rot }))}
-                      disabled={selectedTileCoord && board[selectedTileCoord.r][selectedTileCoord.c].isFixed}
-                      className={clsx(
-                        "btn-text",
-                        modalState.dir === rot && "btn-primary",
-                        selectedTileCoord && board[selectedTileCoord.r][selectedTileCoord.c].isFixed && "opacity-50 cursor-not-allowed"
-                      )}
-                      style={{justifyContent: 'center'}}
-                    >
-                      {rot * 90}°
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Assigned Treasure Option */}
-              <div style={{display: 'flex', flexDirection: 'column', gap: '8px'}}>
-                <label style={{fontSize: '12px', fontWeight: 600, color: '#9ca3af'}}>Assigned Treasure</label>
-                <select
-                  value={modalState.treasure}
-                  onChange={(e) => setModalState(prev => ({ ...prev, treasure: e.target.value }))}
-                  disabled={selectedTileCoord && board[selectedTileCoord.r][selectedTileCoord.c].isFixed}
-                  className="select-control"
-                  style={{padding: '8px 12px', fontSize: '14px', borderRadius: '12px'}}
-                >
-                  <option value="">No Treasure</option>
-                  {TREASURES.map(t => (
-                    <option key={t.id} value={t.id}>
-                      {t.symbol} {t.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Pawns Present Option */}
-              {selectedTileCoord && (
-                <div style={{display: 'flex', flexDirection: 'column', gap: '8px'}}>
-                  <label style={{fontSize: '12px', fontWeight: 600, color: '#9ca3af'}}>Pawns Present on Tile</label>
-                  <div style={{display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px'}}>
-                    {['red', 'blue', 'green', 'yellow'].map(color => {
-                      const present = modalState.pawns.includes(color);
-                      return (
-                        <button
-                          key={color}
-                          onClick={() => {
-                            setModalState(prev => {
-                              const alreadyIn = prev.pawns.includes(color);
-                              return {
-                                ...prev,
-                                pawns: alreadyIn 
-                                  ? prev.pawns.filter(p => p !== color)
-                                  : [...prev.pawns, color]
-                              };
-                            });
-                          }}
-                          className={clsx(
-                            "btn-text",
-                            present && `pawn-${color}`
-                          )}
-                          style={{
-                            justifyContent: 'center', 
-                            textTransform: 'capitalize',
-                            background: present ? `var(--color-pawn-${color})` : undefined,
-                            color: present ? (color === 'yellow' ? 'black' : 'white') : undefined
-                          }}
-                        >
-                          {color}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <div style={{display: 'flex', gap: '12px', justifyContent: 'flex-end', borderTop: '1px solid var(--color-border-subtle)', paddingTop: '16px', marginTop: '16px'}}>
-              <button
-                onClick={() => setShowModal(false)}
-                className="btn-text"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleSaveModal}
-                className="btn-text btn-primary"
-              >
-                Save Changes
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <TileEditorModal
+        isOpen={showModal}
+        onClose={() => setShowModal(false)}
+        onSave={handleSaveModal}
+        selectedTileCoord={selectedTileCoord}
+        initialTileData={selectedTileCoord ? board[selectedTileCoord.r][selectedTileCoord.c] : spareTile}
+      />
     </div>
   );
 }

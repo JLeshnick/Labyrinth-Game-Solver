@@ -1,7 +1,7 @@
 import React from 'react';
 import Tile from './Tile';
 import { SHIFT_ARROWS } from '../constants';
-import { isOppositeArrow } from '../solver';
+import { isOppositeArrow, parseArrowId } from '../solver';
 import { ChevronRight } from 'lucide-react';
 import clsx from 'clsx';
 
@@ -15,6 +15,7 @@ export default function Board({
   activeTool = 'select',
   onTileClick,
   onTileDoubleClick,
+  onTileRightClick,
   onSlide,
   onDragOver,
   onDropSpareTile,
@@ -58,6 +59,9 @@ export default function Board({
       onDropSpareTile(arrowId);
     }
   };
+
+  // Parse preview arrow id to find shifting track
+  const previewParts = previewArrowId ? parseArrowId(previewArrowId) : null;
 
   return (
     <div className={clsx("board-grid-wrapper", isGameStarted && "board-locked")}>
@@ -116,6 +120,12 @@ export default function Board({
             const isSelected = selectedTileCoord && selectedTileCoord.r === r && selectedTileCoord.c === c;
             const { isHighlightPath, isHighlightStart, isHighlightEnd } = getHighlightState(r, c);
             const isReachable = isGameStarted && reachableCells.some(cell => cell.r === r && cell.c === c);
+            
+            // Check if this tile is in the row or column being shifted in the preview
+            const isShiftingPreview = previewParts && (
+              (previewParts.type === 'row' && r === previewParts.index) ||
+              (previewParts.type === 'col' && c === previewParts.index)
+            );
 
             return (
               <Tile
@@ -130,8 +140,13 @@ export default function Board({
                 isHighlightStart={isHighlightStart}
                 isHighlightEnd={isHighlightEnd}
                 isReachable={isReachable}
+                isShiftingPreview={isShiftingPreview}
                 onClick={() => onTileClick(r, c)}
                 onDoubleClick={() => onTileDoubleClick(r, c)}
+                onContextMenu={(e) => {
+                  e.preventDefault();
+                  onTileRightClick && onTileRightClick(r, c);
+                }}
                 style={{
                   gridRow: r + 2,
                   gridColumn: c + 2
