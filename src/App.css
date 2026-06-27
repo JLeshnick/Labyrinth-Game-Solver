@@ -33,7 +33,7 @@
 .header-title {
   font-size: 20px;
   font-weight: 700;
-  background: var(--color-text-main);
+  color: var(--color-text-main);
   
   
   display: flex;

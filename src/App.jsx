@@ -307,9 +307,9 @@ export default function App() {
 
   const handleNextStep = () => {
     playClickSound();
-    if (setupStep < 6) {
+    if (setupStep < 5) {
       setSetupStep(prev => prev + 1);
-    } else if (setupStep === 6) {
+    } else if (setupStep === 5) {
       handleStartGame();
     }
   };
@@ -352,7 +352,7 @@ export default function App() {
   const handleEndGame = () => {
     playClickSound();
     setIsGameStarted(false);
-    setSetupStep(6);
+    setSetupStep(5);
     showToast('Game ended. Board editing unlocked! 🔧');
   };
 
@@ -522,15 +522,15 @@ export default function App() {
       return;
     }
 
-    if (setupStep !== 2 && setupStep !== 4 && setupStep !== 6) {
-      showToast(`Please advance to Step 2 (Corridors) or Step 4 (Pawns) to configure board tiles!`);
+    if (setupStep !== 1 && setupStep !== 3 && setupStep !== 5) {
+      showToast(`Please advance to Step 1 (Layout) or Step 3 (Pawns) to configure board tiles!`);
       return;
     }
 
     const tile = board[r][c];
 
-    // MOBILE FRIENDLY: Tap pawn color first in Panel, then single tap tile in step 4 to jump
-    if (setupStep === 4) {
+    // MOBILE FRIENDLY: Tap pawn color first in Panel, then single tap tile in step 3 to jump
+    if (setupStep === 3) {
       playClickSound();
       const nextBoard = cloneBoard(board);
       
@@ -551,8 +551,8 @@ export default function App() {
       return;
     }
 
-    if (setupStep === 2) {
-      // In Corridors Step: click rotates tile directly for streamlined layout setup
+    if (setupStep === 1) {
+      // In Layout Step: click rotates tile directly for streamlined layout setup
       if (tile.isFixed) {
         showToast('Fixed anchor tiles cannot be configured!');
         return;
@@ -562,7 +562,7 @@ export default function App() {
       nextBoard[r][c].dir = (nextBoard[r][c].dir + 1) % 4;
       setBoard(nextBoard);
       pushStateToHistory(nextBoard, spareTile, lastShiftArrowId, activePawn, playerHands, playerActiveTargets);
-    } else if (setupStep === 6 && activeTool === 'select') {
+    } else if (setupStep === 5 && activeTool === 'select') {
       playClickSound();
       setSelectedTileCoord({ r, c });
       setShowModal(true);
@@ -572,8 +572,8 @@ export default function App() {
   // Double click opens detailed tile editor modal
   const handleTileDoubleClick = (r, c) => {
     if (isGameStarted) return;
-    if (setupStep !== 2 && setupStep !== 4 && setupStep !== 6) {
-      showToast('Tile configurations can only be edited during corridor setup!');
+    if (setupStep !== 1 && setupStep !== 3 && setupStep !== 5) {
+      showToast('Tile configurations can only be edited during layout setup!');
       return;
     }
     playClickSound();
@@ -584,7 +584,7 @@ export default function App() {
   // Right click cycles shapes on board tiles in setup step 2
   const handleTileRightClick = (r, c) => {
     if (isGameStarted) return;
-    if (setupStep === 2) {
+    if (setupStep === 1) {
       const tile = board[r][c];
       if (tile.isFixed) return;
       
@@ -1037,17 +1037,16 @@ export default function App() {
                 <div className="mode-badge setup-step-badge" style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 14px', background: 'rgba(255, 190, 26, 0.1)', borderRadius: '8px', border: '1px solid rgba(255, 190, 26, 0.3)' }}>
                   <Unlock size={14} style={{ color: 'var(--color-accent-gold)' }} />
                   <span style={{ color: 'var(--color-accent-gold)', fontWeight: 'bold', fontSize: '11px', letterSpacing: '0.05em' }}>
-                    STEP {setupStep}/6: {
-                      setupStep === 1 ? 'BASE LAYOUT' :
-                      setupStep === 2 ? 'PAINT TILE CORRIDORS' :
-                      setupStep === 3 ? 'EXTRA SPARE TILE' :
-                      setupStep === 4 ? 'PLACE PLAYER PAWNS' :
-                      setupStep === 5 ? 'SET PLAYER HAND' :
+                    STEP {setupStep}/5: {
+                      setupStep === 1 ? 'BOARD LAYOUT' :
+                      setupStep === 2 ? 'EXTRA SPARE TILE' :
+                      setupStep === 3 ? 'PLACE PLAYER PAWNS' :
+                      setupStep === 4 ? 'SET PLAYER HAND' :
                       'READY TO PLAY!'
                     }
                   </span>
                 </div>
-                {setupStep === 2 && (
+                {setupStep === 1 && (
                   <div className="tool-group">
                     <button 
                       onClick={() => setActiveTool('select')}
@@ -1081,7 +1080,7 @@ export default function App() {
                     </button>
                   </div>
                 )}
-                {setupStep === 4 && (
+                {setupStep === 3 && (
                   <span style={{ fontSize: '11px', color: '#9ca3af', fontWeight: 500 }}>
                     💡 Tap/Click cells on grid to position pawns
                   </span>
@@ -1115,7 +1114,8 @@ export default function App() {
           />
 
           {/* Extra Spare Tile Section */}
-          <div className={clsx("spare-section", !isGameStarted && setupStep === 3 && "wizard-highlight-pulse")}>
+          {(isGameStarted || setupStep >= 2) && (
+            <div className={clsx("spare-section", !isGameStarted && setupStep === 2 && "wizard-highlight-pulse")}>
             <div className="spare-info">
               <h3>
                 Extra Spare Tile 🧩
@@ -1185,6 +1185,7 @@ export default function App() {
               </div>
             </div>
           </div>
+          )}
         </section>
 
         {/* Right Side: Setup Controls & Solver Output */}

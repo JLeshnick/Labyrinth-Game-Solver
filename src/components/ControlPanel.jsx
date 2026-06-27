@@ -55,13 +55,13 @@ export default function ControlPanel({
               position: 'absolute', 
               top: '14px', 
               left: '20px', 
-              width: `${((setupStep - 1) / 5) * 100}%`, 
+              width: `${((setupStep - 1) / 4) * 100}%`, 
               height: '2px', 
               backgroundColor: 'var(--color-accent-gold)', 
               zIndex: 2,
               transition: 'width 0.3s ease'
             }} />
-            {[1, 2, 3, 4, 5, 6].map(stepNum => {
+            {[1, 2, 3, 4, 5].map(stepNum => {
               const active = stepNum === setupStep;
               const completed = stepNum < setupStep;
               return (
@@ -93,7 +93,6 @@ export default function ControlPanel({
           </div>
           <div style={{display: 'flex', justifyContent: 'space-between', marginTop: '8px', fontSize: '9px', textTransform: 'uppercase', color: '#9ca3af', fontWeight: 600, padding: '0 4px'}}>
             <span>Layout</span>
-            <span>Corridors</span>
             <span>Extra Tile</span>
             <span>Pawns</span>
             <span>Hand</span>
@@ -120,57 +119,54 @@ export default function ControlPanel({
         <section className="glass-panel cp-section wizard-instruction-card" style={{padding: '20px', borderLeft: '4px solid var(--color-accent-gold)', marginBottom: '16px'}}>
           <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px'}}>
             <span style={{fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--color-accent-gold)', fontWeight: 'bold'}}>
-              Step {setupStep} of 6
+              Step {setupStep} of 5
             </span>
             <Unlock size={16} style={{color: 'var(--color-accent-gold)'}} />
           </div>
 
           <h3 style={{fontSize: '16px', color: 'white', fontWeight: 700}}>
-            {setupStep === 1 && "1. Base Board Layout"}
-            {setupStep === 2 && "2. Paint Tile Corridors"}
-            {setupStep === 3 && "3. Configure Extra Spare Tile"}
-            {setupStep === 4 && "4. Place Player Pawns"}
-            {setupStep === 5 && "5. Define Player Hand Cards"}
-            {setupStep === 6 && "6. Confirm Setup & Play!"}
+            {setupStep === 1 && "1. Board Layout"}
+            {setupStep === 2 && "2. Configure Extra Spare Tile"}
+            {setupStep === 3 && "3. Place Player Pawns"}
+            {setupStep === 4 && "4. Define Player Hand Cards"}
+            {setupStep === 5 && "5. Confirm Setup & Play!"}
           </h3>
 
           <p style={{fontSize: '12px', color: '#9ca3af', marginTop: '8px', lineHeight: '1.5'}}>
-            {setupStep === 1 && "Establish the base grid of tiles. You can wipe all movable tiles to start from scratch, load standard aligned coordinates, or shuffle them randomly."}
-            {setupStep === 2 && "Select a corridor shape brush below (Straight, Corner, or Junction) and click or rotate movable cells directly on the board to customize paths."}
-            {setupStep === 3 && "Choose the corridor exits shape and target treasure assigned to the Extra Spare Tile. You can also rotate the extra tile."}
-            {setupStep === 4 && "Position pawns for Red, Blue, Green, and Yellow players. Select a player pawn color below, then double-click any board tile to place them."}
-            {setupStep === 5 && "Add target cards to the player's hand list. These are the treasures they need to reach. The strategist solver will immediately plan recommendations once added."}
-            {setupStep === 6 && "Verify your board state looks correct! Click Start Game to lock the board configuration controls and begin playing."}
+            {setupStep === 1 && "Establish the base grid of tiles and customize corridor shapes. Select a brush below to paint tiles directly, or use the macro buttons to clear or shuffle the board."}
+            {setupStep === 2 && "Choose the corridor exits shape and target treasure assigned to the Extra Spare Tile. You can also rotate the extra tile."}
+            {setupStep === 3 && "Position pawns for Red, Blue, Green, and Yellow players. Select a player pawn color below, then double-click any board tile to place them."}
+            {setupStep === 4 && "Add target cards to the player's hand list. These are the treasures they need to reach. The strategist solver will immediately plan recommendations once added."}
+            {setupStep === 5 && "Verify your board state looks correct! Click Start Game to lock the board configuration controls and begin playing."}
           </p>
 
           {/* Inline wizard controls */}
           {setupStep === 1 && (
-            <div style={{display: 'flex', gap: '8px', marginTop: '16px', flexWrap: 'wrap'}}>
-              <button onClick={onClearBoard} className="btn-text btn-danger" style={{fontSize: '11px', padding: '6px 12px'}}>
-                Clear Slate
-              </button>
-              <button onClick={onResetBoard} className="btn-text" style={{fontSize: '11px', padding: '6px 12px'}}>
-                Reset Default
-              </button>
-              <button onClick={onShuffleBoard} className="btn-text btn-primary" style={{fontSize: '11px', padding: '6px 12px'}}>
-                Shuffle Movable
-              </button>
-            </div>
-          )}
-
-          {setupStep === 2 && (
-            <div style={{marginTop: '16px', display: 'flex', gap: '8px', flexWrap: 'wrap'}}>
-              {['select', 'rotate', 'paint-I', 'paint-L', 'paint-T'].map(tool => (
-                <button
-                  key={tool}
-                  onClick={() => setActiveTool(tool)}
-                  className={clsx("btn-text", activeTool === tool && "btn-primary")}
-                  style={{fontSize: '10px', padding: '6px 10px'}}
-                >
-                  {tool === 'select' ? 'Inspect' : tool === 'rotate' ? 'Rotate' : tool.split('-')[1]}
+            <>
+              <div style={{display: 'flex', gap: '8px', marginTop: '16px', flexWrap: 'wrap'}}>
+                <button onClick={onClearBoard} className="btn-text btn-danger" style={{fontSize: '11px', padding: '6px 12px'}}>
+                  Clear Slate
                 </button>
-              ))}
-            </div>
+                <button onClick={onResetBoard} className="btn-text" style={{fontSize: '11px', padding: '6px 12px'}}>
+                  Reset Default
+                </button>
+                <button onClick={onShuffleBoard} className="btn-text btn-primary" style={{fontSize: '11px', padding: '6px 12px'}}>
+                  Shuffle Movable
+                </button>
+              </div>
+              <div style={{marginTop: '16px', display: 'flex', gap: '8px', flexWrap: 'wrap'}}>
+                {['select', 'rotate', 'paint-I', 'paint-L', 'paint-T'].map(tool => (
+                  <button
+                    key={tool}
+                    onClick={() => setActiveTool(tool)}
+                    className={clsx("btn-text", activeTool === tool && "btn-primary")}
+                    style={{fontSize: '10px', padding: '6px 10px'}}
+                  >
+                    {tool === 'select' ? 'Inspect' : tool === 'rotate' ? 'Rotate' : tool.split('-')[1]}
+                  </button>
+                ))}
+              </div>
+            </>
           )}
 
           {/* Navigation Controls */}
@@ -186,7 +182,7 @@ export default function ControlPanel({
             
             <div style={{display: 'flex', gap: '8px'}}>
               <button
-                onClick={() => setSetupStep(6)}
+                onClick={() => setSetupStep(5)}
                 className="btn-text"
                 style={{fontSize: '11px', padding: '6px 8px', color: '#9ca3af', border: 'none', background: 'transparent'}}
               >
@@ -198,12 +194,12 @@ export default function ControlPanel({
                 style={{
                   padding: '6px 14px', 
                   fontSize: '11px',
-                  background: setupStep === 6 ? 'linear-gradient(135deg, #10b981, #059669)' : undefined,
-                  color: setupStep === 6 ? 'white' : undefined,
+                  background: setupStep === 5 ? 'linear-gradient(135deg, #10b981, #059669)' : undefined,
+                  color: setupStep === 5 ? 'white' : undefined,
                   fontWeight: 700
                 }}
               >
-                {setupStep === 6 ? 'Start Game' : 'Next Step'}
+                {setupStep === 5 ? 'Start Game' : 'Next Step'}
               </button>
             </div>
           </div>
@@ -211,10 +207,11 @@ export default function ControlPanel({
       )}
 
       {/* Active Player Pawn Manager */}
+      {(isGameStarted || setupStep >= 3) && (
       <section 
         className={clsx(
           "glass-panel cp-section",
-          !isGameStarted && setupStep === 4 && "wizard-highlight-pulse"
+          !isGameStarted && setupStep === 3 && "wizard-highlight-pulse"
         )} 
         style={{padding: '20px'}}
       >
@@ -243,12 +240,14 @@ export default function ControlPanel({
           })}
         </div>
       </section>
+      )}
 
       {/* Hand Cards Manager */}
+      {(isGameStarted || setupStep >= 4) && (
       <section 
         className={clsx(
           "glass-panel cp-section",
-          !isGameStarted && setupStep === 5 && "wizard-highlight-pulse"
+          !isGameStarted && setupStep === 4 && "wizard-highlight-pulse"
         )} 
         style={{padding: '20px'}}
       >
@@ -310,9 +309,10 @@ export default function ControlPanel({
           </button>
         </div>
       </section>
+      )}
 
       {/* Pathfinder Solver Panel */}
-      {(isGameStarted || setupStep === 6) && (
+      {(isGameStarted || setupStep >= 4) && (
         <section className="glass-panel cp-section" style={{padding: '20px', flex: 1, minHeight: '300px'}}>
         <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px'}}>
           <h2 className="cp-header" style={{display: 'flex', alignItems: 'center', gap: '8px', margin: 0}}>

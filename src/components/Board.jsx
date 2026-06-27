@@ -79,7 +79,7 @@ export default function Board({
         <div className="board-track-vertical" style={{ gridColumn: 8, gridRow: '2 / 9' }} />
 
         {/* Shifting Arrows */}
-        {SHIFT_ARROWS.map(arrow => {
+        {isGameStarted && SHIFT_ARROWS.map(arrow => {
           const isForbidden = lastShiftArrowId && isOppositeArrow(arrow.id, lastShiftArrowId);
           const isHighlighted = previewArrowId === arrow.id;
           
