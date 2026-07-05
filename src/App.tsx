@@ -1430,10 +1430,10 @@ export default function App() {
           </div>
 
           {/* Sidebar Editor / Play Control panel */}
-          <div className="w-full lg:w-[400px] xl:w-[440px] flex flex-col flex-shrink-0 min-h-[450px] lg:min-h-0 lg:h-full">
+          <div className="w-full lg:w-[400px] xl:w-[440px] flex flex-col flex-shrink-0 min-h-0 lg:h-full">
             {isGameStarted ? (
               /* Gameplay & Solver Controls */
-              <div className="flex-1 flex flex-col gap-4 bg-stone-900/50 border border-stone-800 rounded-2xl p-5 backdrop-blur-xl">
+              <div className="flex-1 flex flex-col min-h-0 gap-4 bg-stone-900/50 border border-stone-800 rounded-2xl p-5 backdrop-blur-xl">
                 <div className="flex items-center justify-between">
                   <h2 className="text-lg font-bold text-theme-primary flex items-center gap-2">
                     <Sparkles className="w-5 h-5 text-theme-primary" />
@@ -1485,7 +1485,7 @@ export default function App() {
                 </div>
 
                 {/* List solutions */}
-                <div className="flex-1 overflow-y-auto min-h-[250px] pr-2 flex flex-col gap-2">
+                <div className="flex-1 overflow-y-auto min-h-0 pr-2 flex flex-col gap-2">
                   {isLoadingSolutions ? (
                     <div className="flex-1 flex flex-col items-center justify-center text-stone-500 gap-2">
                       <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-amber-500" />
@@ -1565,7 +1565,7 @@ export default function App() {
               </div>
             ) : (
               /* Setup Config Sidepanel */
-              <div className="flex-1 flex flex-col gap-4 bg-stone-900/50 border border-stone-800 rounded-2xl p-5 backdrop-blur-xl">
+              <div className="flex-1 flex flex-col min-h-0 gap-4 bg-stone-900/50 border border-stone-800 rounded-2xl p-5 backdrop-blur-xl">
                 {/* Tabs */}
                 <div className="flex border-b border-stone-800 pb-2 gap-2">
                   <Button
@@ -1601,9 +1601,9 @@ export default function App() {
                 </div>
 
                 {/* Tab Content */}
-                <div className="flex-1 overflow-hidden">
+                <div className="flex-1 overflow-hidden min-h-0">
                   {setupTab === "tiles" && (
-                    <div className="flex flex-col gap-3 h-full overflow-hidden">
+                    <div className="flex flex-col gap-3 h-full overflow-hidden min-h-0">
                       <Button
                         onClick={handleRandomizeBoard}
                         className="w-full bg-theme-primary hover:bg-theme-primary-hover text-stone-950 font-bold py-2.5 px-4 rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-theme-glow cursor-pointer transition-colors"
@@ -1618,7 +1618,7 @@ export default function App() {
                   )}
 
                   {setupTab === "pawns" && (
-                    <div className="flex flex-col gap-4 h-full">
+                    <div className="flex flex-col gap-4 h-full overflow-y-auto min-h-0">
                       <div className="text-sm text-stone-400">
                         Choose a pawn and click a cell on the board grid to jump and place that pawn.
                       </div>
@@ -1653,7 +1653,7 @@ export default function App() {
                   )}
 
                   {setupTab === "cards" && (
-                    <div className="flex flex-col gap-4 h-full">
+                    <div className="flex flex-col gap-4 h-full overflow-hidden min-h-0">
                       <div className="flex items-center gap-2">
                         <div className="text-sm text-stone-400">Select player active hand:</div>
                         <div className="flex gap-1 ml-auto">
@@ -1704,7 +1704,7 @@ export default function App() {
                       </div>
 
                       {/* Add cards list */}
-                      <div className="flex-1 overflow-y-auto pr-1">
+                      <div className="flex-1 overflow-y-auto pr-1 min-h-0">
                         <div className="text-xs text-stone-400 mb-2 font-medium">Add Treasure Cards:</div>
                         <div className="grid grid-cols-2 gap-1.5 pb-8">
                           {TREASURES.map((t) => {
