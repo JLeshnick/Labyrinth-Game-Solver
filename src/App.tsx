@@ -150,6 +150,21 @@ export default function App() {
     return loadSlot(peekSlotKey);
   }, [peekSlotKey, loadSlot]);
 
+  // Toast System
+  const [toastText, setToastText] = useState<string | null>(null);
+  const showToast = useCallback((msg: string) => {
+    setToastText(msg);
+    const audioMuted = localStorage.getItem("labyrinth_audio_muted") === "true";
+    if (!audioMuted) playClickSound();
+  }, []);
+
+  useEffect(() => {
+    if (toastText) {
+      const t = setTimeout(() => setToastText(null), 3000);
+      return () => clearTimeout(t);
+    }
+  }, [toastText]);
+
   // Quick save callback in header ribbon
   const handleSaveActiveProject = useCallback(() => {
     if (currentSlotName) {
@@ -177,21 +192,6 @@ export default function App() {
       setIsSettingsOpen(true);
     }
   }, [currentSlotName, grid, spareTile, looseTiles, activePawn, playerHands, playerActiveTargets, lastShiftArrowId, isGameStarted, gameStartState, pawnPositions, slots, showToast]);
-
-  // Toast System
-  const [toastText, setToastText] = useState<string | null>(null);
-  const showToast = useCallback((msg: string) => {
-    setToastText(msg);
-    const audioMuted = localStorage.getItem("labyrinth_audio_muted") === "true";
-    if (!audioMuted) playClickSound();
-  }, []);
-
-  useEffect(() => {
-    if (toastText) {
-      const t = setTimeout(() => setToastText(null), 3000);
-      return () => clearTimeout(t);
-    }
-  }, [toastText]);
 
   // Translate Grid + Pawns Positions into Solver Format
   const getSolverFormattedBoard = useCallback((currentGrid: (TileData | null)[][], positions: Record<string, { r: number; c: number }>) => {
@@ -1064,7 +1064,7 @@ export default function App() {
                     <div>
                       <div className="font-semibold text-stone-300">Local Cache Directory:</div>
                       <div className="font-mono bg-stone-950 p-2 rounded-lg border border-stone-850 select-text break-all mt-1">
-                        {process.platform === 'win32' 
+                        {navigator.userAgent.toLowerCase().includes('win') 
                           ? '%APPDATA%\\Labyrinth-Game-Solver\\Local Storage\\' 
                           : '~/Library/Application Support/Labyrinth-Game-Solver/Local Storage/'}
                       </div>
@@ -1084,7 +1084,6 @@ export default function App() {
                       <div className="grid grid-cols-7 grid-rows-7 gap-[3px] p-2 bg-stone-900 border border-stone-800 rounded-xl">
                         {peekedState.board.map((row: any[], rIdx: number) =>
                           row.map((cell: any, cIdx: number) => {
-                            const isFixed = cIdx % 2 === 0 && rIdx % 2 === 0;
                             let hasPawn = null;
                             if (peekedState.pawnPositions) {
                               const found = Object.entries(peekedState.pawnPositions).find(
@@ -1382,7 +1381,7 @@ export default function App() {
       </header>
 
       {/* Main Panel layout */}
-      <main className="flex-1 flex flex-col lg:flex-row relative z-10 w-full max-w-[1600px] mx-auto p-4 md:p-6 gap-6 items-center lg:items-stretch justify-center overflow-hidden min-h-0">
+      <main className="flex-1 flex flex-col lg:flex-row relative z-10 w-full max-w-[1600px] mx-auto p-4 md:p-6 gap-6 lg:gap-8 justify-center overflow-y-auto lg:overflow-hidden min-h-0">
         <DndContext
           sensors={sensors}
           collisionDetection={closestCenter}
@@ -1390,8 +1389,8 @@ export default function App() {
           onDragEnd={handleDragEnd}
         >
           {/* Game Board Section */}
-          <div className="flex-1 flex items-center justify-center relative">
-            <div className="relative">
+          <div className="flex-1 lg:flex-[1.5] w-full flex min-w-0 min-h-0 items-center justify-center relative">
+            <div className="relative aspect-square w-full lg:w-auto lg:h-full max-w-full max-h-full flex-shrink-0">
               {/* Highlight Overlay Arrow suggested indicator */}
               {hoveredSolution && hoveredSolution.length > 0 && (
                 <div
@@ -1431,7 +1430,7 @@ export default function App() {
           </div>
 
           {/* Sidebar Editor / Play Control panel */}
-          <div className="w-full lg:w-[420px] flex flex-col flex-shrink-0">
+          <div className="w-full lg:w-[400px] xl:w-[440px] flex flex-col flex-shrink-0 min-h-[450px] lg:min-h-0 lg:h-full">
             {isGameStarted ? (
               /* Gameplay & Solver Controls */
               <div className="flex-1 flex flex-col gap-4 bg-stone-900/50 border border-stone-800 rounded-2xl p-5 backdrop-blur-xl">

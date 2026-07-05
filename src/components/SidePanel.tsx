@@ -18,7 +18,7 @@ export const SidePanel: React.FC<SidePanelProps> = ({ tiles, onTileClick }) => {
   });
 
   return (
-    <Card className="w-full lg:w-[400px] flex flex-col h-full max-h-[800px] border-amber-900/20 bg-neutral-900/40 backdrop-blur-xl">
+    <Card className="w-full flex flex-col h-full border-stone-800/80 bg-stone-950/40 backdrop-blur-xl shadow-none">
       <CardHeader>
         <CardTitle className="text-2xl text-amber-50">Loose Tiles</CardTitle>
         <CardDescription className="text-amber-200/60">
