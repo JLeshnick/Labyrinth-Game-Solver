@@ -251,6 +251,80 @@ export default function App() {
     resetHistory(startState);
   }, [resetHistory]);
 
+  // Randomize all movable tiles on the board game
+  const handleRandomizeBoard = useCallback(() => {
+    if (isGameStarted) return;
+    if (!isMuted) playClickSound();
+
+    // 1. Rebuild the base grid with only fixed tiles
+    const initialGrid = Array(7)
+      .fill(null)
+      .map(() => Array(7).fill(null));
+
+    Object.entries(FIXED_TILES_PRESETS).forEach(([coord, tilePartial]) => {
+      const [x, y] = coord.split(",").map(Number);
+      initialGrid[y][x] = {
+        id: `fixed_${x}_${y}`,
+        shape: tilePartial.shape!,
+        rotation: tilePartial.rotation!,
+        treasure: tilePartial.treasure,
+        isFixed: true,
+        color: tilePartial.color,
+      };
+    });
+
+    // 2. Generate and shuffle the movable pool
+    const pool = generateMovablePool();
+    // Fisher-Yates shuffle
+    for (let i = pool.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      const temp = pool[i];
+      pool[i] = pool[j];
+      pool[j] = temp;
+    }
+
+    const rotations: Rotation[] = [0, 90, 180, 270];
+
+    // 3. Fill the movable spots on the grid
+    for (let y = 0; y < 7; y++) {
+      for (let x = 0; x < 7; x++) {
+        // Skip fixed tiles
+        if (x % 2 === 0 && y % 2 === 0) continue;
+
+        const tile = pool.pop();
+        if (tile) {
+          const randomRot = rotations[Math.floor(Math.random() * 4)];
+          initialGrid[y][x] = {
+            ...tile,
+            rotation: randomRot,
+          };
+        }
+      }
+    }
+
+    // 4. The remaining single tile is the spare tile
+    const remainingSpare = pool.pop();
+    if (remainingSpare) {
+      const randomRot = rotations[Math.floor(Math.random() * 4)];
+      const finalSpare = { ...remainingSpare, rotation: randomRot };
+      setSpareTile(finalSpare);
+      setLooseTiles([]);
+      setGrid(initialGrid);
+
+      // Push state to history
+      pushStateToHistory(
+        initialGrid,
+        finalSpare,
+        null,
+        activePawn,
+        playerHands,
+        playerActiveTargets,
+        pawnPositions
+      );
+      showToast("Board Randomized Successfully!");
+    }
+  }, [isGameStarted, isMuted, activePawn, playerHands, playerActiveTargets, pawnPositions, pushStateToHistory, showToast]);
+
   // Load layout from localStorage or initialize defaults
   useEffect(() => {
     try {
@@ -1117,7 +1191,18 @@ export default function App() {
                 {/* Tab Content */}
                 <div className="flex-1 overflow-hidden">
                   {setupTab === "tiles" && (
-                    <SidePanel tiles={looseTiles} onTileClick={handleTileClick} />
+                    <div className="flex flex-col gap-3 h-full overflow-hidden">
+                      <Button
+                        onClick={handleRandomizeBoard}
+                        className="w-full bg-amber-600 hover:bg-amber-700 text-stone-950 font-bold py-2.5 px-4 rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-amber-500/10 cursor-pointer transition-colors"
+                      >
+                        <Sparkles className="w-4 h-4" />
+                        Randomize Board
+                      </Button>
+                      <div className="flex-1 overflow-hidden">
+                        <SidePanel tiles={looseTiles} onTileClick={handleTileClick} />
+                      </div>
+                    </div>
                   )}
 
                   {setupTab === "pawns" && (

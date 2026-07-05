@@ -46,8 +46,8 @@ export const FIXED_TILES_PRESETS: Record<string, Partial<TileData>> = {
   "0,0": { shape: "corner", rotation: 90, color: "red" }, // Top-Left: Red
   "6,6": { shape: "corner", rotation: 270, color: "blue" }, // Bottom-Right: Blue
 
-  "6,0": { shape: "corner", rotation: 180, color: "green" }, // Bottom-Left: Green
-  "0,6": { shape: "corner", rotation: 0, color: "yellow" }, // Top-Right: Yellow
+  "0,6": { shape: "corner", rotation: 0, color: "green" }, // Bottom-Left: Green
+  "6,0": { shape: "corner", rotation: 180, color: "yellow" }, // Top-Right: Yellow
 
   "2,0": { shape: "t-junction", rotation: 180, treasure: TREASURES[0] },  // Book with Clasp
   "4,0": { shape: "t-junction", rotation: 180, treasure: TREASURES[1] },  // Bag of Gold Coins
@@ -70,8 +70,8 @@ export const FIXED_TILES_PRESETS: Record<string, Partial<TileData>> = {
 export function generateMovablePool(): TileData[] {
   const pool: TileData[] = [];
 
-  // 12 Straights (Empty)
-  for (let i = 0; i < 12; i++) {
+  // 13 Straights (Empty)
+  for (let i = 0; i < 13; i++) {
     pool.push({
       id: `movable_straight_${i}`,
       shape: "straight",
@@ -80,8 +80,8 @@ export function generateMovablePool(): TileData[] {
     });
   }
 
-  // 10 Corners (Empty)
-  for (let i = 0; i < 10; i++) {
+  // 9 Corners (Empty)
+  for (let i = 0; i < 9; i++) {
     pool.push({
       id: `movable_corner_${i}`,
       shape: "corner",

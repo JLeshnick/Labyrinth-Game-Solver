@@ -76,7 +76,7 @@ export const Tile: React.FC<TileProps> = ({ tile, onClick, className, disabled }
         onClick?.();
       }}
       className={cn(
-        "relative w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 rounded-md shadow-sm border border-amber-900 overflow-hidden flex items-center justify-center transition-opacity",
+        "relative w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 lg:w-26 lg:h-26 xl:w-28 xl:h-28 rounded-md shadow-sm border border-amber-900 overflow-hidden flex items-center justify-center transition-opacity",
         isDragging ? "opacity-50" : "opacity-100",
         tile.isFixed ? "bg-amber-800" : "bg-amber-700 cursor-grab active:cursor-grabbing",
         className
@@ -100,9 +100,9 @@ export const Tile: React.FC<TileProps> = ({ tile, onClick, className, disabled }
         />
       )}
 
-      {/* Treasure Text */}
+      {/* Treasure Text Badge */}
       {tile.treasure && (
-        <div className="absolute z-10 p-1 bg-white/80 backdrop-blur-sm rounded text-[8px] sm:text-[10px] md:text-xs font-bold text-center leading-tight max-w-[90%] text-amber-950 shadow-sm pointer-events-none">
+        <div className="absolute bottom-1 left-1/2 -translate-x-1/2 z-10 px-1.5 py-0.5 bg-stone-950/85 backdrop-blur-sm rounded text-[6px] sm:text-[8px] md:text-[9px] font-extrabold text-center leading-none max-w-[95%] text-amber-100 border border-amber-500/25 shadow-md pointer-events-none uppercase tracking-wider whitespace-nowrap">
           {tile.treasure.name}
         </div>
       )}
