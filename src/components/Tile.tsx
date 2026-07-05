@@ -2,6 +2,7 @@ import React from "react";
 import { useDraggable } from "@dnd-kit/core";
 import type { TileData } from "../types";
 import { cn } from "../lib/utils";
+import { Lock } from "lucide-react";
 
 interface TileProps {
   tile: TileData;
@@ -76,7 +77,7 @@ export const Tile: React.FC<TileProps> = ({ tile, onClick, className, disabled }
         onClick?.();
       }}
       className={cn(
-        "relative w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 lg:w-26 lg:h-26 xl:w-28 xl:h-28 rounded-md shadow-sm border border-amber-900 overflow-hidden flex items-center justify-center transition-opacity",
+        "relative w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 lg:w-18 lg:h-18 xl:w-20 xl:h-20 rounded-md shadow-sm border border-amber-900 overflow-hidden flex items-center justify-center transition-opacity",
         isDragging ? "opacity-50" : "opacity-100",
         tile.isFixed ? "bg-amber-800" : "bg-amber-700 cursor-grab active:cursor-grabbing",
         className
@@ -100,9 +101,19 @@ export const Tile: React.FC<TileProps> = ({ tile, onClick, className, disabled }
         />
       )}
 
-      {/* Treasure Text Badge */}
+      {/* Fixed tile lock badge */}
+      {tile.isFixed && (
+        <div
+          className="absolute top-1 right-1 p-0.5 bg-stone-950/70 border border-stone-800/35 rounded-full text-amber-500/80 z-20 pointer-events-auto cursor-help"
+          title="This preset tile is permanently glued to the board. It cannot be moved, slid, or rotated."
+        >
+          <Lock className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
+        </div>
+      )}
+
+      {/* Treasure Text Badge (Centered) */}
       {tile.treasure && (
-        <div className="absolute bottom-1 left-1/2 -translate-x-1/2 z-10 px-1.5 py-0.5 bg-stone-950/85 backdrop-blur-sm rounded text-[6px] sm:text-[8px] md:text-[9px] font-extrabold text-center leading-none max-w-[95%] text-amber-100 border border-amber-500/25 shadow-md pointer-events-none uppercase tracking-wider whitespace-nowrap">
+        <div className="absolute z-10 p-1 bg-stone-950/85 backdrop-blur-sm rounded border border-amber-500/20 text-[6px] sm:text-[8px] md:text-[9px] font-bold text-center leading-tight max-w-[90%] text-amber-100 shadow-sm pointer-events-none uppercase tracking-wide">
           {tile.treasure.name}
         </div>
       )}

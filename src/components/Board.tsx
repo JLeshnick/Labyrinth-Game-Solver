@@ -51,7 +51,7 @@ const BoardSpace: React.FC<BoardSpaceProps> = ({
         gridColumn: x + 2,
       }}
       className={cn(
-        "relative w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 lg:w-26 lg:h-26 xl:w-28 xl:h-28 rounded-lg flex items-center justify-center transition-all cursor-pointer",
+        "relative w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 lg:w-18 lg:h-18 xl:w-20 xl:h-20 rounded-lg flex items-center justify-center transition-all cursor-pointer",
         isFixedSpace
           ? "bg-stone-900/40 border border-stone-800/20"
           : "border border-dashed border-stone-800/40 bg-stone-950/30 hover:bg-stone-900/10 shadow-inner",

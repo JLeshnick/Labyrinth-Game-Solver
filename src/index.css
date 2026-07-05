@@ -2,8 +2,43 @@
 
 @layer base {
   body {
-    @apply bg-neutral-950 text-neutral-50 overflow-hidden select-none;
+    @apply bg-stone-950 text-stone-50 overflow-hidden select-none;
   }
+}
+
+:root {
+  --theme-color: #f59e0b; /* Amber */
+  --theme-color-hover: #d97706;
+  --theme-color-rgb: 245, 158, 11;
+  --theme-glow: rgba(245, 158, 11, 0.15);
+}
+
+[data-theme="neon"] {
+  --theme-color: #84cc16; /* Lime/Neon */
+  --theme-color-hover: #65a30d;
+  --theme-color-rgb: 132, 204, 22;
+  --theme-glow: rgba(132, 204, 22, 0.15);
+}
+
+[data-theme="ice"] {
+  --theme-color: #0ea5e9; /* Sky Blue */
+  --theme-color-hover: #0284c7;
+  --theme-color-rgb: 14, 165, 233;
+  --theme-glow: rgba(14, 165, 233, 0.15);
+}
+
+[data-theme="dracula"] {
+  --theme-color: #a855f7; /* Dracula Purple */
+  --theme-color-hover: #9333ea;
+  --theme-color-rgb: 168, 85, 247;
+  --theme-glow: rgba(168, 85, 247, 0.15);
+}
+
+[data-theme="rose"] {
+  --theme-color: #ec4899; /* Pink Rose */
+  --theme-color-hover: #db2777;
+  --theme-color-rgb: 236, 72, 153;
+  --theme-glow: rgba(236, 72, 153, 0.15);
 }
 
 /* Custom Scrollbar Styling */
@@ -18,12 +53,57 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(245, 158, 11, 0.2);
+  background: rgba(var(--theme-color-rgb), 0.25);
   border-radius: 4px;
   border: 2px solid rgba(24, 24, 27, 0.5);
   transition: background 0.2s;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(245, 158, 11, 0.4);
+  background: rgba(var(--theme-color-rgb), 0.45);
+}
+
+/* Color Theme Helper Classes */
+.text-theme-primary {
+  color: var(--theme-color) !important;
+}
+
+.bg-theme-primary {
+  background-color: var(--theme-color) !important;
+}
+
+.hover\:bg-theme-primary-hover:hover {
+  background-color: var(--theme-color-hover) !important;
+}
+
+.border-theme-primary {
+  border-color: var(--theme-color) !important;
+}
+
+.border-theme-primary-20 {
+  border-color: rgba(var(--theme-color-rgb), 0.2) !important;
+}
+
+.border-theme-primary-40 {
+  border-color: rgba(var(--theme-color-rgb), 0.4) !important;
+}
+
+.bg-theme-primary-10 {
+  background-color: rgba(var(--theme-color-rgb), 0.1) !important;
+}
+
+.bg-theme-primary-20 {
+  background-color: rgba(var(--theme-color-rgb), 0.2) !important;
+}
+
+.text-theme-primary-200 {
+  color: rgba(var(--theme-color-rgb), 0.8) !important;
+}
+
+.ring-theme-primary {
+  --tw-ring-color: var(--theme-color) !important;
+}
+
+.shadow-theme-glow {
+  box-shadow: 0 10px 15px -3px var(--theme-glow), 0 4px 6px -4px var(--theme-glow) !important;
 }
