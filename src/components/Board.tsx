@@ -20,6 +20,7 @@ interface BoardSpaceProps {
   onCellClick: (r: number, c: number) => void;
   onTileClick: (id: string) => void;
   boardRotation: number;
+  isCustomTarget?: boolean;
 }
 
 const BoardSpace: React.FC<BoardSpaceProps> = ({
@@ -35,6 +36,7 @@ const BoardSpace: React.FC<BoardSpaceProps> = ({
   onCellClick,
   onTileClick,
   boardRotation,
+  isCustomTarget,
 }) => {
   const isFixedSpace = x % 2 === 0 && y % 2 === 0;
   const id = `board_${x}_${y}`;
@@ -59,9 +61,13 @@ const BoardSpace: React.FC<BoardSpaceProps> = ({
           : "border border-dashed border-stone-800/40 bg-stone-950/30 hover:bg-stone-900/10 shadow-inner",
         isOver && !tile ? "ring-2 ring-amber-500 ring-inset bg-amber-500/10" : "",
         isReachable ? "ring-2 ring-emerald-500 ring-offset-2 ring-offset-stone-950" : "",
-        isOnHoveredPath ? "ring-2 ring-amber-400 ring-offset-2 ring-offset-stone-950 shadow-[0_0_12px_rgba(245,158,11,0.3)]" : ""
+        isOnHoveredPath ? "ring-2 ring-amber-400 ring-offset-2 ring-offset-stone-950 shadow-[0_0_12px_rgba(245,158,11,0.3)]" : "",
+        isCustomTarget ? "ring-2 ring-theme-primary ring-offset-2 ring-offset-stone-950 shadow-[0_0_15px_rgba(var(--theme-color-rgb),0.55)] z-10" : ""
       )}
     >
+      {isCustomTarget && (
+        <div className="absolute top-1 right-1 w-2.5 h-2.5 rounded-full bg-theme-primary animate-ping pointer-events-none z-30" />
+      )}
       {tile ? (
         <Tile
           tile={tile}
@@ -122,6 +128,7 @@ interface BoardProps {
   hoveredPath: { r: number; c: number }[] | null;
   hoveredSolutionArrow: string | null;
   boardRotation?: number;
+  customTargetCoords?: { r: number; c: number } | null;
 }
 
 export const Board: React.FC<BoardProps> = ({
@@ -136,12 +143,13 @@ export const Board: React.FC<BoardProps> = ({
   hoveredPath,
   hoveredSolutionArrow,
   boardRotation = 0,
+  customTargetCoords,
 }) => {
   // Compute reachable cells in Play mode
-  const reachableCells = React.useMemo(() => {
-    if (!isGameStarted) return [];
+  const { reachableCells, reachablePathsParentMap } = React.useMemo(() => {
+    if (!isGameStarted) return { reachableCells: [], reachablePathsParentMap: {} };
     const activePos = pawnPositions[activePawn];
-    if (!activePos) return [];
+    if (!activePos) return { reachableCells: [], reachablePathsParentMap: {} };
 
     // Helper to format grid cell shape/dir for solver
     const shapeMap: Record<string, string> = {
@@ -173,17 +181,43 @@ export const Board: React.FC<BoardProps> = ({
       })
     );
 
-    const { cells } = getReachableCells(solverBoard, activePos.r, activePos.c);
-    return cells;
+    const { cells, parentMap } = getReachableCells(solverBoard, activePos.r, activePos.c);
+    return { reachableCells: cells, reachablePathsParentMap: parentMap };
   }, [grid, pawnPositions, activePawn, isGameStarted]);
 
   return (
     <div className="p-3 sm:p-5 bg-stone-900 border-4 border-stone-800 rounded-3xl shadow-2xl relative w-full h-full flex items-center justify-center">
       {/* 9x9 CSS Grid Layout */}
       <div 
-        className="grid grid-cols-9 grid-rows-9 gap-1.5 w-full h-full justify-items-stretch items-stretch transition-transform duration-300"
+        className="grid grid-cols-9 grid-rows-9 gap-1.5 w-full h-full justify-items-stretch items-stretch transition-transform duration-300 relative"
         style={{ transform: `rotate(${boardRotation}deg)` }}
       >
+        {/* SVG Reachable Paths Overlay */}
+        {isGameStarted && Object.keys(reachablePathsParentMap).length > 0 && (
+          <svg
+            viewBox="0 0 9 9"
+            className="absolute inset-0 w-full h-full pointer-events-none z-10"
+          >
+            {Object.entries(reachablePathsParentMap).map(([childKey, parent]) => {
+              const [cr, cc] = childKey.split(",").map(Number);
+              return (
+                <line
+                  key={childKey}
+                  x1={parent.c + 1.5}
+                  y1={parent.r + 1.5}
+                  x2={cc + 1.5}
+                  y2={cr + 1.5}
+                  stroke="var(--theme-color)"
+                  strokeWidth="0.06"
+                  strokeDasharray="0.12,0.12"
+                  className="animate-dash"
+                  strokeLinecap="round"
+                  opacity="0.8"
+                />
+              );
+            })}
+          </svg>
+        )}
         {/* Shifting tracks graphics */}
         <div className="absolute inset-y-12 left-0 right-0 border-t border-stone-800 pointer-events-none opacity-20" />
 
@@ -249,6 +283,8 @@ export const Board: React.FC<BoardProps> = ({
             const isPathStart = hoveredPath && hoveredPath.length > 0 ? (hoveredPath[0].r === r && hoveredPath[0].c === c) : false;
             const isPathEnd = hoveredPath && hoveredPath.length > 0 ? (hoveredPath[hoveredPath.length - 1].r === r && hoveredPath[hoveredPath.length - 1].c === c) : false;
 
+            const isCustomTarget = !!(customTargetCoords && customTargetCoords.r === r && customTargetCoords.c === c);
+
             return (
               <BoardSpace
                 key={`${r}-${c}`}
@@ -264,6 +300,7 @@ export const Board: React.FC<BoardProps> = ({
                 onCellClick={onCellClick}
                 onTileClick={onTileClick}
                 boardRotation={boardRotation}
+                isCustomTarget={isCustomTarget}
               />
             );
           })

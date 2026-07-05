@@ -98,6 +98,16 @@
   background: rgba(var(--theme-color-rgb), 0.85);
 }
 
+@keyframes dash-crawl {
+  to {
+    stroke-dashoffset: -0.24;
+  }
+}
+
+.animate-dash {
+  animation: dash-crawl 1s linear infinite;
+}
+
 /* Color Theme Helper Classes */
 .text-theme-primary {
   color: var(--theme-color) !important;

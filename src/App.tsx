@@ -46,6 +46,8 @@ import {
   Plus,
   FolderOpen,
   Home,
+  Palette,
+  HardDrive,
 } from "lucide-react";
 import {
   Dialog,
@@ -153,6 +155,23 @@ export default function App() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [saveName, setSaveName] = useState("");
   const [peekSlotKey, setPeekSlotKey] = useState<string | null>(null);
+  const [settingsTab, setSettingsTab] = useState<"profiles" | "preferences" | "themes" | "storage">("profiles");
+  const [customTargetCoords, setCustomTargetCoords] = useState<{ r: number; c: number } | null>(null);
+  const [activePlayers, setActivePlayers] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem("labyrinth_active_players");
+      return saved ? JSON.parse(saved) : ["red", "blue", "green", "yellow"];
+    } catch {
+      return ["red", "blue", "green", "yellow"];
+    }
+  });
+
+  useEffect(() => {
+    localStorage.setItem("labyrinth_active_players", JSON.stringify(activePlayers));
+    if (!activePlayers.includes(activePawn)) {
+      setActivePawn(activePlayers[0] || "red");
+    }
+  }, [activePlayers, activePawn]);
 
   // Active Project & Ribbon saving
   const [currentSlotName, setCurrentSlotName] = useState<string | null>(null);
@@ -527,7 +546,7 @@ export default function App() {
     if (!isGameStarted || grid.length === 0 || !workerRef.current) return;
 
     const currentPawnCoord = pawnPositions[activePawn];
-    const handCards = playerHands[activePawn] || [];
+    const handCards = customTargetCoords ? ["custom_target"] : (playerHands[activePawn] || []);
 
     if (!currentPawnCoord || handCards.length === 0) {
       setSolutions([]);
@@ -535,8 +554,19 @@ export default function App() {
     }
 
     setIsLoadingSolutions(true);
-    const solverBoard = getSolverFormattedBoard(grid, pawnPositions);
+    let solverBoard = getSolverFormattedBoard(grid, pawnPositions);
     const solverSpare = getSolverFormattedSpare(spareTile);
+
+    if (customTargetCoords) {
+      solverBoard = solverBoard.map((row, r) =>
+        row.map((cell, c) => {
+          if (r === customTargetCoords.r && c === customTargetCoords.c) {
+            return { ...cell, treasure: "custom_target" };
+          }
+          return cell;
+        })
+      );
+    }
 
     workerRef.current.postMessage({
       board: solverBoard,
@@ -546,7 +576,7 @@ export default function App() {
       lastShiftArrowId,
       maxTurns,
     });
-  }, [grid, spareTile, activePawn, playerHands, lastShiftArrowId, maxTurns, isGameStarted, pawnPositions, getSolverFormattedBoard, getSolverFormattedSpare]);
+  }, [grid, spareTile, activePawn, playerHands, lastShiftArrowId, maxTurns, isGameStarted, pawnPositions, getSolverFormattedBoard, getSolverFormattedSpare, customTargetCoords]);
 
   // Handle Mute
   const handleToggleMute = () => {
@@ -705,7 +735,13 @@ export default function App() {
         playerActiveTargets
       );
     } else {
-      showToast("Cannot move there! Paths do not connect.");
+      if (customTargetCoords && customTargetCoords.r === r && customTargetCoords.c === c) {
+        setCustomTargetCoords(null);
+        showToast("Cleared custom target");
+      } else {
+        setCustomTargetCoords({ r, c });
+        showToast(`Custom target set at (${r}, ${c}). Solving path...`);
+      }
     }
   };
 
@@ -1205,262 +1241,358 @@ export default function App() {
                 <Settings className="w-4 h-4" />
               </Button>
             </DialogTrigger>
-            <DialogContent className="w-[90vw] max-w-[90vw] h-[90vh] max-h-[90vh] bg-stone-900 border-stone-800 text-stone-100 shadow-2xl p-6 rounded-2xl flex flex-col overflow-hidden">
-              <DialogHeader className="shrink-0 border-b border-stone-800 pb-3">
-                <DialogTitle className="text-xl font-bold tracking-tight text-theme-primary flex items-center justify-between">
-                  <span className="flex items-center gap-2">
-                    <Settings className="w-5 h-5 text-theme-primary" />
-                    Settings & Save Slots
-                  </span>
-                  <span className="text-[10px] text-stone-400 font-normal mr-6">
-                    Labyrinth Game Solver v1.0.1
-                  </span>
+            <DialogContent className="sm:max-w-[90vw] w-[90vw] h-[90vh] max-h-[90vh] bg-stone-900 border-stone-800 text-stone-100 shadow-2xl p-0 rounded-2xl flex flex-col overflow-hidden">
+              <DialogHeader className="shrink-0 border-b border-stone-800 px-6 py-4 flex flex-row items-center justify-between bg-gradient-to-r from-stone-950/30 to-transparent">
+                <DialogTitle className="text-lg font-bold tracking-tight text-theme-primary flex items-center gap-2">
+                  <Settings className="w-5 h-5 text-theme-primary" />
+                  Settings & Save Slots
                 </DialogTitle>
+                <span className="text-[10px] text-stone-400 font-normal mr-6">
+                  Labyrinth Game Solver v1.0.1
+                </span>
               </DialogHeader>
 
-              <div className="flex-1 min-h-0 grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
-                {/* Left Side: General Preferences & Preview */}
-                <div className="flex flex-col gap-4 overflow-y-auto pr-1">
-                  <div className="p-4 bg-stone-950/40 border border-stone-850 rounded-xl flex flex-col gap-3">
-                    <h3 className="text-sm font-semibold text-stone-200">System Preferences</h3>
-                    <div className="flex justify-between items-center text-sm">
-                      <span className="text-stone-300">Retro Audio Oscillators</span>
-                      <Button
-                        variant={isMuted ? "outline" : "default"}
-                        onClick={handleToggleMute}
-                        className={isMuted ? "border-stone-800" : "bg-theme-primary text-stone-950 font-bold hover:bg-theme-primary-hover"}
-                      >
-                        {isMuted ? <VolumeX className="w-4 h-4 mr-2" /> : <Volume2 className="w-4 h-4 mr-2" />}
-                        {isMuted ? "Muted" : "Active"}
-                      </Button>
-                    </div>
+              <div className="flex-1 flex min-h-0 overflow-hidden">
+                {/* SIDEBAR TABS */}
+                <div className="w-56 border-r border-stone-800/80 flex flex-col py-4 px-3 gap-1 shrink-0 bg-stone-950/50">
+                  {[
+                    { key: "profiles", label: "Saved Profiles", description: "Manage slots & previews", icon: <FolderOpen className="w-4 h-4" /> },
+                    { key: "preferences", label: "Preferences", description: "General & active players", icon: <Settings className="w-4 h-4" /> },
+                    { key: "themes", label: "App Themes", description: "Select theme colors", icon: <Palette className="w-4 h-4" /> },
+                    { key: "storage", label: "File Storage", description: "Local cache pathways", icon: <HardDrive className="w-4 h-4" /> },
+                  ].map((tab) => (
+                    <button
+                      key={tab.key}
+                      onClick={() => {
+                        if (!isMuted) playClickSound();
+                        setSettingsTab(tab.key as any);
+                      }}
+                      className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all duration-150 group cursor-pointer ${
+                        settingsTab === tab.key
+                          ? "bg-theme-primary-10 border border-theme-primary/30 text-theme-primary"
+                          : "text-stone-400 hover:text-stone-200 hover:bg-stone-900/40 border border-transparent"
+                      }`}
+                    >
+                      <span className={settingsTab === tab.key ? "text-theme-primary" : "text-stone-500 group-hover:text-stone-300"}>
+                        {tab.icon}
+                      </span>
+                      <div className="min-w-0">
+                        <div className="text-xs font-semibold leading-none">{tab.label}</div>
+                        <div className={`text-[9px] mt-1 leading-none truncate ${settingsTab === tab.key ? "text-theme-primary/70" : "text-stone-500"}`}>
+                          {tab.description}
+                        </div>
+                      </div>
+                    </button>
+                  ))}
+                  
+                  <div className="mt-auto pt-4 border-t border-stone-800/60">
+                    <p className="text-[10px] text-stone-500 font-semibold">Labyrinth Solver</p>
+                    <p className="text-[9px] text-stone-600">v1.0.1 • Desktop</p>
                   </div>
-
-                  <div className="p-4 bg-stone-950/40 border border-stone-850 rounded-xl flex flex-col gap-3">
-                    <h3 className="text-sm font-semibold text-stone-200">App Theme Colors</h3>
-                    <div className="grid grid-cols-3 gap-2">
-                      {[
-                        { id: "amber", name: "Amber", class: "bg-amber-500" },
-                        { id: "neon", name: "Neon", class: "bg-lime-500" },
-                        { id: "ice", name: "Ice", class: "bg-sky-500" },
-                        { id: "dracula", name: "Dracula", class: "bg-purple-500" },
-                        { id: "rose", name: "Rose", class: "bg-pink-500" },
-                        { id: "emerald", name: "Emerald", class: "bg-emerald-500" },
-                        { id: "sapphire", name: "Sapphire", class: "bg-blue-500" },
-                        { id: "sunset", name: "Sunset", class: "bg-orange-500" },
-                        { id: "gold", name: "Gold", class: "bg-yellow-500" },
-                        { id: "nord", name: "Nord", class: "bg-cyan-500" },
-                      ].map((t) => (
-                        <button
-                          key={t.id}
-                          onClick={() => {
-                            if (!isMuted) playClickSound();
-                            setActiveTheme(t.id);
-                          }}
-                          className={`flex items-center gap-1.5 p-2 rounded-lg border text-xs font-semibold justify-start transition-all cursor-pointer ${
-                            activeTheme === t.id
-                              ? "border-theme-primary bg-theme-primary-10 text-theme-primary"
-                              : "border-stone-800 bg-stone-950/40 hover:bg-stone-900 text-stone-300"
-                          }`}
-                        >
-                          <span className={`w-3 h-3 rounded-full ${t.class}`} />
-                          {t.name}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="p-4 bg-stone-950/40 border border-stone-850 rounded-xl flex flex-col gap-2.5 text-xs text-stone-400">
-                    <h3 className="text-sm font-semibold text-stone-200">File Storage Information</h3>
-                    <div>
-                      <div className="font-semibold text-stone-300">Local Cache Directory:</div>
-                      <div className="font-mono bg-stone-950 p-2 rounded-lg border border-stone-850 select-text break-all mt-1">
-                        {navigator.userAgent.toLowerCase().includes('win') 
-                          ? '%APPDATA%\\Labyrinth-Game-Solver\\Local Storage\\' 
-                          : '~/Library/Application Support/Labyrinth-Game-Solver/Local Storage/'}
-                      </div>
-                    </div>
-                    <div className="mt-1 leading-normal">
-                      Layout presets and custom slots are persisted securely locally within your sandboxed app configurations folder.
-                    </div>
-                  </div>
-
-                  {/* Peek view preview block */}
-                  {peekedState ? (
-                    <div className="p-4 bg-stone-950 border border-stone-850 rounded-xl flex flex-col gap-3 items-center shadow-inner mt-auto">
-                      <div className="text-xs text-stone-400 font-bold self-start flex items-center gap-1.5">
-                        <Eye className="w-3.5 h-3.5 text-theme-primary" />
-                        Previewing Saved Board:
-                      </div>
-                      <div className="grid grid-cols-7 grid-rows-7 gap-[3px] p-2 bg-stone-900 border border-stone-800 rounded-xl">
-                        {peekedState.board.map((row: any[], rIdx: number) =>
-                          row.map((cell: any, cIdx: number) => {
-                            let hasPawn = null;
-                            if (peekedState.pawnPositions) {
-                              const found = Object.entries(peekedState.pawnPositions).find(
-                                ([_, pos]: any) => pos.r === rIdx && pos.c === cIdx
-                              );
-                              if (found) hasPawn = found[0];
-                            }
-                            return (
-                              <div
-                                key={`${rIdx}-${cIdx}`}
-                                className="w-8 h-8 rounded-sm overflow-hidden flex items-center justify-center relative bg-stone-950 border border-stone-850/40"
-                              >
-                                {cell ? (
-                                  <Tile
-                                    tile={cell}
-                                    disabled={true}
-                                    boardRotation={0}
-                                    className="w-full h-full pointer-events-none shadow-none rounded-none border-0 text-[3px]"
-                                  />
-                                ) : (
-                                  <div className="w-full h-full border border-dashed border-stone-800 bg-stone-950/20" />
-                                )}
-                                {hasPawn && (
-                                  <div
-                                    className={`absolute w-2 h-2 rounded-full ring-[1.5px] ring-white shadow z-20 ${
-                                      hasPawn === "red"
-                                        ? "bg-red-500"
-                                        : hasPawn === "blue"
-                                        ? "bg-blue-500"
-                                        : hasPawn === "green"
-                                        ? "bg-green-500"
-                                        : "bg-yellow-400"
-                                    }`}
-                                  />
-                                )}
-                              </div>
-                            );
-                          })
-                        )}
-                      </div>
-                      <div className="text-[10px] text-stone-500 text-center font-medium">
-                        Renders the actual tile corridor shapes, start spawns, and targets in miniature.
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="p-4 bg-stone-950/20 border border-stone-850 border-dashed rounded-xl h-36 flex flex-col items-center justify-center text-center text-xs text-stone-500 mt-auto">
-                      Click the eye icon on a save slot to peek at its layout
-                    </div>
-                  )}
                 </div>
 
-                {/* Right Side: Save & Load Profile Slots */}
-                <div className="flex flex-col gap-4 overflow-hidden h-full">
-                  <div className="flex flex-col gap-2 shrink-0">
-                    <h3 className="text-sm font-semibold text-stone-200">Save Current Layout</h3>
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        placeholder="Slot Name (e.g. Map Trial 1)..."
-                        value={saveName}
-                        onChange={(e) => setSaveName(e.target.value)}
-                        className="flex-1 bg-stone-950 border border-stone-800 hover:border-stone-750 text-stone-100 rounded-xl px-3 py-2 text-sm outline-none focus:border-theme-primary transition-colors"
-                      />
-                      <Button
-                        onClick={() => {
-                          if (!saveName.trim()) return;
-                          const currentAppState = {
-                            board: grid,
-                            spareTile,
-                            looseTiles,
-                            activePawn,
-                            playerHands,
-                            playerActiveTargets,
-                            lastShiftArrowId,
-                            isGameStarted,
-                            gameStartState,
-                            pawnPositions,
-                          };
-                          const success = saveSlot(saveName, currentAppState);
-                          if (success) {
-                            showToast("Game Saved Successfully!");
-                            setCurrentSlotName(saveName);
-                            setLastSavedTime(Date.now());
-                            setSaveName("");
-                          }
-                        }}
-                        disabled={!saveName.trim()}
-                        className="bg-theme-primary text-stone-950 font-bold hover:bg-theme-primary-hover rounded-xl cursor-pointer"
-                      >
-                        <Download className="w-4 h-4 mr-1.5" />
-                        Save
-                      </Button>
-                    </div>
-                  </div>
-
-                  <div className="flex-1 overflow-hidden flex flex-col gap-2 min-h-0">
-                    <h3 className="text-sm font-semibold text-stone-200">Saved Game Profiles</h3>
-                    <div className="flex-1 overflow-y-auto pr-1 flex flex-col gap-2 min-h-0">
-                      {allSlots.length === 0 ? (
-                        <div className="text-xs text-stone-500 py-6 text-center">
-                          No saved board layouts found.
+                {/* TAB CONTENT AREA */}
+                <div className="flex-1 flex flex-col min-h-0 overflow-y-auto p-6 bg-stone-900/20">
+                  {settingsTab === "profiles" && (
+                    <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6 min-h-0">
+                      <div className="lg:col-span-7 flex flex-col gap-4 min-h-0">
+                        <div className="flex flex-col gap-2 shrink-0">
+                          <h3 className="text-sm font-semibold text-stone-200">Save Current Layout</h3>
+                          <div className="flex gap-2">
+                            <input
+                              type="text"
+                              placeholder="Slot Name (e.g. Map Trial 1)..."
+                              value={saveName}
+                              onChange={(e) => setSaveName(e.target.value)}
+                              className="flex-1 bg-stone-950 border border-stone-800 hover:border-stone-750 text-stone-100 rounded-xl px-3 py-2 text-sm outline-none focus:border-theme-primary transition-colors"
+                            />
+                            <Button
+                              onClick={() => {
+                                if (!saveName.trim()) return;
+                                const currentAppState = {
+                                  board: grid,
+                                  spareTile,
+                                  looseTiles,
+                                  activePawn,
+                                  playerHands,
+                                  playerActiveTargets,
+                                  lastShiftArrowId,
+                                  isGameStarted,
+                                  gameStartState,
+                                  pawnPositions,
+                                };
+                                const success = saveSlot(saveName, currentAppState);
+                                if (success) {
+                                  showToast("Game Saved Successfully!");
+                                  setCurrentSlotName(saveName);
+                                  setLastSavedTime(Date.now());
+                                  setSaveName("");
+                                }
+                              }}
+                              disabled={!saveName.trim()}
+                              className="bg-theme-primary text-stone-950 font-bold hover:bg-theme-primary-hover rounded-xl cursor-pointer"
+                            >
+                              <Download className="w-4 h-4 mr-1.5" />
+                              Save
+                            </Button>
+                          </div>
                         </div>
-                      ) : (
-                        allSlots.map((slot) => (
-                          <div
-                            key={slot.key}
-                            className={`p-3 bg-stone-950/50 border rounded-xl flex items-center justify-between transition-all group ${
-                              peekSlotKey === slot.key ? "border-theme-primary bg-theme-primary-10" : "border-stone-800"
-                            }`}
-                          >
-                            <div className="flex-1 min-w-0 pr-2">
-                              <div className="text-xs font-bold text-stone-200 truncate">{slot.name}</div>
-                              <div className="text-[10px] text-stone-500">
-                                {new Date(slot.timestamp).toLocaleDateString()} at{" "}
-                                {new Date(slot.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+
+                        <div className="flex-1 flex flex-col gap-2 min-h-0 overflow-hidden">
+                          <h3 className="text-sm font-semibold text-stone-200">Saved Game Profiles</h3>
+                          <div className="flex-1 overflow-y-auto pr-1 flex flex-col gap-2 min-h-0">
+                            {allSlots.length === 0 ? (
+                              <div className="text-xs text-stone-500 py-6 text-center">
+                                No saved board layouts found.
                               </div>
-                            </div>
-                            <div className="flex items-center gap-1.5">
-                              {/* Peek Eye button */}
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => {
-                                  if (!isMuted) playClickSound();
-                                  setPeekSlotKey(peekSlotKey === slot.key ? null : slot.key);
-                                }}
-                                className={`w-7 h-7 hover:bg-stone-900 ${peekSlotKey === slot.key ? "text-theme-primary" : "text-stone-400"}`}
-                                title="Peek Layout"
-                              >
-                                <Eye className="w-3.5 h-3.5" />
-                              </Button>
-
-                              {/* Load button */}
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleLoadSlot(slot.key, slot.name)}
-                                className="h-7 px-2 border-stone-850 hover:bg-stone-900 text-xs text-stone-200 rounded-lg cursor-pointer flex items-center gap-1"
-                              >
-                                <Upload className="w-3 h-3 text-amber-500" />
-                                Load
-                              </Button>
-
-                              {/* Delete button */}
-                              {slot.key !== AUTOSAVE_KEY && (
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={() => {
-                                    if (!isMuted) playClickSound();
-                                    deleteSlot(slot.key);
-                                    if (peekSlotKey === slot.key) setPeekSlotKey(null);
-                                    showToast("Save Slot Deleted");
-                                  }}
-                                  className="w-7 h-7 text-stone-400 hover:text-red-500 hover:bg-red-500/10 rounded-lg cursor-pointer"
-                                  title="Delete Save"
+                            ) : (
+                              allSlots.map((slot) => (
+                                <div
+                                  key={slot.key}
+                                  className={`p-3 bg-stone-950/50 border rounded-xl flex items-center justify-between transition-all group ${
+                                    peekSlotKey === slot.key ? "border-theme-primary bg-theme-primary-10" : "border-stone-800"
+                                  }`}
                                 >
-                                  <Trash2 className="w-3.5 h-3.5" />
-                                </Button>
+                                  <div className="flex-1 min-w-0 pr-2 text-left">
+                                    <div className="text-xs font-bold text-stone-200 truncate">{slot.name}</div>
+                                    <div className="text-[10px] text-stone-500">
+                                      {new Date(slot.timestamp).toLocaleDateString()} at{" "}
+                                      {new Date(slot.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center gap-1.5">
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      onClick={() => {
+                                        if (!isMuted) playClickSound();
+                                        setPeekSlotKey(peekSlotKey === slot.key ? null : slot.key);
+                                      }}
+                                      className={`w-7 h-7 hover:bg-stone-900 ${peekSlotKey === slot.key ? "text-theme-primary" : "text-stone-400"}`}
+                                      title="Peek Layout"
+                                    >
+                                      <Eye className="w-3.5 h-3.5" />
+                                    </Button>
+
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => handleLoadSlot(slot.key, slot.name)}
+                                      className="h-7 px-2 border-stone-850 hover:bg-stone-900 text-xs text-stone-200 rounded-lg cursor-pointer flex items-center gap-1"
+                                    >
+                                      <Upload className="w-3 h-3 text-amber-500" />
+                                      Load
+                                    </Button>
+
+                                    {slot.key !== AUTOSAVE_KEY && (
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        onClick={() => {
+                                          if (!isMuted) playClickSound();
+                                          deleteSlot(slot.key);
+                                          if (peekSlotKey === slot.key) setPeekSlotKey(null);
+                                          showToast("Save Slot Deleted");
+                                        }}
+                                        className="w-7 h-7 text-stone-400 hover:text-red-500 hover:bg-red-500/10 rounded-lg cursor-pointer"
+                                        title="Delete Save"
+                                      >
+                                        <Trash2 className="w-3.5 h-3.5" />
+                                      </Button>
+                                    )}
+                                  </div>
+                                </div>
+                              ))
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="lg:col-span-5 flex flex-col justify-center items-center bg-stone-950/40 border border-stone-850 rounded-2xl p-4 min-h-[300px]">
+                        {peekedState ? (
+                          <div className="flex flex-col gap-4 items-center w-full h-full justify-center">
+                            <div className="text-xs text-stone-400 font-bold self-start flex items-center gap-1.5">
+                              <Eye className="w-3.5 h-3.5 text-theme-primary" />
+                              Previewing Saved Board:
+                            </div>
+                            <div className="grid grid-cols-7 grid-rows-7 gap-[4px] p-3 bg-stone-900 border border-stone-800 rounded-xl max-w-full aspect-square">
+                              {peekedState.board.map((row: any[], rIdx: number) =>
+                                row.map((cell: any, cIdx: number) => {
+                                  let hasPawn = null;
+                                  if (peekedState.pawnPositions) {
+                                    const found = Object.entries(peekedState.pawnPositions).find(
+                                      ([_, pos]: any) => pos.r === rIdx && pos.c === cIdx
+                                    );
+                                    if (found) hasPawn = found[0];
+                                  }
+                                  return (
+                                    <div
+                                      key={`${rIdx}-${cIdx}`}
+                                      className="w-8 h-8 rounded-sm overflow-hidden flex items-center justify-center relative bg-stone-950 border border-stone-850/40"
+                                    >
+                                      {cell ? (
+                                        <Tile
+                                          tile={cell}
+                                          disabled={true}
+                                          boardRotation={0}
+                                          className="w-full h-full pointer-events-none shadow-none rounded-none border-0 text-[3px]"
+                                        />
+                                      ) : (
+                                        <div className="w-full h-full border border-dashed border-stone-800 bg-stone-950/20" />
+                                      )}
+                                      {hasPawn && (
+                                        <div
+                                          className={`absolute w-2 h-2 rounded-full ring-[1px] ring-white shadow z-20 ${
+                                            hasPawn === "red"
+                                              ? "bg-red-500"
+                                              : hasPawn === "blue"
+                                              ? "bg-blue-500"
+                                              : hasPawn === "green"
+                                              ? "bg-green-500"
+                                              : "bg-yellow-400"
+                                          }`}
+                                        />
+                                      )}
+                                    </div>
+                                  );
+                                })
                               )}
                             </div>
+                            <div className="text-[10px] text-stone-500 text-center font-medium">
+                              Miniature preview of corridors, spawns, and pawns.
+                            </div>
                           </div>
-                        ))
-                      )}
+                        ) : (
+                          <div className="flex flex-col items-center justify-center text-center p-6 text-stone-500 text-xs">
+                            <Eye className="w-8 h-8 text-stone-700 mb-2" />
+                            <span>Click the eye icon on a save slot profile to load its miniature preview here.</span>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </div>
+                  )}
+
+                  {settingsTab === "preferences" && (
+                    <div className="flex flex-col gap-6 max-w-xl text-left">
+                      <div className="p-4 bg-stone-950/40 border border-stone-850 rounded-xl flex flex-col gap-3">
+                        <h3 className="text-sm font-semibold text-stone-200">System Preferences</h3>
+                        <div className="flex justify-between items-center text-sm">
+                          <span className="text-stone-300">Retro Audio Oscillators</span>
+                          <Button
+                            variant={isMuted ? "outline" : "default"}
+                            onClick={handleToggleMute}
+                            className={isMuted ? "border-stone-800 text-stone-400" : "bg-theme-primary text-stone-950 font-bold hover:bg-theme-primary-hover"}
+                          >
+                            {isMuted ? <VolumeX className="w-4 h-4 mr-2" /> : <Volume2 className="w-4 h-4 mr-2" />}
+                            {isMuted ? "Muted" : "Active"}
+                          </Button>
+                        </div>
+                      </div>
+
+                      <div className="p-4 bg-stone-950/40 border border-stone-850 rounded-xl flex flex-col gap-3">
+                        <h3 className="text-sm font-semibold text-stone-200">Manage Active Players</h3>
+                        <p className="text-xs text-stone-400 leading-normal">
+                          Enable or disable players to tailor the setup checklist and turns list. If playing solo or only tracking your piece, keep only Red active.
+                        </p>
+                        <div className="grid grid-cols-2 gap-2.5 mt-2">
+                          {PAWNS.map((p) => {
+                            const isActive = activePlayers.includes(p.id);
+                            return (
+                              <button
+                                key={p.id}
+                                onClick={() => {
+                                  if (!isMuted) playClickSound();
+                                  if (isActive) {
+                                    if (activePlayers.length > 1) {
+                                      setActivePlayers(prev => prev.filter(id => id !== p.id));
+                                    } else {
+                                      showToast("At least one player must be active!");
+                                    }
+                                  } else {
+                                    setActivePlayers(prev => [...prev, p.id]);
+                                  }
+                                }}
+                                className={`flex items-center justify-between p-3 rounded-xl border text-xs font-semibold transition-all cursor-pointer ${
+                                  isActive
+                                    ? "border-theme-primary bg-theme-primary-10 text-theme-primary"
+                                    : "border-stone-800 bg-stone-950/40 hover:bg-stone-900 text-stone-400 hover:text-stone-200"
+                                }`}
+                              >
+                                <div className="flex items-center gap-2">
+                                  <span className={`w-3.5 h-3.5 rounded-full ring-1 ring-white/20 ${
+                                    p.id === "red"
+                                      ? "bg-red-500"
+                                      : p.id === "blue"
+                                      ? "bg-blue-500"
+                                      : p.id === "green"
+                                      ? "bg-green-500"
+                                      : "bg-yellow-400"
+                                  }`} />
+                                  <span>{p.name}</span>
+                                </div>
+                                <span className="text-[10px] opacity-75">{isActive ? "Active" : "Off"}</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {settingsTab === "themes" && (
+                    <div className="flex flex-col gap-4 max-w-xl text-left">
+                      <h3 className="text-sm font-semibold text-stone-200">App Theme Colors</h3>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                        {[
+                          { id: "amber", name: "Amber", class: "bg-amber-500" },
+                          { id: "neon", name: "Neon", class: "bg-lime-500" },
+                          { id: "ice", name: "Ice", class: "bg-sky-500" },
+                          { id: "dracula", name: "Dracula", class: "bg-purple-500" },
+                          { id: "rose", name: "Rose", class: "bg-pink-500" },
+                          { id: "emerald", name: "Emerald", class: "bg-emerald-500" },
+                          { id: "sapphire", name: "Sapphire", class: "bg-blue-500" },
+                          { id: "sunset", name: "Sunset", class: "bg-orange-500" },
+                          { id: "gold", name: "Gold", class: "bg-yellow-500" },
+                          { id: "nord", name: "Nord", class: "bg-cyan-500" },
+                        ].map((t) => (
+                          <button
+                            key={t.id}
+                            onClick={() => {
+                              if (!isMuted) playClickSound();
+                              setActiveTheme(t.id);
+                            }}
+                            className={`flex items-center gap-2 p-3 rounded-xl border text-xs font-semibold justify-start transition-all cursor-pointer ${
+                              activeTheme === t.id
+                                ? "border-theme-primary bg-theme-primary-10 text-theme-primary"
+                                : "border-stone-850 bg-stone-950/40 hover:bg-stone-900 text-stone-300"
+                            }`}
+                          >
+                            <span className={`w-3.5 h-3.5 rounded-full ring-1 ring-white/10 ${t.class}`} />
+                            {t.name}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {settingsTab === "storage" && (
+                    <div className="flex flex-col gap-4 max-w-xl text-left">
+                      <div className="p-4 bg-stone-950/40 border border-stone-850 rounded-xl flex flex-col gap-2.5 text-xs text-stone-400">
+                        <h3 className="text-sm font-semibold text-stone-200">File Storage Information</h3>
+                        <div>
+                          <div className="font-semibold text-stone-300">Local Cache Directory:</div>
+                          <div className="font-mono bg-stone-950 p-2.5 rounded-lg border border-stone-850 select-text break-all mt-1">
+                            {navigator.userAgent.toLowerCase().includes('win') 
+                              ? '%APPDATA%\\Labyrinth-Game-Solver\\Local Storage\\' 
+                              : '~/Library/Application Support/Labyrinth-Game-Solver/Local Storage/'}
+                          </div>
+                        </div>
+                        <div className="mt-1 leading-normal">
+                          Layout presets and custom slots are persisted securely locally within your sandboxed app configurations folder.
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </DialogContent>
@@ -1601,6 +1733,7 @@ export default function App() {
                 hoveredPath={overlaySuggestedPath}
                 hoveredSolutionArrow={hoveredSolution ? hoveredSolution[0].arrowId : null}
                 boardRotation={boardRotation}
+                customTargetCoords={customTargetCoords}
               />
             </div>
           </div>
@@ -1630,7 +1763,7 @@ export default function App() {
                 </div>
 
                 {/* Active target details */}
-                <div className="p-4 bg-stone-950/60 border border-stone-800/80 rounded-xl flex items-center justify-between">
+                <div className="p-4 bg-stone-950/60 border border-stone-800/80 rounded-xl flex items-center justify-between text-left">
                   <div className="flex items-center gap-3">
                     <div
                       className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-stone-950 ${
@@ -1641,11 +1774,24 @@ export default function App() {
                     </div>
                     <div>
                       <div className="text-xs text-stone-400">Active Pawn's Turn</div>
-                      <div className="font-semibold text-stone-100 flex items-center gap-1">
+                      <div className="font-semibold text-stone-100 flex items-center gap-1.5 flex-wrap">
                         Target:{" "}
-                        <span className="text-amber-500">
-                          {activeTargetTreasure ? activeTargetTreasure.name : "None"}
-                        </span>
+                        {customTargetCoords ? (
+                          <span className="text-theme-primary font-bold flex items-center gap-1">
+                            Custom Target ({customTargetCoords.r}, {customTargetCoords.c})
+                            <button
+                              onClick={() => setCustomTargetCoords(null)}
+                              className="text-stone-500 hover:text-stone-300 text-xs ml-1 underline cursor-pointer"
+                              title="Clear Custom Target"
+                            >
+                              (clear)
+                            </button>
+                          </span>
+                        ) : (
+                          <span className="text-amber-500">
+                            {activeTargetTreasure ? activeTargetTreasure.name : "None"}
+                          </span>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -1719,7 +1865,7 @@ export default function App() {
                 <div className="border-t border-stone-800 pt-4">
                   <div className="text-xs text-stone-400 mb-2 font-medium">Select Player:</div>
                   <div className="grid grid-cols-4 gap-2">
-                    {PAWNS.map((p) => (
+                    {PAWNS.filter(p => activePlayers.includes(p.id)).map((p) => (
                       <Button
                         key={p.id}
                         variant={activePawn === p.id ? "default" : "outline"}
@@ -1742,6 +1888,34 @@ export default function App() {
             ) : (
               /* Setup Config Sidepanel */
               <div className="flex-1 flex flex-col min-h-0 gap-4 bg-stone-900/50 border border-stone-800 rounded-2xl p-5 backdrop-blur-xl">
+                {/* Setup Progress Checklist / Wizard */}
+                <div className="p-3 bg-stone-950/60 border border-stone-850 rounded-xl flex flex-col gap-2 text-xs text-left">
+                  <h3 className="font-bold text-stone-200 flex items-center gap-1.5 border-b border-stone-850 pb-1.5">
+                    <Sparkles className="w-3.5 h-3.5 text-theme-primary animate-pulse" />
+                    Setup Wizard & Checklist
+                  </h3>
+                  <div className="flex flex-col gap-1.5 mt-0.5">
+                    <div className="flex items-center gap-2">
+                      <span className={`w-2 h-2 rounded-full ${looseTiles.length === 1 ? 'bg-green-500 shadow-sm shadow-green-500/50' : 'bg-amber-500 animate-pulse'}`} />
+                      <span className="text-stone-300">
+                        Movable Tiles Placed: {33 - looseTiles.length}/33 {looseTiles.length === 1 ? '✓' : `(needs ${looseTiles.length - 1} more)`}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className={`w-2 h-2 rounded-full ${activePlayers.length > 0 ? 'bg-green-500 shadow-sm shadow-green-500/50' : 'bg-red-500 animate-pulse'}`} />
+                      <span className="text-stone-300">
+                        Active Players: {activePlayers.length} {activePlayers.length > 0 ? '✓' : '✗'}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className={`w-2 h-2 rounded-full bg-green-500 shadow-sm shadow-green-500/50`} />
+                      <span className="text-stone-300">
+                        Pawn Spawns Placed ✓
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
                 {/* Tabs */}
                 <div className="flex border-b border-stone-800 pb-2 gap-2">
                   <Button
@@ -1799,7 +1973,7 @@ export default function App() {
                         Choose a pawn and click a cell on the board grid to jump and place that pawn.
                       </div>
                       <div className="grid grid-cols-2 gap-2">
-                        {PAWNS.map((p) => (
+                        {PAWNS.filter((p) => activePlayers.includes(p.id)).map((p) => (
                           <Button
                             key={p.id}
                             variant={activePawnPlacementColor === p.id ? "default" : "outline"}
@@ -1816,14 +1990,16 @@ export default function App() {
                       </div>
                       <div className="mt-4 p-4 border border-stone-800/80 bg-stone-950/40 rounded-xl text-xs text-stone-400 flex flex-col gap-2">
                         <div className="font-semibold text-stone-200">Current Positions:</div>
-                        {Object.entries(pawnPositions).map(([color, pos]) => (
-                          <div key={color} className="flex justify-between">
-                            <span className="capitalize">{color}:</span>
-                            <span>
-                              Row {pos.r}, Col {pos.c}
-                            </span>
-                          </div>
-                        ))}
+                        {Object.entries(pawnPositions)
+                          .filter(([color]) => activePlayers.includes(color))
+                          .map(([color, pos]) => (
+                            <div key={color} className="flex justify-between">
+                              <span className="capitalize">{color}:</span>
+                              <span>
+                                Row {pos.r}, Col {pos.c}
+                              </span>
+                            </div>
+                          ))}
                       </div>
                     </div>
                   )}
@@ -1833,7 +2009,7 @@ export default function App() {
                       <div className="flex items-center gap-2">
                         <div className="text-sm text-stone-400">Select player active hand:</div>
                         <div className="flex gap-1 ml-auto">
-                          {["red", "blue", "green", "yellow"].map((p) => (
+                          {activePlayers.map((p) => (
                             <button
                               key={p}
                               onClick={() => {
@@ -1853,10 +2029,10 @@ export default function App() {
                       <div className="p-3 bg-stone-950/60 border border-stone-800/80 rounded-xl">
                         <div className="text-xs text-stone-400">
                           Player <span className="capitalize text-amber-500 font-bold">{activePawn}</span>'s hand list (
-                          {playerHands[activePawn].length} cards):
+                          {playerHands[activePawn]?.length || 0} cards):
                         </div>
                         <div className="flex flex-wrap gap-1 mt-2">
-                          {playerHands[activePawn].map((cardId) => {
+                          {(playerHands[activePawn] || []).map((cardId) => {
                             const name = TREASURES.find((t) => t.id === cardId)?.name || cardId;
                             return (
                               <div
@@ -1873,7 +2049,7 @@ export default function App() {
                               </div>
                             );
                           })}
-                          {playerHands[activePawn].length === 0 && (
+                          {(!playerHands[activePawn] || playerHands[activePawn].length === 0) && (
                             <span className="text-[10px] text-stone-600">No cards in hand. Click below to add.</span>
                           )}
                         </div>
@@ -1882,9 +2058,17 @@ export default function App() {
                       {/* Add cards list */}
                       <div className="flex-1 overflow-y-auto pr-1 min-h-0">
                         <div className="text-xs text-stone-400 mb-2 font-medium">Add Treasure Cards:</div>
-                        <div className="grid grid-cols-2 gap-1.5 pb-8">
-                          {TREASURES.map((t) => {
-                            const alreadyInHand = playerHands[activePawn].includes(t.id);
+                        <div className="grid grid-cols-2 gap-1.5 pb-8 text-left">
+                          {TREASURES.filter((t) => {
+                            const alreadyInHand = playerHands[activePawn]?.includes(t.id);
+                            if (alreadyInHand) return true;
+                            // Filter out if it is in any other player's hand
+                            const inOtherHand = Object.entries(playerHands).some(
+                              ([color, hand]) => color !== activePawn && hand.includes(t.id)
+                            );
+                            return !inOtherHand;
+                          }).map((t) => {
+                            const alreadyInHand = playerHands[activePawn]?.includes(t.id);
                             return (
                               <Button
                                 key={t.id}
