@@ -16,7 +16,7 @@ import { SidePanel } from "./components/SidePanel";
 import { Tile } from "./components/Tile";
 import { Button } from "./components/ui/button";
 import { useLabyrinthHistory } from "./hooks/useLabyrinthHistory";
-import { useLabyrinthStorage } from "./hooks/useLabyrinthStorage";
+import { useLabyrinthStorage, AUTOSAVE_KEY } from "./hooks/useLabyrinthStorage";
 import {
   playClickSound,
   playSlideSound,
@@ -33,6 +33,7 @@ import {
   Unlock,
   Volume2,
   VolumeX,
+  RotateCw,
   User,
   Layers,
   Sparkles,
@@ -64,6 +65,9 @@ export default function App() {
   const [grid, setGrid] = useState<(TileData | null)[][]>(() =>
     Array(7).fill(null).map(() => Array(7).fill(null))
   );
+
+  // Board rotation perspective (0 | 90 | 180 | 270)
+  const [boardRotation, setBoardRotation] = useState<number>(0);
 
   // Side Panel / Loose Movable Pool
   const [looseTiles, setLooseTiles] = useState<TileData[]>([]);
@@ -907,6 +911,20 @@ export default function App() {
         </div>
 
         <div className="mt-4 sm:mt-0 flex items-center gap-2">
+          {/* Board Rotation */}
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => {
+              if (!isMuted) playClickSound();
+              setBoardRotation((prev) => (prev + 90) % 360);
+            }}
+            className="border-stone-800 hover:bg-stone-900 text-stone-300 animate-fade-in"
+            title="Rotate Board Perspective (90° Clockwise)"
+          >
+            <RotateCw className="w-4 h-4" />
+          </Button>
+
           {/* Settings button trigger */}
           <Dialog open={isSettingsOpen} onOpenChange={(open) => {
             setIsSettingsOpen(open);
@@ -1322,6 +1340,7 @@ export default function App() {
                 onArrowClick={handleSlide}
                 hoveredPath={overlaySuggestedPath}
                 hoveredSolutionArrow={hoveredSolution ? hoveredSolution[0].arrowId : null}
+                boardRotation={boardRotation}
               />
             </div>
           </div>

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 
 const SLOTS_LIST_KEY = "labyrinth_saved_slots_list";
-const AUTOSAVE_KEY = "labyrinth_strategist_state";
+export const AUTOSAVE_KEY = "labyrinth_strategist_state";
 
 export interface SaveSlot {
   name: string;

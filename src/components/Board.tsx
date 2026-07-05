@@ -19,6 +19,7 @@ interface BoardSpaceProps {
   isPathEnd: boolean;
   onCellClick: (r: number, c: number) => void;
   onTileClick: (id: string) => void;
+  boardRotation: number;
 }
 
 const BoardSpace: React.FC<BoardSpaceProps> = ({
@@ -33,6 +34,7 @@ const BoardSpace: React.FC<BoardSpaceProps> = ({
   isPathEnd,
   onCellClick,
   onTileClick,
+  boardRotation,
 }) => {
   const isFixedSpace = x % 2 === 0 && y % 2 === 0;
   const id = `board_${x}_${y}`;
@@ -65,6 +67,7 @@ const BoardSpace: React.FC<BoardSpaceProps> = ({
           tile={tile}
           onClick={() => onTileClick(tile.id)}
           disabled={isGameStarted}
+          boardRotation={boardRotation}
           className={cn(
             "absolute inset-0 w-full h-full",
             isOnHoveredPath && "border-amber-400",
@@ -79,7 +82,10 @@ const BoardSpace: React.FC<BoardSpaceProps> = ({
       )}
 
       {/* Render Pawns inside BoardSpace */}
-      <div className="absolute inset-0 pointer-events-none flex flex-wrap items-center justify-center gap-1 p-1 z-20">
+      <div 
+        className="absolute inset-0 pointer-events-none flex flex-wrap items-center justify-center gap-1 p-1 z-20 transition-transform duration-300"
+        style={{ transform: `rotate(${-boardRotation}deg)` }}
+      >
         {pawns.map((color) => {
           const colors: Record<string, string> = {
             red: "bg-red-500 ring-red-300 shadow-red-500/50",
@@ -115,6 +121,7 @@ interface BoardProps {
   onArrowClick: (arrowId: string) => void;
   hoveredPath: { r: number; c: number }[] | null;
   hoveredSolutionArrow: string | null;
+  boardRotation?: number;
 }
 
 export const Board: React.FC<BoardProps> = ({
@@ -128,6 +135,7 @@ export const Board: React.FC<BoardProps> = ({
   onArrowClick,
   hoveredPath,
   hoveredSolutionArrow,
+  boardRotation = 0,
 }) => {
   // Compute reachable cells in Play mode
   const reachableCells = React.useMemo(() => {
@@ -172,7 +180,10 @@ export const Board: React.FC<BoardProps> = ({
   return (
     <div className="p-3 sm:p-5 bg-stone-900 border-4 border-stone-800 rounded-3xl shadow-2xl relative">
       {/* 9x9 CSS Grid Layout */}
-      <div className="grid grid-cols-9 grid-rows-9 gap-1.5 justify-items-center items-center">
+      <div 
+        className="grid grid-cols-9 grid-rows-9 gap-1.5 justify-items-center items-center transition-transform duration-300"
+        style={{ transform: `rotate(${boardRotation}deg)` }}
+      >
         {/* Shifting tracks graphics */}
         <div className="absolute inset-y-12 left-0 right-0 border-t border-stone-800 pointer-events-none opacity-20" />
 
@@ -252,6 +263,7 @@ export const Board: React.FC<BoardProps> = ({
                 isPathEnd={isPathEnd}
                 onCellClick={onCellClick}
                 onTileClick={onTileClick}
+                boardRotation={boardRotation}
               />
             );
           })

@@ -9,9 +9,10 @@ interface TileProps {
   onClick?: () => void;
   className?: string;
   disabled?: boolean;
+  boardRotation?: number;
 }
 
-export const Tile: React.FC<TileProps> = ({ tile, onClick, className, disabled }) => {
+export const Tile: React.FC<TileProps> = ({ tile, onClick, className, disabled, boardRotation = 0 }) => {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: tile.id,
     disabled: tile.isFixed || disabled,
@@ -95,16 +96,18 @@ export const Tile: React.FC<TileProps> = ({ tile, onClick, className, disabled }
       {tile.color && (
         <div
           className={cn(
-            "absolute w-6 h-6 sm:w-8 sm:h-8 rounded-full border-2 border-white shadow-md z-10",
+            "absolute w-6 h-6 sm:w-8 sm:h-8 rounded-full border-2 border-white shadow-md z-10 transition-transform duration-300",
             getCornerColor()
           )}
+          style={{ transform: `rotate(${-boardRotation}deg)` }}
         />
       )}
 
       {/* Fixed tile lock badge */}
       {tile.isFixed && (
         <div
-          className="absolute top-1 right-1 p-0.5 bg-stone-950/70 border border-stone-800/35 rounded-full text-amber-500/80 z-20 pointer-events-auto cursor-help"
+          className="absolute top-1 right-1 p-0.5 bg-stone-950/70 border border-stone-800/35 rounded-full text-amber-500/80 z-20 pointer-events-auto cursor-help transition-transform duration-300"
+          style={{ transform: `rotate(${-boardRotation}deg)` }}
           title="This preset tile is permanently glued to the board. It cannot be moved, slid, or rotated."
         >
           <Lock className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
@@ -113,7 +116,10 @@ export const Tile: React.FC<TileProps> = ({ tile, onClick, className, disabled }
 
       {/* Treasure Text Badge (Centered) */}
       {tile.treasure && (
-        <div className="absolute z-10 p-1 bg-stone-950/85 backdrop-blur-sm rounded border border-amber-500/20 text-[6px] sm:text-[8px] md:text-[9px] font-bold text-center leading-tight max-w-[90%] text-amber-100 shadow-sm pointer-events-none uppercase tracking-wide">
+        <div 
+          className="absolute z-10 p-1 bg-stone-950/85 backdrop-blur-sm rounded border border-amber-500/20 text-[6px] sm:text-[8px] md:text-[9px] font-bold text-center leading-tight max-w-[90%] text-amber-100 shadow-sm pointer-events-none uppercase tracking-wide transition-transform duration-300"
+          style={{ transform: `rotate(${-boardRotation}deg)` }}
+        >
           {tile.treasure.name}
         </div>
       )}
