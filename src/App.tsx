@@ -5,6 +5,9 @@ import {
   type DragStartEvent,
   DragOverlay,
   closestCenter,
+  useSensor,
+  useSensors,
+  PointerSensor,
 } from "@dnd-kit/core";
 import { FIXED_TILES_PRESETS, TREASURES, PAWNS, SHIFT_ARROWS, generateMovablePool } from "./constants";
 import type { TileData, Rotation, Shape } from "./types";
@@ -37,6 +40,14 @@ import {
 import { executeSlideInGrid, isOppositeArrow, getReachableCells } from "./solver";
 
 export default function App() {
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    })
+  );
+
   // Grid: 7x7
   const [grid, setGrid] = useState<(TileData | null)[][]>(() =>
     Array(7).fill(null).map(() => Array(7).fill(null))
@@ -417,7 +428,7 @@ export default function App() {
     setGrid((prev) => {
       const nextGrid = prev.map((row) =>
         row.map((tile) =>
-          tile && tile.id === id
+          tile && tile.id === id && !tile.isFixed
             ? { ...tile, rotation: ((tile.rotation + 90) % 360) as Rotation }
             : tile
         )
@@ -887,6 +898,7 @@ export default function App() {
       {/* Main Panel layout */}
       <main className="flex-1 flex flex-col lg:flex-row relative z-10 w-full max-w-[1600px] mx-auto p-4 sm:p-6 gap-6 items-center lg:items-stretch overflow-hidden">
         <DndContext
+          sensors={sensors}
           collisionDetection={closestCenter}
           onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
