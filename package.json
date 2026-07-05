@@ -5,10 +5,12 @@
   "type": "module",
   "main": "src/main-electron.cjs",
   "scripts": {
-    "dev:web": "vite",
+    "dev:web": "vite --port=3000 --host=0.0.0.0",
     "dev": "concurrently -k \"vite --port=3000 --host=0.0.0.0 --no-open\" \"electron src/main-electron.cjs\"",
-    "build": "tsc -b && vite build",
+    "dev:electron": "concurrently -k \"vite --port=3000 --host=0.0.0.0 --no-open\" \"electron src/main-electron.cjs\"",
+    "build": "vite build",
     "build:electron": "tsc -b && vite build && electron-builder",
+    "pack:electron": "tsc -b && vite build && electron-builder --dir",
     "lint": "oxlint",
     "preview": "vite preview"
   },
@@ -38,5 +40,30 @@
     "tailwindcss": "^4.3.2",
     "typescript": "~6.0.2",
     "vite": "^8.1.1"
+  },
+  "build": {
+    "appId": "com.labyrinth.solver",
+    "productName": "Labyrinth-Game-Solver",
+    "directories": {
+      "output": "release"
+    },
+    "mac": {
+      "target": [
+        "dmg",
+        "zip"
+      ],
+      "category": "public.app-category.games"
+    },
+    "win": {
+      "target": [
+        "nsis"
+      ]
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "jleshnick",
+      "repo": "Labyrinth-Game-Solver",
+      "releaseType": "release"
+    }
   }
 }
