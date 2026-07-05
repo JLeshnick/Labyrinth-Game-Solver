@@ -1,16 +1,17 @@
-// Web Audio API Synthesizer for retro retro board game sound effects
+// Web Audio API Synthesizer for retro board game sound effects
 
-let audioCtx = null;
+let audioCtx: AudioContext | null = null;
 
-function isAudioMuted() {
-  return localStorage.getItem('labyrinth_audio_muted') === 'true';
+function isAudioMuted(): boolean {
+  return localStorage.getItem("labyrinth_audio_muted") === "true";
 }
 
-function getAudioContext() {
+function getAudioContext(): AudioContext {
   if (!audioCtx) {
-    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+    audioCtx = new AudioContextClass();
   }
-  if (audioCtx.state === 'suspended') {
+  if (audioCtx.state === "suspended") {
     audioCtx.resume();
   }
   return audioCtx;
@@ -23,7 +24,7 @@ export function playClickSound() {
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
     
-    osc.type = 'sine';
+    osc.type = "sine";
     osc.frequency.setValueAtTime(400, ctx.currentTime);
     osc.frequency.exponentialRampToValueAtTime(800, ctx.currentTime + 0.1);
     
@@ -47,7 +48,7 @@ export function playSlideSound() {
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
     
-    osc.type = 'triangle';
+    osc.type = "triangle";
     osc.frequency.setValueAtTime(150, ctx.currentTime);
     osc.frequency.linearRampToValueAtTime(80, ctx.currentTime + 0.45);
     
@@ -71,7 +72,7 @@ export function playRotateSound() {
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
     
-    osc.type = 'sine';
+    osc.type = "sine";
     osc.frequency.setValueAtTime(600, ctx.currentTime);
     osc.frequency.exponentialRampToValueAtTime(300, ctx.currentTime + 0.08);
     
@@ -94,11 +95,11 @@ export function playSuccessSound() {
     const ctx = getAudioContext();
     const now = ctx.currentTime;
     
-    const playNote = (freq, start, duration) => {
+    const playNote = (freq: number, start: number, duration: number) => {
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       
-      osc.type = 'sine';
+      osc.type = "sine";
       osc.frequency.setValueAtTime(freq, start);
       
       gain.gain.setValueAtTime(0.08, start);
@@ -128,7 +129,7 @@ export function playPawnMoveSound() {
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
     
-    osc.type = 'triangle';
+    osc.type = "triangle";
     osc.frequency.setValueAtTime(300, ctx.currentTime);
     osc.frequency.setValueAtTime(450, ctx.currentTime + 0.08);
     

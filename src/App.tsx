@@ -1,0 +1,1252 @@
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import {
+  DndContext,
+  type DragEndEvent,
+  type DragStartEvent,
+  DragOverlay,
+  closestCenter,
+} from "@dnd-kit/core";
+import { FIXED_TILES_PRESETS, TREASURES, PAWNS, SHIFT_ARROWS, generateMovablePool } from "./constants";
+import type { TileData, Rotation, Shape } from "./types";
+import { Board } from "./components/Board";
+import { SidePanel } from "./components/SidePanel";
+import { Tile } from "./components/Tile";
+import { Button } from "./components/ui/button";
+import { useLabyrinthHistory } from "./hooks/useLabyrinthHistory";
+import { useLabyrinthStorage } from "./hooks/useLabyrinthStorage";
+import {
+  playClickSound,
+  playSlideSound,
+  playRotateSound,
+  playSuccessSound,
+  playPawnMoveSound,
+} from "./utils/audio";
+import {
+  Compass,
+  RefreshCcw,
+  Undo2,
+  Redo2,
+  Lock,
+  Unlock,
+  Volume2,
+  VolumeX,
+  User,
+  Layers,
+  Sparkles,
+} from "lucide-react";
+import { executeSlideInGrid, isOppositeArrow, getReachableCells } from "./solver";
+
+export default function App() {
+  // Grid: 7x7
+  const [grid, setGrid] = useState<(TileData | null)[][]>(() =>
+    Array(7).fill(null).map(() => Array(7).fill(null))
+  );
+
+  // Side Panel / Loose Movable Pool
+  const [looseTiles, setLooseTiles] = useState<TileData[]>([]);
+  const [spareTile, setSpareTile] = useState<TileData>({
+    id: "spare_initial",
+    shape: "straight",
+    rotation: 0,
+    isFixed: false,
+  });
+
+  // Gameplay Mode States
+  const [isGameStarted, setIsGameStarted] = useState(false);
+  const [gameStartState, setGameStartState] = useState<any>(null);
+  const [activePawn, setActivePawn] = useState<string>("red");
+  const [lastShiftArrowId, setLastShiftArrowId] = useState<string | null>(null);
+  const [maxTurns, setMaxTurns] = useState<number>(2);
+
+  // Player Hands (deal cards) & Active Target Goals
+  const [playerHands, setPlayerHands] = useState<Record<string, string[]>>({
+    red: [],
+    blue: [],
+    green: [],
+    yellow: [],
+  });
+  const [playerActiveTargets, setPlayerActiveTargets] = useState<Record<string, string | null>>({
+    red: null,
+    blue: null,
+    green: null,
+    yellow: null,
+  });
+
+  // Pawn Positions
+  const [pawnPositions, setPawnPositions] = useState<Record<string, { r: number; c: number }>>({
+    red: { r: 6, c: 0 },
+    blue: { r: 6, c: 6 },
+    green: { r: 6, c: 0 }, // Swapped Green position
+    yellow: { r: 0, c: 6 }, // Swapped Yellow position
+  });
+
+  // Active Drag
+  const [activeId, setActiveId] = useState<string | null>(null);
+
+  // Audio configuration
+  const [isMuted, setIsMuted] = useState(() => localStorage.getItem("labyrinth_audio_muted") === "true");
+
+  // Interaction Setup Tabs: 'tiles' | 'pawns' | 'cards'
+  const [setupTab, setSetupTab] = useState<"tiles" | "pawns" | "cards">("tiles");
+  const [activePawnPlacementColor, setActivePawnPlacementColor] = useState<string>("red");
+
+  // Solver Suggestions & Visual Overlays
+  const [solutions, setSolutions] = useState<any[]>([]);
+  const [hoveredSolution, setHoveredSolution] = useState<any | null>(null);
+  const [isLoadingSolutions, setIsLoadingSolutions] = useState(false);
+
+  // Solver Worker
+  const workerRef = useRef<Worker | null>(null);
+
+  // Custom persistent slots hooks
+  const { pushStateToHistory, resetHistory, undo, redo, canUndo, canRedo } = useLabyrinthHistory(null);
+  const { saveAutosave, loadAutosave } = useLabyrinthStorage();
+
+  // Toast System
+  const [toastText, setToastText] = useState<string | null>(null);
+  const showToast = useCallback((msg: string) => {
+    setToastText(msg);
+    const audioMuted = localStorage.getItem("labyrinth_audio_muted") === "true";
+    if (!audioMuted) playClickSound();
+  }, []);
+
+  useEffect(() => {
+    if (toastText) {
+      const t = setTimeout(() => setToastText(null), 3000);
+      return () => clearTimeout(t);
+    }
+  }, [toastText]);
+
+  // Translate Grid + Pawns Positions into Solver Format
+  const getSolverFormattedBoard = useCallback((currentGrid: (TileData | null)[][], positions: Record<string, { r: number; c: number }>) => {
+    const shapeMap: Record<Shape, string> = {
+      straight: "I",
+      corner: "L",
+      "t-junction": "T",
+    };
+    const dirMap: Record<Rotation, number> = {
+      0: 0,
+      90: 1,
+      180: 2,
+      270: 3,
+    };
+
+    const boardRep = Array(7).fill(null).map((_, r) =>
+      Array(7).fill(null).map((_, c) => {
+        const tile = currentGrid[r][c];
+        const pawnsAtCell: string[] = [];
+        Object.entries(positions).forEach(([color, pos]) => {
+          if (pos.r === r && pos.c === c) {
+            pawnsAtCell.push(color);
+          }
+        });
+
+        if (!tile) {
+          return {
+            r,
+            c,
+            shape: "I",
+            dir: 0,
+            treasure: null,
+            isFixed: false,
+            pawns: pawnsAtCell,
+          };
+        }
+
+        return {
+          r,
+          c,
+          shape: shapeMap[tile.shape],
+          dir: dirMap[tile.rotation],
+          treasure: tile.treasure ? tile.treasure.id : null,
+          isFixed: tile.isFixed,
+          pawns: pawnsAtCell,
+        };
+      })
+    );
+
+    return boardRep;
+  }, []);
+
+  // Translate a single Spare Tile to Solver Format
+  const getSolverFormattedSpare = useCallback((tile: TileData) => {
+    const shapeMap: Record<Shape, string> = {
+      straight: "I",
+      corner: "L",
+      "t-junction": "T",
+    };
+    const dirMap: Record<Rotation, number> = {
+      0: 0,
+      90: 1,
+      180: 2,
+      270: 3,
+    };
+    return {
+      shape: shapeMap[tile.shape],
+      dir: dirMap[tile.rotation],
+      treasure: tile.treasure ? tile.treasure.id : null,
+      isFixed: false,
+      pawns: [],
+    };
+  }, []);
+
+  // Hydrate layout presets
+  const resetBoardToInitialPresets = useCallback(() => {
+    const initialGrid = Array(7)
+      .fill(null)
+      .map(() => Array(7).fill(null));
+
+    // Place locked presets
+    Object.entries(FIXED_TILES_PRESETS).forEach(([coord, tilePartial]) => {
+      const [x, y] = coord.split(",").map(Number);
+      initialGrid[y][x] = {
+        id: `fixed_${x}_${y}`,
+        shape: tilePartial.shape!,
+        rotation: tilePartial.rotation!,
+        treasure: tilePartial.treasure,
+        isFixed: true,
+        color: tilePartial.color,
+      };
+    });
+
+    setGrid(initialGrid);
+
+    // Swap Red & Blue across, and Green & Yellow across
+    const defaultPositions = {
+      red: { r: 0, c: 0 },
+      blue: { r: 6, c: 6 },
+      green: { r: 6, c: 0 },
+      yellow: { r: 0, c: 6 },
+    };
+    setPawnPositions(defaultPositions);
+
+    const pool = generateMovablePool();
+    setLooseTiles(pool);
+    setIsGameStarted(false);
+    setLastShiftArrowId(null);
+    setPlayerHands({ red: [], blue: [], green: [], yellow: [] });
+    setPlayerActiveTargets({ red: null, blue: null, green: null, yellow: null });
+
+    const startState = {
+      board: initialGrid,
+      spareTile: { id: "spare_initial", shape: "straight" as Shape, rotation: 0 as Rotation, isFixed: false },
+      activePawn: "red",
+      playerHands: { red: [], blue: [], green: [], yellow: [] },
+      playerActiveTargets: { red: null, blue: null, green: null, yellow: null },
+      lastShiftArrowId: null,
+      pawnPositions: defaultPositions,
+    };
+
+    resetHistory(startState);
+  }, [resetHistory]);
+
+  // Load layout from localStorage or initialize defaults
+  useEffect(() => {
+    try {
+      workerRef.current = new Worker(
+        new URL("./solver.worker.js", import.meta.url),
+        { type: "module" }
+      );
+
+      workerRef.current.onmessage = (e) => {
+        const { success, solutions: computed, error } = e.data;
+        if (success) {
+          setSolutions(computed || []);
+        } else {
+          console.error("Worker solver failed:", error);
+        }
+        setIsLoadingSolutions(false);
+      };
+    } catch (err) {
+      console.warn("Failed to instantiate Web Worker solver in background thread.", err);
+    }
+
+    // Attempt Load autosave
+    const saved = loadAutosave();
+    if (saved && saved.board) {
+      setGrid(saved.board);
+      setLooseTiles(saved.looseTiles || []);
+      setSpareTile(saved.spareTile);
+      setActivePawn(saved.activePawn || "red");
+      setPlayerHands(saved.playerHands || { red: [], blue: [], green: [], yellow: [] });
+      setPlayerActiveTargets(saved.playerActiveTargets || { red: null, blue: null, green: null, yellow: null });
+      setLastShiftArrowId(saved.lastShiftArrowId || null);
+      setIsGameStarted(saved.isGameStarted || false);
+      setGameStartState(saved.gameStartState || null);
+      setPawnPositions(saved.pawnPositions || {
+        red: { r: 0, c: 0 },
+        blue: { r: 6, c: 6 },
+        green: { r: 6, c: 0 },
+        yellow: { r: 0, c: 6 },
+      });
+
+      const record = {
+        board: saved.board,
+        spareTile: saved.spareTile,
+        lastShiftArrowId: saved.lastShiftArrowId || null,
+        activePawn: saved.activePawn || "red",
+        playerHands: saved.playerHands || { red: [], blue: [], green: [], yellow: [] },
+        playerActiveTargets: saved.playerActiveTargets || { red: null, blue: null, green: null, yellow: null },
+        pawnPositions: saved.pawnPositions,
+      };
+      resetHistory(record);
+    } else {
+      resetBoardToInitialPresets();
+    }
+
+    return () => {
+      workerRef.current?.terminate();
+    };
+  }, [loadAutosave, resetHistory, resetBoardToInitialPresets]);
+
+  // Compute solver suggestions asynchronously via Worker
+  useEffect(() => {
+    if (!isGameStarted || grid.length === 0 || !workerRef.current) return;
+
+    const currentPawnCoord = pawnPositions[activePawn];
+    const handCards = playerHands[activePawn] || [];
+
+    if (!currentPawnCoord || handCards.length === 0) {
+      setSolutions([]);
+      return;
+    }
+
+    setIsLoadingSolutions(true);
+    const solverBoard = getSolverFormattedBoard(grid, pawnPositions);
+    const solverSpare = getSolverFormattedSpare(spareTile);
+
+    workerRef.current.postMessage({
+      board: solverBoard,
+      spareTile: solverSpare,
+      pawnPos: currentPawnCoord,
+      handCards,
+      lastShiftArrowId,
+      maxTurns,
+    });
+  }, [grid, spareTile, activePawn, playerHands, lastShiftArrowId, maxTurns, isGameStarted, pawnPositions, getSolverFormattedBoard, getSolverFormattedSpare]);
+
+  // Handle Mute
+  const handleToggleMute = () => {
+    const nextMute = !isMuted;
+    setIsMuted(nextMute);
+    localStorage.setItem("labyrinth_audio_muted", String(nextMute));
+    showToast(nextMute ? "Muted retro sound effects 🔇" : "Sound effects enabled 🔊");
+  };
+
+  // Drag and Drop handlers
+  const handleDragStart = (e: DragStartEvent) => {
+    setActiveId(e.active.id as string);
+  };
+
+  const handleDragEnd = (e: DragEndEvent) => {
+    setActiveId(null);
+    const { active, over } = e;
+
+    if (!over) return;
+
+    const tileId = active.id as string;
+    const tileData = active.data.current as TileData;
+    if (tileData.isFixed) return;
+
+    const overId = over.id as string;
+
+    const removeTile = (id: string) => {
+      setLooseTiles((prev) => prev.filter((t) => t.id !== id));
+      setGrid((prev) => {
+        const nextGrid = prev.map((row) =>
+          row.map((tile) => (tile?.id === id ? null : tile))
+        );
+        return nextGrid;
+      });
+    };
+
+    const findTile = (id: string): TileData | undefined => {
+      const inLoose = looseTiles.find((t) => t.id === id);
+      if (inLoose) return inLoose;
+      for (let r = 0; r < 7; r++) {
+        for (let c = 0; c < 7; c++) {
+          if (grid[r][c]?.id === id) return grid[r][c]!;
+        }
+      }
+      return undefined;
+    };
+
+    const tileToMove = findTile(tileId);
+    if (!tileToMove) return;
+
+    if (overId === "side_panel") {
+      removeTile(tileId);
+      setLooseTiles((prev) => [...prev, tileToMove]);
+    } else if (overId.startsWith("board_")) {
+      const [, sx, sy] = overId.split("_");
+      const tx = parseInt(sx);
+      const ty = parseInt(sy);
+
+      // Verify that drop spot is empty
+      if (grid[ty][tx] === null) {
+        removeTile(tileId);
+        setGrid((prev) => {
+          const nextGrid = prev.map((row) => [...row]);
+          nextGrid[ty][tx] = tileToMove;
+          return nextGrid;
+        });
+      }
+    }
+  };
+
+  // Rotate tile
+  const handleTileClick = (id: string) => {
+    if (isGameStarted) return;
+    if (id === spareTile.id) {
+      if (!isMuted) playRotateSound();
+      setSpareTile((prev) => ({
+        ...prev,
+        rotation: ((prev.rotation + 90) % 360) as Rotation,
+      }));
+      return;
+    }
+
+    if (!isMuted) playRotateSound();
+
+    setLooseTiles((prev) =>
+      prev.map((t) =>
+        t.id === id ? { ...t, rotation: ((t.rotation + 90) % 360) as Rotation } : t
+      )
+    );
+
+    setGrid((prev) => {
+      const nextGrid = prev.map((row) =>
+        row.map((tile) =>
+          tile && tile.id === id
+            ? { ...tile, rotation: ((tile.rotation + 90) % 360) as Rotation }
+            : tile
+        )
+      );
+      return nextGrid;
+    });
+  };
+
+  // Board cell click handlers for pawn movements or placements
+  const handleCellClick = (r: number, c: number) => {
+    if (!isGameStarted) {
+      if (setupTab === "pawns") {
+        if (!isMuted) playClickSound();
+        setPawnPositions((prev) => ({
+          ...prev,
+          [activePawnPlacementColor]: { r, c },
+        }));
+        showToast(`Placed ${activePawnPlacementColor.toUpperCase()} pawn at (${r}, ${c})`);
+      }
+      return;
+    }
+
+    // Play Mode: Check reachable cell
+    const startCoord = pawnPositions[activePawn];
+    if (!startCoord) return;
+
+    if (startCoord.r === r && startCoord.c === c) return;
+
+    const solverBoard = getSolverFormattedBoard(grid, pawnPositions);
+    const { cells } = getReachableCells(solverBoard, startCoord.r, startCoord.c);
+    const reachable = cells.some((cell: { r: number; c: number }) => cell.r === r && cell.c === c);
+
+    if (reachable) {
+      if (!isMuted) playPawnMoveSound();
+      setPawnPositions((prev) => ({
+        ...prev,
+        [activePawn]: { r, c },
+      }));
+
+      const activeTargetCard = playerActiveTargets[activePawn];
+      const landedTreasure = grid[r][c]?.treasure;
+
+      if (landedTreasure && landedTreasure.id === activeTargetCard) {
+        if (!isMuted) playSuccessSound();
+        const nextHand = playerHands[activePawn].filter((id) => id !== activeTargetCard);
+        setPlayerHands((prev) => ({ ...prev, [activePawn]: nextHand }));
+        setPlayerActiveTargets((prev) => ({
+          ...prev,
+          [activePawn]: nextHand.length > 0 ? nextHand[0] : null,
+        }));
+        showToast(`Goal Achieved: Found ${landedTreasure.name}! 🏆`);
+      } else {
+        showToast(`Moved ${activePawn.toUpperCase()} pawn to (${r}, ${c})`);
+      }
+
+      pushStateToHistory(
+        grid,
+        spareTile,
+        lastShiftArrowId,
+        activePawn,
+        playerHands,
+        playerActiveTargets
+      );
+    } else {
+      showToast("Cannot move there! Paths do not connect.");
+    }
+  };
+
+  // Slide Spare Tile in Gameplay
+  const handleSlide = (arrowId: string) => {
+    if (lastShiftArrowId && isOppositeArrow(arrowId, lastShiftArrowId)) {
+      showToast("Can't reverse the shift action immediately!");
+      return;
+    }
+
+    if (!isMuted) playSlideSound();
+
+    const arrow = SHIFT_ARROWS.find((a) => a.id === arrowId);
+    if (!arrow) return;
+
+    const solverBoard = getSolverFormattedBoard(grid, pawnPositions);
+    const solverSpare = getSolverFormattedSpare(spareTile);
+
+    const { newSpare } = executeSlideInGrid(
+      solverBoard,
+      solverSpare,
+      arrow.type,
+      arrow.index,
+      arrow.dir
+    );
+
+    // Re-construct grid from translated solver board
+    const nextGrid = grid.map((row) => [...row]);
+    const shapeMapRev: Record<string, Shape> = {
+      I: "straight",
+      L: "corner",
+      T: "t-junction",
+    };
+    const dirMapRev: Record<number, Rotation> = {
+      0: 0,
+      1: 90,
+      2: 180,
+      3: 270,
+    };
+
+    for (let r = 0; r < 7; r++) {
+      for (let c = 0; c < 7; c++) {
+        if (grid[r][c]?.isFixed) continue;
+        const cell = solverBoard[r][c];
+        const originalTile = grid[cell.r][cell.c] || {
+          id: `movable_${Math.random()}`,
+          isFixed: false,
+        };
+        nextGrid[r][c] = {
+          ...originalTile,
+          shape: shapeMapRev[cell.shape],
+          rotation: dirMapRev[cell.dir],
+          treasure: TREASURES.find((t) => t.id === cell.treasure),
+        };
+      }
+    }
+
+    // Set new spare tile
+    setSpareTile({
+      id: `spare_${Date.now()}`,
+      shape: shapeMapRev[newSpare.shape],
+      rotation: dirMapRev[newSpare.dir],
+      treasure: TREASURES.find((t) => t.id === newSpare.treasure),
+      isFixed: false,
+    });
+
+    // Update pawn positions due to slide push
+    const nextPositions = { ...pawnPositions };
+    Object.entries(pawnPositions).forEach(([color, pos]) => {
+      let nr = pos.r;
+      let nc = pos.c;
+      if (arrow.type === "row" && arrow.index === pos.r) {
+        if (arrow.dir === "left") {
+          nc = pos.c === 6 ? 0 : pos.c + 1;
+        } else {
+          nc = pos.c === 0 ? 6 : pos.c - 1;
+        }
+      } else if (arrow.type === "col" && arrow.index === pos.c) {
+        if (arrow.dir === "top") {
+          nr = pos.r === 6 ? 0 : pos.r + 1;
+        } else {
+          nr = pos.r === 0 ? 6 : pos.r - 1;
+        }
+      }
+      nextPositions[color] = { r: nr, c: nc };
+    });
+
+    setPawnPositions(nextPositions);
+    setGrid(nextGrid);
+    setLastShiftArrowId(arrowId);
+
+    pushStateToHistory(
+      nextGrid,
+      spareTile,
+      arrowId,
+      activePawn,
+      playerHands,
+      playerActiveTargets
+    );
+
+    // Save Autosave
+    saveAutosave({
+      board: nextGrid,
+      looseTiles: [],
+      spareTile,
+      activePawn,
+      playerHands,
+      playerActiveTargets,
+      lastShiftArrowId: arrowId,
+      isGameStarted,
+      gameStartState,
+      pawnPositions: nextPositions,
+    });
+  };
+
+  // Deal card logic
+  const handleAddCard = (treasureId: string) => {
+    if (playerHands[activePawn].includes(treasureId)) return;
+    const nextHand = [...playerHands[activePawn], treasureId];
+    setPlayerHands((prev) => ({ ...prev, [activePawn]: nextHand }));
+    if (!playerActiveTargets[activePawn]) {
+      setPlayerActiveTargets((prev) => ({ ...prev, [activePawn]: treasureId }));
+    }
+  };
+
+  const handleRemoveCard = (treasureId: string) => {
+    const nextHand = playerHands[activePawn].filter((id) => id !== treasureId);
+    setPlayerHands((prev) => ({ ...prev, [activePawn]: nextHand }));
+    setPlayerActiveTargets((prev) => ({
+      ...prev,
+      [activePawn]: nextHand.length > 0 ? nextHand[0] : null,
+    }));
+  };
+
+  // Start gameplay
+  const handleStartGame = () => {
+    if (looseTiles.length !== 1) {
+      showToast("Cannot start! Make sure exactly 33 tiles are placed on the board.");
+      return;
+    }
+
+    if (!isMuted) playSuccessSound();
+
+    const startState = {
+      board: grid.map((r) => [...r]),
+      spareTile: { ...looseTiles[0] },
+      activePawn,
+      playerHands: { ...playerHands },
+      playerActiveTargets: { ...playerActiveTargets },
+      lastShiftArrowId: null,
+      pawnPositions: { ...pawnPositions },
+    };
+
+    setSpareTile(looseTiles[0]);
+    setLooseTiles([]);
+    setIsGameStarted(true);
+    setGameStartState(startState);
+
+    pushStateToHistory(grid, looseTiles[0], null, activePawn, playerHands, playerActiveTargets);
+
+    saveAutosave({
+      board: grid,
+      looseTiles: [],
+      spareTile: looseTiles[0],
+      activePawn,
+      playerHands,
+      playerActiveTargets,
+      lastShiftArrowId: null,
+      isGameStarted: true,
+      gameStartState: startState,
+      pawnPositions,
+    });
+
+    showToast("Game started! Slide the spare tile and move your pawn to targets.");
+  };
+
+  const handleEndGame = () => {
+    if (!gameStartState) return;
+    if (!isMuted) playClickSound();
+
+    setGrid(gameStartState.board);
+    setLooseTiles([gameStartState.spareTile]);
+    setIsGameStarted(false);
+    setLastShiftArrowId(null);
+  };
+
+  // Execute solver suggestion
+  const handleExecuteSolution = (path: any[]) => {
+    if (path.length === 0) return;
+    const turn1 = path[0];
+    const arrow = SHIFT_ARROWS.find((a) => a.id === turn1.arrowId);
+    if (!arrow) return;
+
+    if (!isMuted) playSlideSound();
+
+    // Rotate spare to solver suggested rotation
+    const rotDegrees = [0, 90, 180, 270][turn1.rotation] as Rotation;
+    const solverSpare = getSolverFormattedSpare({ ...spareTile, rotation: rotDegrees });
+    const solverBoard = getSolverFormattedBoard(grid, pawnPositions);
+
+    const { newSpare } = executeSlideInGrid(
+      solverBoard,
+      solverSpare,
+      arrow.type,
+      arrow.index,
+      arrow.dir
+    );
+
+    const nextGrid = grid.map((row) => [...row]);
+    const shapeMapRev: Record<string, Shape> = {
+      I: "straight",
+      L: "corner",
+      T: "t-junction",
+    };
+    const dirMapRev: Record<number, Rotation> = {
+      0: 0,
+      1: 90,
+      2: 180,
+      3: 270,
+    };
+
+    for (let r = 0; r < 7; r++) {
+      for (let c = 0; c < 7; c++) {
+        if (grid[r][c]?.isFixed) continue;
+        const cell = solverBoard[r][c];
+        const originalTile = grid[cell.r][cell.c] || {
+          id: `movable_${Math.random()}`,
+          isFixed: false,
+        };
+        nextGrid[r][c] = {
+          ...originalTile,
+          shape: shapeMapRev[cell.shape],
+          rotation: dirMapRev[cell.dir],
+          treasure: TREASURES.find((t) => t.id === cell.treasure),
+        };
+      }
+    }
+
+    setGrid(nextGrid);
+    setSpareTile({
+      id: `spare_${Date.now()}`,
+      shape: shapeMapRev[newSpare.shape],
+      rotation: dirMapRev[newSpare.dir],
+      treasure: TREASURES.find((t) => t.id === newSpare.treasure),
+      isFixed: false,
+    });
+
+    // End coordinate
+    const finalPos = turn1.endPos;
+    setPawnPositions((prev) => ({
+      ...prev,
+      [activePawn]: { r: finalPos.r, c: finalPos.c },
+    }));
+
+    setLastShiftArrowId(turn1.arrowId);
+
+    const activeTargetCard = playerActiveTargets[activePawn];
+    const landedTreasure = nextGrid[finalPos.r][finalPos.c]?.treasure;
+
+    if (landedTreasure && landedTreasure.id === activeTargetCard) {
+      if (!isMuted) playSuccessSound();
+      const nextHand = playerHands[activePawn].filter((id) => id !== activeTargetCard);
+      setPlayerHands((prev) => ({ ...prev, [activePawn]: nextHand }));
+      setPlayerActiveTargets((prev) => ({
+        ...prev,
+        [activePawn]: nextHand.length > 0 ? nextHand[0] : null,
+      }));
+      showToast(`Goal Achieved: Found ${landedTreasure.name}! 🏆`);
+    }
+
+    pushStateToHistory(
+      nextGrid,
+      spareTile,
+      turn1.arrowId,
+      activePawn,
+      playerHands,
+      playerActiveTargets
+    );
+  };
+
+  // Derive active paths for overlay suggestions
+  const overlaySuggestedPath = useMemo(() => {
+    if (!hoveredSolution || hoveredSolution.length === 0) return null;
+    return hoveredSolution[0].pawnPath as { r: number; c: number }[];
+  }, [hoveredSolution]);
+
+  const activeTargetTreasure = TREASURES.find(
+    (t) => t.id === playerActiveTargets[activePawn]
+  );
+
+  return (
+    <div className="min-h-screen bg-stone-950 text-stone-100 flex flex-col font-sans select-none relative overflow-hidden">
+      {/* Background patterns */}
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(120,119,198,0.15),rgba(255,255,255,0))]" />
+      <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-amber-500/5 blur-[120px] rounded-full pointer-events-none" />
+
+      {/* Header */}
+      <header className="relative z-10 p-4 sm:p-6 flex flex-col sm:flex-row items-center justify-between border-b border-stone-800 bg-stone-950/70 backdrop-blur-md">
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-amber-500/10 border border-amber-500/30 rounded-xl text-amber-500">
+            <Compass className="w-6 h-6 animate-pulse" />
+          </div>
+          <div>
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight bg-gradient-to-r from-amber-200 to-amber-500 bg-clip-text text-transparent">
+              Labyrinth Strategist Solver
+            </h1>
+            <p className="text-xs text-stone-400">Desktop Edition</p>
+          </div>
+        </div>
+
+        <div className="mt-4 sm:mt-0 flex items-center gap-2">
+          {/* Audio toggle */}
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={handleToggleMute}
+            className="border-stone-800 hover:bg-stone-900"
+          >
+            {isMuted ? <VolumeX className="w-4 h-4 text-stone-400" /> : <Volume2 className="w-4 h-4 text-amber-500" />}
+          </Button>
+
+          {/* Undo/Redo */}
+          <Button
+            variant="outline"
+            size="icon"
+            disabled={!canUndo}
+            onClick={() => {
+              if (!isMuted) playClickSound();
+              undo((state: any) => {
+                setGrid(state.board);
+                setSpareTile(state.spareTile);
+                setLastShiftArrowId(state.lastShiftArrowId);
+                setActivePawn(state.activePawn);
+                setPlayerHands(state.playerHands);
+                setPlayerActiveTargets(state.playerActiveTargets);
+                if (state.pawnPositions) {
+                  setPawnPositions(state.pawnPositions);
+                }
+              });
+            }}
+            className="border-stone-800 hover:bg-stone-900 disabled:opacity-30"
+            title="Undo"
+          >
+            <Undo2 className="w-4 h-4" />
+          </Button>
+
+          <Button
+            variant="outline"
+            size="icon"
+            disabled={!canRedo}
+            onClick={() => {
+              if (!isMuted) playClickSound();
+              redo((state: any) => {
+                setGrid(state.board);
+                setSpareTile(state.spareTile);
+                setLastShiftArrowId(state.lastShiftArrowId);
+                setActivePawn(state.activePawn);
+                setPlayerHands(state.playerHands);
+                setPlayerActiveTargets(state.playerActiveTargets);
+                if (state.pawnPositions) {
+                  setPawnPositions(state.pawnPositions);
+                }
+              });
+            }}
+            className="border-stone-800 hover:bg-stone-900 disabled:opacity-30"
+            title="Redo"
+          >
+            <Redo2 className="w-4 h-4" />
+          </Button>
+
+          {/* Reset presets */}
+          {!isGameStarted && (
+            <Button
+              variant="outline"
+              onClick={resetBoardToInitialPresets}
+              className="border-stone-800 hover:bg-stone-900 gap-2"
+            >
+              <RefreshCcw className="w-4 h-4" />
+              Reset Board
+            </Button>
+          )}
+
+          {/* Start/End game */}
+          {isGameStarted ? (
+            <Button variant="destructive" onClick={handleEndGame} className="gap-2">
+              <Unlock className="w-4 h-4" />
+              Edit Board
+            </Button>
+          ) : (
+            <Button
+              onClick={handleStartGame}
+              disabled={looseTiles.length !== 1}
+              className="bg-amber-500 hover:bg-amber-600 text-stone-950 font-semibold gap-2 disabled:bg-stone-800 disabled:text-stone-500 shadow-lg shadow-amber-500/10"
+            >
+              <Lock className="w-4 h-4" />
+              Start Game
+            </Button>
+          )}
+        </div>
+      </header>
+
+      {/* Main Panel layout */}
+      <main className="flex-1 flex flex-col lg:flex-row relative z-10 w-full max-w-[1600px] mx-auto p-4 sm:p-6 gap-6 items-center lg:items-stretch overflow-hidden">
+        <DndContext
+          collisionDetection={closestCenter}
+          onDragStart={handleDragStart}
+          onDragEnd={handleDragEnd}
+        >
+          {/* Game Board Section */}
+          <div className="flex-1 flex items-center justify-center relative">
+            <div className="relative">
+              {/* Highlight Overlay Arrow suggested indicator */}
+              {hoveredSolution && hoveredSolution.length > 0 && (
+                <div
+                  className="absolute animate-ping bg-amber-500/30 border border-amber-500 rounded-full pointer-events-none"
+                  style={{
+                    // Position ping near the arrow insertion point
+                    ...(() => {
+                      const arrow = SHIFT_ARROWS.find((a) => a.id === hoveredSolution[0].arrowId);
+                      if (!arrow) return { display: "none" };
+                      // Approximate coordinates
+                      return {
+                        left: `${arrow.gridColumn * 11.1}%`,
+                        top: `${arrow.gridRow * 11.1}%`,
+                        width: "30px",
+                        height: "30px",
+                        transform: "translate(-50%, -50%)",
+                      };
+                    })(),
+                  }}
+                />
+              )}
+
+              <Board
+                grid={grid}
+                pawnPositions={pawnPositions}
+                onCellClick={handleCellClick}
+                onTileClick={handleTileClick}
+                isGameStarted={isGameStarted}
+                activePawn={activePawn}
+                lastShiftArrowId={lastShiftArrowId}
+                onArrowClick={handleSlide}
+                hoveredPath={overlaySuggestedPath}
+                hoveredSolutionArrow={hoveredSolution ? hoveredSolution[0].arrowId : null}
+              />
+            </div>
+          </div>
+
+          {/* Sidebar Editor / Play Control panel */}
+          <div className="w-full lg:w-[420px] flex flex-col flex-shrink-0">
+            {isGameStarted ? (
+              /* Gameplay & Solver Controls */
+              <div className="flex-1 flex flex-col gap-4 bg-stone-900/50 border border-stone-800 rounded-2xl p-5 backdrop-blur-xl">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-lg font-bold text-amber-500 flex items-center gap-2">
+                    <Sparkles className="w-5 h-5 text-amber-500" />
+                    Solver Suggestions
+                  </h2>
+                  <div className="text-xs px-2 py-1 bg-stone-800 rounded text-stone-400">
+                    Turns:
+                    <select
+                      value={maxTurns}
+                      onChange={(e) => setMaxTurns(parseInt(e.target.value))}
+                      className="ml-1 bg-stone-900 border border-stone-700 text-stone-200 rounded text-xs focus:outline-none"
+                    >
+                      <option value={1}>1</option>
+                      <option value={2}>2</option>
+                      <option value={3}>3</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Active target details */}
+                <div className="p-4 bg-stone-950/60 border border-stone-800/80 rounded-xl flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div
+                      className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-stone-950 ${
+                        PAWNS.find((p) => p.id === activePawn)?.colorClass || "bg-red-500"
+                      }`}
+                    >
+                      {activePawn[0].toUpperCase()}
+                    </div>
+                    <div>
+                      <div className="text-xs text-stone-400">Active Pawn's Turn</div>
+                      <div className="font-semibold text-stone-100 flex items-center gap-1">
+                        Target:{" "}
+                        <span className="text-amber-500">
+                          {activeTargetTreasure ? activeTargetTreasure.name : "None"}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  {/* Spare Tile display in Panel */}
+                  <div className="flex flex-col items-center gap-1">
+                    <div className="text-[10px] text-stone-500">Spare (Click to rotate)</div>
+                    <Tile
+                      tile={spareTile}
+                      onClick={() => handleTileClick(spareTile.id)}
+                      className="w-12 h-12 border-amber-500/40"
+                    />
+                  </div>
+                </div>
+
+                {/* List solutions */}
+                <div className="flex-1 overflow-y-auto min-h-[250px] pr-2 flex flex-col gap-2">
+                  {isLoadingSolutions ? (
+                    <div className="flex-1 flex flex-col items-center justify-center text-stone-500 gap-2">
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-amber-500" />
+                      Computing paths...
+                    </div>
+                  ) : solutions.length > 0 ? (
+                    solutions.map((sol, index) => {
+                      const firstStep = sol[0];
+                      const isFallback = sol.isFallback;
+                      return (
+                        <div
+                          key={index}
+                          onMouseEnter={() => setHoveredSolution(sol)}
+                          onMouseLeave={() => setHoveredSolution(null)}
+                          className={`p-3 bg-stone-950/40 border border-stone-800/60 hover:border-amber-500/40 rounded-xl transition-all flex items-center justify-between cursor-pointer group ${
+                            isFallback ? "opacity-60 hover:opacity-100" : ""
+                          }`}
+                        >
+                          <div>
+                            <div className="text-xs font-semibold text-stone-300">
+                              {isFallback ? (
+                                <span className="text-stone-400">Fallback Target Prox</span>
+                              ) : (
+                                <span className="text-green-500">Goal Connection Found</span>
+                              )}
+                            </div>
+                            <div className="text-xs text-stone-400 mt-1">
+                              Action: Slide {firstStep.arrowId.replace("-", " ")} ({firstStep.rotation}° Rot)
+                            </div>
+                            <div className="text-[10px] text-stone-500">
+                              Turns needed: {sol.length} • Safety: {sol.safetyScore}%
+                            </div>
+                          </div>
+                          <Button
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleExecuteSolution(sol);
+                            }}
+                            className="bg-amber-500/10 group-hover:bg-amber-500 text-amber-500 group-hover:text-stone-950 border border-amber-500/20 group-hover:border-transparent font-medium text-xs px-2.5 py-1 rounded"
+                          >
+                            Execute
+                          </Button>
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <div className="flex-1 flex items-center justify-center text-stone-600 text-sm">
+                      No paths found. Check targets or max turns.
+                    </div>
+                  )}
+                </div>
+
+                {/* Player turns toggler */}
+                <div className="border-t border-stone-800 pt-4">
+                  <div className="text-xs text-stone-400 mb-2 font-medium">Select Player:</div>
+                  <div className="grid grid-cols-4 gap-2">
+                    {PAWNS.map((p) => (
+                      <Button
+                        key={p.id}
+                        variant={activePawn === p.id ? "default" : "outline"}
+                        onClick={() => {
+                          if (!isMuted) playClickSound();
+                          setActivePawn(p.id);
+                        }}
+                        className={`border-stone-800 ${
+                          activePawn === p.id
+                            ? p.colorClass + " text-stone-950 font-bold"
+                            : "hover:bg-stone-900 text-stone-200"
+                        }`}
+                      >
+                        {p.name}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              /* Setup Config Sidepanel */
+              <div className="flex-1 flex flex-col gap-4 bg-stone-900/50 border border-stone-800 rounded-2xl p-5 backdrop-blur-xl">
+                {/* Tabs */}
+                <div className="flex border-b border-stone-800 pb-2 gap-2">
+                  <Button
+                    variant={setupTab === "tiles" ? "default" : "ghost"}
+                    onClick={() => setSetupTab("tiles")}
+                    className={`flex-1 rounded-lg ${
+                      setupTab === "tiles" ? "bg-amber-500 text-stone-950 font-semibold" : "text-stone-400 hover:text-stone-100"
+                    }`}
+                  >
+                    <Layers className="w-4 h-4 mr-2" />
+                    Tiles
+                  </Button>
+                  <Button
+                    variant={setupTab === "pawns" ? "default" : "ghost"}
+                    onClick={() => setSetupTab("pawns")}
+                    className={`flex-1 rounded-lg ${
+                      setupTab === "pawns" ? "bg-amber-500 text-stone-950 font-semibold" : "text-stone-400 hover:text-stone-100"
+                    }`}
+                  >
+                    <User className="w-4 h-4 mr-2" />
+                    Pawns
+                  </Button>
+                  <Button
+                    variant={setupTab === "cards" ? "default" : "ghost"}
+                    onClick={() => setSetupTab("cards")}
+                    className={`flex-1 rounded-lg ${
+                      setupTab === "cards" ? "bg-amber-500 text-stone-950 font-semibold" : "text-stone-400 hover:text-stone-100"
+                    }`}
+                  >
+                    <Compass className="w-4 h-4 mr-2" />
+                    Cards
+                  </Button>
+                </div>
+
+                {/* Tab Content */}
+                <div className="flex-1 overflow-hidden">
+                  {setupTab === "tiles" && (
+                    <SidePanel tiles={looseTiles} onTileClick={handleTileClick} />
+                  )}
+
+                  {setupTab === "pawns" && (
+                    <div className="flex flex-col gap-4 h-full">
+                      <div className="text-sm text-stone-400">
+                        Choose a pawn and click a cell on the board grid to jump and place that pawn.
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        {PAWNS.map((p) => (
+                          <Button
+                            key={p.id}
+                            variant={activePawnPlacementColor === p.id ? "default" : "outline"}
+                            onClick={() => setActivePawnPlacementColor(p.id)}
+                            className={`border-stone-800 ${
+                              activePawnPlacementColor === p.id
+                                ? p.colorClass + " text-stone-950 font-bold"
+                                : "hover:bg-stone-900 text-stone-200"
+                            }`}
+                          >
+                            {p.name}
+                          </Button>
+                        ))}
+                      </div>
+                      <div className="mt-4 p-4 border border-stone-800/80 bg-stone-950/40 rounded-xl text-xs text-stone-400 flex flex-col gap-2">
+                        <div className="font-semibold text-stone-200">Current Positions:</div>
+                        {Object.entries(pawnPositions).map(([color, pos]) => (
+                          <div key={color} className="flex justify-between">
+                            <span className="capitalize">{color}:</span>
+                            <span>
+                              Row {pos.r}, Col {pos.c}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {setupTab === "cards" && (
+                    <div className="flex flex-col gap-4 h-full">
+                      <div className="flex items-center gap-2">
+                        <div className="text-sm text-stone-400">Select player active hand:</div>
+                        <div className="flex gap-1 ml-auto">
+                          {["red", "blue", "green", "yellow"].map((p) => (
+                            <button
+                              key={p}
+                              onClick={() => {
+                                if (!isMuted) playClickSound();
+                                setActivePawn(p);
+                              }}
+                              className={`w-6 h-6 rounded-full font-bold text-[10px] flex items-center justify-center ${
+                                PAWNS.find((pw) => pw.id === p)?.colorClass || "bg-red-500"
+                              } ${activePawn === p ? "ring-2 ring-white" : "opacity-50"}`}
+                            >
+                              {p[0].toUpperCase()}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="p-3 bg-stone-950/60 border border-stone-800/80 rounded-xl">
+                        <div className="text-xs text-stone-400">
+                          Player <span className="capitalize text-amber-500 font-bold">{activePawn}</span>'s hand list (
+                          {playerHands[activePawn].length} cards):
+                        </div>
+                        <div className="flex flex-wrap gap-1 mt-2">
+                          {playerHands[activePawn].map((cardId) => {
+                            const name = TREASURES.find((t) => t.id === cardId)?.name || cardId;
+                            return (
+                              <div
+                                key={cardId}
+                                className="text-[10px] bg-amber-500/10 border border-amber-500/20 text-amber-500 font-semibold px-2 py-0.5 rounded flex items-center gap-1"
+                              >
+                                {name}
+                                <button
+                                  onClick={() => handleRemoveCard(cardId)}
+                                  className="text-stone-400 hover:text-stone-200"
+                                >
+                                  ×
+                                </button>
+                              </div>
+                            );
+                          })}
+                          {playerHands[activePawn].length === 0 && (
+                            <span className="text-[10px] text-stone-600">No cards in hand. Click below to add.</span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Add cards list */}
+                      <div className="flex-1 overflow-y-auto pr-1">
+                        <div className="text-xs text-stone-400 mb-2 font-medium">Add Treasure Cards:</div>
+                        <div className="grid grid-cols-2 gap-1.5 pb-8">
+                          {TREASURES.map((t) => {
+                            const alreadyInHand = playerHands[activePawn].includes(t.id);
+                            return (
+                              <Button
+                                key={t.id}
+                                size="sm"
+                                variant={alreadyInHand ? "secondary" : "outline"}
+                                onClick={() => (alreadyInHand ? handleRemoveCard(t.id) : handleAddCard(t.id))}
+                                className={`text-[10px] py-1 border-stone-800 justify-start h-8 px-2 truncate ${
+                                  alreadyInHand
+                                    ? "bg-amber-500/20 border-amber-500/40 text-amber-500"
+                                    : "hover:bg-stone-900 text-stone-300"
+                                }`}
+                              >
+                                {t.name}
+                              </Button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Active Overlay Dragging representation */}
+          <DragOverlay dropAnimation={null}>
+            {activeId ? (
+              <Tile
+                tile={
+                  looseTiles.find((t) => t.id === activeId) ||
+                  grid.flat().find((t: any) => t?.id === activeId)!
+                }
+                className="shadow-2xl shadow-black ring-4 ring-amber-500/50"
+              />
+            ) : null}
+          </DragOverlay>
+        </DndContext>
+      </main>
+
+      {/* Floating Notification Toast */}
+      {toastText && (
+        <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 px-6 py-3 bg-stone-900 border border-amber-500/40 text-amber-300 font-semibold text-sm rounded-full shadow-2xl shadow-black z-50 animate-bounce flex items-center gap-2">
+          <Sparkles className="w-4 h-4 text-amber-400" />
+          {toastText}
+        </div>
+      )}
+    </div>
+  );
+}
