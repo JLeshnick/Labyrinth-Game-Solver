@@ -42,6 +42,7 @@ import {
   Eye,
   Download,
   Upload,
+  Save,
 } from "lucide-react";
 import {
   Dialog,
@@ -135,6 +136,10 @@ export default function App() {
   const [saveName, setSaveName] = useState("");
   const [peekSlotKey, setPeekSlotKey] = useState<string | null>(null);
 
+  // Active Project & Ribbon saving
+  const [currentSlotName, setCurrentSlotName] = useState<string | null>(null);
+  const [lastSavedTime, setLastSavedTime] = useState<number | null>(null);
+
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", activeTheme);
     localStorage.setItem("labyrinth_theme", activeTheme);
@@ -144,6 +149,34 @@ export default function App() {
     if (!peekSlotKey) return null;
     return loadSlot(peekSlotKey);
   }, [peekSlotKey, loadSlot]);
+
+  // Quick save callback in header ribbon
+  const handleSaveActiveProject = useCallback(() => {
+    if (currentSlotName) {
+      const currentAppState = {
+        board: grid,
+        spareTile,
+        looseTiles,
+        activePawn,
+        playerHands,
+        playerActiveTargets,
+        lastShiftArrowId,
+        isGameStarted,
+        gameStartState,
+        pawnPositions,
+      };
+      // Find the slot by name to save to its existing key
+      const existingSlot = slots.find((s) => s.name === currentSlotName);
+      if (existingSlot) {
+        localStorage.setItem(existingSlot.key, JSON.stringify(currentAppState));
+        const now = Date.now();
+        setLastSavedTime(now);
+        showToast(`Saved "${currentSlotName}" successfully!`);
+      }
+    } else {
+      setIsSettingsOpen(true);
+    }
+  }, [currentSlotName, grid, spareTile, looseTiles, activePawn, playerHands, playerActiveTargets, lastShiftArrowId, isGameStarted, gameStartState, pawnPositions, slots, showToast]);
 
   // Toast System
   const [toastText, setToastText] = useState<string | null>(null);
@@ -903,14 +936,34 @@ export default function App() {
             <Compass className="w-6 h-6 animate-pulse" />
           </div>
           <div>
-            <h1 className="text-xl sm:text-2xl font-bold tracking-tight bg-gradient-to-r from-stone-200 to-theme-primary bg-clip-text text-transparent">
-              Labyrinth Strategist Solver
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight bg-gradient-to-r from-stone-200 to-theme-primary bg-clip-text text-transparent flex items-center">
+              Labyrinth Game Solver
+              {currentSlotName && (
+                <span className="ml-3 px-2 py-0.5 rounded-full bg-white/10 text-xs font-semibold text-stone-300 border border-stone-850">
+                  {currentSlotName}
+                </span>
+              )}
             </h1>
-            <p className="text-xs text-stone-400">Desktop Edition</p>
+            <p className="text-xs text-stone-400">
+              Desktop Edition {lastSavedTime ? `• Last Saved: ${new Date(lastSavedTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}` : ''}
+            </p>
           </div>
         </div>
 
         <div className="mt-4 sm:mt-0 flex items-center gap-2">
+          {/* Quick Save button */}
+          {currentSlotName && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleSaveActiveProject}
+              className="border-stone-800 hover:bg-stone-900 text-stone-300 gap-1.5 h-8 animate-fade-in"
+              title="Quick Save Project"
+            >
+              <Save className="w-3.5 h-3.5 text-theme-primary" />
+              <span className="text-xs">Save</span>
+            </Button>
+          )}
           {/* Board Rotation */}
           <Button
             variant="outline"
@@ -946,17 +999,22 @@ export default function App() {
                 <Settings className="w-4 h-4" />
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-2xl bg-stone-900 border-stone-800 text-stone-100 shadow-2xl p-6 rounded-2xl">
-              <DialogHeader>
-                <DialogTitle className="text-xl font-bold tracking-tight text-theme-primary flex items-center gap-2">
-                  <Settings className="w-5 h-5 text-theme-primary" />
-                  Settings & Save Slots
+            <DialogContent className="max-w-5xl w-[92vw] h-[85vh] max-h-[85vh] bg-stone-900 border-stone-800 text-stone-100 shadow-2xl p-6 rounded-2xl flex flex-col overflow-hidden">
+              <DialogHeader className="shrink-0 border-b border-stone-800 pb-3">
+                <DialogTitle className="text-xl font-bold tracking-tight text-theme-primary flex items-center justify-between">
+                  <span className="flex items-center gap-2">
+                    <Settings className="w-5 h-5 text-theme-primary" />
+                    Settings & Save Slots
+                  </span>
+                  <span className="text-[10px] text-stone-400 font-normal mr-6">
+                    Labyrinth Game Solver v1.0.1
+                  </span>
                 </DialogTitle>
               </DialogHeader>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
-                {/* Left Side: General Preferences */}
-                <div className="flex flex-col gap-5">
+              <div className="flex-1 min-h-0 grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
+                {/* Left Side: General Preferences & Preview */}
+                <div className="flex flex-col gap-4 overflow-y-auto pr-1">
                   <div className="p-4 bg-stone-950/40 border border-stone-850 rounded-xl flex flex-col gap-3">
                     <h3 className="text-sm font-semibold text-stone-200">System Preferences</h3>
                     <div className="flex justify-between items-center text-sm">
@@ -1001,14 +1059,29 @@ export default function App() {
                     </div>
                   </div>
 
+                  <div className="p-4 bg-stone-950/40 border border-stone-850 rounded-xl flex flex-col gap-2.5 text-xs text-stone-400">
+                    <h3 className="text-sm font-semibold text-stone-200">File Storage Information</h3>
+                    <div>
+                      <div className="font-semibold text-stone-300">Local Cache Directory:</div>
+                      <div className="font-mono bg-stone-950 p-2 rounded-lg border border-stone-850 select-text break-all mt-1">
+                        {process.platform === 'win32' 
+                          ? '%APPDATA%\\Labyrinth-Game-Solver\\Local Storage\\' 
+                          : '~/Library/Application Support/Labyrinth-Game-Solver/Local Storage/'}
+                      </div>
+                    </div>
+                    <div className="mt-1 leading-normal">
+                      Layout presets and custom slots are persisted securely locally within your sandboxed app configurations folder.
+                    </div>
+                  </div>
+
                   {/* Peek view preview block */}
                   {peekedState ? (
-                    <div className="p-3 bg-stone-950 border border-stone-850 rounded-xl flex flex-col gap-2 items-center shadow-inner">
+                    <div className="p-4 bg-stone-950 border border-stone-850 rounded-xl flex flex-col gap-3 items-center shadow-inner mt-auto">
                       <div className="text-xs text-stone-400 font-bold self-start flex items-center gap-1.5">
                         <Eye className="w-3.5 h-3.5 text-theme-primary" />
                         Previewing Saved Board:
                       </div>
-                      <div className="grid grid-cols-7 grid-rows-7 gap-[2px] w-[140px] h-[140px] border border-stone-800 bg-stone-950 p-1 rounded-lg">
+                      <div className="grid grid-cols-7 grid-rows-7 gap-[3px] p-2 bg-stone-900 border border-stone-800 rounded-xl">
                         {peekedState.board.map((row: any[], rIdx: number) =>
                           row.map((cell: any, cIdx: number) => {
                             const isFixed = cIdx % 2 === 0 && rIdx % 2 === 0;
@@ -1022,13 +1095,21 @@ export default function App() {
                             return (
                               <div
                                 key={`${rIdx}-${cIdx}`}
-                                className={`w-[16px] h-[16px] rounded-xs flex items-center justify-center relative ${
-                                  isFixed ? "bg-amber-900" : cell ? "bg-amber-700/80" : "border border-dashed border-stone-800 bg-stone-900/30"
-                                }`}
+                                className="w-8 h-8 rounded-sm overflow-hidden flex items-center justify-center relative bg-stone-950 border border-stone-850/40"
                               >
+                                {cell ? (
+                                  <Tile
+                                    tile={cell}
+                                    disabled={true}
+                                    boardRotation={0}
+                                    className="w-full h-full pointer-events-none shadow-none rounded-none border-0 text-[3px]"
+                                  />
+                                ) : (
+                                  <div className="w-full h-full border border-dashed border-stone-800 bg-stone-950/20" />
+                                )}
                                 {hasPawn && (
                                   <div
-                                    className={`w-1.5 h-1.5 rounded-full ring-[1px] ring-white ${
+                                    className={`absolute w-2 h-2 rounded-full ring-[1.5px] ring-white shadow z-20 ${
                                       hasPawn === "red"
                                         ? "bg-red-500"
                                         : hasPawn === "blue"
@@ -1044,20 +1125,20 @@ export default function App() {
                           })
                         )}
                       </div>
-                      <div className="text-[10px] text-stone-400 font-medium">
-                        Fixed Tiles (dark), Movable Tiles (medium), Empty (light)
+                      <div className="text-[10px] text-stone-500 text-center font-medium">
+                        Renders the actual tile corridor shapes, start spawns, and targets in miniature.
                       </div>
                     </div>
                   ) : (
-                    <div className="p-4 bg-stone-950/20 border border-stone-850 border-dashed rounded-xl h-36 flex flex-col items-center justify-center text-center text-xs text-stone-500">
+                    <div className="p-4 bg-stone-950/20 border border-stone-850 border-dashed rounded-xl h-36 flex flex-col items-center justify-center text-center text-xs text-stone-500 mt-auto">
                       Click the eye icon on a save slot to peek at its layout
                     </div>
                   )}
                 </div>
 
                 {/* Right Side: Save & Load Profile Slots */}
-                <div className="flex flex-col gap-4 overflow-hidden max-h-[380px]">
-                  <div className="flex flex-col gap-2">
+                <div className="flex flex-col gap-4 overflow-hidden h-full">
+                  <div className="flex flex-col gap-2 shrink-0">
                     <h3 className="text-sm font-semibold text-stone-200">Save Current Layout</h3>
                     <div className="flex gap-2">
                       <input
@@ -1085,6 +1166,8 @@ export default function App() {
                           const success = saveSlot(saveName, currentAppState);
                           if (success) {
                             showToast("Game Saved Successfully!");
+                            setCurrentSlotName(saveName);
+                            setLastSavedTime(Date.now());
                             setSaveName("");
                           }
                         }}
@@ -1168,6 +1251,8 @@ export default function App() {
                                       pawnPositions: savedState.pawnPositions,
                                     };
                                     resetHistory(record);
+                                    setCurrentSlotName(slot.name);
+                                    setLastSavedTime(slot.timestamp);
                                     showToast(`Loaded save slot: ${slot.name}`);
                                     setIsSettingsOpen(false);
                                   }

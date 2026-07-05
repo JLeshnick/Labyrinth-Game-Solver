@@ -83,6 +83,7 @@ export const Tile: React.FC<TileProps> = ({ tile, onClick, className, disabled, 
         tile.isFixed ? "bg-amber-800" : "bg-amber-700 cursor-grab active:cursor-grabbing",
         className
       )}
+      title={tile.isFixed ? "This preset tile is permanently glued to the board. It cannot be moved, slid, or rotated." : undefined}
     >
       {/* Rotation wrapper */}
       <div
