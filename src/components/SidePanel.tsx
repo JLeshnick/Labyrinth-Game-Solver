@@ -2,7 +2,6 @@ import React from "react";
 import { useDroppable } from "@dnd-kit/core";
 import type { TileData } from "../types";
 import { Tile } from "./Tile";
-import { ScrollArea } from "./ui/scroll-area";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "./ui/card";
 import { cn } from "../lib/utils";
 
@@ -33,7 +32,7 @@ export const SidePanel: React.FC<SidePanelProps> = ({ tiles, onTileClick }) => {
             isOver ? "bg-amber-500/10" : ""
           )}
         />
-        <ScrollArea className="h-full w-full pr-4">
+        <div className="h-full w-full overflow-y-auto pr-2">
           <div className="grid grid-cols-4 sm:grid-cols-5 lg:grid-cols-4 gap-2 pb-10">
             {tiles.map((tile) => (
               <div key={tile.id} className="relative z-10">
@@ -50,7 +49,7 @@ export const SidePanel: React.FC<SidePanelProps> = ({ tiles, onTileClick }) => {
               </div>
             )}
           </div>
-        </ScrollArea>
+        </div>
       </CardContent>
     </Card>
   );

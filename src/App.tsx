@@ -43,6 +43,9 @@ import {
   Download,
   Upload,
   Save,
+  Plus,
+  FolderOpen,
+  Home,
 } from "lucide-react";
 import {
   Dialog,
@@ -130,6 +133,21 @@ export default function App() {
   const { pushStateToHistory, resetHistory, undo, redo, canUndo, canRedo } = useLabyrinthHistory(null);
   const { slots, saveAutosave, loadAutosave, saveSlot, loadSlot, deleteSlot } = useLabyrinthStorage();
 
+  const [showLandingPage, setShowLandingPage] = useState(true);
+
+  const allSlots = useMemo(() => {
+    const list = [...slots];
+    const hasAutosave = localStorage.getItem(AUTOSAVE_KEY);
+    if (hasAutosave && !list.some(s => s.key === AUTOSAVE_KEY)) {
+      list.unshift({
+        name: "Auto-Save (Default Slot)",
+        key: AUTOSAVE_KEY,
+        timestamp: Date.now(),
+      });
+    }
+    return list;
+  }, [slots]);
+
   // Settings & Theme states
   const [activeTheme, setActiveTheme] = useState(() => localStorage.getItem("labyrinth_theme") || "amber");
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -164,6 +182,7 @@ export default function App() {
       return () => clearTimeout(t);
     }
   }, [toastText]);
+
 
   // Quick save callback in header ribbon
   const handleSaveActiveProject = useCallback(() => {
@@ -315,6 +334,60 @@ export default function App() {
 
     resetHistory(startState);
   }, [resetHistory]);
+
+  const handleNewProject = useCallback(() => {
+    const audioMuted = localStorage.getItem("labyrinth_audio_muted") === "true";
+    if (!audioMuted) playClickSound();
+    resetBoardToInitialPresets();
+    setCurrentSlotName(null);
+    setLastSavedTime(null);
+    setShowLandingPage(false);
+  }, [resetBoardToInitialPresets]);
+
+  const handleLoadSlot = useCallback((slotKey: string, name: string) => {
+    const audioMuted = localStorage.getItem("labyrinth_audio_muted") === "true";
+    if (!audioMuted) playClickSound();
+    const savedState = loadSlot(slotKey);
+    if (savedState) {
+      setGrid(savedState.board);
+      setSpareTile(savedState.spareTile);
+      setLooseTiles(savedState.looseTiles || []);
+      setActivePawn(savedState.activePawn || "red");
+      setPlayerHands(savedState.playerHands || { red: [], blue: [], green: [], yellow: [] });
+      setPlayerActiveTargets(savedState.playerActiveTargets || { red: null, blue: null, green: null, yellow: null });
+      setLastShiftArrowId(savedState.lastShiftArrowId || null);
+      setIsGameStarted(savedState.isGameStarted || false);
+      setGameStartState(savedState.gameStartState || null);
+      setPawnPositions(savedState.pawnPositions || {
+        red: { r: 0, c: 0 },
+        blue: { r: 6, c: 6 },
+        green: { r: 6, c: 0 },
+        yellow: { r: 0, c: 6 },
+      });
+
+      const record = {
+        board: savedState.board,
+        spareTile: savedState.spareTile,
+        lastShiftArrowId: savedState.lastShiftArrowId || null,
+        activePawn: savedState.activePawn || "red",
+        playerHands: savedState.playerHands || { red: [], blue: [], green: [], yellow: [] },
+        playerActiveTargets: savedState.playerActiveTargets || { red: null, blue: null, green: null, yellow: null },
+        pawnPositions: savedState.pawnPositions,
+      };
+      resetHistory(record);
+      setCurrentSlotName(name);
+      
+      const slot = allSlots.find((s) => s.key === slotKey);
+      if (slot && slot.timestamp) {
+        setLastSavedTime(slot.timestamp);
+      } else {
+        setLastSavedTime(Date.now());
+      }
+      setShowLandingPage(false);
+      setIsSettingsOpen(false);
+      showToast(`Loaded save slot: ${name}`);
+    }
+  }, [loadSlot, allSlots, resetHistory, showToast]);
 
   // Randomize all movable tiles on the board game
   const handleRandomizeBoard = useCallback(() => {
@@ -929,8 +1002,97 @@ export default function App() {
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(120,119,198,0.15),rgba(255,255,255,0))]" />
       <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-amber-500/5 blur-[120px] rounded-full pointer-events-none" />
 
-      {/* Header */}
-      <header className="relative z-10 p-4 sm:p-6 flex flex-col sm:flex-row items-center justify-between border-b border-stone-800 bg-stone-950/70 backdrop-blur-md">
+      {showLandingPage ? (
+        <div className="flex-1 flex items-center justify-center bg-[#0c0a09] p-6 relative min-h-0 overflow-y-auto z-20">
+          {/* Background patterns */}
+          <div className="absolute inset-0 pointer-events-none overflow-hidden">
+            <div className="absolute inset-0 opacity-[0.03]" style={{
+              backgroundImage: 'radial-gradient(circle at 50% 50%, white 1px, transparent 1px)',
+              backgroundSize: '32px 32px'
+            }} />
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-amber-500/5 rounded-full blur-[120px] pointer-events-none" />
+          </div>
+
+          <div className="max-w-4xl w-full z-10 flex flex-col items-center">
+            <div className="flex flex-col items-center gap-4 mb-16 text-center">
+              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-amber-500/20 to-orange-500/20 flex items-center justify-center border border-amber-500/30 mb-2 shadow-lg shadow-amber-500/10">
+                <Compass className="w-8 h-8 text-amber-400 animate-pulse" />
+              </div>
+              <h1 className="text-4xl font-extrabold text-white tracking-tight bg-gradient-to-r from-stone-200 to-theme-primary bg-clip-text text-transparent">Labyrinth Game Solver</h1>
+              <p className="text-stone-400 max-w-md text-lg">Create, edit, simulate, and solve Labyrinth board game configurations.</p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-3xl min-h-0">
+              {/* New Project */}
+              <button 
+                onClick={handleNewProject}
+                className="group relative flex flex-col items-center text-center gap-4 p-8 rounded-2xl bg-stone-900/50 border border-stone-850 hover:border-amber-500/50 hover:bg-stone-900 transition-all cursor-pointer shadow-xl"
+              >
+                <div className="w-14 h-14 rounded-full bg-amber-500/20 flex items-center justify-center group-hover:scale-110 group-hover:bg-amber-500/30 transition-all">
+                  <Plus className="w-6 h-6 text-amber-400" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-bold text-white mb-1">New Game Project</h2>
+                  <p className="text-sm text-stone-400">Initialize a new board with fixed tile presets and customize it.</p>
+                </div>
+              </button>
+
+              {/* Load Project */}
+              <div 
+                className="flex flex-col gap-4 p-6 rounded-2xl bg-stone-900/50 border border-stone-850 shadow-xl min-h-[300px] overflow-hidden"
+              >
+                <div className="flex items-center gap-2.5 text-left border-b border-stone-850 pb-3">
+                  <div className="w-10 h-10 rounded-full bg-theme-primary-10 flex items-center justify-center">
+                    <FolderOpen className="w-5 h-5 text-theme-primary" />
+                  </div>
+                  <div>
+                    <h2 className="text-base font-bold text-white">Load Game Layout</h2>
+                    <p className="text-xs text-stone-500">Pick a previously saved profile</p>
+                  </div>
+                </div>
+
+                <div className="flex-1 overflow-y-auto pr-1 flex flex-col gap-2 min-h-0">
+                  {allSlots.length === 0 ? (
+                    <div className="flex-1 flex flex-col items-center justify-center text-center py-10">
+                      <span className="text-xs text-stone-600">No saved layouts found.</span>
+                      <button onClick={handleNewProject} className="text-xs text-amber-500 hover:text-amber-400 underline mt-2">
+                        Start a new one now
+                      </button>
+                    </div>
+                  ) : (
+                    allSlots.map((slot) => (
+                      <div
+                        key={slot.key}
+                        className="p-3 bg-stone-950/60 border border-stone-850/80 rounded-xl hover:border-amber-500/30 transition-all flex items-center justify-between group"
+                      >
+                        <div className="flex-1 min-w-0 pr-2 text-left">
+                          <div className="text-xs font-bold text-stone-200 truncate">{slot.name}</div>
+                          <div className="text-[10px] text-stone-500">
+                            {new Date(slot.timestamp).toLocaleDateString()} at{" "}
+                            {new Date(slot.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </div>
+                        </div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleLoadSlot(slot.key, slot.name)}
+                          className="h-7 px-2.5 border-stone-800 hover:bg-stone-900 text-xs text-stone-200 rounded-lg cursor-pointer flex items-center gap-1"
+                        >
+                          <Upload className="w-3 h-3 text-amber-500" />
+                          Load
+                        </Button>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <>
+          {/* Header */}
+          <header className="relative z-10 p-4 sm:p-6 flex flex-col sm:flex-row items-center justify-between border-b border-stone-800 bg-stone-950/70 backdrop-blur-md">
         <div className="flex items-center gap-3">
           <div className="p-2 bg-theme-primary-10 border border-theme-primary-20 rounded-xl text-theme-primary">
             <Compass className="w-6 h-6 animate-pulse" />
@@ -951,6 +1113,50 @@ export default function App() {
         </div>
 
         <div className="mt-4 sm:mt-0 flex items-center gap-2">
+          {/* New Project */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleNewProject}
+            className="border-stone-800 hover:bg-stone-900 text-stone-300 gap-1.5 h-8"
+            title="Start New Game Layout"
+          >
+            <Plus className="w-3.5 h-3.5 text-theme-primary" />
+            <span className="text-xs hidden sm:inline">New Project</span>
+          </Button>
+
+          {/* Load Project */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              if (!isMuted) playClickSound();
+              setIsSettingsOpen(true);
+            }}
+            className="border-stone-800 hover:bg-stone-900 text-stone-300 gap-1.5 h-8"
+            title="Load Saved Configuration"
+          >
+            <FolderOpen className="w-3.5 h-3.5 text-theme-primary" />
+            <span className="text-xs hidden sm:inline">Load Project</span>
+          </Button>
+
+          {/* Exit to Menu */}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              if (!isMuted) playClickSound();
+              setShowLandingPage(true);
+            }}
+            className="text-stone-400 hover:text-stone-200 gap-1.5 h-8 px-2"
+            title="Exit to Main Menu"
+          >
+            <Home className="w-3.5 h-3.5" />
+            <span className="text-xs hidden sm:inline">Menu</span>
+          </Button>
+
+          <div className="w-px h-4 bg-stone-800 mx-1" />
+
           {/* Quick Save button */}
           {currentSlotName && (
             <Button
@@ -999,7 +1205,7 @@ export default function App() {
                 <Settings className="w-4 h-4" />
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-5xl w-[92vw] h-[85vh] max-h-[85vh] bg-stone-900 border-stone-800 text-stone-100 shadow-2xl p-6 rounded-2xl flex flex-col overflow-hidden">
+            <DialogContent className="w-[90vw] max-w-[90vw] h-[90vh] max-h-[90vh] bg-stone-900 border-stone-800 text-stone-100 shadow-2xl p-6 rounded-2xl flex flex-col overflow-hidden">
               <DialogHeader className="shrink-0 border-b border-stone-800 pb-3">
                 <DialogTitle className="text-xl font-bold tracking-tight text-theme-primary flex items-center justify-between">
                   <span className="flex items-center gap-2">
@@ -1039,6 +1245,11 @@ export default function App() {
                         { id: "ice", name: "Ice", class: "bg-sky-500" },
                         { id: "dracula", name: "Dracula", class: "bg-purple-500" },
                         { id: "rose", name: "Rose", class: "bg-pink-500" },
+                        { id: "emerald", name: "Emerald", class: "bg-emerald-500" },
+                        { id: "sapphire", name: "Sapphire", class: "bg-blue-500" },
+                        { id: "sunset", name: "Sunset", class: "bg-orange-500" },
+                        { id: "gold", name: "Gold", class: "bg-yellow-500" },
+                        { id: "nord", name: "Nord", class: "bg-cyan-500" },
                       ].map((t) => (
                         <button
                           key={t.id}
@@ -1182,12 +1393,12 @@ export default function App() {
                   <div className="flex-1 overflow-hidden flex flex-col gap-2 min-h-0">
                     <h3 className="text-sm font-semibold text-stone-200">Saved Game Profiles</h3>
                     <div className="flex-1 overflow-y-auto pr-1 flex flex-col gap-2 min-h-0">
-                      {slots.length === 0 ? (
+                      {allSlots.length === 0 ? (
                         <div className="text-xs text-stone-500 py-6 text-center">
                           No saved board layouts found.
                         </div>
                       ) : (
-                        slots.map((slot) => (
+                        allSlots.map((slot) => (
                           <div
                             key={slot.key}
                             className={`p-3 bg-stone-950/50 border rounded-xl flex items-center justify-between transition-all group ${
@@ -1220,45 +1431,10 @@ export default function App() {
                               <Button
                                 variant="outline"
                                 size="sm"
-                                onClick={() => {
-                                  if (!isMuted) playClickSound();
-                                  const savedState = loadSlot(slot.key);
-                                  if (savedState) {
-                                    setGrid(savedState.board);
-                                    setSpareTile(savedState.spareTile);
-                                    setLooseTiles(savedState.looseTiles || []);
-                                    setActivePawn(savedState.activePawn || "red");
-                                    setPlayerHands(savedState.playerHands || { red: [], blue: [], green: [], yellow: [] });
-                                    setPlayerActiveTargets(savedState.playerActiveTargets || { red: null, blue: null, green: null, yellow: null });
-                                    setLastShiftArrowId(savedState.lastShiftArrowId || null);
-                                    setIsGameStarted(savedState.isGameStarted || false);
-                                    setGameStartState(savedState.gameStartState || null);
-                                    setPawnPositions(savedState.pawnPositions || {
-                                      red: { r: 0, c: 0 },
-                                      blue: { r: 6, c: 6 },
-                                      green: { r: 6, c: 0 },
-                                      yellow: { r: 0, c: 6 },
-                                    });
-
-                                    const record = {
-                                      board: savedState.board,
-                                      spareTile: savedState.spareTile,
-                                      lastShiftArrowId: savedState.lastShiftArrowId || null,
-                                      activePawn: savedState.activePawn || "red",
-                                      playerHands: savedState.playerHands || { red: [], blue: [], green: [], yellow: [] },
-                                      playerActiveTargets: savedState.playerActiveTargets || { red: null, blue: null, green: null, yellow: null },
-                                      pawnPositions: savedState.pawnPositions,
-                                    };
-                                    resetHistory(record);
-                                    setCurrentSlotName(slot.name);
-                                    setLastSavedTime(slot.timestamp);
-                                    showToast(`Loaded save slot: ${slot.name}`);
-                                    setIsSettingsOpen(false);
-                                  }
-                                }}
-                                className="h-7 px-2 border-stone-850 hover:bg-stone-900 text-xs text-stone-200 rounded-lg cursor-pointer"
+                                onClick={() => handleLoadSlot(slot.key, slot.name)}
+                                className="h-7 px-2 border-stone-850 hover:bg-stone-900 text-xs text-stone-200 rounded-lg cursor-pointer flex items-center gap-1"
                               >
-                                <Upload className="w-3 h-3 mr-1" />
+                                <Upload className="w-3 h-3 text-amber-500" />
                                 Load
                               </Button>
 
@@ -1748,6 +1924,8 @@ export default function App() {
           </DragOverlay>
         </DndContext>
       </main>
+    </>
+  )}
 
       {/* Floating Notification Toast */}
       {toastText && (

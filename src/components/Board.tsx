@@ -53,7 +53,7 @@ const BoardSpace: React.FC<BoardSpaceProps> = ({
         gridColumn: x + 2,
       }}
       className={cn(
-        "relative w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 lg:w-18 lg:h-18 xl:w-20 xl:h-20 rounded-lg flex items-center justify-center transition-all cursor-pointer",
+        "relative w-full h-full aspect-square rounded-lg flex items-center justify-center transition-all cursor-pointer",
         isFixedSpace
           ? "bg-stone-900/40 border border-stone-800/20"
           : "border border-dashed border-stone-800/40 bg-stone-950/30 hover:bg-stone-900/10 shadow-inner",
@@ -178,10 +178,10 @@ export const Board: React.FC<BoardProps> = ({
   }, [grid, pawnPositions, activePawn, isGameStarted]);
 
   return (
-    <div className="p-3 sm:p-5 bg-stone-900 border-4 border-stone-800 rounded-3xl shadow-2xl relative">
+    <div className="p-3 sm:p-5 bg-stone-900 border-4 border-stone-800 rounded-3xl shadow-2xl relative w-full h-full flex items-center justify-center">
       {/* 9x9 CSS Grid Layout */}
       <div 
-        className="grid grid-cols-9 grid-rows-9 gap-1.5 justify-items-center items-center transition-transform duration-300"
+        className="grid grid-cols-9 grid-rows-9 gap-1.5 w-full h-full justify-items-stretch items-stretch transition-transform duration-300"
         style={{ transform: `rotate(${boardRotation}deg)` }}
       >
         {/* Shifting tracks graphics */}
@@ -203,7 +203,7 @@ export const Board: React.FC<BoardProps> = ({
                   gridColumn: arrow.gridColumn,
                 }}
                 className={cn(
-                  "p-1.5 rounded-lg border border-stone-800 bg-stone-950 text-amber-500/80 hover:text-amber-400 hover:bg-stone-900 transition-all focus:outline-none flex items-center justify-center",
+                  "w-full h-full max-w-[85%] max-h-[85%] mx-auto p-1 rounded-lg border border-stone-800 bg-stone-950 text-amber-500/80 hover:text-amber-400 hover:bg-stone-900 transition-all focus:outline-none flex items-center justify-center",
                   isForbidden
                     ? "opacity-20 cursor-not-allowed border-red-950/40 text-red-700"
                     : "cursor-pointer hover:scale-105 active:scale-95",

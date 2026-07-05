@@ -41,26 +41,61 @@
   --theme-glow: rgba(236, 72, 153, 0.15);
 }
 
+[data-theme="emerald"] {
+  --theme-color: #10b981; /* Emerald Green */
+  --theme-color-hover: #059669;
+  --theme-color-rgb: 16, 185, 129;
+  --theme-glow: rgba(16, 185, 129, 0.15);
+}
+
+[data-theme="sapphire"] {
+  --theme-color: #3b82f6; /* Sapphire Blue */
+  --theme-color-hover: #2563eb;
+  --theme-color-rgb: 59, 130, 246;
+  --theme-glow: rgba(59, 130, 246, 0.15);
+}
+
+[data-theme="sunset"] {
+  --theme-color: #f97316; /* Sunset Orange */
+  --theme-color-hover: #ea580c;
+  --theme-color-rgb: 249, 115, 22;
+  --theme-glow: rgba(249, 115, 22, 0.15);
+}
+
+[data-theme="gold"] {
+  --theme-color: #eab308; /* Gold Yellow */
+  --theme-color-hover: #ca8a04;
+  --theme-color-rgb: 234, 179, 8;
+  --theme-glow: rgba(234, 179, 8, 0.15);
+}
+
+[data-theme="nord"] {
+  --theme-color: #88c0d0; /* Nord Frost Blue */
+  --theme-color-hover: #81a1c1;
+  --theme-color-rgb: 136, 192, 208;
+  --theme-glow: rgba(136, 192, 208, 0.15);
+}
+
 /* Custom Scrollbar Styling */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 10px;
+  height: 10px;
 }
 
 ::-webkit-scrollbar-track {
-  background: rgba(24, 24, 27, 0.5);
-  border-radius: 4px;
+  background: rgba(24, 24, 27, 0.6);
+  border-radius: 5px;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(var(--theme-color-rgb), 0.25);
-  border-radius: 4px;
-  border: 2px solid rgba(24, 24, 27, 0.5);
+  background: rgba(var(--theme-color-rgb), 0.55);
+  border-radius: 5px;
+  border: 1px solid rgba(24, 24, 27, 0.6);
   transition: background 0.2s;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(var(--theme-color-rgb), 0.45);
+  background: rgba(var(--theme-color-rgb), 0.85);
 }
 
 /* Color Theme Helper Classes */
