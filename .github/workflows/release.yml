@@ -4,6 +4,7 @@ on:
   push:
     tags:
       - 'v*'
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -32,6 +33,8 @@ jobs:
 
       - name: Build Electron App (Package Only)
         run: npm run build:electron -- --publish never
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: false
 
       - name: Publish to GitHub Releases
         uses: softprops/action-gh-release@v3
