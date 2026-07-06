@@ -23,6 +23,7 @@ jobs:
   version-and-tag:
     name: Bump version and create release tag
     runs-on: ubuntu-latest
+    if: "!startsWith(github.event.head_commit.message, 'chore: bump version to')"
 
     steps:
       - name: Checkout main
@@ -85,7 +86,7 @@ jobs:
         run: |
           VERSION="${{ steps.version.outputs.new_version }}"
           git add package.json
-          git commit -m "chore: bump version to v$VERSION [skip ci]"
+          git commit -m "chore: bump version to v$VERSION"
 
       - name: Create and push tag
         run: |
