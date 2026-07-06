@@ -149,7 +149,7 @@ export default function App() {
     }
   }, [activePlayers, activePawn]);
 
-  // Active Project & Ribbon saving
+  // Active Game & Ribbon saving
   const [currentSlotName, setCurrentSlotName] = useState<string | null>(null);
   const [lastSavedTime, setLastSavedTime] = useState<number | null>(null);
 
@@ -179,7 +179,7 @@ export default function App() {
 
 
   // Quick save callback in header ribbon
-  const handleSaveActiveProject = useCallback(() => {
+  const handleSaveActiveGame = useCallback(() => {
     if (!isMuted) playClickSound();
     if (currentSlotName) {
       const currentAppState = {
@@ -274,12 +274,12 @@ export default function App() {
     resetHistory(startState);
   }, [resetHistory]);
 
-  const handleNewProject = useCallback((name?: string) => {
+  const handleNewGame = useCallback((name?: string) => {
     if (!isMuted) playClickSound();
     
     let finalName = typeof name === "string" ? name.trim() : "";
     if (!finalName) {
-      finalName = `Project — ${new Date().toLocaleString()}`;
+      finalName = `Game — ${new Date().toLocaleString()}`;
     }
 
     const initialGrid = Array(7)
@@ -976,7 +976,7 @@ export default function App() {
       {showLandingPage ? (
         <LandingPage
           allSlots={allSlots}
-          onNewProject={handleNewProject}
+          onNewGame={handleNewGame}
           onLoadSlot={handleLoadSlot}
         />
       ) : (
@@ -1001,7 +1001,7 @@ export default function App() {
             </p>
           </div>
         </div>
-
+ 
         <div className="mt-4 sm:mt-0 flex items-center gap-2">
           {/* Menu */}
           <Button
@@ -1018,19 +1018,19 @@ export default function App() {
             <span className="text-xs hidden sm:inline">Menu</span>
           </Button>
 
-          {/* New Project */}
+          {/* New Game */}
           <Button
             variant="outline"
             size="sm"
-            onClick={() => handleNewProject()}
+            onClick={() => handleNewGame()}
             className="border-stone-800 hover:bg-stone-900 text-stone-300 gap-1.5 h-8"
-            title="Create New Project (Auto-Named)"
+            title="Create New Game (Auto-Named)"
           >
             <Plus className="w-3.5 h-3.5 text-theme-primary" />
-            <span className="text-xs hidden sm:inline">New Project</span>
+            <span className="text-xs hidden sm:inline">New Game</span>
           </Button>
 
-          {/* Load Project */}
+          {/* Load Game */}
           <Button
             variant="outline"
             size="sm"
@@ -1039,19 +1039,19 @@ export default function App() {
               setIsSettingsOpen(true);
             }}
             className="border-stone-800 hover:bg-stone-900 text-stone-300 gap-1.5 h-8"
-            title="Load Saved Configuration"
+            title="Load Saved Game"
           >
             <FolderOpen className="w-3.5 h-3.5 text-theme-primary" />
-            <span className="text-xs hidden sm:inline">Load Project</span>
+            <span className="text-xs hidden sm:inline">Load Game</span>
           </Button>
 
           {/* Save button */}
           <Button
             variant="outline"
             size="sm"
-            onClick={handleSaveActiveProject}
+            onClick={handleSaveActiveGame}
             className="border-stone-800 hover:bg-stone-900 text-stone-300 gap-1.5 h-8"
-            title="Save Project"
+            title="Save Game"
           >
             <Save className="w-3.5 h-3.5 text-theme-primary" />
             <span className="text-xs">Save</span>
@@ -1200,98 +1200,6 @@ export default function App() {
             onDeleteSlot={deleteSlot}
             showToast={showToast}
           />
-
-
-          {/* Audio toggle */}
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={handleToggleMute}
-            className="border-stone-800 hover:bg-stone-900"
-            aria-label={isMuted ? "Unmute audio" : "Mute audio"}
-          >
-            {isMuted ? <VolumeX className="w-4 h-4 text-stone-400" /> : <Volume2 className="w-4 h-4 text-theme-primary" />}
-          </Button>
-
-          {/* Undo/Redo */}
-          <Button
-            variant="outline"
-            size="icon"
-            disabled={!canUndo}
-            onClick={() => {
-              if (!isMuted) playClickSound();
-              undo((state: any) => {
-                setGrid(state.board);
-                setSpareTile(state.spareTile);
-                setLastShiftArrowId(state.lastShiftArrowId);
-                setActivePawn(state.activePawn);
-                setPlayerHands(state.playerHands);
-                setPlayerActiveTargets(state.playerActiveTargets);
-                if (state.pawnPositions) {
-                  setPawnPositions(state.pawnPositions);
-                }
-              });
-            }}
-            className="border-stone-800 hover:bg-stone-900 disabled:opacity-30"
-            title="Undo"
-            aria-label="Undo"
-          >
-            <Undo2 className="w-4 h-4" />
-          </Button>
-
-          <Button
-            variant="outline"
-            size="icon"
-            disabled={!canRedo}
-            onClick={() => {
-              if (!isMuted) playClickSound();
-              redo((state: any) => {
-                setGrid(state.board);
-                setSpareTile(state.spareTile);
-                setLastShiftArrowId(state.lastShiftArrowId);
-                setActivePawn(state.activePawn);
-                setPlayerHands(state.playerHands);
-                setPlayerActiveTargets(state.playerActiveTargets);
-                if (state.pawnPositions) {
-                  setPawnPositions(state.pawnPositions);
-                }
-              });
-            }}
-            className="border-stone-800 hover:bg-stone-900 disabled:opacity-30"
-            title="Redo"
-            aria-label="Redo"
-          >
-            <Redo2 className="w-4 h-4" />
-          </Button>
-
-          {/* Reset presets */}
-          {!isGameStarted && (
-            <Button
-              variant="outline"
-              onClick={resetBoardToInitialPresets}
-              className="border-stone-800 hover:bg-stone-900 gap-2"
-            >
-              <RefreshCcw className="w-4 h-4" />
-              Reset Board
-            </Button>
-          )}
-
-          {/* Start/End game */}
-          {isGameStarted ? (
-            <Button variant="destructive" onClick={handleEndGame} className="gap-2">
-              <Unlock className="w-4 h-4" />
-              Edit Board
-            </Button>
-          ) : (
-            <Button
-              onClick={handleStartGame}
-              disabled={looseTiles.length !== 1}
-              className="bg-theme-primary hover:bg-theme-primary-hover text-stone-950 font-semibold gap-2 disabled:bg-stone-800 disabled:text-stone-500 shadow-lg shadow-theme-glow"
-            >
-              <Lock className="w-4 h-4" />
-              Start Game
-            </Button>
-          )}
         </div>
       </header>
 

@@ -1,4 +1,4 @@
-const { app, BrowserWindow } = require('electron');
+const { app, BrowserWindow, ipcMain, shell } = require('electron');
 const path = require('path');
 const http = require('http');
 
@@ -74,6 +74,11 @@ function waitForDevServer(ports, timeoutMs) {
 
 app.whenReady().then(() => {
   createWindow();
+ 
+  ipcMain.on('open-local-storage-folder', () => {
+    const folderPath = path.join(app.getPath('userData'), 'Local Storage');
+    shell.openPath(folderPath);
+  });
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();

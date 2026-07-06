@@ -45,7 +45,7 @@ const THEMES = [
 ];
 
 const SIDEBAR_TABS = [
-  { key: "profiles",    label: "Saved Profiles", description: "Manage slots & previews",  icon: <FolderOpen className="w-4 h-4" /> },
+  { key: "profiles",    label: "Saved Games",    description: "Manage slots & previews",  icon: <FolderOpen className="w-4 h-4" /> },
   { key: "preferences", label: "Preferences",    description: "General & active players", icon: <Settings  className="w-4 h-4" /> },
   { key: "themes",      label: "App Themes",     description: "Select theme colors",      icon: <Palette   className="w-4 h-4" /> },
   { key: "storage",     label: "File Storage",   description: "Local cache pathways",     icon: <HardDrive className="w-4 h-4" /> },
@@ -145,26 +145,28 @@ export function SettingsDialog({
                   </div>
 
                   <div className="flex-1 flex flex-col gap-2 min-h-0 overflow-hidden">
-                    <h3 className="text-sm font-semibold text-stone-200">Saved Game Profiles</h3>
+                    <h3 className="text-sm font-semibold text-stone-200">Saved Games</h3>
                     <div className="flex-1 overflow-y-auto pr-1 flex flex-col gap-2 min-h-0">
                       {allSlots.length === 0 ? (
-                        <div className="text-xs text-stone-500 py-6 text-center">No saved board layouts found.</div>
+                        <div className="flex-1 flex flex-col items-center justify-center text-center py-10 bg-stone-950/20 border border-dashed border-stone-850 rounded-2xl">
+                          <span className="text-xs text-stone-600">No saved games found.</span>
+                        </div>
                       ) : (
                         allSlots.map((slot) => (
                           <div
                             key={slot.key}
-                            className={`p-3 bg-stone-950/50 border rounded-xl flex items-center justify-between transition-all group ${
-                              peekSlotKey === slot.key ? "border-theme-primary bg-theme-primary-10" : "border-stone-800"
+                            className={`p-3 bg-stone-950/60 border border-stone-850 rounded-xl hover:border-theme-primary-20 transition-all flex items-center justify-between group ${
+                              peekSlotKey === slot.key ? "border-theme-primary/30 bg-theme-primary-5" : ""
                             }`}
                           >
-                            <div className="flex-1 min-w-0 pr-2 text-left">
+                            <div className="flex-1 min-w-0 pr-2">
                               <div className="text-xs font-bold text-stone-200 truncate">{slot.name}</div>
-                              <div className="text-[10px] text-stone-500">
+                              <div className="text-[9px] text-stone-500 mt-0.5">
                                 {new Date(slot.timestamp).toLocaleDateString()} at{" "}
-                                {new Date(slot.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                                {new Date(slot.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                               </div>
                             </div>
-                            <div className="flex items-center gap-1.5">
+                            <div className="flex items-center gap-1">
                               <Button
                                 variant="ghost"
                                 size="icon"
@@ -189,9 +191,11 @@ export function SettingsDialog({
                                   size="icon"
                                   onClick={() => {
                                     if (!isMuted) playClickSound();
-                                    onDeleteSlot(slot.key);
-                                    if (peekSlotKey === slot.key) setPeekSlotKey(null);
-                                    showToast("Save Slot Deleted");
+                                    if (window.confirm(`Are you sure you want to delete the saved game "${slot.name}"?`)) {
+                                      onDeleteSlot(slot.key);
+                                      if (peekSlotKey === slot.key) setPeekSlotKey(null);
+                                      showToast("Saved game deleted");
+                                    }
                                   }}
                                   className="w-7 h-7 text-stone-400 hover:text-red-500 hover:bg-red-500/10 rounded-lg cursor-pointer"
                                   title="Delete Save"
@@ -246,7 +250,7 @@ export function SettingsDialog({
                   ) : (
                     <div className="flex flex-col items-center justify-center text-center p-6 text-stone-500 text-xs">
                       <Eye className="w-8 h-8 text-stone-700 mb-2" />
-                      <span>Click the eye icon on a save slot profile to load its miniature preview here.</span>
+                      <span>Click the eye icon on a save slot to load its miniature preview here.</span>
                     </div>
                   )}
                 </div>
@@ -340,11 +344,25 @@ export function SettingsDialog({
                   <h3 className="text-sm font-semibold text-stone-200">File Storage Information</h3>
                   <div>
                     <div className="font-semibold text-stone-300">Local Cache Directory:</div>
-                    <div className="font-mono bg-stone-950 p-2.5 rounded-lg border border-stone-800 select-text break-all mt-1">
+                    <div className="font-mono bg-stone-950 p-2.5 rounded-lg border border-stone-800 select-text break-all mt-1 mb-2">
                       {navigator.userAgent.toLowerCase().includes("win")
                         ? "%APPDATA%\\Labyrinth-Game-Solver\\Local Storage\\"
                         : "~/Library/Application Support/Labyrinth-Game-Solver/Local Storage/"}
                     </div>
+                    {/* Open folder button (Electron only) */}
+                    {(window as any).electronAPI?.openLocalStorageFolder && (
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          if (!isMuted) playClickSound();
+                          (window as any).electronAPI.openLocalStorageFolder();
+                        }}
+                        className="border-stone-800 hover:bg-stone-900 text-stone-300 gap-1.5 rounded-xl text-xs"
+                      >
+                        <FolderOpen className="w-3.5 h-3.5 text-theme-primary" />
+                        Open Folder in Explorer/Finder
+                      </Button>
+                    )}
                   </div>
                   <div className="mt-1 leading-normal">
                     Layout presets and custom slots are persisted securely locally within your sandboxed app configurations folder.

@@ -1,6 +1,7 @@
-const { contextBridge } = require('electron');
+const { contextBridge, ipcRenderer } = require('electron');
 
-// Expose minimal API if needed, otherwise this is a placeholder
+// Expose minimal API
 contextBridge.exposeInMainWorld('electronAPI', {
   platform: process.platform,
+  openLocalStorageFolder: () => ipcRenderer.send('open-local-storage-folder'),
 });
