@@ -1,103 +1,109 @@
-# 🧭 Labyrinth Strategist
+# Labyrinth Game Solver (Desktop Edition)
 
-**Labyrinth Strategist** is an interactive companion, helper, and pathfinder solver for the classic Ravensburger board game, *The Amazing Labyrinth*. 
+Labyrinth Game Solver is a desktop application designed to solve configurations of the classic board game **Ravensburger Labyrinth**. The application helps users design board layouts, set up player pawns and target cards, and utilizes an optimized Breadth-First Search (BFS) solver to compute the shortest path of moves (tile shifts and pawn steps) required to collect target cards.
 
-This application allows players to replicate their physical board game state, plan multi-turn moves, compute optimal slide configurations, evaluate defensive safety indices, and simulate shifts in real-time. Built with a high-performance pathfinding solver offloaded to background threads, it delivers immediate solutions without blocking the browser.
-
----
-
-## 🚀 Key Features
-
-*   **⚡ Web Worker-Offloaded Solver:** Computes multi-turn path solutions asynchronously. BFS pathfinding is fully decoupled from the UI thread, ensuring a smooth 60 FPS experience.
-*   **🧩 Interactive 7x7 Grid Builder:** Easily customize tile shapes, rotations, fixed anchors, and card locations.
-*   **🔮 Real-Time Slide Preview:** Hover over slide arrow triggers or drag the spare tile to see a translucent visual highlight of which row or column will shift.
-*   **🎮 Turn-Based Multiplayer:** Track separate hand cards, active pawn coordinates, and targets for all 4 players (Red, Blue, Green, Yellow).
-*   **💾 Profile Save Slots:** Save manual board layout checkpoints or recover from automatic game session autosaves using local browser storage.
-*   **🖱️ Streamlined Edit Interactions:** 
-    *   *Left Click:* Rotate exits 90° clockwise.
-    *   *Right Click:* Cycle tile shapes (Straight `I` ➔ Corner `L` ➔ Junction `T`).
-    *   *Double Click:* Open detailed inspectors.
-    *   *Single Tap:* Position player pawns on the grid instantly.
-*   **🔊 Synthesized Synth SFX:** Built-in retro audio triggers for slides, rotations, successes, and moves, with a toolbar mute selector.
-*   **🎨 Glassmorphic Dark UI:** Modern visual styling featuring clean Google Typography, alert toasts, and step guides.
+It runs locally as a cross-platform desktop application powered by **Electron**, **Vite**, **React**, **TypeScript**, and **Tailwind CSS v4**.
 
 ---
 
-## 🛠️ Technology Stack
+## Key Features
 
-*   **Framework:** React 19 + Vite 8
-*   **Styling:** Vanilla CSS (custom variables, modern gradients, glassmorphic variables)
-*   **Icons:** Lucide React
-*   **Linter:** Oxlint (high-speed JavaScript linting)
-*   **Performance:** Web Workers API (pure logic offloading)
-
----
-
-## 📦 File Architecture
-
-```bash
-src/
-├── components/
-│   ├── Board.jsx            # Interactive grid renderer & slide targets
-│   ├── ControlPanel.jsx     # Wizard stepper, multiplayer cards, solver logs, & save slots
-│   ├── Tile.jsx             # Individual grid tile corridor renderer (exits SVG paths)
-│   └── TileEditorModal.jsx  # Detailed floating tile properties manager
-├── hooks/
-│   ├── useLabyrinthHistory.js # Custom hook for game loop undo/redo checkpoints
-│   └── useLabyrinthStorage.js # Custom hook for profile checkpoints & autosave
-├── utils/
-│   └── audio.js             # Synthesized sound effects (Web Audio API)
-├── App.jsx                  # Main interface shell and state coordination
-├── solver.js                # Core pure mathematical BFS pathfinder logic
-├── solver.worker.js         # background worker wrapping solver computations
-└── constants.js             # Fixed anchor coordinates, chevrons, and treasure assets
-```
+1. **Intuitive Drag-and-Drop Editor**: Build board configurations easily. Drag movable tiles from a side panel, drop them on the grid, and click to rotate. The app enforces strict game board setup constraints (12 movable corner tiles, 12 movable straight tiles, 9 movable T-junction tiles, and exactly 1 spare tile).
+2. **Accurate Official Board Game Layouts**:
+   - Swapped diagonal corner colors to exactly match the board game: **Red (Top-Left)** is diagonal to **Blue (Bottom-Right)**, and **Yellow (Top-Right)** is diagonal to **Green (Bottom-Left)**.
+   - Textual labels replace vague emojis, displaying exact board treasures (e.g. "Foot Ghost", "Lady Pig", "Gold Menorah", "Book with Clasp").
+3. **Multi-Threaded BFS Solver**: Computes path combinations on a separate background Web Worker (`solver.worker.js`), keeping the Electron UI fluid and responsive even during complex, high-depth searches.
+4. **Interactive Path Overlays**: Shows visual indicators on the 7x7 board for reachable cells, invalid shift arrow moves (restricting immediate opposite slidebacks), and overlays the gold path of the suggested move. Click "Execute" to execute the move instantly.
+5. **Retro Synthesized Sounds**: Retro sound effects built natively using Web Audio API oscillators to provide feedback on tile rotation, grid sliding, pawn hops, and successful target card capture.
+6. **Timeline History & Persistence**: Support for complete Undo/Redo history states and automatic local storage synchronization to seamlessly resume setup or gameplay sessions.
 
 ---
 
-## 🎮 Setup & Wizard Workflow
+## Getting Started
 
-The application guides you through a **6-Step Setup Wizard** to configure the board before unlocking active game mode:
+### Option A: Standalone Desktop App (Recommended)
+You can compile and run Labyrinth Game Solver as a native standalone application on your operating system.
 
-1.  **Step 1: Base Layout** – Align fixed anchor tiles and choose to shuffle movable cells randomly or start with a clear slate.
-2.  **Step 2: Paint corridors** – Left-click to rotate exits, right-click to cycle corridor shapes, or double-click to configure individual tiles.
-3.  **Step 3: Extra Spare Tile** – Configure the exits and assigned treasure symbol of the spare tile.
-4.  **Step 4: Pawns Placement** – Tap a pawn color in the sidebar and click any grid cell to place players.
-5.  **Step 5: Hand Cards** – Define target cards for the active player color.
-6.  **Step 6: Ready to Play** – Verify your setup and click **Start Game** to lock configuration edits and begin solving.
+#### Prerequisites
+- [Node.js](https://nodejs.org/) (v18 or newer)
+- [Git](https://git-scm.com/)
+
+#### Installation
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/jleshnick/Labyrinth-Game-Solver.git
+   cd Labyrinth-Game-Solver
+   ```
+2. Install package dependencies:
+   ```bash
+   npm install
+   ```
 
 ---
 
-## ⚡ Running Locally
+## How to Run & Build
 
-### Prerequisites
-*   [Node.js](https://nodejs.org/) (v18 or higher recommended)
-*   npm or yarn
-
-### 1. Clone the project and navigate to the directory
-```bash
-cd Labyrinth
-```
-
-### 2. Install dependencies
-```bash
-npm install
-```
-
-### 3. Start the development server
+### 1. Run Electron Desktop (Development Mode)
+Launches the application inside the native Electron shell with Hot Module Replacement (HMR) enabled:
 ```bash
 npm run dev
 ```
-Open [http://localhost:5173](http://localhost:5173) in your browser to view the application.
 
-### 4. Build for production
+### 2. Compile Standalone Desktop App (Local Package)
+Builds the production assets and packages the app as a standalone executable in the `release/` directory:
 ```bash
-npm run build
+npm run build:electron
 ```
-Creates a compiled, optimized bundle in the `dist` directory with worker chunks.
+- **macOS output**: `./release/mac/` or `./release/mac-arm64/`
+- **Windows output**: `./release/win-unpacked/`
 
-### 5. Lint the project
-```bash
-npm run lint
+---
+
+## Interactive Workspace Tabs
+
+### 🛠️ Setup Phase (Edit Mode)
+Before starting the game, you configure the board configuration using three tabs in the sidebar:
+- **Tiles Tab**: Drag the 33 movable pieces from the loose pool onto the 7x7 grid. Clicking a placed tile rotates it clockwise. Standard board constraints must be met to play.
+- **Pawns Tab**: Choose a pawn color and click any cell on the grid to position it.
+- **Cards Tab**: Assign target treasure cards to each player's hand.
+
+### 🎮 Gameplay Phase (Play Mode)
+Clicking **Start Game** locks the board configuration and transitions the app to gameplay:
+- **Slide Insertions**: Click highlighted orange shift arrows along the edges to push the spare tile into the grid, shifting tiles along that row/column and sliding a new spare tile out the opposite end.
+- **Pawn Movements**: Move the active player's pawn to any reachable coordinate on the path. Capturing the active target card pops it off the hand.
+- **Solver Suggestions**: Click "Solver" to let the BFS algorithm find the optimal next move. Click **Execute** to run the suggested path step.
+- **Undo / Redo**: Use the history controls in the top header to navigate forward or backward through shifts.
+
+---
+
+## Directory Structure
+
 ```
-Uses `oxlint` to run high-speed code checks.
+src/
+├── main-electron.cjs       # Electron main process & port polling
+├── preload.cjs             # Electron context isolation bridge
+├── App.tsx                 # Core application controller & React state machine
+├── index.css               # Tailwind CSS v4 styling & scrollbars
+├── main.tsx                # Bootstrap React mounting
+├── solver.js               # Legacy solver logic (BFS, sliding, reachability)
+├── solver.worker.js        # Background worker for non-blocking solver computations
+├── solver.d.ts             # TypeScript module declarations for solver functions
+├── constants.ts            # Official board presets, coordinates, and treasure names
+├── types.ts                # App-wide TypeScript interfaces
+├── components/             # React view components
+│   ├── Board.tsx           # 9x9 Layout grid (arrows, tiles, reachable overlays)
+│   ├── SidePanel.tsx       # Loose tiles container
+│   ├── Tile.tsx            # Corridor renders, starting colors, and descriptions
+│   └── ui/                 # Accessible Radix primitives and UI shells
+├── hooks/                  # Custom React hooks
+│   ├── useLabyrinthHistory.ts  # deepClone timeline undo/redo
+│   └── useLabyrinthStorage.ts  # Autosave state management
+└── utils/                  # Utility functions
+    └── audio.ts            # Web Audio API retro oscillator sound effects
+```
+
+---
+
+## License
+
+[MIT](LICENSE)
