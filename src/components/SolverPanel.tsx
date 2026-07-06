@@ -116,30 +116,41 @@ export function SolverPanel({
           </div>
         ) : solutions.length > 0 ? (
           solutions.map((sol, index) => {
-            const firstStep = sol[0];
             const isFallback = sol.isFallback;
             return (
               <div
                 key={index}
                 onMouseEnter={() => setHoveredSolution(sol)}
                 onMouseLeave={() => setHoveredSolution(null)}
-                className={`p-3 bg-stone-950/40 border border-stone-800/60 hover:border-theme-primary-40 rounded-xl transition-all flex items-center justify-between cursor-pointer group ${isFallback ? "opacity-60 hover:opacity-100" : ""}`}
+                className={`p-4 bg-stone-950/40 border border-stone-800/60 hover:border-theme-primary-40 rounded-xl transition-all flex items-start justify-between cursor-pointer group gap-3 ${isFallback ? "opacity-75 hover:opacity-100" : ""}`}
               >
-                <div>
-                  <div className="text-xs font-semibold text-stone-300">
-                    {isFallback ? <span className="text-stone-400">Fallback Target Prox</span> : <span className="text-green-500">Goal Connection Found</span>}
+                <div className="flex-1 min-w-0">
+                  <div className="text-xs font-semibold flex items-center gap-1.5">
+                    {isFallback ? (
+                      <span className="text-amber-500 font-bold">Fallback Setup</span>
+                    ) : (
+                      <span className="text-green-500 font-bold flex items-center gap-1">
+                        <Sparkles className="w-3.5 h-3.5" /> Direct Route
+                      </span>
+                    )}
+                    <span className="text-[10px] text-stone-500">({sol.length} turn{sol.length > 1 ? "s" : ""})</span>
                   </div>
-                  <div className="text-xs text-stone-400 mt-1">
-                    Action: Slide {firstStep.arrowId.replace("-", " ")} ({firstStep.rotation}° Rot)
+                  <div className="text-xs font-medium text-stone-100 mt-2 font-mono leading-relaxed">
+                    {sol.explanation?.slide}
                   </div>
-                  <div className="text-[10px] text-stone-500">
-                    Turns needed: {sol.length} • Safety: {sol.safetyScore}%
+                  <div className="text-xs text-stone-400 mt-1 leading-relaxed">
+                    {sol.explanation?.walk}
+                  </div>
+                  <div className="text-[10px] text-stone-500 mt-2">
+                    Safety: <span className={sol.safetyScore >= 75 ? "text-green-400 font-medium" : sol.safetyScore >= 45 ? "text-amber-400 font-medium" : "text-red-400 font-medium"}>
+                      {sol.explanation?.safety}
+                    </span>
                   </div>
                 </div>
                 <Button
                   size="sm"
                   onClick={(e) => { e.stopPropagation(); onExecuteSolution(sol); }}
-                  className="bg-theme-primary-10 group-hover:bg-theme-primary text-theme-primary group-hover:text-stone-950 border border-theme-primary-20 group-hover:border-transparent font-medium text-xs px-2.5 py-1 rounded"
+                  className="bg-theme-primary-10 group-hover:bg-theme-primary text-theme-primary group-hover:text-stone-950 border border-theme-primary-20 group-hover:border-transparent font-medium text-xs px-2.5 py-1 rounded flex-shrink-0 self-center"
                 >
                   Execute
                 </Button>

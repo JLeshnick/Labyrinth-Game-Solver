@@ -20,6 +20,7 @@ interface BoardSpaceProps {
   onTileClick: (id: string) => void;
   boardRotation: number;
   isCustomTarget?: boolean;
+  previewSlideClass?: string;
 }
 
 const BoardSpace: React.FC<BoardSpaceProps> = ({
@@ -35,6 +36,7 @@ const BoardSpace: React.FC<BoardSpaceProps> = ({
   onTileClick,
   boardRotation,
   isCustomTarget,
+  previewSlideClass,
 }) => {
   const isFixedSpace = x % 2 === 0 && y % 2 === 0;
   const id = `board_${x}_${y}`;
@@ -63,7 +65,8 @@ const BoardSpace: React.FC<BoardSpaceProps> = ({
           : "border border-dashed border-stone-800/40 bg-stone-950/30 hover:bg-stone-900/10 shadow-inner",
         isOver && !tile ? "ring-2 ring-theme-primary ring-inset bg-theme-primary-10" : "",
         isOnHoveredPath ? "ring-2 ring-theme-primary ring-offset-2 ring-offset-stone-950 shadow-[0_0_12px_rgba(var(--theme-color-rgb),0.3)]" : "",
-        isCustomTarget ? "ring-2 ring-theme-primary ring-offset-2 ring-offset-stone-950 shadow-[0_0_15px_rgba(var(--theme-color-rgb),0.55)] z-10" : ""
+        isCustomTarget ? "ring-2 ring-theme-primary ring-offset-2 ring-offset-stone-950 shadow-[0_0_15px_rgba(var(--theme-color-rgb),0.55)] z-10" : "",
+        previewSlideClass
       )}
     >
       {isCustomTarget && (
@@ -247,6 +250,18 @@ export const Board: React.FC<BoardProps> = ({
  
             const isCustomTarget = !!(customTargetCoords && customTargetCoords.r === r && customTargetCoords.c === c);
  
+            let previewSlideClass = "";
+            if (hoveredSolutionArrow) {
+              const arrow = SHIFT_ARROWS.find((a) => a.id === hoveredSolutionArrow);
+              if (arrow) {
+                if (arrow.type === "row" && arrow.index === r) {
+                  previewSlideClass = arrow.dir === "left" ? "animate-preview-slide-right" : "animate-preview-slide-left";
+                } else if (arrow.type === "col" && arrow.index === c) {
+                  previewSlideClass = arrow.dir === "top" ? "animate-preview-slide-down" : "animate-preview-slide-up";
+                }
+              }
+            }
+ 
             return (
               <BoardSpace
                 key={`${r}-${c}`}
@@ -262,10 +277,61 @@ export const Board: React.FC<BoardProps> = ({
                 onTileClick={onTileClick}
                 boardRotation={boardRotation}
                 isCustomTarget={isCustomTarget}
+                previewSlideClass={previewSlideClass}
               />
             );
           })
         )}
+ 
+        {/* Render Pushed-Out Tile Preview */}
+        {isGameStarted && hoveredSolutionArrow && (() => {
+          const arrow = SHIFT_ARROWS.find((a) => a.id === hoveredSolutionArrow);
+          if (!arrow) return null;
+          
+          let pushedTile: TileData | null = null;
+          let gridRow = 0;
+          let gridColumn = 0;
+          let animClass = "";
+ 
+          if (arrow.type === "row") {
+            const r = arrow.index;
+            if (arrow.dir === "left") {
+              pushedTile = grid[r][6];
+              gridRow = r + 2;
+              gridColumn = 9;
+              animClass = "animate-preview-slide-out-right";
+            } else {
+              pushedTile = grid[r][0];
+              gridRow = r + 2;
+              gridColumn = 1;
+              animClass = "animate-preview-slide-out-left";
+            }
+          } else {
+            const c = arrow.index;
+            if (arrow.dir === "top") {
+              pushedTile = grid[6][c];
+              gridRow = 9;
+              gridColumn = c + 2;
+              animClass = "animate-preview-slide-out-down";
+            } else {
+              pushedTile = grid[0][c];
+              gridRow = 1;
+              gridColumn = c + 2;
+              animClass = "animate-preview-slide-out-up";
+            }
+          }
+ 
+          if (!pushedTile) return null;
+ 
+          return (
+            <div
+              style={{ gridRow, gridColumn }}
+              className={cn("w-full h-full aspect-square rounded-lg overflow-hidden relative border border-stone-850 bg-stone-950 pointer-events-none opacity-60 z-20 shadow-2xl", animClass)}
+            >
+              <Tile tile={pushedTile} disabled boardRotation={boardRotation} className="absolute inset-0 w-full h-full" />
+            </div>
+          );
+        })()}
       </div>
     </div>
   );
