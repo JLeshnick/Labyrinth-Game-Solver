@@ -25,10 +25,12 @@ interface SettingsDialogProps {
   peekSlotKey: string | null;
   setPeekSlotKey: (key: string | null) => void;
   peekedState: any;
-  onSaveSlot: (name: string) => void;
-  onLoadSlot: (key: string, name: string) => void;
-  onDeleteSlot: (key: string) => void;
+  onSaveSlot: (name: string) => void | Promise<any>;
+  onLoadSlot: (key: string, name: string) => void | Promise<any>;
+  onDeleteSlot: (key: string) => void | Promise<any>;
   showToast: (msg: string) => void;
+  desktopSettings: { gamesDir: string } | null;
+  onSetDesktopSettings: (settings: { gamesDir: string }) => void | Promise<any>;
 }
 
 const THEMES = [
@@ -60,6 +62,7 @@ export function SettingsDialog({
   saveName, setSaveName,
   allSlots, peekSlotKey, setPeekSlotKey, peekedState,
   onSaveSlot, onLoadSlot, onDeleteSlot, showToast,
+  desktopSettings, onSetDesktopSettings,
 }: SettingsDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -340,6 +343,7 @@ export function SettingsDialog({
 
             {settingsTab === "storage" && (
               <div className="flex flex-col gap-4 max-w-xl text-left">
+                {/* Local Cache */}
                 <div className="p-4 bg-stone-950/40 border border-stone-800 rounded-xl flex flex-col gap-2.5 text-xs text-stone-400">
                   <h3 className="text-sm font-semibold text-stone-200">File Storage Information</h3>
                   <div>
@@ -368,6 +372,48 @@ export function SettingsDialog({
                     Layout presets and custom slots are persisted securely locally within your sandboxed app configurations folder.
                   </div>
                 </div>
+
+                {/* Disk JSON Storage (Desktop Only) */}
+                {desktopSettings && (
+                  <div className="p-4 bg-stone-950/40 border border-stone-800 rounded-xl flex flex-col gap-2.5 text-xs text-stone-400 mt-2">
+                    <h3 className="text-sm font-semibold text-stone-200">Disk JSON Storage (Desktop)</h3>
+                    <div>
+                      <div className="font-semibold text-stone-300">Saved Games Folder:</div>
+                      <div className="font-mono bg-stone-950 p-2.5 rounded-lg border border-stone-800 select-text break-all mt-1 mb-2">
+                        {desktopSettings.gamesDir}
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          onClick={async () => {
+                            if (!isMuted) playClickSound();
+                            const path = await (window as any).electronAPI.selectDirectory("Select Saved Games Folder");
+                            if (path) {
+                              onSetDesktopSettings({ gamesDir: path });
+                            }
+                          }}
+                          className="border-stone-800 hover:bg-stone-900 text-stone-300 gap-1.5 rounded-xl text-xs"
+                        >
+                          Change Folder
+                        </Button>
+                        <Button
+                          variant="outline"
+                          onClick={() => {
+                            if (!isMuted) playClickSound();
+                            (window as any).electronAPI.openDirectory(desktopSettings.gamesDir);
+                          }}
+                          className="border-stone-800 hover:bg-stone-900 text-stone-300 gap-1.5 rounded-xl text-xs"
+                        >
+                          <FolderOpen className="w-3.5 h-3.5 text-theme-primary" />
+                          Open Folder
+                        </Button>
+                      </div>
+                    </div>
+                    <div className="mt-1 leading-normal">
+                      Desktop mode saves games as individual <code>.json</code> files directly in this directory, making it easy to share, backup, or organize them.
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 

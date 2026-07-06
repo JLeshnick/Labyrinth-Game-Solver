@@ -28,6 +28,7 @@ import {
   playSuccessSound,
   playPawnMoveSound,
 } from "./utils/audio";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./components/ui/dialog";
 import {
   Compass,
   RefreshCcw,
@@ -109,7 +110,7 @@ export default function App() {
 
   // Custom persistent slots hooks
   const { pushStateToHistory, resetHistory, undo, redo, canUndo, canRedo } = useLabyrinthHistory(null);
-  const { slots, saveAutosave, loadAutosave, saveSlot, loadSlot, deleteSlot } = useLabyrinthStorage();
+  const { slots, saveAutosave, loadAutosave, saveSlot, loadSlot, deleteSlot, refreshSlots } = useLabyrinthStorage();
 
   const [showLandingPage, setShowLandingPage] = useState(true);
 
@@ -132,6 +133,30 @@ export default function App() {
   const [saveName, setSaveName] = useState("");
   const [peekSlotKey, setPeekSlotKey] = useState<string | null>(null);
   const [settingsTab, setSettingsTab] = useState<"profiles" | "preferences" | "themes" | "storage">("profiles");
+  const [desktopSettings, setDesktopSettings] = useState<{ gamesDir: string } | null>(null);
+  const [isNewGameDialogOpen, setIsNewGameDialogOpen] = useState(false);
+  const [newGameName, setNewGameName] = useState("");
+
+  const fetchDesktopSettings = useCallback(async () => {
+    if ((window as any).electronAPI?.getSettings) {
+      const settings = await (window as any).electronAPI.getSettings();
+      setDesktopSettings(settings);
+    }
+  }, []);
+
+  const handleSetDesktopSettings = useCallback(async (settings: { gamesDir: string }) => {
+    if ((window as any).electronAPI?.setSettings) {
+      const updated = await (window as any).electronAPI.setSettings(settings);
+      setDesktopSettings(updated);
+      if (refreshSlots) {
+        await refreshSlots();
+      }
+    }
+  }, [refreshSlots]);
+
+  useEffect(() => {
+    fetchDesktopSettings();
+  }, [fetchDesktopSettings]);
   const [customTargetCoords, setCustomTargetCoords] = useState<{ r: number; c: number } | null>(null);
   const [activePlayers, setActivePlayers] = useState<string[]>(() => {
     try {
@@ -179,7 +204,7 @@ export default function App() {
 
 
   // Quick save callback in header ribbon
-  const handleSaveActiveGame = useCallback(() => {
+  const handleSaveActiveGame = useCallback(async () => {
     if (!isMuted) playClickSound();
     if (currentSlotName) {
       const currentAppState = {
@@ -194,24 +219,35 @@ export default function App() {
         gameStartState,
         pawnPositions,
       };
-      // Find the slot by name to save to its existing key
-      const existingSlot = slots.find((s) => s.name === currentSlotName);
-      if (existingSlot) {
-        try {
-          localStorage.setItem(existingSlot.key, JSON.stringify(currentAppState));
-          setLastSavedTime(Date.now());
-          showToast(`Saved "${currentSlotName}" successfully!`);
-        } catch {
-          showToast("Save failed — storage may be full.");
-        }
-      } else {
-        // Fallback: save as a new slot if not found
-        const success = saveSlot(currentSlotName, currentAppState);
+      const isElectron = !!(window as any).electronAPI;
+      if (isElectron) {
+        const success = await saveSlot(currentSlotName, currentAppState);
         if (success) {
           setLastSavedTime(Date.now());
           showToast(`Saved "${currentSlotName}" successfully!`);
         } else {
           showToast("Save failed — storage may be full.");
+        }
+      } else {
+        // Find the slot by name to save to its existing key
+        const existingSlot = slots.find((s) => s.name === currentSlotName);
+        if (existingSlot) {
+          try {
+            localStorage.setItem(existingSlot.key, JSON.stringify(currentAppState));
+            setLastSavedTime(Date.now());
+            showToast(`Saved "${currentSlotName}" successfully!`);
+          } catch {
+            showToast("Save failed — storage may be full.");
+          }
+        } else {
+          // Fallback: save as a new slot if not found
+          const success = await saveSlot(currentSlotName, currentAppState);
+          if (success) {
+            setLastSavedTime(Date.now());
+            showToast(`Saved "${currentSlotName}" successfully!`);
+          } else {
+            showToast("Save failed — storage may be full.");
+          }
         }
       }
     } else {
@@ -274,18 +310,18 @@ export default function App() {
     resetHistory(startState);
   }, [resetHistory]);
 
-  const handleNewGame = useCallback((name?: string) => {
+  const handleNewGame = useCallback(async (name?: string) => {
     if (!isMuted) playClickSound();
     
     let finalName = typeof name === "string" ? name.trim() : "";
     if (!finalName) {
       finalName = `Game — ${new Date().toLocaleString()}`;
     }
-
+ 
     const initialGrid = Array(7)
       .fill(null)
       .map(() => Array(7).fill(null));
-
+ 
     Object.entries(FIXED_TILES_PRESETS).forEach(([coord, tilePartial]) => {
       const [x, y] = coord.split(",").map(Number);
       initialGrid[y][x] = {
@@ -297,9 +333,9 @@ export default function App() {
         color: tilePartial.color,
       };
     });
-
+ 
     const pool = generateMovablePool();
-
+ 
     setGrid(initialGrid);
     setLooseTiles(pool);
     setPawnPositions(DEFAULT_PAWN_POSITIONS);
@@ -307,7 +343,7 @@ export default function App() {
     setLastShiftArrowId(null);
     setPlayerHands(EMPTY_PLAYER_HANDS);
     setPlayerActiveTargets(EMPTY_PLAYER_TARGETS);
-
+ 
     const startState = {
       board: initialGrid,
       spareTile: { id: "spare_initial", shape: "straight" as Shape, rotation: 0 as Rotation, isFixed: false },
@@ -317,13 +353,13 @@ export default function App() {
       lastShiftArrowId: null,
       pawnPositions: DEFAULT_PAWN_POSITIONS,
     };
-
+ 
     resetHistory(startState);
     setCurrentSlotName(finalName);
     setLastSavedTime(Date.now());
-
+ 
     // Save the new slot immediately
-    const success = saveSlot(finalName, {
+    const success = await saveSlot(finalName, {
       board: initialGrid,
       spareTile: startState.spareTile,
       looseTiles: pool,
@@ -335,19 +371,19 @@ export default function App() {
       gameStartState: null,
       pawnPositions: DEFAULT_PAWN_POSITIONS,
     });
-
+ 
     if (success) {
       showToast(`Created and saved "${finalName}"`);
     } else {
       showToast(`Created "${finalName}" (autosaved)`);
     }
-
+ 
     setShowLandingPage(false);
   }, [isMuted, saveSlot, resetHistory, showToast]);
 
-  const handleLoadSlot = useCallback((slotKey: string, name: string) => {
+  const handleLoadSlot = useCallback(async (slotKey: string, name: string) => {
     if (!isMuted) playClickSound();
-    const savedState = loadSlot(slotKey);
+    const savedState = await loadSlot(slotKey);
     if (savedState) {
       setGrid(savedState.board ?? grid);
       setSpareTile(savedState.spareTile ?? spareTile);
@@ -1022,9 +1058,12 @@ export default function App() {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => handleNewGame()}
+            onClick={() => {
+              if (!isMuted) playClickSound();
+              setIsNewGameDialogOpen(true);
+            }}
             className="border-stone-800 hover:bg-stone-900 text-stone-300 gap-1.5 h-8"
-            title="Create New Game (Auto-Named)"
+            title="Create New Game"
           >
             <Plus className="w-3.5 h-3.5 text-theme-primary" />
             <span className="text-xs hidden sm:inline">New Game</span>
@@ -1191,14 +1230,16 @@ export default function App() {
             peekSlotKey={peekSlotKey}
             setPeekSlotKey={setPeekSlotKey}
             peekedState={peekedState}
-            onSaveSlot={(name) => {
+            onSaveSlot={async (name) => {
               const currentAppState = { board: grid, spareTile, looseTiles, activePawn, playerHands, playerActiveTargets, lastShiftArrowId, isGameStarted, gameStartState, pawnPositions };
-              const success = saveSlot(name, currentAppState);
+              const success = await saveSlot(name, currentAppState);
               if (success) { showToast("Game Saved Successfully!"); setCurrentSlotName(name); setLastSavedTime(Date.now()); setSaveName(""); }
             }}
             onLoadSlot={handleLoadSlot}
             onDeleteSlot={deleteSlot}
             showToast={showToast}
+            desktopSettings={desktopSettings}
+            onSetDesktopSettings={handleSetDesktopSettings}
           />
         </div>
       </header>
@@ -1311,8 +1352,70 @@ export default function App() {
       </main>
     </>
   )}
-
-
+ 
+      <Dialog open={isNewGameDialogOpen} onOpenChange={(open) => {
+        setIsNewGameDialogOpen(open);
+        if (!open) setNewGameName("");
+      }}>
+        <DialogContent className="sm:max-w-[425px] bg-stone-900 border border-stone-800 text-stone-100 shadow-2xl p-6 rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-bold tracking-tight text-theme-primary flex items-center gap-2">
+              <Plus className="w-5 h-5 text-theme-primary" />
+              Create New Game
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col gap-4 py-4">
+            <div className="text-sm text-stone-400">
+              Enter a name for your new game. If left blank, it will automatically be named with the current timestamp and saved.
+            </div>
+            <div className="flex flex-col gap-1.5 text-left font-sans">
+              <label htmlFor="ribbonGameName" className="text-xs font-semibold text-stone-300">
+                Game Name
+              </label>
+              <input
+                id="ribbonGameName"
+                type="text"
+                placeholder="e.g. My Game Layout"
+                value={newGameName}
+                onChange={(e) => setNewGameName(e.target.value)}
+                className="bg-stone-950 border border-stone-800 hover:border-stone-700 text-stone-100 rounded-xl px-3 py-2 text-sm outline-none focus:border-theme-primary transition-colors"
+                autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    handleNewGame(newGameName);
+                    setIsNewGameDialogOpen(false);
+                    setNewGameName("");
+                  }
+                }}
+              />
+            </div>
+          </div>
+          <div className="flex justify-end gap-3 pt-2">
+            <Button
+              variant="outline"
+              onClick={() => {
+                if (!isMuted) playClickSound();
+                setIsNewGameDialogOpen(false);
+                setNewGameName("");
+              }}
+              className="border-stone-800 hover:bg-stone-900 text-stone-300 rounded-xl"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={() => {
+                handleNewGame(newGameName);
+                setIsNewGameDialogOpen(false);
+                setNewGameName("");
+              }}
+              className="bg-theme-primary text-stone-950 font-bold hover:bg-theme-primary-hover rounded-xl cursor-pointer"
+            >
+              Create
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+ 
       {/* Floating Notification Toast */}
       {toastText && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 px-6 py-3 bg-stone-900 border border-theme-primary-20 text-stone-100 font-semibold text-sm rounded-full shadow-2xl shadow-black z-50 animate-toast-in flex items-center gap-2">
