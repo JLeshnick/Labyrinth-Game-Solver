@@ -9,7 +9,7 @@ import {
   useSensors,
   PointerSensor,
 } from "@dnd-kit/core";
-import { FIXED_TILES_PRESETS, TREASURES, SHIFT_ARROWS, generateMovablePool, DEFAULT_PAWN_POSITIONS, EMPTY_PLAYER_HANDS, EMPTY_PLAYER_TARGETS } from "./constants";
+import { FIXED_TILES_PRESETS, SHIFT_ARROWS, generateMovablePool, DEFAULT_PAWN_POSITIONS, EMPTY_PLAYER_HANDS, EMPTY_PLAYER_TARGETS } from "./constants";
 import type { TileData, Rotation, Shape, PlayerMap, PawnPositions } from "./types";
 import { toSolverBoard, toSolverSpare, fromSolverGrid, fromSolverSpare } from "./lib/solverAdapter";
 import { Board } from "./components/Board";
@@ -891,6 +891,18 @@ export default function App() {
       [activePawn]: nextHand.length > 0 ? nextHand[0] : null,
     }));
   };
+ 
+  const handleSelectTargetTreasure = useCallback((pawnColor: string, treasureId: string | null) => {
+    setPlayerActiveTargets((prev) => ({
+      ...prev,
+      [pawnColor]: treasureId,
+    }));
+    setPlayerHands((prev) => ({
+      ...prev,
+      [pawnColor]: treasureId ? [treasureId] : [],
+    }));
+    setCustomTargetCoords(null);
+  }, []);
 
   // Start gameplay
   const handleStartGame = () => {
@@ -1057,9 +1069,6 @@ export default function App() {
     }
   }, [hoveredSolution, grid, pawnPositions, spareTile, getSolverFormattedBoard, getSolverFormattedSpare]);
  
-  const activeTargetTreasure = TREASURES.find(
-    (t) => t.id === playerActiveTargets[activePawn]
-  );
 
   return (
     <div className="h-screen bg-stone-950 text-stone-100 flex flex-col font-sans select-none relative overflow-hidden">
@@ -1340,7 +1349,6 @@ export default function App() {
                 onCellClick={handleCellClick}
                 onTileClick={handleTileClick}
                 isGameStarted={isGameStarted}
-                activePawn={activePawn}
                 lastShiftArrowId={lastShiftArrowId}
                 onArrowClick={handleSlide}
                 hoveredPath={overlaySuggestedPath}
@@ -1368,9 +1376,9 @@ export default function App() {
                 spareTile={previewState ? previewState.spareTile : spareTile}
                 customTargetCoords={customTargetCoords}
                 setCustomTargetCoords={setCustomTargetCoords}
-                activeTargetTreasure={activeTargetTreasure}
-                onTileClick={handleTileClick}
                 onExecuteSolution={handleExecuteSolution}
+                playerActiveTargets={playerActiveTargets}
+                onSelectTargetTreasure={handleSelectTargetTreasure}
               />
             ) : (
               <SetupPanel

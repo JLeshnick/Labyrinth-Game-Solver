@@ -1,7 +1,7 @@
 import { Sparkles } from "lucide-react";
 import { Button } from "./ui/button";
 import { Tile } from "./Tile";
-import { PAWNS } from "../constants";
+import { PAWNS, TREASURES } from "../constants";
 import { playClickSound } from "../utils/audio";
 import type { TileData } from "../types";
 
@@ -19,11 +19,11 @@ interface SolverPanelProps {
   spareTile: TileData;
   customTargetCoords: { r: number; c: number } | null;
   setCustomTargetCoords: (coords: { r: number; c: number } | null) => void;
-  activeTargetTreasure: { id: string; name: string } | undefined;
-  onTileClick: (id: string) => void;
   onExecuteSolution: (sol: any[]) => void;
+  playerActiveTargets: Record<string, string | null>;
+  onSelectTargetTreasure: (pawn: string, treasureId: string | null) => void;
 }
-
+ 
 export function SolverPanel({
   solutions,
   isLoadingSolutions,
@@ -37,9 +37,9 @@ export function SolverPanel({
   spareTile,
   customTargetCoords,
   setCustomTargetCoords,
-  activeTargetTreasure,
-  onTileClick,
   onExecuteSolution,
+  playerActiveTargets,
+  onSelectTargetTreasure,
 }: SolverPanelProps) {
   return (
     <div className="flex-1 flex flex-col min-h-0 gap-4 bg-stone-900/50 border border-stone-800 rounded-2xl p-5 backdrop-blur-xl">
@@ -69,10 +69,10 @@ export function SolverPanel({
           </div>
           <div>
             <div className="text-xs text-stone-400">Active Pawn's Turn</div>
-            <div className="font-semibold text-stone-100 flex items-center gap-1.5 flex-wrap">
-              Target:{" "}
+            <div className="font-semibold text-stone-100 flex items-center gap-1.5 flex-wrap mt-0.5">
+              <span>Target:</span>
               {customTargetCoords ? (
-                <span className="text-theme-primary font-bold flex items-center gap-1">
+                <span className="text-theme-primary font-bold flex items-center gap-1 text-xs">
                   Custom Target ({customTargetCoords.r}, {customTargetCoords.c})
                   <button
                     onClick={() => setCustomTargetCoords(null)}
@@ -83,16 +83,28 @@ export function SolverPanel({
                   </button>
                 </span>
               ) : (
-                <span className="text-theme-primary">
-                  {activeTargetTreasure ? activeTargetTreasure.name : "None"}
-                </span>
+                <select
+                  value={playerActiveTargets[activePawn] || ""}
+                  onChange={(e) => {
+                    const val = e.target.value || null;
+                    onSelectTargetTreasure(activePawn, val);
+                  }}
+                  className="bg-stone-905 border border-stone-800 text-stone-200 rounded px-1.5 py-0.5 text-xs focus:border-theme-primary outline-none transition-colors max-w-[150px] truncate"
+                >
+                  <option value="">-- No Target --</option>
+                  {TREASURES.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.name}
+                    </option>
+                  ))}
+                </select>
               )}
             </div>
           </div>
         </div>
         <div className="flex flex-col items-center gap-1">
-          <div className="text-[10px] text-stone-500">Spare (Click to rotate)</div>
-          <Tile tile={spareTile} onClick={() => onTileClick(spareTile.id)} className="w-12 h-12 border-theme-primary-40" />
+          <div className="text-[10px] text-stone-500">Spare Tile</div>
+          <Tile tile={spareTile} disabled className="w-12 h-12 border-theme-primary-40" />
         </div>
       </div>
 
