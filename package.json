@@ -7,7 +7,6 @@
   "scripts": {
     "dev:web": "vite --port=3000 --host=0.0.0.0",
     "dev": "concurrently -k \"vite --port=3000 --host=0.0.0.0 --no-open\" \"electron src/main-electron.cjs\"",
-    "dev:electron": "concurrently -k \"vite --port=3000 --host=0.0.0.0 --no-open\" \"electron src/main-electron.cjs\"",
     "build": "vite build",
     "build:electron": "tsc -b && vite build && electron-builder",
     "pack:electron": "tsc -b && vite build && electron-builder --dir",

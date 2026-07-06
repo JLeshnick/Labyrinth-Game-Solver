@@ -67,6 +67,9 @@ export default function App() {
     })
   );
 
+  const tileCounter = useRef(0);
+  const nextTileId = () => `movable_${++tileCounter.current}`;
+
   // Grid: 7x7
   const [grid, setGrid] = useState<(TileData | null)[][]>(() =>
     Array(7).fill(null).map(() => Array(7).fill(null))
@@ -107,10 +110,10 @@ export default function App() {
 
   // Pawn Positions
   const [pawnPositions, setPawnPositions] = useState<Record<string, { r: number; c: number }>>({
-    red: { r: 6, c: 0 },
+    red: { r: 0, c: 0 },
     blue: { r: 6, c: 6 },
-    green: { r: 6, c: 0 }, // Swapped Green position
-    yellow: { r: 0, c: 6 }, // Swapped Yellow position
+    green: { r: 6, c: 0 },
+    yellow: { r: 0, c: 6 },
   });
 
   // Active Drag
@@ -787,7 +790,7 @@ export default function App() {
         if (grid[r][c]?.isFixed) continue;
         const cell = solverBoard[r][c];
         const originalTile = grid[cell.r][cell.c] || {
-          id: `movable_${Math.random()}`,
+          id: nextTileId(),
           isFixed: false,
         };
         nextGrid[r][c] = {
@@ -968,7 +971,7 @@ export default function App() {
         if (grid[r][c]?.isFixed) continue;
         const cell = solverBoard[r][c];
         const originalTile = grid[cell.r][cell.c] || {
-          id: `movable_${Math.random()}`,
+          id: nextTileId(),
           isFixed: false,
         };
         nextGrid[r][c] = {
@@ -1036,7 +1039,7 @@ export default function App() {
     <div className="h-screen bg-stone-950 text-stone-100 flex flex-col font-sans select-none relative overflow-hidden">
       {/* Background patterns */}
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(120,119,198,0.15),rgba(255,255,255,0))]" />
-      <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-amber-500/5 blur-[120px] rounded-full pointer-events-none" />
+      <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-theme-primary-10 blur-[120px] rounded-full pointer-events-none" />
 
       {showLandingPage ? (
         <div className="flex-1 flex items-center justify-center bg-[#0c0a09] p-6 relative min-h-0 overflow-y-auto z-20">
@@ -1046,13 +1049,13 @@ export default function App() {
               backgroundImage: 'radial-gradient(circle at 50% 50%, white 1px, transparent 1px)',
               backgroundSize: '32px 32px'
             }} />
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-amber-500/5 rounded-full blur-[120px] pointer-events-none" />
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-theme-primary-10 rounded-full blur-[120px] pointer-events-none" />
           </div>
 
           <div className="max-w-4xl w-full z-10 flex flex-col items-center">
             <div className="flex flex-col items-center gap-4 mb-16 text-center">
-              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-amber-500/20 to-orange-500/20 flex items-center justify-center border border-amber-500/30 mb-2 shadow-lg shadow-amber-500/10">
-                <Compass className="w-8 h-8 text-amber-400 animate-pulse" />
+              <div className="w-16 h-16 rounded-2xl bg-theme-primary-10 flex items-center justify-center border border-theme-primary-20 mb-2 shadow-lg shadow-theme-glow">
+                <Compass className="w-8 h-8 text-theme-primary animate-pulse" />
               </div>
               <h1 className="text-4xl font-extrabold text-white tracking-tight bg-gradient-to-r from-stone-200 to-theme-primary bg-clip-text text-transparent">Labyrinth Game Solver</h1>
               <p className="text-stone-400 max-w-md text-lg">Create, edit, simulate, and solve Labyrinth board game configurations.</p>
@@ -1062,10 +1065,10 @@ export default function App() {
               {/* New Project */}
               <button 
                 onClick={handleNewProject}
-                className="group relative flex flex-col items-center text-center gap-4 p-8 rounded-2xl bg-stone-900/50 border border-stone-850 hover:border-amber-500/50 hover:bg-stone-900 transition-all cursor-pointer shadow-xl"
+                className="group relative flex flex-col items-center text-center gap-4 p-8 rounded-2xl bg-stone-900/50 border border-stone-800 hover:border-theme-primary-40 hover:bg-stone-900 transition-all cursor-pointer shadow-xl"
               >
-                <div className="w-14 h-14 rounded-full bg-amber-500/20 flex items-center justify-center group-hover:scale-110 group-hover:bg-amber-500/30 transition-all">
-                  <Plus className="w-6 h-6 text-amber-400" />
+                <div className="w-14 h-14 rounded-full bg-theme-primary-10 flex items-center justify-center group-hover:scale-110 group-hover:bg-theme-primary-20 transition-all">
+                  <Plus className="w-6 h-6 text-theme-primary" />
                 </div>
                 <div>
                   <h2 className="text-lg font-bold text-white mb-1">New Game Project</h2>
@@ -1075,9 +1078,9 @@ export default function App() {
 
               {/* Load Project */}
               <div 
-                className="flex flex-col gap-4 p-6 rounded-2xl bg-stone-900/50 border border-stone-850 shadow-xl min-h-[300px] overflow-hidden"
+                className="flex flex-col gap-4 p-6 rounded-2xl bg-stone-900/50 border border-stone-800 shadow-xl min-h-[300px] overflow-hidden"
               >
-                <div className="flex items-center gap-2.5 text-left border-b border-stone-850 pb-3">
+                <div className="flex items-center gap-2.5 text-left border-b border-stone-800 pb-3">
                   <div className="w-10 h-10 rounded-full bg-theme-primary-10 flex items-center justify-center">
                     <FolderOpen className="w-5 h-5 text-theme-primary" />
                   </div>
@@ -1091,7 +1094,7 @@ export default function App() {
                   {allSlots.length === 0 ? (
                     <div className="flex-1 flex flex-col items-center justify-center text-center py-10">
                       <span className="text-xs text-stone-600">No saved layouts found.</span>
-                      <button onClick={handleNewProject} className="text-xs text-amber-500 hover:text-amber-400 underline mt-2">
+                      <button onClick={handleNewProject} className="text-xs text-theme-primary hover:text-theme-primary-200 underline mt-2">
                         Start a new one now
                       </button>
                     </div>
@@ -1099,7 +1102,7 @@ export default function App() {
                     allSlots.map((slot) => (
                       <div
                         key={slot.key}
-                        className="p-3 bg-stone-950/60 border border-stone-850/80 rounded-xl hover:border-amber-500/30 transition-all flex items-center justify-between group"
+                        className="p-3 bg-stone-950/60 border border-stone-800/80 rounded-xl hover:border-theme-primary-20 transition-all flex items-center justify-between group"
                       >
                         <div className="flex-1 min-w-0 pr-2 text-left">
                           <div className="text-xs font-bold text-stone-200 truncate">{slot.name}</div>
@@ -1114,7 +1117,7 @@ export default function App() {
                           onClick={() => handleLoadSlot(slot.key, slot.name)}
                           className="h-7 px-2.5 border-stone-800 hover:bg-stone-900 text-xs text-stone-200 rounded-lg cursor-pointer flex items-center gap-1"
                         >
-                          <Upload className="w-3 h-3 text-amber-500" />
+                          <Upload className="w-3 h-3 text-theme-primary" />
                           Load
                         </Button>
                       </div>
@@ -1137,7 +1140,7 @@ export default function App() {
             <h1 className="text-xl sm:text-2xl font-bold tracking-tight bg-gradient-to-r from-stone-200 to-theme-primary bg-clip-text text-transparent flex items-center">
               Labyrinth Game Solver
               {currentSlotName && (
-                <span className="ml-3 px-2 py-0.5 rounded-full bg-white/10 text-xs font-semibold text-stone-300 border border-stone-850">
+                <span className="ml-3 px-2 py-0.5 rounded-full bg-white/10 text-xs font-semibold text-stone-300 border border-stone-800">
                   {currentSlotName}
                 </span>
               )}
@@ -1216,6 +1219,7 @@ export default function App() {
             }}
             className="border-stone-800 hover:bg-stone-900 text-stone-300 animate-fade-in"
             title="Rotate Board Perspective (90° Clockwise)"
+            aria-label="Rotate board perspective 90 degrees clockwise"
           >
             <RotateCw className="w-4 h-4" />
           </Button>
@@ -1237,6 +1241,7 @@ export default function App() {
                 }}
                 className="border-stone-800 hover:bg-stone-900 text-stone-300"
                 title="Settings & Saves"
+                aria-label="Open settings and save slots"
               >
                 <Settings className="w-4 h-4" />
               </Button>
@@ -1304,7 +1309,7 @@ export default function App() {
                               placeholder="Slot Name (e.g. Map Trial 1)..."
                               value={saveName}
                               onChange={(e) => setSaveName(e.target.value)}
-                              className="flex-1 bg-stone-950 border border-stone-800 hover:border-stone-750 text-stone-100 rounded-xl px-3 py-2 text-sm outline-none focus:border-theme-primary transition-colors"
+                              className="flex-1 bg-stone-950 border border-stone-800 hover:border-stone-700 text-stone-100 rounded-xl px-3 py-2 text-sm outline-none focus:border-theme-primary transition-colors"
                             />
                             <Button
                               onClick={() => {
@@ -1378,9 +1383,9 @@ export default function App() {
                                       variant="outline"
                                       size="sm"
                                       onClick={() => handleLoadSlot(slot.key, slot.name)}
-                                      className="h-7 px-2 border-stone-850 hover:bg-stone-900 text-xs text-stone-200 rounded-lg cursor-pointer flex items-center gap-1"
+                                      className="h-7 px-2 border-stone-800 hover:bg-stone-900 text-xs text-stone-200 rounded-lg cursor-pointer flex items-center gap-1"
                                     >
-                                      <Upload className="w-3 h-3 text-amber-500" />
+                                      <Upload className="w-3 h-3 text-theme-primary" />
                                       Load
                                     </Button>
 
@@ -1408,7 +1413,7 @@ export default function App() {
                         </div>
                       </div>
 
-                      <div className="lg:col-span-5 flex flex-col justify-center items-center bg-stone-950/40 border border-stone-850 rounded-2xl p-4 min-h-[300px]">
+                      <div className="lg:col-span-5 flex flex-col justify-center items-center bg-stone-950/40 border border-stone-800 rounded-2xl p-4 min-h-[300px]">
                         {peekedState ? (
                           <div className="flex flex-col gap-4 items-center w-full h-full justify-center">
                             <div className="text-xs text-stone-400 font-bold self-start flex items-center gap-1.5">
@@ -1428,7 +1433,7 @@ export default function App() {
                                   return (
                                     <div
                                       key={`${rIdx}-${cIdx}`}
-                                      className="w-8 h-8 rounded-sm overflow-hidden flex items-center justify-center relative bg-stone-950 border border-stone-850/40"
+                                      className="w-8 h-8 rounded-sm overflow-hidden flex items-center justify-center relative bg-stone-950 border border-stone-800/40"
                                     >
                                       {cell ? (
                                         <Tile
@@ -1474,7 +1479,7 @@ export default function App() {
 
                   {settingsTab === "preferences" && (
                     <div className="flex flex-col gap-6 max-w-xl text-left">
-                      <div className="p-4 bg-stone-950/40 border border-stone-850 rounded-xl flex flex-col gap-3">
+                      <div className="p-4 bg-stone-950/40 border border-stone-800 rounded-xl flex flex-col gap-3">
                         <h3 className="text-sm font-semibold text-stone-200">System Preferences</h3>
                         <div className="flex justify-between items-center text-sm">
                           <span className="text-stone-300">Retro Audio Oscillators</span>
@@ -1489,7 +1494,7 @@ export default function App() {
                         </div>
                       </div>
 
-                      <div className="p-4 bg-stone-950/40 border border-stone-850 rounded-xl flex flex-col gap-3">
+                      <div className="p-4 bg-stone-950/40 border border-stone-800 rounded-xl flex flex-col gap-3">
                         <h3 className="text-sm font-semibold text-stone-200">Manage Active Players</h3>
                         <p className="text-xs text-stone-400 leading-normal">
                           Enable or disable players to tailor the setup checklist and turns list. If playing solo or only tracking your piece, keep only Red active.
@@ -1564,7 +1569,7 @@ export default function App() {
                             className={`flex items-center gap-2 p-3 rounded-xl border text-xs font-semibold justify-start transition-all cursor-pointer ${
                               activeTheme === t.id
                                 ? "border-theme-primary bg-theme-primary-10 text-theme-primary"
-                                : "border-stone-850 bg-stone-950/40 hover:bg-stone-900 text-stone-300"
+                                : "border-stone-800 bg-stone-950/40 hover:bg-stone-900 text-stone-300"
                             }`}
                           >
                             <span className={`w-3.5 h-3.5 rounded-full ring-1 ring-white/10 ${t.class}`} />
@@ -1577,11 +1582,11 @@ export default function App() {
 
                   {settingsTab === "storage" && (
                     <div className="flex flex-col gap-4 max-w-xl text-left">
-                      <div className="p-4 bg-stone-950/40 border border-stone-850 rounded-xl flex flex-col gap-2.5 text-xs text-stone-400">
+                      <div className="p-4 bg-stone-950/40 border border-stone-800 rounded-xl flex flex-col gap-2.5 text-xs text-stone-400">
                         <h3 className="text-sm font-semibold text-stone-200">File Storage Information</h3>
                         <div>
                           <div className="font-semibold text-stone-300">Local Cache Directory:</div>
-                          <div className="font-mono bg-stone-950 p-2.5 rounded-lg border border-stone-850 select-text break-all mt-1">
+                          <div className="font-mono bg-stone-950 p-2.5 rounded-lg border border-stone-800 select-text break-all mt-1">
                             {navigator.userAgent.toLowerCase().includes('win') 
                               ? '%APPDATA%\\Labyrinth-Game-Solver\\Local Storage\\' 
                               : '~/Library/Application Support/Labyrinth-Game-Solver/Local Storage/'}
@@ -1604,6 +1609,7 @@ export default function App() {
             size="icon"
             onClick={handleToggleMute}
             className="border-stone-800 hover:bg-stone-900"
+            aria-label={isMuted ? "Unmute audio" : "Mute audio"}
           >
             {isMuted ? <VolumeX className="w-4 h-4 text-stone-400" /> : <Volume2 className="w-4 h-4 text-theme-primary" />}
           </Button>
@@ -1629,6 +1635,7 @@ export default function App() {
             }}
             className="border-stone-800 hover:bg-stone-900 disabled:opacity-30"
             title="Undo"
+            aria-label="Undo"
           >
             <Undo2 className="w-4 h-4" />
           </Button>
@@ -1653,6 +1660,7 @@ export default function App() {
             }}
             className="border-stone-800 hover:bg-stone-900 disabled:opacity-30"
             title="Redo"
+            aria-label="Redo"
           >
             <Redo2 className="w-4 h-4" />
           </Button>
@@ -1788,7 +1796,7 @@ export default function App() {
                             </button>
                           </span>
                         ) : (
-                          <span className="text-amber-500">
+                          <span className="text-theme-primary">
                             {activeTargetTreasure ? activeTargetTreasure.name : "None"}
                           </span>
                         )}
@@ -1801,7 +1809,7 @@ export default function App() {
                     <Tile
                       tile={spareTile}
                       onClick={() => handleTileClick(spareTile.id)}
-                      className="w-12 h-12 border-amber-500/40"
+                      className="w-12 h-12 border-theme-primary-40"
                     />
                   </div>
                 </div>
@@ -1810,7 +1818,7 @@ export default function App() {
                 <div className="flex-1 overflow-y-auto min-h-0 pr-2 flex flex-col gap-2">
                   {isLoadingSolutions ? (
                     <div className="flex-1 flex flex-col items-center justify-center text-stone-500 gap-2">
-                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-amber-500" />
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-theme-primary" />
                       Computing paths...
                     </div>
                   ) : solutions.length > 0 ? (
@@ -1822,7 +1830,7 @@ export default function App() {
                           key={index}
                           onMouseEnter={() => setHoveredSolution(sol)}
                           onMouseLeave={() => setHoveredSolution(null)}
-                          className={`p-3 bg-stone-950/40 border border-stone-800/60 hover:border-amber-500/40 rounded-xl transition-all flex items-center justify-between cursor-pointer group ${
+                          className={`p-3 bg-stone-950/40 border border-stone-800/60 hover:border-theme-primary-40 rounded-xl transition-all flex items-center justify-between cursor-pointer group ${
                             isFallback ? "opacity-60 hover:opacity-100" : ""
                           }`}
                         >
@@ -1847,7 +1855,7 @@ export default function App() {
                               e.stopPropagation();
                               handleExecuteSolution(sol);
                             }}
-                            className="bg-amber-500/10 group-hover:bg-amber-500 text-amber-500 group-hover:text-stone-950 border border-amber-500/20 group-hover:border-transparent font-medium text-xs px-2.5 py-1 rounded"
+                            className="bg-theme-primary-10 group-hover:bg-theme-primary text-theme-primary group-hover:text-stone-950 border border-theme-primary-20 group-hover:border-transparent font-medium text-xs px-2.5 py-1 rounded"
                           >
                             Execute
                           </Button>
@@ -1889,14 +1897,14 @@ export default function App() {
               /* Setup Config Sidepanel */
               <div className="flex-1 flex flex-col min-h-0 gap-4 bg-stone-900/50 border border-stone-800 rounded-2xl p-5 backdrop-blur-xl">
                 {/* Setup Progress Checklist / Wizard */}
-                <div className="p-3 bg-stone-950/60 border border-stone-850 rounded-xl flex flex-col gap-2 text-xs text-left">
-                  <h3 className="font-bold text-stone-200 flex items-center gap-1.5 border-b border-stone-850 pb-1.5">
+                <div className="p-3 bg-stone-950/60 border border-stone-800 rounded-xl flex flex-col gap-2 text-xs text-left">
+                  <h3 className="font-bold text-stone-200 flex items-center gap-1.5 border-b border-stone-800 pb-1.5">
                     <Sparkles className="w-3.5 h-3.5 text-theme-primary animate-pulse" />
                     Setup Wizard & Checklist
                   </h3>
                   <div className="flex flex-col gap-1.5 mt-0.5">
                     <div className="flex items-center gap-2">
-                      <span className={`w-2 h-2 rounded-full ${looseTiles.length === 1 ? 'bg-green-500 shadow-sm shadow-green-500/50' : 'bg-amber-500 animate-pulse'}`} />
+                      <span className={`w-2 h-2 rounded-full ${looseTiles.length === 1 ? 'bg-green-500 shadow-sm shadow-green-500/50' : 'bg-theme-primary animate-pulse'}`} />
                       <span className="text-stone-300">
                         Movable Tiles Placed: {33 - looseTiles.length}/33 {looseTiles.length === 1 ? '✓' : `(needs ${looseTiles.length - 1} more)`}
                       </span>
@@ -1922,7 +1930,7 @@ export default function App() {
                     variant={setupTab === "tiles" ? "default" : "ghost"}
                     onClick={() => setSetupTab("tiles")}
                     className={`flex-1 rounded-lg ${
-                      setupTab === "tiles" ? "bg-amber-500 text-stone-950 font-semibold" : "text-stone-400 hover:text-stone-100"
+                      setupTab === "tiles" ? "bg-theme-primary text-stone-950 font-semibold" : "text-stone-400 hover:text-stone-100"
                     }`}
                   >
                     <Layers className="w-4 h-4 mr-2" />
@@ -1932,7 +1940,7 @@ export default function App() {
                     variant={setupTab === "pawns" ? "default" : "ghost"}
                     onClick={() => setSetupTab("pawns")}
                     className={`flex-1 rounded-lg ${
-                      setupTab === "pawns" ? "bg-amber-500 text-stone-950 font-semibold" : "text-stone-400 hover:text-stone-100"
+                      setupTab === "pawns" ? "bg-theme-primary text-stone-950 font-semibold" : "text-stone-400 hover:text-stone-100"
                     }`}
                   >
                     <User className="w-4 h-4 mr-2" />
@@ -1942,7 +1950,7 @@ export default function App() {
                     variant={setupTab === "cards" ? "default" : "ghost"}
                     onClick={() => setSetupTab("cards")}
                     className={`flex-1 rounded-lg ${
-                      setupTab === "cards" ? "bg-amber-500 text-stone-950 font-semibold" : "text-stone-400 hover:text-stone-100"
+                      setupTab === "cards" ? "bg-theme-primary text-stone-950 font-semibold" : "text-stone-400 hover:text-stone-100"
                     }`}
                   >
                     <Compass className="w-4 h-4 mr-2" />
@@ -2028,7 +2036,7 @@ export default function App() {
 
                       <div className="p-3 bg-stone-950/60 border border-stone-800/80 rounded-xl">
                         <div className="text-xs text-stone-400">
-                          Player <span className="capitalize text-amber-500 font-bold">{activePawn}</span>'s hand list (
+                          Player <span className="capitalize text-theme-primary font-bold">{activePawn}</span>'s hand list (
                           {playerHands[activePawn]?.length || 0} cards):
                         </div>
                         <div className="flex flex-wrap gap-1 mt-2">
@@ -2037,7 +2045,7 @@ export default function App() {
                             return (
                               <div
                                 key={cardId}
-                                className="text-[10px] bg-amber-500/10 border border-amber-500/20 text-amber-500 font-semibold px-2 py-0.5 rounded flex items-center gap-1"
+                                className="text-[10px] bg-theme-primary-10 border border-theme-primary-20 text-theme-primary font-semibold px-2 py-0.5 rounded flex items-center gap-1"
                               >
                                 {name}
                                 <button
@@ -2077,7 +2085,7 @@ export default function App() {
                                 onClick={() => (alreadyInHand ? handleRemoveCard(t.id) : handleAddCard(t.id))}
                                 className={`text-[10px] py-1 border-stone-800 justify-start h-8 px-2 truncate ${
                                   alreadyInHand
-                                    ? "bg-amber-500/20 border-amber-500/40 text-amber-500"
+                                    ? "bg-theme-primary-20 border-theme-primary-40 text-theme-primary"
                                     : "hover:bg-stone-900 text-stone-300"
                                 }`}
                               >
@@ -2113,8 +2121,8 @@ export default function App() {
 
       {/* Floating Notification Toast */}
       {toastText && (
-        <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 px-6 py-3 bg-stone-900 border border-amber-500/40 text-amber-300 font-semibold text-sm rounded-full shadow-2xl shadow-black z-50 animate-bounce flex items-center gap-2">
-          <Sparkles className="w-4 h-4 text-amber-400" />
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 px-6 py-3 bg-stone-900 border border-theme-primary-20 text-stone-100 font-semibold text-sm rounded-full shadow-2xl shadow-black z-50 animate-toast-in flex items-center gap-2">
+          <Sparkles className="w-4 h-4 text-theme-primary" />
           {toastText}
         </div>
       )}
