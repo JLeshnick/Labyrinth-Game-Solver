@@ -78,6 +78,7 @@ const BoardSpace: React.FC<BoardSpaceProps> = ({
           onClick={() => onTileClick(tile.id)}
           disabled={isGameStarted}
           boardRotation={boardRotation}
+          disableRotationTransition={true}
           className={cn(
             "absolute inset-0 w-full h-full",
             isOnHoveredPath && "border-theme-primary",
@@ -328,7 +329,7 @@ export const Board: React.FC<BoardProps> = ({
               style={{ gridRow, gridColumn }}
               className={cn("w-full h-full aspect-square rounded-lg overflow-hidden relative border border-stone-850 bg-stone-950 pointer-events-none opacity-60 z-20 shadow-2xl", animClass)}
             >
-              <Tile tile={pushedTile} disabled boardRotation={boardRotation} className="absolute inset-0 w-full h-full" />
+              <Tile tile={pushedTile} disabled boardRotation={boardRotation} disableRotationTransition={true} className="absolute inset-0 w-full h-full" />
             </div>
           );
         })()}

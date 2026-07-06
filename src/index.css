@@ -226,20 +226,20 @@
 }
  
 @keyframes slide-out-right {
-  from { transform: translateX(0); opacity: 1; }
-  to { transform: translateX(calc(100% + 6px)); opacity: 0; }
+  from { transform: translateX(0); }
+  to { transform: translateX(calc(100% + 6px)); }
 }
 @keyframes slide-out-left {
-  from { transform: translateX(0); opacity: 1; }
-  to { transform: translateX(calc(-100% - 6px)); opacity: 0; }
+  from { transform: translateX(0); }
+  to { transform: translateX(calc(-100% - 6px)); }
 }
 @keyframes slide-out-down {
-  from { transform: translateY(0); opacity: 1; }
-  to { transform: translateY(calc(100% + 6px)); opacity: 0; }
+  from { transform: translateY(0); }
+  to { transform: translateY(calc(100% + 6px)); }
 }
 @keyframes slide-out-up {
-  from { transform: translateY(0); opacity: 1; }
-  to { transform: translateY(calc(-100% - 6px)); opacity: 0; }
+  from { transform: translateY(0); }
+  to { transform: translateY(calc(-100% - 6px)); }
 }
  
 .animate-preview-slide-out-right {

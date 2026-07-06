@@ -10,9 +10,17 @@ interface TileProps {
   className?: string;
   disabled?: boolean;
   boardRotation?: number;
+  disableRotationTransition?: boolean;
 }
 
-export const Tile: React.FC<TileProps> = ({ tile, onClick, className, disabled, boardRotation = 0 }) => {
+export const Tile: React.FC<TileProps> = ({
+  tile,
+  onClick,
+  className,
+  disabled,
+  boardRotation = 0,
+  disableRotationTransition = false,
+}) => {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: tile.id,
     disabled: tile.isFixed || disabled,
@@ -88,7 +96,7 @@ export const Tile: React.FC<TileProps> = ({ tile, onClick, className, disabled, 
     >
       {/* Rotation wrapper */}
       <div
-        className="absolute inset-0 transition-transform duration-200"
+        className={cn("absolute inset-0", !disableRotationTransition && "transition-transform duration-200")}
         style={{ transform: `rotate(${tile.rotation}deg)` }}
       >
         {getPathStyles()}
