@@ -90,5 +90,5 @@ jobs:
       - name: Create and push tag
         run: |
           VERSION="${{ steps.version.outputs.new_version }}"
-          git tag "v$VERSION"
-          git push origin main --follow-tags
+          git tag -a "v$VERSION" -m "Release v$VERSION"
+          git push origin main "v$VERSION"
