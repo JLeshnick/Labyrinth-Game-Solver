@@ -1011,7 +1011,52 @@ export default function App() {
     if (!hoveredSolution || hoveredSolution.length === 0) return null;
     return hoveredSolution[0].pawnPath as { r: number; c: number }[];
   }, [hoveredSolution]);
-
+ 
+  const previewState = useMemo(() => {
+    if (!hoveredSolution || hoveredSolution.length === 0) return null;
+    const turn1 = hoveredSolution[0];
+    const arrow = SHIFT_ARROWS.find((a) => a.id === turn1.arrowId);
+    if (!arrow) return null;
+ 
+    try {
+      const solverBoard = getSolverFormattedBoard(grid, pawnPositions);
+      const rotDegrees = [0, 90, 180, 270][turn1.rotation] as Rotation;
+      const solverSpare = getSolverFormattedSpare({ ...spareTile, rotation: rotDegrees });
+      executeSlideInGrid(solverBoard, solverSpare, arrow.type, arrow.index, arrow.dir);
+      
+      const previewGrid = fromSolverGrid(grid, solverBoard, () => "preview_temp_inserted");
+      
+      const previewPawnPositions = { ...pawnPositions };
+      Object.entries(pawnPositions).forEach(([color, pos]) => {
+        let nr = pos.r;
+        let nc = pos.c;
+        if (arrow.type === "row" && arrow.index === pos.r) {
+          if (arrow.dir === "left") {
+            nc = pos.c === 6 ? 0 : pos.c + 1;
+          } else {
+            nc = pos.c === 0 ? 6 : pos.c - 1;
+          }
+        } else if (arrow.type === "col" && arrow.index === pos.c) {
+          if (arrow.dir === "top") {
+            nr = pos.r === 6 ? 0 : pos.r + 1;
+          } else {
+            nr = pos.r === 0 ? 6 : pos.r - 1;
+          }
+        }
+        previewPawnPositions[color] = { r: nr, c: nc };
+      });
+ 
+      return {
+        grid: previewGrid,
+        pawnPositions: previewPawnPositions,
+        spareTile: { ...spareTile, rotation: rotDegrees },
+      };
+    } catch (e) {
+      console.error("Preview computation failed:", e);
+      return null;
+    }
+  }, [hoveredSolution, grid, pawnPositions, spareTile, getSolverFormattedBoard, getSolverFormattedSpare]);
+ 
   const activeTargetTreasure = TREASURES.find(
     (t) => t.id === playerActiveTargets[activePawn]
   );
@@ -1290,8 +1335,8 @@ export default function App() {
               )}
 
               <Board
-                grid={grid}
-                pawnPositions={pawnPositions}
+                grid={previewState ? previewState.grid : grid}
+                pawnPositions={previewState ? previewState.pawnPositions : pawnPositions}
                 onCellClick={handleCellClick}
                 onTileClick={handleTileClick}
                 isGameStarted={isGameStarted}
@@ -1320,7 +1365,7 @@ export default function App() {
                 setActivePawn={setActivePawn}
                 activePlayers={activePlayers}
                 isMuted={isMuted}
-                spareTile={spareTile}
+                spareTile={previewState ? previewState.spareTile : spareTile}
                 customTargetCoords={customTargetCoords}
                 setCustomTargetCoords={setCustomTargetCoords}
                 activeTargetTreasure={activeTargetTreasure}

@@ -144,14 +144,14 @@ export const Board: React.FC<BoardProps> = ({
   customTargetCoords,
 }) => {
   // Compute reachable cells in Play mode
-  const { reachableCells, reachablePathsParentMap } = React.useMemo(() => {
-    if (!isGameStarted) return { reachableCells: [], reachablePathsParentMap: {} };
+  const reachableCells = React.useMemo(() => {
+    if (!isGameStarted) return [];
     const activePos = pawnPositions[activePawn];
-    if (!activePos) return { reachableCells: [], reachablePathsParentMap: {} };
-
+    if (!activePos) return [];
+ 
     const solverBoard = toSolverBoard(grid, pawnPositions);
-    const { cells, parentMap } = getReachableCells(solverBoard, activePos.r, activePos.c);
-    return { reachableCells: cells, reachablePathsParentMap: parentMap };
+    const { cells } = getReachableCells(solverBoard, activePos.r, activePos.c);
+    return cells;
   }, [grid, pawnPositions, activePawn, isGameStarted]);
 
   return (
@@ -164,27 +164,28 @@ export const Board: React.FC<BoardProps> = ({
         )}
         style={{ transform: `rotate(${boardRotation}deg)` }}
       >
-        {/* SVG Reachable Paths Overlay */}
-        {isGameStarted && Object.keys(reachablePathsParentMap).length > 0 && (
+        {/* SVG Solved Path Overlay */}
+        {isGameStarted && hoveredPath && hoveredPath.length > 0 && (
           <svg
             viewBox="0 0 9 9"
             className="absolute inset-0 w-full h-full pointer-events-none z-10"
           >
-            {Object.entries(reachablePathsParentMap).map(([childKey, parent]) => {
-              const [cr, cc] = childKey.split(",").map(Number);
+            {hoveredPath.map((cell, idx) => {
+              if (idx === 0) return null;
+              const parent = hoveredPath[idx - 1];
               return (
                 <line
-                  key={childKey}
+                  key={idx}
                   x1={parent.c + 1.5}
                   y1={parent.r + 1.5}
-                  x2={cc + 1.5}
-                  y2={cr + 1.5}
+                  x2={cell.c + 1.5}
+                  y2={cell.r + 1.5}
                   stroke="var(--theme-color)"
-                  strokeWidth="0.06"
+                  strokeWidth="0.08"
                   strokeDasharray="0.12,0.12"
                   className="animate-dash"
                   strokeLinecap="round"
-                  opacity="0.8"
+                  opacity="0.9"
                 />
               );
             })}
