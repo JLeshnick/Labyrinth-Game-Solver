@@ -22,6 +22,17 @@ This is the project root for Labyrinth Game Solver, a native desktop application
 - **Safe Deep Copy**: `useLabyrinthHistory.ts` uses a custom `deepClone` (via `JSON.parse(JSON.stringify(...))`) instead of solver's `cloneBoard()` to avoid crash errors with `null` grid values.
 - **Auto-Save**: The state synchronizes to `localStorage` under `labyrinth_saved_slots_list` and `labyrinth_strategist_state`.
 
+## Release Pipeline
+
+Merging any PR to `main` automatically bumps the version and publishes a GitHub Release — **do not merge to main unless shipping is intended**.
+
+Version bump is driven by the merge commit message prefix:
+- `feat:` → minor bump
+- `fix:` / `chore:` / `refactor:` / `docs:` / `style:` / `perf:` / `test:` / `ci:` → patch bump
+- `BREAKING CHANGE` anywhere in the message → major bump
+
+Always prefix commits with one of these types. Add `[skip ci]` to skip the pipeline entirely. See `DEVELOPMENT_AND_RELEASES.md` for full details.
+
 ## Coding Style Rules
 
 1. **Keep Imports Simple**: Do not import `RotateCw` or unused utilities. Import type definitions using `import type { ... }` when utilizing TS type configurations.
