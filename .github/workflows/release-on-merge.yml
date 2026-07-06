@@ -24,6 +24,8 @@ jobs:
     name: Bump version and create release tag
     runs-on: ubuntu-latest
     if: "${{ !startsWith(github.event.head_commit.message, 'chore: bump version to') }}"
+    outputs:
+      new_version: ${{ steps.version.outputs.new_version }}
 
     steps:
       - name: Checkout main
@@ -93,3 +95,10 @@ jobs:
           VERSION="${{ steps.version.outputs.new_version }}"
           git tag -a "v$VERSION" -m "Release v$VERSION"
           git push origin main "v$VERSION"
+
+  call-release:
+    needs: version-and-tag
+    uses: ./.github/workflows/release.yml
+    with:
+      tag: v${{ needs.version-and-tag.outputs.new_version }}
+    secrets: inherit
