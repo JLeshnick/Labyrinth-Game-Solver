@@ -10,7 +10,7 @@ import {
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 function makeCell(shape: string, dir: number, r = 0, c = 0) {
-  return { r, c, shape, dir, treasure: null, isFixed: false, pawns: [] };
+  return { r, c, shape, dir, treasure: null, isFixed: false, pawns: [] as string[] };
 }
 
 /** Build a 7×7 board of all-straight (vertical) tiles. */

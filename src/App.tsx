@@ -416,7 +416,7 @@ export default function App() {
     if (saved && saved.board) {
       setGrid(saved.board);
       setLooseTiles(saved.looseTiles || []);
-      setSpareTile(saved.spareTile);
+      setSpareTile(saved.spareTile ?? spareTile);
       setActivePawn(saved.activePawn || "red");
       setPlayerHands(saved.playerHands || EMPTY_PLAYER_HANDS);
       setPlayerActiveTargets(saved.playerActiveTargets || EMPTY_PLAYER_TARGETS);
@@ -432,7 +432,7 @@ export default function App() {
 
       const record = {
         board: saved.board,
-        spareTile: saved.spareTile,
+        spareTile: saved.spareTile ?? spareTile,
         lastShiftArrowId: saved.lastShiftArrowId || null,
         activePawn: saved.activePawn || "red",
         playerHands: saved.playerHands || EMPTY_PLAYER_HANDS,
@@ -759,10 +759,13 @@ export default function App() {
     const startState = {
       board: grid.map((r) => [...r]),
       spareTile: { ...looseTiles[0] },
+      looseTiles: [] as typeof looseTiles,
       activePawn,
       playerHands: { ...playerHands },
       playerActiveTargets: { ...playerActiveTargets },
-      lastShiftArrowId: null,
+      lastShiftArrowId: null as string | null,
+      isGameStarted: false,
+      gameStartState: null,
       pawnPositions: { ...pawnPositions },
     };
 

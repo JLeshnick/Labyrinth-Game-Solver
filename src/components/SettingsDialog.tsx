@@ -57,7 +57,6 @@ export function SettingsDialog({
   isMuted, onToggleMute,
   activeTheme, setActiveTheme,
   activePlayers, setActivePlayers,
-  activePawn,
   saveName, setSaveName,
   allSlots, peekSlotKey, setPeekSlotKey, peekedState,
   onSaveSlot, onLoadSlot, onDeleteSlot, showToast,
