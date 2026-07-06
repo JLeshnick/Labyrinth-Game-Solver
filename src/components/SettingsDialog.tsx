@@ -5,7 +5,6 @@ import { Tile } from "./Tile";
 import { PAWNS } from "../constants";
 import { AUTOSAVE_KEY } from "../hooks/useLabyrinthStorage";
 import { playClickSound } from "../utils/audio";
-import type { TileData } from "../types";
 import type { SaveSlot } from "../hooks/useLabyrinthStorage";
 
 interface SettingsDialogProps {

@@ -9,8 +9,8 @@ import {
   useSensors,
   PointerSensor,
 } from "@dnd-kit/core";
-import { FIXED_TILES_PRESETS, TREASURES, PAWNS, SHIFT_ARROWS, generateMovablePool, DEFAULT_PAWN_POSITIONS, EMPTY_PLAYER_HANDS, EMPTY_PLAYER_TARGETS } from "./constants";
-import type { TileData, Rotation, Shape } from "./types";
+import { FIXED_TILES_PRESETS, TREASURES, SHIFT_ARROWS, generateMovablePool, DEFAULT_PAWN_POSITIONS, EMPTY_PLAYER_HANDS, EMPTY_PLAYER_TARGETS } from "./constants";
+import type { TileData, Rotation, Shape, PlayerMap, PawnPositions } from "./types";
 import { toSolverBoard, toSolverSpare, fromSolverGrid, fromSolverSpare } from "./lib/solverAdapter";
 import { Board } from "./components/Board";
 import { Tile } from "./components/Tile";
@@ -83,21 +83,11 @@ export default function App() {
   const [maxTurns, setMaxTurns] = useState<number>(2);
 
   // Player Hands (deal cards) & Active Target Goals
-  const [playerHands, setPlayerHands] = useState<Record<string, string[]>>({
-    red: [],
-    blue: [],
-    green: [],
-    yellow: [],
-  });
-  const [playerActiveTargets, setPlayerActiveTargets] = useState<Record<string, string | null>>({
-    red: null,
-    blue: null,
-    green: null,
-    yellow: null,
-  });
+  const [playerHands, setPlayerHands] = useState<PlayerMap<string[]>>(EMPTY_PLAYER_HANDS);
+  const [playerActiveTargets, setPlayerActiveTargets] = useState<PlayerMap<string | null>>(EMPTY_PLAYER_TARGETS);
 
   // Pawn Positions
-  const [pawnPositions, setPawnPositions] = useState<Record<string, { r: number; c: number }>>(DEFAULT_PAWN_POSITIONS);
+  const [pawnPositions, setPawnPositions] = useState<PawnPositions>(DEFAULT_PAWN_POSITIONS);
 
   // Active Drag
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -106,7 +96,7 @@ export default function App() {
   const [isMuted, setIsMuted] = useState(() => localStorage.getItem("labyrinth_audio_muted") === "true");
 
   // Interaction Setup Tabs: 'tiles' | 'pawns' | 'cards'
-  const [setupTab, setSetupTab] = useState<"tiles" | "pawns" | "cards">("tiles");
+  const [setupTab] = useState<"tiles" | "pawns" | "cards">("tiles");
   const [activePawnPlacementColor, setActivePawnPlacementColor] = useState<string>("red");
 
   // Solver Suggestions & Visual Overlays
@@ -267,7 +257,7 @@ export default function App() {
       playerHands: EMPTY_PLAYER_HANDS,
       playerActiveTargets: EMPTY_PLAYER_TARGETS,
       lastShiftArrowId: null,
-      pawnPositions: defaultPositions,
+      pawnPositions: DEFAULT_PAWN_POSITIONS,
     };
 
     resetHistory(startState);
@@ -285,8 +275,8 @@ export default function App() {
     if (!isMuted) playClickSound();
     const savedState = loadSlot(slotKey);
     if (savedState) {
-      setGrid(savedState.board);
-      setSpareTile(savedState.spareTile);
+      setGrid(savedState.board ?? grid);
+      setSpareTile(savedState.spareTile ?? spareTile);
       setLooseTiles(savedState.looseTiles || []);
       setActivePawn(savedState.activePawn || "red");
       setPlayerHands(savedState.playerHands || EMPTY_PLAYER_HANDS);
@@ -297,8 +287,8 @@ export default function App() {
       setPawnPositions(savedState.pawnPositions || DEFAULT_PAWN_POSITIONS);
 
       const record = {
-        board: savedState.board,
-        spareTile: savedState.spareTile,
+        board: savedState.board ?? grid,
+        spareTile: savedState.spareTile ?? spareTile,
         lastShiftArrowId: savedState.lastShiftArrowId || null,
         activePawn: savedState.activePawn || "red",
         playerHands: savedState.playerHands || EMPTY_PLAYER_HANDS,
@@ -786,7 +776,7 @@ export default function App() {
     saveAutosave({
       board: grid,
       looseTiles: [],
-      spareTile: looseTiles[0],
+      spareTile: looseTiles[0] ?? spareTile,
       activePawn,
       playerHands,
       playerActiveTargets,

@@ -163,14 +163,13 @@ describe("getReachableCells", () => {
 describe("solverAdapter round-trip", () => {
   it("toSolverBoard → fromSolverGrid preserves movable tile shape/rotation", async () => {
     const { toSolverBoard, fromSolverGrid } = await import("./lib/solverAdapter");
-    const { TREASURES } = await import("./constants");
 
-    const grid = Array.from({ length: 7 }, (_, r) =>
+    const grid: (import("./types").TileData | null)[][] = Array.from({ length: 7 }, (_, r) =>
       Array.from({ length: 7 }, (_, c) => ({
         id: `t_${r}_${c}`,
         shape: "corner" as const,
         rotation: 90 as const,
-        isFixed: false,
+        isFixed: false as const,
         treasure: undefined,
       }))
     );

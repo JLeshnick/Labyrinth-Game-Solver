@@ -27,7 +27,6 @@ interface SolverPanelProps {
 export function SolverPanel({
   solutions,
   isLoadingSolutions,
-  hoveredSolution,
   setHoveredSolution,
   maxTurns,
   setMaxTurns,
