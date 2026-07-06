@@ -61,7 +61,7 @@ graph TD
     B --> C[Reads commit message for bump type]
     C --> D[Bumps package.json version]
     D --> E[Commits bump + creates vX.Y.Z tag]
-    E --> F[release.yml triggers on new tag]
+    E --> F[release-on-merge.yml explicitly calls release.yml]
     F --> G[Builds macOS dmg/zip and Windows exe]
     G --> H[Publishes GitHub Release with binaries]
     H --> I[Existing apps auto-update on launch]
@@ -111,9 +111,10 @@ BREAKING CHANGE: existing save slots are not compatible with this version"
 
 ### What Happens After a Merge
 
-1. `release-on-merge.yml` reads the commit message, bumps `package.json`, commits `chore: bump version to vX.Y.Z [skip ci]`, and pushes a `vX.Y.Z` tag.
-2. The tag push fires `release.yml`, which builds on both macOS and Windows runners and uploads the binaries to a new GitHub Release.
-3. The release is published automatically — no manual step required.
+1. `release-on-merge.yml` reads the commit message, bumps `package.json`, commits `chore: bump version to vX.Y.Z`, and pushes a `vX.Y.Z` tag.
+2. `release-on-merge.yml` then explicitly calls the reusable `release.yml` workflow, passing the new tag to it.
+3. `release.yml` builds on both macOS and Windows runners and uploads the binaries to a new GitHub Release.
+4. The release is published automatically — no manual step required.
 
 ### If You Need to Skip a Release
 
