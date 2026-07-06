@@ -28,6 +28,7 @@ import {
   playSuccessSound,
   playPawnMoveSound,
 } from "./utils/audio";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./components/ui/dialog";
 import {
   Compass,
   RefreshCcw,
@@ -98,6 +99,8 @@ export default function App() {
   // Interaction Setup Tabs: 'tiles' | 'pawns' | 'cards'
   const [setupTab, setSetupTab] = useState<"tiles" | "pawns" | "cards">("tiles");
   const [activePawnPlacementColor, setActivePawnPlacementColor] = useState<string>("red");
+  const [isNewProjectDialogOpen, setIsNewProjectDialogOpen] = useState(false);
+  const [newProjectName, setNewProjectName] = useState("");
 
   // Solver Suggestions & Visual Overlays
   const [solutions, setSolutions] = useState<any[]>([]);
@@ -180,6 +183,7 @@ export default function App() {
 
   // Quick save callback in header ribbon
   const handleSaveActiveProject = useCallback(() => {
+    if (!isMuted) playClickSound();
     if (currentSlotName) {
       const currentAppState = {
         board: grid,
@@ -205,9 +209,10 @@ export default function App() {
         }
       }
     } else {
+      setSettingsTab("profiles");
       setIsSettingsOpen(true);
     }
-  }, [currentSlotName, grid, spareTile, looseTiles, activePawn, playerHands, playerActiveTargets, lastShiftArrowId, isGameStarted, gameStartState, pawnPositions, slots, showToast]);
+  }, [currentSlotName, grid, spareTile, looseTiles, activePawn, playerHands, playerActiveTargets, lastShiftArrowId, isGameStarted, gameStartState, pawnPositions, slots, showToast, isMuted]);
 
   // Board/spare → solver format (thin wrappers so callbacks can reference them)
   const getSolverFormattedBoard = useCallback(
@@ -265,11 +270,81 @@ export default function App() {
 
   const handleNewProject = useCallback(() => {
     if (!isMuted) playClickSound();
-    resetBoardToInitialPresets();
-    setCurrentSlotName(null);
-    setLastSavedTime(null);
+    setIsNewProjectDialogOpen(true);
+  }, [isMuted]);
+
+  const handleConfirmNewProject = useCallback(() => {
+    if (!isMuted) playClickSound();
+    
+    let name = newProjectName.trim();
+    if (!name) {
+      name = `Project — ${new Date().toLocaleString()}`;
+    }
+
+    const initialGrid = Array(7)
+      .fill(null)
+      .map(() => Array(7).fill(null));
+
+    Object.entries(FIXED_TILES_PRESETS).forEach(([coord, tilePartial]) => {
+      const [x, y] = coord.split(",").map(Number);
+      initialGrid[y][x] = {
+        id: `fixed_${x}_${y}`,
+        shape: tilePartial.shape!,
+        rotation: tilePartial.rotation!,
+        treasure: tilePartial.treasure,
+        isFixed: true,
+        color: tilePartial.color,
+      };
+    });
+
+    const pool = generateMovablePool();
+
+    setGrid(initialGrid);
+    setLooseTiles(pool);
+    setPawnPositions(DEFAULT_PAWN_POSITIONS);
+    setIsGameStarted(false);
+    setLastShiftArrowId(null);
+    setPlayerHands(EMPTY_PLAYER_HANDS);
+    setPlayerActiveTargets(EMPTY_PLAYER_TARGETS);
+
+    const startState = {
+      board: initialGrid,
+      spareTile: { id: "spare_initial", shape: "straight" as Shape, rotation: 0 as Rotation, isFixed: false },
+      activePawn: "red",
+      playerHands: EMPTY_PLAYER_HANDS,
+      playerActiveTargets: EMPTY_PLAYER_TARGETS,
+      lastShiftArrowId: null,
+      pawnPositions: DEFAULT_PAWN_POSITIONS,
+    };
+
+    resetHistory(startState);
+    setCurrentSlotName(name);
+    setLastSavedTime(Date.now());
+
+    // Save the new slot immediately
+    const success = saveSlot(name, {
+      board: initialGrid,
+      spareTile: startState.spareTile,
+      looseTiles: pool,
+      activePawn: "red",
+      playerHands: EMPTY_PLAYER_HANDS,
+      playerActiveTargets: EMPTY_PLAYER_TARGETS,
+      lastShiftArrowId: null,
+      isGameStarted: false,
+      gameStartState: null,
+      pawnPositions: DEFAULT_PAWN_POSITIONS,
+    });
+
+    if (success) {
+      showToast(`Created and saved "${name}"`);
+    } else {
+      showToast(`Created "${name}" (autosaved)`);
+    }
+
     setShowLandingPage(false);
-  }, [isMuted, resetBoardToInitialPresets]);
+    setIsNewProjectDialogOpen(false);
+    setNewProjectName("");
+  }, [newProjectName, isMuted, saveSlot, resetHistory, showToast]);
 
   const handleLoadSlot = useCallback((slotKey: string, name: string) => {
     if (!isMuted) playClickSound();
@@ -974,18 +1049,16 @@ export default function App() {
           <div className="w-px h-4 bg-stone-800 mx-1" />
 
           {/* Quick Save button */}
-          {currentSlotName && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleSaveActiveProject}
-              className="border-stone-800 hover:bg-stone-900 text-stone-300 gap-1.5 h-8 animate-fade-in"
-              title="Quick Save Project"
-            >
-              <Save className="w-3.5 h-3.5 text-theme-primary" />
-              <span className="text-xs">Save</span>
-            </Button>
-          )}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleSaveActiveProject}
+            className="border-stone-800 hover:bg-stone-900 text-stone-300 gap-1.5 h-8"
+            title="Save Project"
+          >
+            <Save className="w-3.5 h-3.5 text-theme-primary" />
+            <span className="text-xs">Save</span>
+          </Button>
           {/* Board Rotation */}
           <Button
             variant="outline"
@@ -1031,6 +1104,63 @@ export default function App() {
             onDeleteSlot={deleteSlot}
             showToast={showToast}
           />
+
+          <Dialog open={isNewProjectDialogOpen} onOpenChange={(open) => {
+            setIsNewProjectDialogOpen(open);
+            if (!open) setNewProjectName("");
+          }}>
+            <DialogContent className="sm:max-w-[425px] bg-stone-900 border border-stone-800 text-stone-100 shadow-2xl p-6 rounded-2xl">
+              <DialogHeader>
+                <DialogTitle className="text-lg font-bold tracking-tight text-theme-primary flex items-center gap-2">
+                  <Plus className="w-5 h-5 text-theme-primary" />
+                  Create New Project
+                </DialogTitle>
+              </DialogHeader>
+              <div className="flex flex-col gap-4 py-4">
+                <div className="text-sm text-stone-400">
+                  Enter a name for your new project. If left blank, it will automatically be named with the current timestamp and saved.
+                </div>
+                <div className="flex flex-col gap-1.5 text-left">
+                  <label htmlFor="projectName" className="text-xs font-semibold text-stone-300">
+                    Project Name
+                  </label>
+                  <input
+                    id="projectName"
+                    type="text"
+                    placeholder="e.g. Map Challenge 1"
+                    value={newProjectName}
+                    onChange={(e) => setNewProjectName(e.target.value)}
+                    className="bg-stone-950 border border-stone-800 hover:border-stone-700 text-stone-100 rounded-xl px-3 py-2 text-sm outline-none focus:border-theme-primary transition-colors"
+                    autoFocus
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        handleConfirmNewProject();
+                      }
+                    }}
+                  />
+                </div>
+              </div>
+              <div className="flex justify-end gap-3 pt-2">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    if (!isMuted) playClickSound();
+                    setIsNewProjectDialogOpen(false);
+                    setNewProjectName("");
+                  }}
+                  className="border-stone-800 hover:bg-stone-900 text-stone-300 rounded-xl"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleConfirmNewProject}
+                  className="bg-theme-primary text-stone-950 font-bold hover:bg-theme-primary-hover rounded-xl cursor-pointer"
+                >
+                  Create
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
 
           {/* Audio toggle */}
           <Button
