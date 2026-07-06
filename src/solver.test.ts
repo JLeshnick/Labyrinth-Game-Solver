@@ -138,10 +138,13 @@ describe("executeSlideInGrid", () => {
 
 describe("getReachableCells", () => {
   it("on a fully connected board, all 49 cells are reachable from (0,0)", () => {
-    // All horizontal straights so every row is connected E-W, and rows connect N-S via… wait.
-    // Use T-junctions (dir=0: opens W/N/E) filling the board so north-south are both covered.
+    // Column 0 is a vertical spine of T-junctions (dir=1 opens North/East/South),
+    // connecting every row top-to-bottom and feeding East into it. Columns 1-6 are
+    // horizontal straights (dir=1 opens East/West) so each row is fully connected.
     const board = Array.from({ length: 7 }, (_, r) =>
-      Array.from({ length: 7 }, (_, c) => makeCell("T", 0, r, c))
+      Array.from({ length: 7 }, (_, c) =>
+        c === 0 ? makeCell("T", 1, r, c) : makeCell("I", 1, r, c)
+      )
     );
     const { cells } = getReachableCells(board, 0, 0);
     expect(cells).toHaveLength(49);
