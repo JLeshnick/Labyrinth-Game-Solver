@@ -4,33 +4,6 @@ import type { TileData } from "../types";
 import { cn } from "../lib/utils";
 import { Lock } from "lucide-react";
 
-const TREASURE_SHORT_NAMES: Record<string, string> = {
-  book: "Book",
-  coins: "Coins",
-  map: "Map",
-  crown: "Crown",
-  keys: "Keys",
-  skull: "Skull",
-  ring: "Ring",
-  chest: "Chest",
-  emerald: "Jewel",
-  sword: "Sword",
-  menorah: "Menorah",
-  helmet: "Helmet",
-  lizard: "Lizard",
-  moth: "Moth",
-  owl: "Owl",
-  scarab: "Scarab",
-  rat: "Rat",
-  spider: "Spider",
-  bat: "Bat",
-  dragon: "Dragon",
-  ghost_bottle: "Ghost (B)",
-  ghost_waving: "Ghost (W)",
-  lady_pig: "Pig",
-  sorceress: "Sorceress"
-};
-
 interface TileProps {
   tile: TileData;
   onClick?: () => void;
@@ -143,20 +116,13 @@ export const Tile: React.FC<TileProps> = ({ tile, onClick, className, disabled, 
         </div>
       )}
  
-      {/* Treasure Render */}
+      {/* Treasure Text Badge (Centered) */}
       {tile.treasure && (
         <div 
-          className="absolute z-10 inset-0 flex items-center justify-center p-1 pointer-events-none transition-transform duration-300"
+          className="absolute z-10 p-1 bg-stone-950/85 backdrop-blur-sm rounded border border-amber-500/20 text-[6px] sm:text-[8px] md:text-[9px] font-bold text-center leading-tight max-w-[90%] text-amber-100 shadow-sm pointer-events-none uppercase tracking-wide transition-transform duration-300"
           style={{ transform: `rotate(${-boardRotation}deg)` }}
         >
-          <div className="px-1 py-0.5 sm:px-1.5 sm:py-0.5 bg-stone-950/90 backdrop-blur-sm rounded border border-amber-500/20 shadow-md text-amber-100 uppercase tracking-wider text-[7px] sm:text-[8px] md:text-[9px] font-bold text-center leading-none max-w-[95%] transition-all">
-            <span className="block sm:hidden truncate">
-              {TREASURE_SHORT_NAMES[tile.treasure.id] || tile.treasure.name}
-            </span>
-            <span className="hidden sm:block truncate">
-              {tile.treasure.name}
-            </span>
-          </div>
+          {tile.treasure.name}
         </div>
       )}
     </div>

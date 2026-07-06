@@ -56,8 +56,8 @@ const BoardSpace: React.FC<BoardSpaceProps> = ({
       onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onCellClick(y, x); } }}
       aria-label={`Board cell row ${y} column ${x}${tile ? ` — ${tile.isFixed ? "fixed" : ""} tile` : " — empty"}`}
       style={{
-        gridRow: y + 2,
-        gridColumn: x + 2,
+        gridRow: isGameStarted ? y + 2 : y + 1,
+        gridColumn: isGameStarted ? x + 2 : x + 1,
       }}
       className={cn(
         "relative w-full h-full aspect-square rounded-lg flex items-center justify-center transition-all cursor-pointer",
@@ -156,9 +156,12 @@ export const Board: React.FC<BoardProps> = ({
 
   return (
     <div className="p-3 sm:p-5 bg-stone-900 border-4 border-stone-800 rounded-3xl shadow-2xl relative w-full h-full flex items-center justify-center">
-      {/* 9x9 CSS Grid Layout */}
+      {/* CSS Grid Layout */}
       <div 
-        className="grid grid-cols-9 grid-rows-9 gap-1.5 w-full h-full justify-items-stretch items-stretch transition-transform duration-300 relative"
+        className={cn(
+          "grid gap-1.5 w-full h-full justify-items-stretch items-stretch transition-transform duration-300 relative",
+          isGameStarted ? "grid-cols-9 grid-rows-9" : "grid-cols-7 grid-rows-7"
+        )}
         style={{ transform: `rotate(${boardRotation}deg)` }}
       >
         {/* SVG Reachable Paths Overlay */}
@@ -188,7 +191,9 @@ export const Board: React.FC<BoardProps> = ({
           </svg>
         )}
         {/* Shifting tracks graphics */}
-        <div className="absolute inset-y-12 left-0 right-0 border-t border-stone-800 pointer-events-none opacity-20" />
+        {isGameStarted && (
+          <div className="absolute inset-y-12 left-0 right-0 border-t border-stone-800 pointer-events-none opacity-20" />
+        )}
 
         {/* Render Shifting Arrows */}
         {isGameStarted &&
