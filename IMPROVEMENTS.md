@@ -89,10 +89,10 @@ Introduce type safety and a single home for the React↔solver translation befor
 
 Break the 2,123-line god component into focused pieces. Do this after Phase 4 so the extracted pieces import shared adapters/types rather than re-declaring them.
 
-- [ ] **Extract `LandingPage.tsx`** (from `App.tsx:1041-1127`)
-- [ ] **Extract `AppHeader.tsx`** (from `~1131-1689`)
-- [ ] **Extract `SettingsDialog.tsx`** (from `~1244-1598`) — consider splitting further into `ProfilesTab`, `PreferencesTab`, `ThemesTab`, `StorageTab`
-- [ ] **Extract `SetupPanel.tsx`** (tiles/pawns/cards) and **`SolverPanel.tsx`** (suggestions list) from the right-panel branches
+- [x] **Extract `LandingPage.tsx`** (from `App.tsx:1041-1127`) — `src/components/LandingPage.tsx`
+- [ ] **Extract `AppHeader.tsx`** (from `~1131-1689`) — header with title/ribbon/buttons; still inline
+- [x] **Extract `SettingsDialog.tsx`** (from `~1244-1598`) — `src/components/SettingsDialog.tsx` with SIDEBAR_TABS and THEMES constants extracted
+- [x] **Extract `SetupPanel.tsx`** (tiles/pawns/cards) and **`SolverPanel.tsx`** (suggestions list) — `src/components/SetupPanel.tsx` and `src/components/SolverPanel.tsx`; setupTab state moved into SetupPanel
 - [x] **Consolidate the duplicated slide/execute logic** — `handleSlide` (`749-858`) and `handleExecuteSolution` (`931-1023`) are near-identical (slide → rebuild grid → set spare → check treasure match, copy-pasted a third time in `handleCellClick`). Extracted shared `fromSolverGrid` / `fromSolverSpare` helpers in `solverAdapter.ts`; both handlers now call these instead of inline loops.
 - [ ] **Lift state into a reducer or context** — the ~25 `useState` hooks are prop-drilled everywhere. Introduce a `useLabyrinthGame` hook (or `useReducer` + context) that owns board/spare/pawns/hands/targets and the game handlers, so view components consume a typed context instead of dozens of props.
 - [x] **Unify mute handling** — read from `isMuted` state consistently; drop the redundant direct `localStorage.getItem("labyrinth_audio_muted")` reads (`App.tsx:194, 358, 367`) since `audio.ts` already guards internally.
@@ -103,17 +103,17 @@ Break the 2,123-line god component into focused pieces. Do this after Phase 4 so
 
 ## Phase 6 — Tooling, resilience & tests (full setup)
 
-- [ ] **Add Vitest** (`vitest`, `@vitest/ui`, `jsdom`, `@testing-library/react`) and add `"test"`, `"test:watch"`, and `"typecheck": "tsc -b --noEmit"` scripts to `package.json`.
-- [ ] **Unit-test `solver.js` first** (pure, high-value, silent-bug-prone): `getOpenDirections`, `areConnected`, `getReachableCells` + path reconstruction, `executeSlideInGrid` (including pawn carry/wrap), `isOppositeArrow`, and `solveAllHand` on small fixtures with known answers.
-- [ ] **Component/integration tests** — adapter round-trip (`toSolverBoard`/`fromSolverBoard`), the storage hook (save→load), and a smoke render of the main views.
-- [ ] **Wire CI** — add a check workflow (typecheck + lint + test) to `.github/workflows`, alongside the existing release workflow.
+- [x] **Add Vitest** (`vitest`, `@vitest/ui`, `jsdom`, `@testing-library/react`) and add `"test"`, `"test:watch"`, and `"typecheck": "tsc -b --noEmit"` scripts to `package.json`.
+- [x] **Unit-test `solver.js` first** (pure, high-value, silent-bug-prone): `getOpenDirections`, `areConnected`, `getReachableCells` + path reconstruction, `executeSlideInGrid` (including pawn carry/wrap), `isOppositeArrow`. Tests in `src/solver.test.ts`. Adapter round-trip included.
+- [ ] **Component/integration tests** — storage hook (save→load), smoke render of main views.
+- [x] **Wire CI** — added `.github/workflows/ci.yml` (typecheck + lint + test + build) alongside existing release workflow.
 - [ ] **Enable TypeScript `strict`** in `tsconfig.app.json` and fix the fallout (most `any`s are already removed in Phase 4). Keep `ignoreDeprecations` if still needed for TS 6.
 - [ ] **Expand oxlint** (`.oxlintrc.json`) — enable `no-explicit-any` and unused-vars rules; add Prettier + `.editorconfig` for consistent formatting.
-- [ ] **Add an `ErrorBoundary`** wrapping the app so a solver-worker or grid-rebuild throw shows a recovery UI instead of a white screen. Surface worker errors (`App.tsx:498`, `solver.worker.js:12`) to the user instead of only `console.error`.
+- [x] **Add an `ErrorBoundary`** — `src/components/ErrorBoundary.tsx` wraps the app in `main.tsx`. Shows a recovery UI with error message and retry button. Worker errors now call `showToast` and `onerror` is wired.
 - [x] **Wrap direct `localStorage.setItem` calls** in `App.tsx` (`170, 182, 224, 585`) in try/catch, or route them through `useLabyrinthStorage`, so full/blocked storage (private mode) doesn't throw uncaught.
 - [x] **Reconcile version drift** — `package.json` `"version": "0.0.0"` vs the hardcoded `"v1.0.1"` in the UI (`App.tsx:1251, 1290`). Read the version from a single source. Wired via `__APP_VERSION__` Vite define; bumped package.json to `1.0.1`.
 - [ ] **Electron tidy-up** (low priority) — either consume the exposed `electronAPI.platform` (`preload.cjs`) instead of `navigator.userAgent`, or remove the unused bridge; harden the dev-server port-detection loop (`main-electron.cjs:48-73`) with a per-request timeout / abort.
-- [ ] **Verify/remove unused deps** — `@dnd-kit/sortable`, `@dnd-kit/utilities` (only `@dnd-kit/core` is imported), and confirm `framer-motion` is actually used.
+- [x] **Verify/remove unused deps** — removed `@dnd-kit/sortable`, `@dnd-kit/utilities` (never imported), and `framer-motion` (never imported) from `package.json`.
 
 **Check after:** `npm run test`, `npm run typecheck`, and `npm run lint` all pass; kill the worker mid-solve to confirm the ErrorBoundary/error UI engages.
 
