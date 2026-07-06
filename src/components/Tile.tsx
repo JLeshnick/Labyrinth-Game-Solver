@@ -72,7 +72,8 @@ export const Tile: React.FC<TileProps> = ({ tile, onClick, className, disabled, 
       style={style}
       {...attributes}
       {...listeners}
-      onClick={() => {
+      onClick={(e) => {
+        e.stopPropagation();
         // Prevent drag events from triggering click
         if (transform && (Math.abs(transform.x) > 5 || Math.abs(transform.y) > 5)) return;
         onClick?.();

@@ -96,7 +96,7 @@ export default function App() {
   const [isMuted, setIsMuted] = useState(() => localStorage.getItem("labyrinth_audio_muted") === "true");
 
   // Interaction Setup Tabs: 'tiles' | 'pawns' | 'cards'
-  const [setupTab] = useState<"tiles" | "pawns" | "cards">("tiles");
+  const [setupTab, setSetupTab] = useState<"tiles" | "pawns" | "cards">("tiles");
   const [activePawnPlacementColor, setActivePawnPlacementColor] = useState<string>("red");
 
   // Solver Suggestions & Visual Overlays
@@ -561,13 +561,31 @@ export default function App() {
 
   // Rotate tile
   const handleTileClick = (id: string) => {
-    if (isGameStarted) return;
     if (id === spareTile.id) {
       if (!isMuted) playRotateSound();
       setSpareTile((prev) => ({
         ...prev,
         rotation: ((prev.rotation + 90) % 360) as Rotation,
       }));
+      return;
+    }
+
+    if (isGameStarted) return;
+
+    if (setupTab === "pawns") {
+      // Find the coordinates of this tile on the board to place the pawn
+      for (let r = 0; r < 7; r++) {
+        for (let c = 0; c < 7; c++) {
+          if (grid[r][c]?.id === id) {
+            if (!isMuted) playClickSound();
+            setPawnPositions((prev) => ({
+              ...prev,
+              [activePawnPlacementColor]: { r, c },
+            }));
+            return;
+          }
+        }
+      }
       return;
     }
 
@@ -1193,6 +1211,8 @@ export default function App() {
                 onRandomizeBoard={handleRandomizeBoard}
                 onAddCard={handleAddCard}
                 onRemoveCard={handleRemoveCard}
+                setupTab={setupTab}
+                setSetupTab={setSetupTab}
               />
             )}
           </div>
