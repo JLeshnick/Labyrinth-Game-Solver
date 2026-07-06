@@ -1105,62 +1105,6 @@ export default function App() {
             showToast={showToast}
           />
 
-          <Dialog open={isNewProjectDialogOpen} onOpenChange={(open) => {
-            setIsNewProjectDialogOpen(open);
-            if (!open) setNewProjectName("");
-          }}>
-            <DialogContent className="sm:max-w-[425px] bg-stone-900 border border-stone-800 text-stone-100 shadow-2xl p-6 rounded-2xl">
-              <DialogHeader>
-                <DialogTitle className="text-lg font-bold tracking-tight text-theme-primary flex items-center gap-2">
-                  <Plus className="w-5 h-5 text-theme-primary" />
-                  Create New Project
-                </DialogTitle>
-              </DialogHeader>
-              <div className="flex flex-col gap-4 py-4">
-                <div className="text-sm text-stone-400">
-                  Enter a name for your new project. If left blank, it will automatically be named with the current timestamp and saved.
-                </div>
-                <div className="flex flex-col gap-1.5 text-left">
-                  <label htmlFor="projectName" className="text-xs font-semibold text-stone-300">
-                    Project Name
-                  </label>
-                  <input
-                    id="projectName"
-                    type="text"
-                    placeholder="e.g. Map Challenge 1"
-                    value={newProjectName}
-                    onChange={(e) => setNewProjectName(e.target.value)}
-                    className="bg-stone-950 border border-stone-800 hover:border-stone-700 text-stone-100 rounded-xl px-3 py-2 text-sm outline-none focus:border-theme-primary transition-colors"
-                    autoFocus
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        handleConfirmNewProject();
-                      }
-                    }}
-                  />
-                </div>
-              </div>
-              <div className="flex justify-end gap-3 pt-2">
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    if (!isMuted) playClickSound();
-                    setIsNewProjectDialogOpen(false);
-                    setNewProjectName("");
-                  }}
-                  className="border-stone-800 hover:bg-stone-900 text-stone-300 rounded-xl"
-                >
-                  Cancel
-                </Button>
-                <Button
-                  onClick={handleConfirmNewProject}
-                  className="bg-theme-primary text-stone-950 font-bold hover:bg-theme-primary-hover rounded-xl cursor-pointer"
-                >
-                  Create
-                </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
 
           {/* Audio toggle */}
           <Button
@@ -1363,6 +1307,63 @@ export default function App() {
       </main>
     </>
   )}
+
+          <Dialog open={isNewProjectDialogOpen} onOpenChange={(open) => {
+            setIsNewProjectDialogOpen(open);
+            if (!open) setNewProjectName("");
+          }}>
+            <DialogContent className="sm:max-w-[425px] bg-stone-900 border border-stone-800 text-stone-100 shadow-2xl p-6 rounded-2xl">
+              <DialogHeader>
+                <DialogTitle className="text-lg font-bold tracking-tight text-theme-primary flex items-center gap-2">
+                  <Plus className="w-5 h-5 text-theme-primary" />
+                  Create New Project
+                </DialogTitle>
+              </DialogHeader>
+              <div className="flex flex-col gap-4 py-4">
+                <div className="text-sm text-stone-400">
+                  Enter a name for your new project. If left blank, it will automatically be named with the current timestamp and saved.
+                </div>
+                <div className="flex flex-col gap-1.5 text-left">
+                  <label htmlFor="projectName" className="text-xs font-semibold text-stone-300">
+                    Project Name
+                  </label>
+                  <input
+                    id="projectName"
+                    type="text"
+                    placeholder="e.g. Map Challenge 1"
+                    value={newProjectName}
+                    onChange={(e) => setNewProjectName(e.target.value)}
+                    className="bg-stone-950 border border-stone-800 hover:border-stone-700 text-stone-100 rounded-xl px-3 py-2 text-sm outline-none focus:border-theme-primary transition-colors"
+                    autoFocus
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        handleConfirmNewProject();
+                      }
+                    }}
+                  />
+                </div>
+              </div>
+              <div className="flex justify-end gap-3 pt-2">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    if (!isMuted) playClickSound();
+                    setIsNewProjectDialogOpen(false);
+                    setNewProjectName("");
+                  }}
+                  className="border-stone-800 hover:bg-stone-900 text-stone-300 rounded-xl"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleConfirmNewProject}
+                  className="bg-theme-primary text-stone-950 font-bold hover:bg-theme-primary-hover rounded-xl cursor-pointer"
+                >
+                  Create
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
 
       {/* Floating Notification Toast */}
       {toastText && (
