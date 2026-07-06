@@ -1345,6 +1345,7 @@ export default function App() {
 
               <Board
                 grid={previewState ? previewState.grid : grid}
+                originalGrid={grid}
                 pawnPositions={previewState ? previewState.pawnPositions : pawnPositions}
                 onCellClick={handleCellClick}
                 onTileClick={handleTileClick}

@@ -116,6 +116,7 @@ const BoardSpace: React.FC<BoardSpaceProps> = ({
 
 interface BoardProps {
   grid: (TileData | null)[][];
+  originalGrid?: (TileData | null)[][];
   pawnPositions: Record<string, { r: number; c: number }>;
   onCellClick: (r: number, c: number) => void;
   onTileClick: (id: string) => void;
@@ -130,6 +131,7 @@ interface BoardProps {
 
 export const Board: React.FC<BoardProps> = ({
   grid,
+  originalGrid,
   pawnPositions,
   onCellClick,
   onTileClick,
@@ -289,6 +291,7 @@ export const Board: React.FC<BoardProps> = ({
           const arrow = SHIFT_ARROWS.find((a) => a.id === hoveredSolutionArrow);
           if (!arrow) return null;
           
+          const sourceGrid = originalGrid || grid;
           let pushedTile: TileData | null = null;
           let gridRow = 0;
           let gridColumn = 0;
@@ -297,12 +300,12 @@ export const Board: React.FC<BoardProps> = ({
           if (arrow.type === "row") {
             const r = arrow.index;
             if (arrow.dir === "left") {
-              pushedTile = grid[r][6];
+              pushedTile = sourceGrid[r][6];
               gridRow = r + 2;
               gridColumn = 9;
               animClass = "animate-preview-slide-out-right";
             } else {
-              pushedTile = grid[r][0];
+              pushedTile = sourceGrid[r][0];
               gridRow = r + 2;
               gridColumn = 1;
               animClass = "animate-preview-slide-out-left";
@@ -310,12 +313,12 @@ export const Board: React.FC<BoardProps> = ({
           } else {
             const c = arrow.index;
             if (arrow.dir === "top") {
-              pushedTile = grid[6][c];
+              pushedTile = sourceGrid[6][c];
               gridRow = 9;
               gridColumn = c + 2;
               animClass = "animate-preview-slide-out-down";
             } else {
-              pushedTile = grid[0][c];
+              pushedTile = sourceGrid[0][c];
               gridRow = 1;
               gridColumn = c + 2;
               animClass = "animate-preview-slide-out-up";
