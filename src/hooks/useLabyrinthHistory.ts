@@ -1,4 +1,5 @@
 import { useState, useCallback } from "react";
+import type { TileData, PlayerMap, PawnPositions } from "../types";
 
 // Safe deep-clone that handles null cells in the React TileData grid
 function deepClone<T>(obj: T): T {
@@ -6,29 +7,19 @@ function deepClone<T>(obj: T): T {
 }
 
 interface HistoryRecord {
-  board: any;
-  spareTile: any;
+  board: (TileData | null)[][];
+  spareTile: TileData;
   lastShiftArrowId: string | null;
   activePawn: string;
-  playerHands: Record<string, string[]>;
-  playerActiveTargets: Record<string, string | null>;
-  pawnPositions?: Record<string, { r: number; c: number }>;
+  playerHands: PlayerMap<string[]>;
+  playerActiveTargets: PlayerMap<string | null>;
+  pawnPositions?: PawnPositions;
 }
 
 export function useLabyrinthHistory(initialState: HistoryRecord | null) {
   const [history, setHistory] = useState<HistoryRecord[]>(() => {
     if (initialState) {
-      return [
-        {
-          board: deepClone(initialState.board),
-          spareTile: { ...initialState.spareTile },
-          lastShiftArrowId: initialState.lastShiftArrowId,
-          activePawn: initialState.activePawn,
-          playerHands: JSON.parse(JSON.stringify(initialState.playerHands)),
-          playerActiveTargets: { ...initialState.playerActiveTargets },
-          pawnPositions: initialState.pawnPositions ? { ...initialState.pawnPositions } : undefined,
-        },
-      ];
+      return [deepClone(initialState)];
     }
     return [];
   });
@@ -37,23 +28,23 @@ export function useLabyrinthHistory(initialState: HistoryRecord | null) {
 
   const pushStateToHistory = useCallback(
     (
-      board: any,
-      spareTile: any,
+      board: (TileData | null)[][],
+      spareTile: TileData,
       lastShift: string | null,
       activePawn: string,
-      playerHands: Record<string, string[]>,
-      playerActiveTargets: Record<string, string | null>,
-      pawnPositions?: Record<string, { r: number; c: number }>
+      playerHands: PlayerMap<string[]>,
+      playerActiveTargets: PlayerMap<string | null>,
+      pawnPositions?: PawnPositions
     ) => {
-      const record: HistoryRecord = {
-        board: deepClone(board),
-        spareTile: { ...spareTile },
+      const record: HistoryRecord = deepClone({
+        board,
+        spareTile,
         lastShiftArrowId: lastShift,
-        activePawn: activePawn,
-        playerHands: JSON.parse(JSON.stringify(playerHands)),
-        playerActiveTargets: { ...playerActiveTargets },
-        pawnPositions: pawnPositions ? { ...pawnPositions } : undefined,
-      };
+        activePawn,
+        playerHands,
+        playerActiveTargets,
+        pawnPositions,
+      });
 
       setHistory((prev) => {
         const newHistory = prev.slice(0, historyIndex + 1);
@@ -65,16 +56,7 @@ export function useLabyrinthHistory(initialState: HistoryRecord | null) {
   );
 
   const resetHistory = useCallback((state: HistoryRecord) => {
-    const record: HistoryRecord = {
-      board: deepClone(state.board),
-      spareTile: { ...state.spareTile },
-      lastShiftArrowId: state.lastShiftArrowId,
-      activePawn: state.activePawn,
-      playerHands: JSON.parse(JSON.stringify(state.playerHands)),
-      playerActiveTargets: { ...state.playerActiveTargets },
-      pawnPositions: state.pawnPositions ? { ...state.pawnPositions } : undefined,
-    };
-    setHistory([record]);
+    setHistory([deepClone(state)]);
     setHistoryIndex(0);
   }, []);
 
@@ -82,8 +64,7 @@ export function useLabyrinthHistory(initialState: HistoryRecord | null) {
     (applyStateCallback: (state: HistoryRecord) => void) => {
       if (historyIndex > 0) {
         const prevIdx = historyIndex - 1;
-        const state = history[prevIdx];
-        applyStateCallback(state);
+        applyStateCallback(history[prevIdx]);
         setHistoryIndex(prevIdx);
         return true;
       }
@@ -96,8 +77,7 @@ export function useLabyrinthHistory(initialState: HistoryRecord | null) {
     (applyStateCallback: (state: HistoryRecord) => void) => {
       if (historyIndex < history.length - 1) {
         const nextIdx = historyIndex + 1;
-        const state = history[nextIdx];
-        applyStateCallback(state);
+        applyStateCallback(history[nextIdx]);
         setHistoryIndex(nextIdx);
         return true;
       }

@@ -1,26 +1,25 @@
 {
   "name": "labyrinth",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.1",
   "type": "module",
   "main": "src/main-electron.cjs",
   "scripts": {
     "dev:web": "vite --port=3000 --host=0.0.0.0",
     "dev": "concurrently -k \"vite --port=3000 --host=0.0.0.0 --no-open\" \"electron src/main-electron.cjs\"",
-    "dev:electron": "concurrently -k \"vite --port=3000 --host=0.0.0.0 --no-open\" \"electron src/main-electron.cjs\"",
     "build": "vite build",
     "build:electron": "tsc -b && vite build && electron-builder",
     "pack:electron": "tsc -b && vite build && electron-builder --dir",
     "lint": "oxlint",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc -b --noEmit"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
-    "@dnd-kit/sortable": "^10.0.0",
-    "@dnd-kit/utilities": "^3.2.2",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
-    "framer-motion": "^12.42.2",
     "lucide-react": "^1.23.0",
     "radix-ui": "^1.6.1",
     "react": "^19.2.7",
@@ -29,17 +28,21 @@
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.3.2",
+    "@testing-library/react": "^16.3.0",
     "@types/node": "^24.13.2",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.3",
+    "@vitest/ui": "^3.2.4",
     "concurrently": "^8.2.2",
     "electron": "^43.0.0",
     "electron-builder": "^26.15.3",
+    "jsdom": "^26.1.0",
     "oxlint": "^1.71.0",
     "tailwindcss": "^4.3.2",
     "typescript": "~6.0.2",
-    "vite": "^8.1.1"
+    "vite": "^8.1.1",
+    "vitest": "^3.2.4"
   },
   "build": {
     "appId": "com.labyrinth.solver",

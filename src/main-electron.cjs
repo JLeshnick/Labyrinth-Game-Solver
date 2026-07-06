@@ -55,7 +55,7 @@ function waitForDevServer(ports, timeoutMs) {
       let remaining = ports.length;
       let found = false;
       ports.forEach((port) => {
-        http.get(`http://localhost:${port}`, (res) => {
+        http.get(`http://localhost:${port}`, (_res) => {
           if (!found) {
             found = true;
             resolve(port);

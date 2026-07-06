@@ -1,8 +1,9 @@
 import React from "react";
 import { useDroppable } from "@dnd-kit/core";
 import type { TileData } from "../types";
-import { SHIFT_ARROWS } from "../constants";
+import { SHIFT_ARROWS, PAWNS } from "../constants";
 import { isOppositeArrow, getReachableCells } from "../solver";
+import { toSolverBoard } from "../lib/solverAdapter";
 import { Tile } from "./Tile";
 import { cn } from "../lib/utils";
 import { ChevronRight } from "lucide-react";
@@ -49,7 +50,11 @@ const BoardSpace: React.FC<BoardSpaceProps> = ({
   return (
     <div
       ref={setNodeRef}
+      role="button"
+      tabIndex={isGameStarted ? 0 : -1}
       onClick={() => onCellClick(y, x)}
+      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onCellClick(y, x); } }}
+      aria-label={`Board cell row ${y} column ${x}${tile ? ` — ${tile.isFixed ? "fixed" : ""} tile` : " — empty"}`}
       style={{
         gridRow: y + 2,
         gridColumn: x + 2,
@@ -59,9 +64,9 @@ const BoardSpace: React.FC<BoardSpaceProps> = ({
         isFixedSpace
           ? "bg-stone-900/40 border border-stone-800/20"
           : "border border-dashed border-stone-800/40 bg-stone-950/30 hover:bg-stone-900/10 shadow-inner",
-        isOver && !tile ? "ring-2 ring-amber-500 ring-inset bg-amber-500/10" : "",
+        isOver && !tile ? "ring-2 ring-theme-primary ring-inset bg-theme-primary-10" : "",
         isReachable ? "ring-2 ring-emerald-500 ring-offset-2 ring-offset-stone-950" : "",
-        isOnHoveredPath ? "ring-2 ring-amber-400 ring-offset-2 ring-offset-stone-950 shadow-[0_0_12px_rgba(245,158,11,0.3)]" : "",
+        isOnHoveredPath ? "ring-2 ring-theme-primary ring-offset-2 ring-offset-stone-950 shadow-[0_0_12px_rgba(var(--theme-color-rgb),0.3)]" : "",
         isCustomTarget ? "ring-2 ring-theme-primary ring-offset-2 ring-offset-stone-950 shadow-[0_0_15px_rgba(var(--theme-color-rgb),0.55)] z-10" : ""
       )}
     >
@@ -76,15 +81,13 @@ const BoardSpace: React.FC<BoardSpaceProps> = ({
           boardRotation={boardRotation}
           className={cn(
             "absolute inset-0 w-full h-full",
-            isOnHoveredPath && "border-amber-400",
+            isOnHoveredPath && "border-theme-primary",
             isPathStart && "border-green-500 shadow-[0_0_15px_rgba(34,197,94,0.4)]",
             isPathEnd && "border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.4)]"
           )}
         />
       ) : (
-        <span className="text-[10px] text-stone-800 font-bold select-none">
-          {y},{x}
-        </span>
+        <span className="sr-only">{y},{x}</span>
       )}
 
       {/* Render Pawns inside BoardSpace */}
@@ -93,18 +96,13 @@ const BoardSpace: React.FC<BoardSpaceProps> = ({
         style={{ transform: `rotate(${-boardRotation}deg)` }}
       >
         {pawns.map((color) => {
-          const colors: Record<string, string> = {
-            red: "bg-red-500 ring-red-300 shadow-red-500/50",
-            blue: "bg-blue-500 ring-blue-300 shadow-blue-500/50",
-            green: "bg-green-500 ring-green-300 shadow-green-500/50",
-            yellow: "bg-yellow-400 ring-yellow-200 text-stone-950 shadow-yellow-500/50",
-          };
+          const pawn = PAWNS.find((p) => p.id === color);
           return (
             <div
               key={color}
               className={cn(
-                "w-4 h-4 sm:w-5 sm:h-5 rounded-full ring-2 ring-white shadow-lg flex items-center justify-center text-[8px] sm:text-[9px] font-bold capitalize text-white",
-                colors[color]
+                "w-4 h-4 sm:w-5 sm:h-5 rounded-full ring-2 ring-white shadow-lg flex items-center justify-center text-[8px] sm:text-[9px] font-bold capitalize",
+                pawn?.tokenClass ?? "bg-stone-500 ring-stone-300 text-white"
               )}
             >
               {color[0]}
@@ -151,36 +149,7 @@ export const Board: React.FC<BoardProps> = ({
     const activePos = pawnPositions[activePawn];
     if (!activePos) return { reachableCells: [], reachablePathsParentMap: {} };
 
-    // Helper to format grid cell shape/dir for solver
-    const shapeMap: Record<string, string> = {
-      straight: "I",
-      corner: "L",
-      "t-junction": "T",
-    };
-    const dirMap: Record<number, number> = {
-      0: 0,
-      90: 1,
-      180: 2,
-      270: 3,
-    };
-
-    const solverBoard = grid.map((row, r) =>
-      row.map((cell, c) => {
-        if (!cell) {
-          return { r, c, shape: "I", dir: 0, treasure: null, isFixed: false, pawns: [] };
-        }
-        return {
-          r,
-          c,
-          shape: shapeMap[cell.shape],
-          dir: dirMap[cell.rotation],
-          treasure: cell.treasure?.id || null,
-          isFixed: cell.isFixed,
-          pawns: [],
-        };
-      })
-    );
-
+    const solverBoard = toSolverBoard(grid, pawnPositions);
     const { cells, parentMap } = getReachableCells(solverBoard, activePos.r, activePos.c);
     return { reachableCells: cells, reachablePathsParentMap: parentMap };
   }, [grid, pawnPositions, activePawn, isGameStarted]);
@@ -237,17 +206,22 @@ export const Board: React.FC<BoardProps> = ({
                   gridColumn: arrow.gridColumn,
                 }}
                 className={cn(
-                  "w-full h-full max-w-[85%] max-h-[85%] mx-auto p-1 rounded-lg border border-stone-800 bg-stone-950 text-amber-500/80 hover:text-amber-400 hover:bg-stone-900 transition-all focus:outline-none flex items-center justify-center",
+                  "w-full h-full max-w-[85%] max-h-[85%] mx-auto p-1 rounded-lg border border-stone-800 bg-stone-950 text-theme-primary hover:text-theme-primary-200 hover:bg-stone-900 transition-all focus:outline-none flex items-center justify-center",
                   isForbidden
                     ? "opacity-20 cursor-not-allowed border-red-950/40 text-red-700"
                     : "cursor-pointer hover:scale-105 active:scale-95",
                   isHighlighted
-                    ? "animate-pulse ring-2 ring-amber-400 bg-amber-500/20 scale-110"
+                    ? "animate-pulse ring-2 ring-theme-primary bg-theme-primary-20 scale-110"
                     : ""
                 )}
                 title={
                   isForbidden
                     ? "Forbidden: Cannot immediately reverse the previous shift"
+                    : `Insert spare tile into ${arrow.label}`
+                }
+                aria-label={
+                  isForbidden
+                    ? `Forbidden: Cannot reverse previous shift into ${arrow.label}`
                     : `Insert spare tile into ${arrow.label}`
                 }
               >

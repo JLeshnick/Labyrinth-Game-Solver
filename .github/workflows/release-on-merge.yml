@@ -1,0 +1,94 @@
+name: Release on Merge to Main
+
+# Fires whenever a push lands on main (includes squash-merges and merge commits).
+# Reads the commit message for conventional commit prefixes to decide the
+# version bump, then bumps package.json, commits the bump, creates a vX.Y.Z
+# tag, and pushes — which in turn triggers the existing Build & Release workflow.
+#
+# Bump rules (case-insensitive, checked against the full commit message):
+#   BREAKING CHANGE  →  major  (1.0.x → 2.0.0)
+#   feat:            →  minor  (1.0.x → 1.1.0)
+#   fix: / chore: / refactor: / docs: / style: / perf: / test: / ci:  →  patch
+#   (anything else)  →  patch
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  version-and-tag:
+    name: Bump version and create release tag
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure git identity
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Determine bump type from commit message
+        id: bump
+        run: |
+          MSG=$(git log -1 --pretty=%B)
+          echo "Commit message: $MSG"
+
+          if echo "$MSG" | grep -qiE "BREAKING[[:space:]]CHANGE"; then
+            echo "type=major" >> "$GITHUB_OUTPUT"
+          elif echo "$MSG" | grep -qiE "^feat(\(.*\))?!?:"; then
+            echo "type=minor" >> "$GITHUB_OUTPUT"
+          else
+            echo "type=patch" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+
+      - name: Bump version in package.json
+        id: version
+        run: |
+          BUMP_TYPE="${{ steps.bump.outputs.type }}"
+          CURRENT=$(node -p "require('./package.json').version")
+
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT"
+          case "$BUMP_TYPE" in
+            major) MAJOR=$((MAJOR + 1)); MINOR=0; PATCH=0 ;;
+            minor) MINOR=$((MINOR + 1)); PATCH=0 ;;
+            patch) PATCH=$((PATCH + 1)) ;;
+          esac
+
+          NEW="$MAJOR.$MINOR.$PATCH"
+          echo "Bumping $CURRENT → $NEW ($BUMP_TYPE)"
+
+          # Write updated version into package.json
+          node -e "
+            const fs = require('fs');
+            const pkg = JSON.parse(fs.readFileSync('package.json','utf8'));
+            pkg.version = '$NEW';
+            fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
+          "
+
+          echo "new_version=$NEW" >> "$GITHUB_OUTPUT"
+
+      - name: Commit version bump
+        run: |
+          VERSION="${{ steps.version.outputs.new_version }}"
+          git add package.json
+          git commit -m "chore: bump version to v$VERSION [skip ci]"
+
+      - name: Create and push tag
+        run: |
+          VERSION="${{ steps.version.outputs.new_version }}"
+          git tag "v$VERSION"
+          git push origin main --follow-tags

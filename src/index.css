@@ -1,5 +1,27 @@
 @import "tailwindcss";
 
+@theme {
+  /* shadcn/ui semantic color tokens — these make Button, Card, Dialog render correctly */
+  --color-background: #0c0a09;
+  --color-foreground: #f5f5f4;
+  --color-card: #1c1917;
+  --color-card-foreground: #f5f5f4;
+  --color-primary: var(--theme-color);
+  --color-primary-foreground: #0c0a09;
+  --color-secondary: #292524;
+  --color-secondary-foreground: #e7e5e4;
+  --color-muted: #292524;
+  --color-muted-foreground: #a8a29e;
+  --color-accent: #292524;
+  --color-accent-foreground: #e7e5e4;
+  --color-destructive: #ef4444;
+  --color-destructive-foreground: #fafaf9;
+  --color-border: #292524;
+  --color-input: #292524;
+  --color-ring: var(--theme-color);
+  --radius: 0.5rem;
+}
+
 @layer base {
   body {
     @apply bg-stone-950 text-stone-50 overflow-hidden select-none;
@@ -108,6 +130,15 @@
   animation: dash-crawl 1s linear infinite;
 }
 
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.2s ease-out both;
+}
+
 /* Color Theme Helper Classes */
 .text-theme-primary {
   color: var(--theme-color) !important;
@@ -151,4 +182,26 @@
 
 .shadow-theme-glow {
   box-shadow: 0 10px 15px -3px var(--theme-glow), 0 4px 6px -4px var(--theme-glow) !important;
+}
+
+/* Toast slide-in animation (replaces aggressive bounce) */
+@keyframes toast-in {
+  from { opacity: 0; transform: translateX(-50%) translateY(12px); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+.animate-toast-in {
+  animation: toast-in 0.25s ease-out both;
+}
+
+/* Disable looping animations for users who prefer reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .animate-dash,
+  .animate-pulse,
+  .animate-ping,
+  .animate-bounce,
+  .animate-toast-in,
+  .animate-fade-in {
+    animation: none !important;
+  }
 }
