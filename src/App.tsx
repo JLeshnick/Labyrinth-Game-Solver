@@ -183,9 +183,22 @@ export default function App() {
     try { localStorage.setItem("labyrinth_theme", activeTheme); } catch { /* storage full/blocked */ }
   }, [activeTheme]);
 
-  const peekedState = useMemo(() => {
-    if (!peekSlotKey) return null;
-    return loadSlot(peekSlotKey);
+  const [peekedState, setPeekedState] = useState<any | null>(null);
+ 
+  useEffect(() => {
+    let active = true;
+    if (!peekSlotKey) {
+      setPeekedState(null);
+      return;
+    }
+    loadSlot(peekSlotKey).then((state) => {
+      if (active) {
+        setPeekedState(state);
+      }
+    });
+    return () => {
+      active = false;
+    };
   }, [peekSlotKey, loadSlot]);
 
   // Toast System

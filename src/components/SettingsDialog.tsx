@@ -215,7 +215,7 @@ export function SettingsDialog({
                 </div>
 
                 <div className="lg:col-span-5 flex flex-col justify-center items-center bg-stone-950/40 border border-stone-800 rounded-2xl p-4 min-h-[300px]">
-                  {peekedState ? (
+                  {peekedState && peekedState.board ? (
                     <div className="flex flex-col gap-4 items-center w-full h-full justify-center">
                       <div className="text-xs text-stone-400 font-bold self-start flex items-center gap-1.5">
                         <Eye className="w-3.5 h-3.5 text-theme-primary" />
