@@ -308,7 +308,7 @@ export default function App() {
       setIsSettingsOpen(false);
       showToast(`Loaded save slot: ${name}`);
     }
-  }, [isMuted, loadSlot, allSlots, resetHistory, showToast]);
+  }, [isMuted, loadSlot, allSlots, resetHistory, showToast, grid, spareTile]);
 
   // Randomize all movable tiles on the board game
   const handleRandomizeBoard = useCallback(() => {
@@ -447,6 +447,10 @@ export default function App() {
     return () => {
       workerRef.current?.terminate();
     };
+    // Mount-only: instantiates the solver worker and hydrates from autosave once.
+    // `spareTile`/`showToast` are intentionally omitted — including them would tear
+    // down and recreate the worker (and re-hydrate over live state) on every change.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loadAutosave, resetHistory, resetBoardToInitialPresets]);
 
   // Compute solver suggestions asynchronously via Worker

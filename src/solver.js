@@ -573,9 +573,8 @@ function calculateSafetyScore(board, spareTile, pawnPos) {
       const nextBoard = cloneBoard(board);
       const rotatedSpare = { ...spareTile, dir: rot };
       
-      const slideResult = executeSlideInGrid(nextBoard, rotatedSpare, type, index, dir);
-      const nextSpare = slideResult.newSpare;
-      
+      executeSlideInGrid(nextBoard, rotatedSpare, type, index, dir);
+
       let newPawnPos = { ...pawnPos };
       if (type === 'row' && index === pawnPos.r) {
         if (dir === 'left') newPawnPos.c = (pawnPos.c === 6) ? 0 : pawnPos.c + 1;
@@ -629,7 +628,6 @@ function solveAllHand(board, spareTile, startPawnPos, handCards, lastShiftArrowI
         const slideResult = executeSlideInGrid(tempBoard, tempSpare, type, index, dir);
         const nextSpare = slideResult.newSpare;
         
-        let nextPawnPos = { ...step1.startPos }; // position after slide, before pawn moves
         // The safety score is evaluated at the end position where the pawn actually stops!
         const safety = calculateSafetyScore(tempBoard, nextSpare, step1.endPos);
         
