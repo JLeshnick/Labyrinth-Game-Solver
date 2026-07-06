@@ -9,8 +9,9 @@ import {
   useSensors,
   PointerSensor,
 } from "@dnd-kit/core";
-import { FIXED_TILES_PRESETS, TREASURES, PAWNS, SHIFT_ARROWS, generateMovablePool } from "./constants";
+import { FIXED_TILES_PRESETS, TREASURES, PAWNS, SHIFT_ARROWS, generateMovablePool, DEFAULT_PAWN_POSITIONS, EMPTY_PLAYER_HANDS, EMPTY_PLAYER_TARGETS } from "./constants";
 import type { TileData, Rotation, Shape } from "./types";
+import { toSolverBoard, toSolverSpare, fromSolverGrid, fromSolverSpare } from "./lib/solverAdapter";
 import { Board } from "./components/Board";
 import { SidePanel } from "./components/SidePanel";
 import { Tile } from "./components/Tile";
@@ -109,12 +110,7 @@ export default function App() {
   });
 
   // Pawn Positions
-  const [pawnPositions, setPawnPositions] = useState<Record<string, { r: number; c: number }>>({
-    red: { r: 0, c: 0 },
-    blue: { r: 6, c: 6 },
-    green: { r: 6, c: 0 },
-    yellow: { r: 0, c: 6 },
-  });
+  const [pawnPositions, setPawnPositions] = useState<Record<string, { r: number; c: number }>>(DEFAULT_PAWN_POSITIONS);
 
   // Active Drag
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -170,7 +166,7 @@ export default function App() {
   });
 
   useEffect(() => {
-    localStorage.setItem("labyrinth_active_players", JSON.stringify(activePlayers));
+    try { localStorage.setItem("labyrinth_active_players", JSON.stringify(activePlayers)); } catch { /* storage full/blocked */ }
     if (!activePlayers.includes(activePawn)) {
       setActivePawn(activePlayers[0] || "red");
     }
@@ -182,7 +178,7 @@ export default function App() {
 
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", activeTheme);
-    localStorage.setItem("labyrinth_theme", activeTheme);
+    try { localStorage.setItem("labyrinth_theme", activeTheme); } catch { /* storage full/blocked */ }
   }, [activeTheme]);
 
   const peekedState = useMemo(() => {
@@ -194,9 +190,8 @@ export default function App() {
   const [toastText, setToastText] = useState<string | null>(null);
   const showToast = useCallback((msg: string) => {
     setToastText(msg);
-    const audioMuted = localStorage.getItem("labyrinth_audio_muted") === "true";
-    if (!audioMuted) playClickSound();
-  }, []);
+    if (!isMuted) playClickSound();
+  }, [isMuted]);
 
   useEffect(() => {
     if (toastText) {
@@ -224,88 +219,30 @@ export default function App() {
       // Find the slot by name to save to its existing key
       const existingSlot = slots.find((s) => s.name === currentSlotName);
       if (existingSlot) {
-        localStorage.setItem(existingSlot.key, JSON.stringify(currentAppState));
-        const now = Date.now();
-        setLastSavedTime(now);
-        showToast(`Saved "${currentSlotName}" successfully!`);
+        try {
+          localStorage.setItem(existingSlot.key, JSON.stringify(currentAppState));
+          setLastSavedTime(Date.now());
+          showToast(`Saved "${currentSlotName}" successfully!`);
+        } catch {
+          showToast("Save failed — storage may be full.");
+        }
       }
     } else {
       setIsSettingsOpen(true);
     }
   }, [currentSlotName, grid, spareTile, looseTiles, activePawn, playerHands, playerActiveTargets, lastShiftArrowId, isGameStarted, gameStartState, pawnPositions, slots, showToast]);
 
-  // Translate Grid + Pawns Positions into Solver Format
-  const getSolverFormattedBoard = useCallback((currentGrid: (TileData | null)[][], positions: Record<string, { r: number; c: number }>) => {
-    const shapeMap: Record<Shape, string> = {
-      straight: "I",
-      corner: "L",
-      "t-junction": "T",
-    };
-    const dirMap: Record<Rotation, number> = {
-      0: 0,
-      90: 1,
-      180: 2,
-      270: 3,
-    };
+  // Board/spare → solver format (thin wrappers so callbacks can reference them)
+  const getSolverFormattedBoard = useCallback(
+    (currentGrid: (TileData | null)[][], positions: Record<string, { r: number; c: number }>) =>
+      toSolverBoard(currentGrid, positions),
+    []
+  );
 
-    const boardRep = Array(7).fill(null).map((_, r) =>
-      Array(7).fill(null).map((_, c) => {
-        const tile = currentGrid[r][c];
-        const pawnsAtCell: string[] = [];
-        Object.entries(positions).forEach(([color, pos]) => {
-          if (pos.r === r && pos.c === c) {
-            pawnsAtCell.push(color);
-          }
-        });
-
-        if (!tile) {
-          return {
-            r,
-            c,
-            shape: "I",
-            dir: 0,
-            treasure: null,
-            isFixed: false,
-            pawns: pawnsAtCell,
-          };
-        }
-
-        return {
-          r,
-          c,
-          shape: shapeMap[tile.shape],
-          dir: dirMap[tile.rotation],
-          treasure: tile.treasure ? tile.treasure.id : null,
-          isFixed: tile.isFixed,
-          pawns: pawnsAtCell,
-        };
-      })
-    );
-
-    return boardRep;
-  }, []);
-
-  // Translate a single Spare Tile to Solver Format
-  const getSolverFormattedSpare = useCallback((tile: TileData) => {
-    const shapeMap: Record<Shape, string> = {
-      straight: "I",
-      corner: "L",
-      "t-junction": "T",
-    };
-    const dirMap: Record<Rotation, number> = {
-      0: 0,
-      90: 1,
-      180: 2,
-      270: 3,
-    };
-    return {
-      shape: shapeMap[tile.shape],
-      dir: dirMap[tile.rotation],
-      treasure: tile.treasure ? tile.treasure.id : null,
-      isFixed: false,
-      pawns: [],
-    };
-  }, []);
+  const getSolverFormattedSpare = useCallback(
+    (tile: TileData) => toSolverSpare(tile),
+    []
+  );
 
   // Hydrate layout presets
   const resetBoardToInitialPresets = useCallback(() => {
@@ -327,29 +264,21 @@ export default function App() {
     });
 
     setGrid(initialGrid);
-
-    // Swap Red & Blue across, and Green & Yellow across
-    const defaultPositions = {
-      red: { r: 0, c: 0 },
-      blue: { r: 6, c: 6 },
-      green: { r: 6, c: 0 },
-      yellow: { r: 0, c: 6 },
-    };
-    setPawnPositions(defaultPositions);
+    setPawnPositions(DEFAULT_PAWN_POSITIONS);
 
     const pool = generateMovablePool();
     setLooseTiles(pool);
     setIsGameStarted(false);
     setLastShiftArrowId(null);
-    setPlayerHands({ red: [], blue: [], green: [], yellow: [] });
-    setPlayerActiveTargets({ red: null, blue: null, green: null, yellow: null });
+    setPlayerHands(EMPTY_PLAYER_HANDS);
+    setPlayerActiveTargets(EMPTY_PLAYER_TARGETS);
 
     const startState = {
       board: initialGrid,
       spareTile: { id: "spare_initial", shape: "straight" as Shape, rotation: 0 as Rotation, isFixed: false },
       activePawn: "red",
-      playerHands: { red: [], blue: [], green: [], yellow: [] },
-      playerActiveTargets: { red: null, blue: null, green: null, yellow: null },
+      playerHands: EMPTY_PLAYER_HANDS,
+      playerActiveTargets: EMPTY_PLAYER_TARGETS,
       lastShiftArrowId: null,
       pawnPositions: defaultPositions,
     };
@@ -358,42 +287,35 @@ export default function App() {
   }, [resetHistory]);
 
   const handleNewProject = useCallback(() => {
-    const audioMuted = localStorage.getItem("labyrinth_audio_muted") === "true";
-    if (!audioMuted) playClickSound();
+    if (!isMuted) playClickSound();
     resetBoardToInitialPresets();
     setCurrentSlotName(null);
     setLastSavedTime(null);
     setShowLandingPage(false);
-  }, [resetBoardToInitialPresets]);
+  }, [isMuted, resetBoardToInitialPresets]);
 
   const handleLoadSlot = useCallback((slotKey: string, name: string) => {
-    const audioMuted = localStorage.getItem("labyrinth_audio_muted") === "true";
-    if (!audioMuted) playClickSound();
+    if (!isMuted) playClickSound();
     const savedState = loadSlot(slotKey);
     if (savedState) {
       setGrid(savedState.board);
       setSpareTile(savedState.spareTile);
       setLooseTiles(savedState.looseTiles || []);
       setActivePawn(savedState.activePawn || "red");
-      setPlayerHands(savedState.playerHands || { red: [], blue: [], green: [], yellow: [] });
-      setPlayerActiveTargets(savedState.playerActiveTargets || { red: null, blue: null, green: null, yellow: null });
+      setPlayerHands(savedState.playerHands || EMPTY_PLAYER_HANDS);
+      setPlayerActiveTargets(savedState.playerActiveTargets || EMPTY_PLAYER_TARGETS);
       setLastShiftArrowId(savedState.lastShiftArrowId || null);
       setIsGameStarted(savedState.isGameStarted || false);
       setGameStartState(savedState.gameStartState || null);
-      setPawnPositions(savedState.pawnPositions || {
-        red: { r: 0, c: 0 },
-        blue: { r: 6, c: 6 },
-        green: { r: 6, c: 0 },
-        yellow: { r: 0, c: 6 },
-      });
+      setPawnPositions(savedState.pawnPositions || DEFAULT_PAWN_POSITIONS);
 
       const record = {
         board: savedState.board,
         spareTile: savedState.spareTile,
         lastShiftArrowId: savedState.lastShiftArrowId || null,
         activePawn: savedState.activePawn || "red",
-        playerHands: savedState.playerHands || { red: [], blue: [], green: [], yellow: [] },
-        playerActiveTargets: savedState.playerActiveTargets || { red: null, blue: null, green: null, yellow: null },
+        playerHands: savedState.playerHands || EMPTY_PLAYER_HANDS,
+        playerActiveTargets: savedState.playerActiveTargets || EMPTY_PLAYER_TARGETS,
         pawnPositions: savedState.pawnPositions,
       };
       resetHistory(record);
@@ -409,7 +331,7 @@ export default function App() {
       setIsSettingsOpen(false);
       showToast(`Loaded save slot: ${name}`);
     }
-  }, [loadSlot, allSlots, resetHistory, showToast]);
+  }, [isMuted, loadSlot, allSlots, resetHistory, showToast]);
 
   // Randomize all movable tiles on the board game
   const handleRandomizeBoard = useCallback(() => {
@@ -513,8 +435,8 @@ export default function App() {
       setLooseTiles(saved.looseTiles || []);
       setSpareTile(saved.spareTile);
       setActivePawn(saved.activePawn || "red");
-      setPlayerHands(saved.playerHands || { red: [], blue: [], green: [], yellow: [] });
-      setPlayerActiveTargets(saved.playerActiveTargets || { red: null, blue: null, green: null, yellow: null });
+      setPlayerHands(saved.playerHands || EMPTY_PLAYER_HANDS);
+      setPlayerActiveTargets(saved.playerActiveTargets || EMPTY_PLAYER_TARGETS);
       setLastShiftArrowId(saved.lastShiftArrowId || null);
       setIsGameStarted(saved.isGameStarted || false);
       setGameStartState(saved.gameStartState || null);
@@ -530,8 +452,8 @@ export default function App() {
         spareTile: saved.spareTile,
         lastShiftArrowId: saved.lastShiftArrowId || null,
         activePawn: saved.activePawn || "red",
-        playerHands: saved.playerHands || { red: [], blue: [], green: [], yellow: [] },
-        playerActiveTargets: saved.playerActiveTargets || { red: null, blue: null, green: null, yellow: null },
+        playerHands: saved.playerHands || EMPTY_PLAYER_HANDS,
+        playerActiveTargets: saved.playerActiveTargets || EMPTY_PLAYER_TARGETS,
         pawnPositions: saved.pawnPositions,
       };
       resetHistory(record);
@@ -585,7 +507,7 @@ export default function App() {
   const handleToggleMute = () => {
     const nextMute = !isMuted;
     setIsMuted(nextMute);
-    localStorage.setItem("labyrinth_audio_muted", String(nextMute));
+    try { localStorage.setItem("labyrinth_audio_muted", String(nextMute)); } catch { /* storage full/blocked */ }
     showToast(nextMute ? "Muted retro sound effects 🔇" : "Sound effects enabled 🔊");
   };
 
@@ -771,45 +693,8 @@ export default function App() {
       arrow.dir
     );
 
-    // Re-construct grid from translated solver board
-    const nextGrid = grid.map((row) => [...row]);
-    const shapeMapRev: Record<string, Shape> = {
-      I: "straight",
-      L: "corner",
-      T: "t-junction",
-    };
-    const dirMapRev: Record<number, Rotation> = {
-      0: 0,
-      1: 90,
-      2: 180,
-      3: 270,
-    };
-
-    for (let r = 0; r < 7; r++) {
-      for (let c = 0; c < 7; c++) {
-        if (grid[r][c]?.isFixed) continue;
-        const cell = solverBoard[r][c];
-        const originalTile = grid[cell.r][cell.c] || {
-          id: nextTileId(),
-          isFixed: false,
-        };
-        nextGrid[r][c] = {
-          ...originalTile,
-          shape: shapeMapRev[cell.shape],
-          rotation: dirMapRev[cell.dir],
-          treasure: TREASURES.find((t) => t.id === cell.treasure),
-        };
-      }
-    }
-
-    // Set new spare tile
-    setSpareTile({
-      id: `spare_${Date.now()}`,
-      shape: shapeMapRev[newSpare.shape],
-      rotation: dirMapRev[newSpare.dir],
-      treasure: TREASURES.find((t) => t.id === newSpare.treasure),
-      isFixed: false,
-    });
+    const nextGrid = fromSolverGrid(grid, solverBoard, nextTileId);
+    setSpareTile(fromSolverSpare(newSpare, String(Date.now())));
 
     // Update pawn positions due to slide push
     const nextPositions = { ...pawnPositions };
@@ -953,44 +838,9 @@ export default function App() {
       arrow.dir
     );
 
-    const nextGrid = grid.map((row) => [...row]);
-    const shapeMapRev: Record<string, Shape> = {
-      I: "straight",
-      L: "corner",
-      T: "t-junction",
-    };
-    const dirMapRev: Record<number, Rotation> = {
-      0: 0,
-      1: 90,
-      2: 180,
-      3: 270,
-    };
-
-    for (let r = 0; r < 7; r++) {
-      for (let c = 0; c < 7; c++) {
-        if (grid[r][c]?.isFixed) continue;
-        const cell = solverBoard[r][c];
-        const originalTile = grid[cell.r][cell.c] || {
-          id: nextTileId(),
-          isFixed: false,
-        };
-        nextGrid[r][c] = {
-          ...originalTile,
-          shape: shapeMapRev[cell.shape],
-          rotation: dirMapRev[cell.dir],
-          treasure: TREASURES.find((t) => t.id === cell.treasure),
-        };
-      }
-    }
-
+    const nextGrid = fromSolverGrid(grid, solverBoard, nextTileId);
     setGrid(nextGrid);
-    setSpareTile({
-      id: `spare_${Date.now()}`,
-      shape: shapeMapRev[newSpare.shape],
-      rotation: dirMapRev[newSpare.dir],
-      treasure: TREASURES.find((t) => t.id === newSpare.treasure),
-      isFixed: false,
-    });
+    setSpareTile(fromSolverSpare(newSpare, String(Date.now())));
 
     // End coordinate
     const finalPos = turn1.endPos;
@@ -1253,7 +1103,7 @@ export default function App() {
                   Settings & Save Slots
                 </DialogTitle>
                 <span className="text-[10px] text-stone-400 font-normal mr-6">
-                  Labyrinth Game Solver v1.0.1
+                  Labyrinth Game Solver v{__APP_VERSION__}
                 </span>
               </DialogHeader>
 
@@ -1292,7 +1142,7 @@ export default function App() {
                   
                   <div className="mt-auto pt-4 border-t border-stone-800/60">
                     <p className="text-[10px] text-stone-500 font-semibold">Labyrinth Solver</p>
-                    <p className="text-[9px] text-stone-600">v1.0.1 • Desktop</p>
+                    <p className="text-[9px] text-stone-600">v{__APP_VERSION__} • Desktop</p>
                   </div>
                 </div>
 

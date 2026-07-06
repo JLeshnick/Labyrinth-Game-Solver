@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import type { AppGameState } from "../types";
 
 const SLOTS_LIST_KEY = "labyrinth_saved_slots_list";
 export const AUTOSAVE_KEY = "labyrinth_strategist_state";
@@ -12,7 +13,6 @@ export interface SaveSlot {
 export function useLabyrinthStorage() {
   const [slots, setSlots] = useState<SaveSlot[]>([]);
 
-  // Load available save slots on mount
   const refreshSlots = useCallback(() => {
     try {
       const rawList = localStorage.getItem(SLOTS_LIST_KEY);
@@ -39,36 +39,30 @@ export function useLabyrinthStorage() {
     refreshSlots();
   }, [refreshSlots]);
 
-  const saveAutosave = useCallback((stateData: any) => {
+  const saveAutosave = useCallback((stateData: Partial<AppGameState>) => {
     try {
       localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(stateData));
     } catch (e) {
-      console.warn("Autosave failed:", e);
+      console.warn("Autosave failed (storage may be full or blocked):", e);
     }
   }, []);
 
-  const loadAutosave = useCallback(() => {
+  const loadAutosave = useCallback((): Partial<AppGameState> | null => {
     try {
       const raw = localStorage.getItem(AUTOSAVE_KEY);
       if (!raw) return null;
       return JSON.parse(raw);
-    } catch (e) {
+    } catch {
       return null;
     }
   }, []);
 
-  // Save a custom named slot
-  const saveSlot = useCallback((slotName: string, stateData: any) => {
+  const saveSlot = useCallback((slotName: string, stateData: Partial<AppGameState>): boolean => {
     try {
       const slotKey = `labyrinth_slot_${Date.now()}`;
       localStorage.setItem(slotKey, JSON.stringify(stateData));
 
-      const newSlot: SaveSlot = {
-        name: slotName,
-        key: slotKey,
-        timestamp: Date.now(),
-      };
-
+      const newSlot: SaveSlot = { name: slotName, key: slotKey, timestamp: Date.now() };
       const updatedSlots = [newSlot, ...slots.filter((s) => s.key !== AUTOSAVE_KEY)];
       localStorage.setItem(SLOTS_LIST_KEY, JSON.stringify(updatedSlots));
       setSlots(updatedSlots);
@@ -79,8 +73,7 @@ export function useLabyrinthStorage() {
     }
   }, [slots]);
 
-  // Load a custom slot
-  const loadSlot = useCallback((slotKey: string) => {
+  const loadSlot = useCallback((slotKey: string): Partial<AppGameState> | null => {
     try {
       const raw = localStorage.getItem(slotKey);
       if (!raw) return null;
@@ -91,8 +84,7 @@ export function useLabyrinthStorage() {
     }
   }, []);
 
-  // Delete a custom slot
-  const deleteSlot = useCallback((slotKey: string) => {
+  const deleteSlot = useCallback((slotKey: string): boolean => {
     try {
       localStorage.removeItem(slotKey);
       const updatedSlots = slots.filter((s) => s.key !== slotKey);
@@ -105,12 +97,5 @@ export function useLabyrinthStorage() {
     }
   }, [slots]);
 
-  return {
-    slots,
-    saveAutosave,
-    loadAutosave,
-    saveSlot,
-    loadSlot,
-    deleteSlot,
-  };
+  return { slots, saveAutosave, loadAutosave, saveSlot, loadSlot, deleteSlot };
 }

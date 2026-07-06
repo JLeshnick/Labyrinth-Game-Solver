@@ -1,4 +1,4 @@
-import type { TileData, Treasure } from "./types";
+import type { TileData, Treasure, PawnPositions, PlayerMap } from "./types";
 
 export const TREASURES: Treasure[] = [
   // Fixed T-Junction Treasures (12)
@@ -33,10 +33,10 @@ export const TREASURES: Treasure[] = [
 ];
 
 export const PAWNS = [
-  { id: "red", name: "Red", colorClass: "bg-red-500", borderClass: "border-red-500" },
-  { id: "blue", name: "Blue", colorClass: "bg-blue-500", borderClass: "border-blue-500" },
-  { id: "green", name: "Green", colorClass: "bg-green-500", borderClass: "border-green-500" },
-  { id: "yellow", name: "Yellow", colorClass: "bg-yellow-400", borderClass: "border-yellow-400" }
+  { id: "red",    name: "Red",    colorClass: "bg-red-500",    borderClass: "border-red-500",    tokenClass: "bg-red-500 ring-red-300 shadow-red-500/50 text-white" },
+  { id: "blue",   name: "Blue",   colorClass: "bg-blue-500",   borderClass: "border-blue-500",   tokenClass: "bg-blue-500 ring-blue-300 shadow-blue-500/50 text-white" },
+  { id: "green",  name: "Green",  colorClass: "bg-green-500",  borderClass: "border-green-500",  tokenClass: "bg-green-500 ring-green-300 shadow-green-500/50 text-white" },
+  { id: "yellow", name: "Yellow", colorClass: "bg-yellow-400", borderClass: "border-yellow-400", tokenClass: "bg-yellow-400 ring-yellow-200 shadow-yellow-500/50 text-stone-950" },
 ];
 
 // Fixed tiles on the board game (16 total).
@@ -116,6 +116,24 @@ export function generateMovablePool(): TileData[] {
 
   return pool;
 }
+
+/** Default pawn corner positions — single source of truth. */
+export const DEFAULT_PAWN_POSITIONS: PawnPositions = {
+  red:    { r: 0, c: 0 },
+  blue:   { r: 6, c: 6 },
+  green:  { r: 6, c: 0 },
+  yellow: { r: 0, c: 6 },
+};
+
+/** Default empty player hands map. */
+export const EMPTY_PLAYER_HANDS: PlayerMap<string[]> = {
+  red: [], blue: [], green: [], yellow: [],
+};
+
+/** Default player active targets map. */
+export const EMPTY_PLAYER_TARGETS: PlayerMap<string | null> = {
+  red: null, blue: null, green: null, yellow: null,
+};
 
 export const SHIFT_ARROWS = [
   { id: "row-1-left", type: "row", index: 1, dir: "left", label: "Row 1 Right", gridRow: 3, gridColumn: 1, x: 0, y: 1, insertionDir: "left" },

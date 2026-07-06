@@ -1,8 +1,9 @@
 import React from "react";
 import { useDroppable } from "@dnd-kit/core";
 import type { TileData } from "../types";
-import { SHIFT_ARROWS } from "../constants";
+import { SHIFT_ARROWS, PAWNS } from "../constants";
 import { isOppositeArrow, getReachableCells } from "../solver";
+import { toSolverBoard } from "../lib/solverAdapter";
 import { Tile } from "./Tile";
 import { cn } from "../lib/utils";
 import { ChevronRight } from "lucide-react";
@@ -95,18 +96,13 @@ const BoardSpace: React.FC<BoardSpaceProps> = ({
         style={{ transform: `rotate(${-boardRotation}deg)` }}
       >
         {pawns.map((color) => {
-          const colors: Record<string, string> = {
-            red: "bg-red-500 ring-red-300 shadow-red-500/50",
-            blue: "bg-blue-500 ring-blue-300 shadow-blue-500/50",
-            green: "bg-green-500 ring-green-300 shadow-green-500/50",
-            yellow: "bg-yellow-400 ring-yellow-200 text-stone-950 shadow-yellow-500/50",
-          };
+          const pawn = PAWNS.find((p) => p.id === color);
           return (
             <div
               key={color}
               className={cn(
-                "w-4 h-4 sm:w-5 sm:h-5 rounded-full ring-2 ring-white shadow-lg flex items-center justify-center text-[8px] sm:text-[9px] font-bold capitalize text-white",
-                colors[color]
+                "w-4 h-4 sm:w-5 sm:h-5 rounded-full ring-2 ring-white shadow-lg flex items-center justify-center text-[8px] sm:text-[9px] font-bold capitalize",
+                pawn?.tokenClass ?? "bg-stone-500 ring-stone-300 text-white"
               )}
             >
               {color[0]}
@@ -153,36 +149,7 @@ export const Board: React.FC<BoardProps> = ({
     const activePos = pawnPositions[activePawn];
     if (!activePos) return { reachableCells: [], reachablePathsParentMap: {} };
 
-    // Helper to format grid cell shape/dir for solver
-    const shapeMap: Record<string, string> = {
-      straight: "I",
-      corner: "L",
-      "t-junction": "T",
-    };
-    const dirMap: Record<number, number> = {
-      0: 0,
-      90: 1,
-      180: 2,
-      270: 3,
-    };
-
-    const solverBoard = grid.map((row, r) =>
-      row.map((cell, c) => {
-        if (!cell) {
-          return { r, c, shape: "I", dir: 0, treasure: null, isFixed: false, pawns: [] };
-        }
-        return {
-          r,
-          c,
-          shape: shapeMap[cell.shape],
-          dir: dirMap[cell.rotation],
-          treasure: cell.treasure?.id || null,
-          isFixed: cell.isFixed,
-          pawns: [],
-        };
-      })
-    );
-
+    const solverBoard = toSolverBoard(grid, pawnPositions);
     const { cells, parentMap } = getReachableCells(solverBoard, activePos.r, activePos.c);
     return { reachableCells: cells, reachablePathsParentMap: parentMap };
   }, [grid, pawnPositions, activePawn, isGameStarted]);
