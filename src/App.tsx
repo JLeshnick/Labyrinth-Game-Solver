@@ -1225,7 +1225,7 @@ export default function App() {
                   looseTiles.find((t) => t.id === activeId) ||
                   grid.flat().find((t: any) => t?.id === activeId)!
                 }
-                className="shadow-2xl shadow-black ring-4 ring-amber-500/50"
+                className="w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 lg:w-24 lg:h-24 shadow-2xl shadow-black ring-4 ring-amber-500/50"
               />
             ) : null}
           </DragOverlay>

@@ -4,31 +4,31 @@ import type { TileData } from "../types";
 import { cn } from "../lib/utils";
 import { Lock } from "lucide-react";
 
-const TREASURE_EMOJIS: Record<string, string> = {
-  book: "📖",
-  coins: "💰",
-  map: "🗺️",
-  crown: "👑",
-  keys: "🔑",
-  skull: "💀",
-  ring: "💍",
-  chest: "🪙",
-  emerald: "💎",
-  sword: "⚔️",
-  menorah: "🕎",
-  helmet: "🪖",
-  lizard: "🦎",
-  moth: "🦋",
-  owl: "🦉",
-  scarab: "🪲",
-  rat: "🐀",
-  spider: "🕷️",
-  bat: "🦇",
-  dragon: "🐉",
-  ghost_bottle: "🏺",
-  ghost_waving: "👻",
-  lady_pig: "🐷",
-  sorceress: "🧙‍♀️"
+const TREASURE_SHORT_NAMES: Record<string, string> = {
+  book: "Book",
+  coins: "Coins",
+  map: "Map",
+  crown: "Crown",
+  keys: "Keys",
+  skull: "Skull",
+  ring: "Ring",
+  chest: "Chest",
+  emerald: "Jewel",
+  sword: "Sword",
+  menorah: "Menorah",
+  helmet: "Helmet",
+  lizard: "Lizard",
+  moth: "Moth",
+  owl: "Owl",
+  scarab: "Scarab",
+  rat: "Rat",
+  spider: "Spider",
+  bat: "Bat",
+  dragon: "Dragon",
+  ghost_bottle: "Ghost (B)",
+  ghost_waving: "Ghost (W)",
+  lady_pig: "Pig",
+  sorceress: "Sorceress"
 };
 
 interface TileProps {
@@ -106,7 +106,7 @@ export const Tile: React.FC<TileProps> = ({ tile, onClick, className, disabled, 
         onClick?.();
       }}
       className={cn(
-        "relative w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 lg:w-20 lg:h-20 xl:w-24 xl:h-24 rounded-md shadow-sm border border-amber-900 overflow-hidden flex items-center justify-center transition-opacity",
+        "relative w-full h-full rounded-md shadow-sm border border-amber-900 overflow-hidden flex items-center justify-center transition-opacity",
         isDragging ? "opacity-50" : "opacity-100",
         tile.isFixed ? "bg-amber-800" : "bg-amber-700 cursor-grab active:cursor-grabbing",
         className
@@ -120,7 +120,7 @@ export const Tile: React.FC<TileProps> = ({ tile, onClick, className, disabled, 
       >
         {getPathStyles()}
       </div>
-
+ 
       {/* Starting Corner Colors */}
       {tile.color && (
         <div
@@ -131,7 +131,7 @@ export const Tile: React.FC<TileProps> = ({ tile, onClick, className, disabled, 
           style={{ transform: `rotate(${-boardRotation}deg)` }}
         />
       )}
-
+ 
       {/* Fixed tile lock badge */}
       {tile.isFixed && (
         <div
@@ -142,19 +142,21 @@ export const Tile: React.FC<TileProps> = ({ tile, onClick, className, disabled, 
           <Lock className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
         </div>
       )}
-
+ 
       {/* Treasure Render */}
       {tile.treasure && (
         <div 
-          className="absolute z-10 inset-0 flex flex-col items-center justify-center p-1 pointer-events-none transition-transform duration-300"
+          className="absolute z-10 inset-0 flex items-center justify-center p-1 pointer-events-none transition-transform duration-300"
           style={{ transform: `rotate(${-boardRotation}deg)` }}
         >
-          <span className="text-[14px] sm:text-[18px] md:text-[22px] lg:text-[26px] filter drop-shadow-md select-none leading-none">
-            {TREASURE_EMOJIS[tile.treasure.id] || "✨"}
-          </span>
-          <span className="hidden sm:block mt-1 px-1 py-0.5 bg-stone-950/80 backdrop-blur-sm rounded border border-amber-500/20 text-[6px] md:text-[8px] font-bold text-center leading-tight max-w-[95%] text-amber-100 shadow-sm uppercase tracking-wide truncate">
-            {tile.treasure.name}
-          </span>
+          <div className="px-1 py-0.5 sm:px-1.5 sm:py-0.5 bg-stone-950/90 backdrop-blur-sm rounded border border-amber-500/20 shadow-md text-amber-100 uppercase tracking-wider text-[7px] sm:text-[8px] md:text-[9px] font-bold text-center leading-none max-w-[95%] transition-all">
+            <span className="block sm:hidden truncate">
+              {TREASURE_SHORT_NAMES[tile.treasure.id] || tile.treasure.name}
+            </span>
+            <span className="hidden sm:block truncate">
+              {tile.treasure.name}
+            </span>
+          </div>
         </div>
       )}
     </div>
