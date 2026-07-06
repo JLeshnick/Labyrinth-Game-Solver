@@ -367,7 +367,7 @@ export default function App() {
       const randomRot = rotations[Math.floor(Math.random() * 4)];
       const finalSpare = { ...remainingSpare, rotation: randomRot };
       setSpareTile(finalSpare);
-      setLooseTiles([]);
+      setLooseTiles([finalSpare]);
       setGrid(initialGrid);
 
       // Push state to history
@@ -1133,9 +1133,8 @@ export default function App() {
           onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
         >
-          {/* Game Board Section */}
           <div className="flex-1 lg:flex-[1.5] w-full flex min-w-0 min-h-0 items-center justify-center relative">
-            <div className="relative aspect-square w-full lg:w-auto lg:h-full max-w-full max-h-full flex-shrink-0">
+            <div className="relative aspect-square w-full max-w-[min(100vw-2rem,100vh-280px)] lg:max-w-none lg:w-auto lg:h-full flex-shrink-0 mx-auto">
               {/* Highlight Overlay Arrow suggested indicator */}
               {hoveredSolution && hoveredSolution.length > 0 && (
                 <div

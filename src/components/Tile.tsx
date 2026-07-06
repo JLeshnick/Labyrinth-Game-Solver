@@ -4,6 +4,33 @@ import type { TileData } from "../types";
 import { cn } from "../lib/utils";
 import { Lock } from "lucide-react";
 
+const TREASURE_EMOJIS: Record<string, string> = {
+  book: "📖",
+  coins: "💰",
+  map: "🗺️",
+  crown: "👑",
+  keys: "🔑",
+  skull: "💀",
+  ring: "💍",
+  chest: "🪙",
+  emerald: "💎",
+  sword: "⚔️",
+  menorah: "🕎",
+  helmet: "🪖",
+  lizard: "🦎",
+  moth: "🦋",
+  owl: "🦉",
+  scarab: "🪲",
+  rat: "🐀",
+  spider: "🕷️",
+  bat: "🦇",
+  dragon: "🐉",
+  ghost_bottle: "🏺",
+  ghost_waving: "👻",
+  lady_pig: "🐷",
+  sorceress: "🧙‍♀️"
+};
+
 interface TileProps {
   tile: TileData;
   onClick?: () => void;
@@ -116,13 +143,18 @@ export const Tile: React.FC<TileProps> = ({ tile, onClick, className, disabled, 
         </div>
       )}
 
-      {/* Treasure Text Badge (Centered) */}
+      {/* Treasure Render */}
       {tile.treasure && (
         <div 
-          className="absolute z-10 p-1 bg-stone-950/85 backdrop-blur-sm rounded border border-amber-500/20 text-[6px] sm:text-[8px] md:text-[9px] font-bold text-center leading-tight max-w-[90%] text-amber-100 shadow-sm pointer-events-none uppercase tracking-wide transition-transform duration-300"
+          className="absolute z-10 inset-0 flex flex-col items-center justify-center p-1 pointer-events-none transition-transform duration-300"
           style={{ transform: `rotate(${-boardRotation}deg)` }}
         >
-          {tile.treasure.name}
+          <span className="text-[14px] sm:text-[18px] md:text-[22px] lg:text-[26px] filter drop-shadow-md select-none leading-none">
+            {TREASURE_EMOJIS[tile.treasure.id] || "✨"}
+          </span>
+          <span className="hidden sm:block mt-1 px-1 py-0.5 bg-stone-950/80 backdrop-blur-sm rounded border border-amber-500/20 text-[6px] md:text-[8px] font-bold text-center leading-tight max-w-[95%] text-amber-100 shadow-sm uppercase tracking-wide truncate">
+            {tile.treasure.name}
+          </span>
         </div>
       )}
     </div>
