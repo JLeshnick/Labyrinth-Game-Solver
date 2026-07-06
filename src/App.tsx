@@ -28,7 +28,6 @@ import {
   playSuccessSound,
   playPawnMoveSound,
 } from "./utils/audio";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./components/ui/dialog";
 import {
   Compass,
   RefreshCcw,
@@ -99,8 +98,6 @@ export default function App() {
   // Interaction Setup Tabs: 'tiles' | 'pawns' | 'cards'
   const [setupTab, setSetupTab] = useState<"tiles" | "pawns" | "cards">("tiles");
   const [activePawnPlacementColor, setActivePawnPlacementColor] = useState<string>("red");
-  const [isNewProjectDialogOpen, setIsNewProjectDialogOpen] = useState(false);
-  const [newProjectName, setNewProjectName] = useState("");
 
   // Solver Suggestions & Visual Overlays
   const [solutions, setSolutions] = useState<any[]>([]);
@@ -207,12 +204,21 @@ export default function App() {
         } catch {
           showToast("Save failed — storage may be full.");
         }
+      } else {
+        // Fallback: save as a new slot if not found
+        const success = saveSlot(currentSlotName, currentAppState);
+        if (success) {
+          setLastSavedTime(Date.now());
+          showToast(`Saved "${currentSlotName}" successfully!`);
+        } else {
+          showToast("Save failed — storage may be full.");
+        }
       }
     } else {
       setSettingsTab("profiles");
       setIsSettingsOpen(true);
     }
-  }, [currentSlotName, grid, spareTile, looseTiles, activePawn, playerHands, playerActiveTargets, lastShiftArrowId, isGameStarted, gameStartState, pawnPositions, slots, showToast, isMuted]);
+  }, [currentSlotName, grid, spareTile, looseTiles, activePawn, playerHands, playerActiveTargets, lastShiftArrowId, isGameStarted, gameStartState, pawnPositions, slots, showToast, isMuted, saveSlot]);
 
   // Board/spare → solver format (thin wrappers so callbacks can reference them)
   const getSolverFormattedBoard = useCallback(
@@ -268,17 +274,12 @@ export default function App() {
     resetHistory(startState);
   }, [resetHistory]);
 
-  const handleNewProject = useCallback(() => {
-    if (!isMuted) playClickSound();
-    setIsNewProjectDialogOpen(true);
-  }, [isMuted]);
-
-  const handleConfirmNewProject = useCallback(() => {
+  const handleNewProject = useCallback((name?: string) => {
     if (!isMuted) playClickSound();
     
-    let name = newProjectName.trim();
-    if (!name) {
-      name = `Project — ${new Date().toLocaleString()}`;
+    let finalName = typeof name === "string" ? name.trim() : "";
+    if (!finalName) {
+      finalName = `Project — ${new Date().toLocaleString()}`;
     }
 
     const initialGrid = Array(7)
@@ -318,11 +319,11 @@ export default function App() {
     };
 
     resetHistory(startState);
-    setCurrentSlotName(name);
+    setCurrentSlotName(finalName);
     setLastSavedTime(Date.now());
 
     // Save the new slot immediately
-    const success = saveSlot(name, {
+    const success = saveSlot(finalName, {
       board: initialGrid,
       spareTile: startState.spareTile,
       looseTiles: pool,
@@ -336,15 +337,13 @@ export default function App() {
     });
 
     if (success) {
-      showToast(`Created and saved "${name}"`);
+      showToast(`Created and saved "${finalName}"`);
     } else {
-      showToast(`Created "${name}" (autosaved)`);
+      showToast(`Created "${finalName}" (autosaved)`);
     }
 
     setShowLandingPage(false);
-    setIsNewProjectDialogOpen(false);
-    setNewProjectName("");
-  }, [newProjectName, isMuted, saveSlot, resetHistory, showToast]);
+  }, [isMuted, saveSlot, resetHistory, showToast]);
 
   const handleLoadSlot = useCallback((slotKey: string, name: string) => {
     if (!isMuted) playClickSound();
@@ -1004,13 +1003,28 @@ export default function App() {
         </div>
 
         <div className="mt-4 sm:mt-0 flex items-center gap-2">
+          {/* Menu */}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              if (!isMuted) playClickSound();
+              setShowLandingPage(true);
+            }}
+            className="text-stone-400 hover:text-stone-200 gap-1.5 h-8 px-2"
+            title="Exit to Main Menu"
+          >
+            <Home className="w-3.5 h-3.5" />
+            <span className="text-xs hidden sm:inline">Menu</span>
+          </Button>
+
           {/* New Project */}
           <Button
             variant="outline"
             size="sm"
-            onClick={handleNewProject}
+            onClick={() => handleNewProject()}
             className="border-stone-800 hover:bg-stone-900 text-stone-300 gap-1.5 h-8"
-            title="Start New Game Layout"
+            title="Create New Project (Auto-Named)"
           >
             <Plus className="w-3.5 h-3.5 text-theme-primary" />
             <span className="text-xs hidden sm:inline">New Project</span>
@@ -1031,24 +1045,7 @@ export default function App() {
             <span className="text-xs hidden sm:inline">Load Project</span>
           </Button>
 
-          {/* Exit to Menu */}
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => {
-              if (!isMuted) playClickSound();
-              setShowLandingPage(true);
-            }}
-            className="text-stone-400 hover:text-stone-200 gap-1.5 h-8 px-2"
-            title="Exit to Main Menu"
-          >
-            <Home className="w-3.5 h-3.5" />
-            <span className="text-xs hidden sm:inline">Menu</span>
-          </Button>
-
-          <div className="w-px h-4 bg-stone-800 mx-1" />
-
-          {/* Quick Save button */}
+          {/* Save button */}
           <Button
             variant="outline"
             size="sm"
@@ -1059,6 +1056,74 @@ export default function App() {
             <Save className="w-3.5 h-3.5 text-theme-primary" />
             <span className="text-xs">Save</span>
           </Button>
+
+          <div className="w-px h-4 bg-stone-800 mx-1" />
+
+          {/* Undo/Redo */}
+          <Button
+            variant="outline"
+            size="icon"
+            disabled={!canUndo}
+            onClick={() => {
+              if (!isMuted) playClickSound();
+              undo((state: any) => {
+                setGrid(state.board);
+                setSpareTile(state.spareTile);
+                setLastShiftArrowId(state.lastShiftArrowId);
+                setActivePawn(state.activePawn);
+                setPlayerHands(state.playerHands);
+                setPlayerActiveTargets(state.playerActiveTargets);
+                if (state.pawnPositions) {
+                  setPawnPositions(state.pawnPositions);
+                }
+              });
+            }}
+            className="border-stone-800 hover:bg-stone-900 disabled:opacity-30"
+            title="Undo"
+            aria-label="Undo"
+          >
+            <Undo2 className="w-4 h-4" />
+          </Button>
+
+          <Button
+            variant="outline"
+            size="icon"
+            disabled={!canRedo}
+            onClick={() => {
+              if (!isMuted) playClickSound();
+              redo((state: any) => {
+                setGrid(state.board);
+                setSpareTile(state.spareTile);
+                setLastShiftArrowId(state.lastShiftArrowId);
+                setActivePawn(state.activePawn);
+                setPlayerHands(state.playerHands);
+                setPlayerActiveTargets(state.playerActiveTargets);
+                if (state.pawnPositions) {
+                  setPawnPositions(state.pawnPositions);
+                }
+              });
+            }}
+            className="border-stone-800 hover:bg-stone-900 disabled:opacity-30"
+            title="Redo"
+            aria-label="Redo"
+          >
+            <Redo2 className="w-4 h-4" />
+          </Button>
+
+          <div className="w-px h-4 bg-stone-800 mx-1" />
+
+          {/* Reset presets */}
+          {!isGameStarted && (
+            <Button
+              variant="outline"
+              onClick={resetBoardToInitialPresets}
+              className="border-stone-800 hover:bg-stone-900 gap-2"
+            >
+              <RefreshCcw className="w-4 h-4" />
+              Reset Board
+            </Button>
+          )}
+
           {/* Board Rotation */}
           <Button
             variant="outline"
@@ -1067,13 +1132,44 @@ export default function App() {
               if (!isMuted) playClickSound();
               setBoardRotation((prev) => (prev + 90) % 360);
             }}
-            className="border-stone-800 hover:bg-stone-900 text-stone-300 animate-fade-in"
+            className="border-stone-800 hover:bg-stone-900 text-stone-300"
             title="Rotate Board Perspective (90° Clockwise)"
             aria-label="Rotate board perspective 90 degrees clockwise"
           >
             <RotateCw className="w-4 h-4" />
           </Button>
 
+          {/* Start/End game */}
+          {isGameStarted ? (
+            <Button variant="destructive" onClick={handleEndGame} className="gap-2">
+              <Unlock className="w-4 h-4" />
+              Edit Board
+            </Button>
+          ) : (
+            <Button
+              onClick={handleStartGame}
+              disabled={looseTiles.length !== 1}
+              className="bg-theme-primary hover:bg-theme-primary-hover text-stone-950 font-semibold gap-2 disabled:bg-stone-800 disabled:text-stone-500 shadow-lg shadow-theme-glow"
+            >
+              <Lock className="w-4 h-4" />
+              Start Game
+            </Button>
+          )}
+
+          <div className="w-px h-4 bg-stone-800 mx-1" />
+
+          {/* Audio toggle */}
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={handleToggleMute}
+            className="border-stone-800 hover:bg-stone-900"
+            aria-label={isMuted ? "Unmute audio" : "Mute audio"}
+          >
+            {isMuted ? <VolumeX className="w-4 h-4 text-stone-400" /> : <Volume2 className="w-4 h-4 text-theme-primary" />}
+          </Button>
+
+          {/* Settings button */}
           <SettingsDialog
             open={isSettingsOpen}
             onOpenChange={(open) => {
@@ -1308,62 +1404,6 @@ export default function App() {
     </>
   )}
 
-          <Dialog open={isNewProjectDialogOpen} onOpenChange={(open) => {
-            setIsNewProjectDialogOpen(open);
-            if (!open) setNewProjectName("");
-          }}>
-            <DialogContent className="sm:max-w-[425px] bg-stone-900 border border-stone-800 text-stone-100 shadow-2xl p-6 rounded-2xl">
-              <DialogHeader>
-                <DialogTitle className="text-lg font-bold tracking-tight text-theme-primary flex items-center gap-2">
-                  <Plus className="w-5 h-5 text-theme-primary" />
-                  Create New Project
-                </DialogTitle>
-              </DialogHeader>
-              <div className="flex flex-col gap-4 py-4">
-                <div className="text-sm text-stone-400">
-                  Enter a name for your new project. If left blank, it will automatically be named with the current timestamp and saved.
-                </div>
-                <div className="flex flex-col gap-1.5 text-left">
-                  <label htmlFor="projectName" className="text-xs font-semibold text-stone-300">
-                    Project Name
-                  </label>
-                  <input
-                    id="projectName"
-                    type="text"
-                    placeholder="e.g. Map Challenge 1"
-                    value={newProjectName}
-                    onChange={(e) => setNewProjectName(e.target.value)}
-                    className="bg-stone-950 border border-stone-800 hover:border-stone-700 text-stone-100 rounded-xl px-3 py-2 text-sm outline-none focus:border-theme-primary transition-colors"
-                    autoFocus
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        handleConfirmNewProject();
-                      }
-                    }}
-                  />
-                </div>
-              </div>
-              <div className="flex justify-end gap-3 pt-2">
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    if (!isMuted) playClickSound();
-                    setIsNewProjectDialogOpen(false);
-                    setNewProjectName("");
-                  }}
-                  className="border-stone-800 hover:bg-stone-900 text-stone-300 rounded-xl"
-                >
-                  Cancel
-                </Button>
-                <Button
-                  onClick={handleConfirmNewProject}
-                  className="bg-theme-primary text-stone-950 font-bold hover:bg-theme-primary-hover rounded-xl cursor-pointer"
-                >
-                  Create
-                </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
 
       {/* Floating Notification Toast */}
       {toastText && (
