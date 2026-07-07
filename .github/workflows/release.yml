@@ -54,7 +54,7 @@ jobs:
             release/latest*.yml
             release/*.blockmap
           tag_name: ${{ inputs.tag || github.ref_name }}
-          name: Labyrinth Game Solver ${{ inputs.tag || github.ref_name }}
+          name: ${{ inputs.tag || github.ref_name }}
           draft: false
           prerelease: false
         env:
