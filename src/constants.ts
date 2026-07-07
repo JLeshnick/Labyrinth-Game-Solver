@@ -10,26 +10,26 @@ export const TREASURES: Treasure[] = [
   { id: "skull", name: "Skull" },
   { id: "ring", name: "Gold Ring" },
   { id: "chest", name: "Treasure Chest" },
-  { id: "emerald", name: "Emerald Jewel" },
+  { id: "emerald", name: "Jewel" },
   { id: "sword", name: "Sword" },
   { id: "menorah", name: "Gold Menorah" },
-  { id: "helmet", name: "Helmet Armor" },
+  { id: "helmet", name: "Helmet (armor)" },
 
-  // Movable Corner Treasures (6)
+  // Movable Corner (Right-Angle Corridor) Treasures (6)
+  { id: "lizard", name: "Lizard" },
   { id: "moth", name: "Moth" },
-  { id: "bat", name: "Bat" },
-  { id: "spider", name: "Spider on Web" },
-  { id: "rat", name: "Rat" },
   { id: "owl", name: "Owl" },
-  { id: "scarab", name: "Scarab Beetle" },
+  { id: "scarab", name: "Scarab" },
+  { id: "rat", name: "Rat" },
+  { id: "spider", name: "Spider on Web" },
 
-  // Movable T-Junction Treasures (6)
-  { id: "ghost_foot", name: "Foot Ghost" },
-  { id: "ghost_bottle", name: "Bottle Ghost" },
-  { id: "sorceress", name: "Sorceress" },
-  { id: "lady_pig", name: "Lady Pig" },
+  // Movable Straight Corridor Treasures (6)
+  { id: "bat", name: "Bat" },
   { id: "dragon", name: "Dragon" },
-  { id: "lizard", name: "Lizard" }
+  { id: "ghost_bottle", name: "Ghost (in bottle)" },
+  { id: "ghost_waving", name: "Ghost (waving)" },
+  { id: "lady_pig", name: "Lady Pig" },
+  { id: "sorceress", name: "Sorceress" }
 ];
 
 export const PAWNS = [
@@ -90,7 +90,7 @@ export function generateMovablePool(): TileData[] {
     });
   }
 
-  // 6 Corner Treasures (moth, bat, spider, rat, owl, scarab)
+  // 6 Corner (Right-Angle Corridor) Treasures (lizard, moth, owl, scarab, rat, spider)
   const cornerTreasures = TREASURES.slice(12, 18);
   cornerTreasures.forEach((treasure, i) => {
     pool.push({
@@ -102,12 +102,12 @@ export function generateMovablePool(): TileData[] {
     });
   });
 
-  // 6 T-Junction Treasures (ghost_foot, ghost_bottle, sorceress, lady_pig, dragon, lizard)
-  const tTreasures = TREASURES.slice(18, 24);
-  tTreasures.forEach((treasure, i) => {
+  // 6 Straight Corridor Treasures (bat, dragon, ghost_bottle, ghost_waving, lady_pig, sorceress)
+  const straightTreasures = TREASURES.slice(18, 24);
+  straightTreasures.forEach((treasure, i) => {
     pool.push({
-      id: `movable_t_t_${i}`,
-      shape: "t-junction",
+      id: `movable_straight_t_${i}`,
+      shape: "straight",
       treasure,
       isFixed: false,
       rotation: 0

@@ -1,8 +1,9 @@
 import { Sparkles } from "lucide-react";
 import { Button } from "./ui/button";
 import { Tile } from "./Tile";
-import { PAWNS } from "../constants";
+import { PAWNS, TREASURES } from "../constants";
 import { playClickSound } from "../utils/audio";
+import { quickSolveMinTurns } from "../solver";
 import type { TileData } from "../types";
 
 interface SolverPanelProps {
@@ -19,11 +20,15 @@ interface SolverPanelProps {
   spareTile: TileData;
   customTargetCoords: { r: number; c: number } | null;
   setCustomTargetCoords: (coords: { r: number; c: number } | null) => void;
-  activeTargetTreasure: { id: string; name: string } | undefined;
-  onTileClick: (id: string) => void;
   onExecuteSolution: (sol: any[]) => void;
+  playerActiveTargets: Record<string, string | null>;
+  onSelectTargetTreasure: (pawn: string, treasureId: string | null) => void;
+  obtainedTreasures: Record<string, string[]>;
+  grid: (TileData | null)[][];
+  pawnPositions: Record<string, { r: number; c: number }>;
+  lastShiftArrowId: string | null;
 }
-
+ 
 export function SolverPanel({
   solutions,
   isLoadingSolutions,
@@ -37,9 +42,13 @@ export function SolverPanel({
   spareTile,
   customTargetCoords,
   setCustomTargetCoords,
-  activeTargetTreasure,
-  onTileClick,
   onExecuteSolution,
+  playerActiveTargets,
+  onSelectTargetTreasure,
+  obtainedTreasures,
+  grid,
+  pawnPositions,
+  lastShiftArrowId,
 }: SolverPanelProps) {
   return (
     <div className="flex-1 flex flex-col min-h-0 gap-4 bg-stone-900/50 border border-stone-800 rounded-2xl p-5 backdrop-blur-xl">
@@ -69,10 +78,10 @@ export function SolverPanel({
           </div>
           <div>
             <div className="text-xs text-stone-400">Active Pawn's Turn</div>
-            <div className="font-semibold text-stone-100 flex items-center gap-1.5 flex-wrap">
-              Target:{" "}
+            <div className="font-semibold text-stone-100 flex items-center gap-1.5 flex-wrap mt-0.5">
+              <span>Target:</span>
               {customTargetCoords ? (
-                <span className="text-theme-primary font-bold flex items-center gap-1">
+                <span className="text-theme-primary font-bold flex items-center gap-1 text-xs">
                   Custom Target ({customTargetCoords.r}, {customTargetCoords.c})
                   <button
                     onClick={() => setCustomTargetCoords(null)}
@@ -83,16 +92,46 @@ export function SolverPanel({
                   </button>
                 </span>
               ) : (
-                <span className="text-theme-primary">
-                  {activeTargetTreasure ? activeTargetTreasure.name : "None"}
-                </span>
+                <select
+                  value={playerActiveTargets[activePawn] || ""}
+                  onChange={(e) => {
+                    const val = e.target.value || null;
+                    onSelectTargetTreasure(activePawn, val);
+                  }}
+                  className="bg-stone-905 border border-stone-800 text-stone-200 rounded px-1.5 py-0.5 text-xs focus:border-theme-primary outline-none transition-colors max-w-[180px] truncate"
+                >
+                  <option value="">-- No Target --</option>
+                  {TREASURES.filter(t => {
+                    // Filter out treasures obtained by ANY player
+                    const allObtained = Object.values(obtainedTreasures).flat();
+                    return !allObtained.includes(t.id);
+                  })
+                    .sort((a, b) => a.name.localeCompare(b.name))
+                    .map((t) => {
+                      const pawnPos = pawnPositions[activePawn];
+                      if (!pawnPos) return <option key={t.id} value={t.id}>{t.name}</option>;
+                      const turns = quickSolveMinTurns(
+                        grid.map(row => row.map(cell => cell ? { ...cell, pawns: [] } : null)),
+                        { ...spareTile, pawns: [] },
+                        pawnPos,
+                        t.id,
+                        lastShiftArrowId,
+                        maxTurns
+                      );
+                      return (
+                        <option key={t.id} value={t.id}>
+                          {t.name} {turns !== null ? `(${turns} move${turns !== 1 ? 's' : ''})` : ''}
+                        </option>
+                      );
+                    })}
+                </select>
               )}
             </div>
           </div>
         </div>
         <div className="flex flex-col items-center gap-1">
-          <div className="text-[10px] text-stone-500">Spare (Click to rotate)</div>
-          <Tile tile={spareTile} onClick={() => onTileClick(spareTile.id)} className="w-12 h-12 border-theme-primary-40" />
+          <div className="text-[10px] text-stone-500">Spare Tile</div>
+          <Tile tile={spareTile} disabled className="w-12 h-12 border-theme-primary-40" />
         </div>
       </div>
 
@@ -104,30 +143,76 @@ export function SolverPanel({
           </div>
         ) : solutions.length > 0 ? (
           solutions.map((sol, index) => {
-            const firstStep = sol[0];
             const isFallback = sol.isFallback;
             return (
               <div
                 key={index}
                 onMouseEnter={() => setHoveredSolution(sol)}
                 onMouseLeave={() => setHoveredSolution(null)}
-                className={`p-3 bg-stone-950/40 border border-stone-800/60 hover:border-theme-primary-40 rounded-xl transition-all flex items-center justify-between cursor-pointer group ${isFallback ? "opacity-60 hover:opacity-100" : ""}`}
+                className={`p-4 bg-stone-950/40 border border-stone-800/60 hover:border-theme-primary-40 rounded-xl transition-all flex items-start justify-between cursor-pointer group gap-3 ${isFallback ? "opacity-75 hover:opacity-100" : ""}`}
               >
-                <div>
-                  <div className="text-xs font-semibold text-stone-300">
-                    {isFallback ? <span className="text-stone-400">Fallback Target Prox</span> : <span className="text-green-500">Goal Connection Found</span>}
+                <div className="flex-1 min-w-0">
+                  <div className="text-xs font-semibold flex items-center gap-1.5">
+                    {isFallback ? (
+                      <span className="text-amber-500 font-bold">Fallback Setup</span>
+                    ) : (
+                      <span className="text-green-500 font-bold flex items-center gap-1">
+                        <Sparkles className="w-3.5 h-3.5" /> Direct Route
+                      </span>
+                    )}
+                    <span className="text-[10px] text-stone-500">({sol.length} turn{sol.length > 1 ? "s" : ""})</span>
                   </div>
-                  <div className="text-xs text-stone-400 mt-1">
-                    Action: Slide {firstStep.arrowId.replace("-", " ")} ({firstStep.rotation}° Rot)
+                  <div className="text-xs font-semibold mt-1.5">
+                    {(() => {
+                      const firstStep = sol[0];
+                      if (!firstStep?.pawnPath) return null;
+                      const firstStepMoves = firstStep.pawnPath.length - 1;
+                      
+                      const firstStepText = firstStepMoves > 0 ? (
+                        <span className="text-blue-400/80">
+                          Pawn moves <span className="text-blue-300 font-bold">{firstStepMoves}</span> tile{firstStepMoves !== 1 ? 's' : ''} on execution
+                        </span>
+                      ) : (
+                        <span className="text-amber-400/80">
+                          Pawn stays stationary on execution
+                        </span>
+                      );
+
+                      if (sol.length === 1) {
+                        return firstStepText;
+                      } else {
+                        // Calculate total correct sum of moves across the whole multi-turn path
+                        const totalMoves = sol.reduce((sum: number, step: any) => {
+                          const stepMoves = step.pawnPath ? step.pawnPath.length - 1 : 0;
+                          return sum + Math.max(0, stepMoves);
+                        }, 0);
+                        return (
+                          <div className="flex flex-col gap-0.5">
+                            {firstStepText}
+                            <div className="text-purple-400/80 text-[10px]">
+                              Total route moves: <span className="text-purple-300 font-bold">{totalMoves}</span> tile{totalMoves !== 1 ? 's' : ''} across {sol.length} turns
+                            </div>
+                          </div>
+                        );
+                      }
+                    })()}
                   </div>
-                  <div className="text-[10px] text-stone-500">
-                    Turns needed: {sol.length} • Safety: {sol.safetyScore}%
+                  <div className="text-xs font-medium text-stone-100 mt-1 font-mono leading-relaxed">
+                    {sol.explanation?.slide}
+                  </div>
+                  <div className="text-xs text-stone-400 mt-1 leading-relaxed">
+                    {sol.explanation?.walk}
+                  </div>
+                  <div className="text-[10px] text-stone-500 mt-1">
+                    Safety: <span className={sol.safetyScore >= 75 ? "text-green-400 font-medium" : sol.safetyScore >= 45 ? "text-amber-400 font-medium" : "text-red-400 font-medium"}>
+                      {sol.explanation?.safety}
+                    </span>
                   </div>
                 </div>
                 <Button
                   size="sm"
                   onClick={(e) => { e.stopPropagation(); onExecuteSolution(sol); }}
-                  className="bg-theme-primary-10 group-hover:bg-theme-primary text-theme-primary group-hover:text-stone-950 border border-theme-primary-20 group-hover:border-transparent font-medium text-xs px-2.5 py-1 rounded"
+                  className="bg-theme-primary-10 group-hover:bg-theme-primary text-theme-primary group-hover:text-stone-950 border border-theme-primary-20 group-hover:border-transparent font-medium text-xs px-2.5 py-1 rounded flex-shrink-0 self-center"
                 >
                   Execute
                 </Button>

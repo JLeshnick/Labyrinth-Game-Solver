@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { Sparkles, Layers, User, Compass } from "lucide-react";
 import { Button } from "./ui/button";
 import { SidePanel } from "./SidePanel";
@@ -20,6 +19,8 @@ interface SetupPanelProps {
   onRandomizeBoard: () => void;
   onAddCard: (treasureId: string) => void;
   onRemoveCard: (treasureId: string) => void;
+  setupTab: "tiles" | "pawns" | "cards";
+  setSetupTab: (tab: "tiles" | "pawns" | "cards") => void;
 }
 
 export function SetupPanel({
@@ -36,8 +37,9 @@ export function SetupPanel({
   onRandomizeBoard,
   onAddCard,
   onRemoveCard,
+  setupTab,
+  setSetupTab,
 }: SetupPanelProps) {
-  const [setupTab, setSetupTab] = useState<"tiles" | "pawns" | "cards">("tiles");
 
   return (
     <div className="flex-1 flex flex-col min-h-0 gap-4 bg-stone-900/50 border border-stone-800 rounded-2xl p-5 backdrop-blur-xl">
@@ -51,7 +53,7 @@ export function SetupPanel({
           <div className="flex items-center gap-2">
             <span className={`w-2 h-2 rounded-full ${looseTiles.length === 1 ? "bg-green-500 shadow-sm shadow-green-500/50" : "bg-theme-primary animate-pulse"}`} />
             <span className="text-stone-300">
-              Movable Tiles Placed: {33 - looseTiles.length}/33{" "}
+              Movable Tiles Placed: {34 - looseTiles.length}/33{" "}
               {looseTiles.length === 1 ? "✓" : `(needs ${looseTiles.length - 1} more)`}
             </span>
           </div>

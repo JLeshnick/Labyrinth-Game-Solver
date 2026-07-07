@@ -1,14 +1,17 @@
+import { useState } from "react";
 import { Compass, Plus, FolderOpen, Upload } from "lucide-react";
 import { Button } from "./ui/button";
 import type { SaveSlot } from "../hooks/useLabyrinthStorage";
 
 interface LandingPageProps {
   allSlots: SaveSlot[];
-  onNewProject: () => void;
+  onNewGame: (gameName: string) => void;
   onLoadSlot: (key: string, name: string) => void;
 }
 
-export function LandingPage({ allSlots, onNewProject, onLoadSlot }: LandingPageProps) {
+export function LandingPage({ allSlots, onNewGame, onLoadSlot }: LandingPageProps) {
+  const [gameName, setGameName] = useState("");
+
   return (
     <div className="flex-1 flex items-center justify-center bg-[#0c0a09] p-6 relative min-h-0 overflow-y-auto z-20">
       {/* Background patterns */}
@@ -30,21 +33,56 @@ export function LandingPage({ allSlots, onNewProject, onLoadSlot }: LandingPageP
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-3xl min-h-0">
-          {/* New Project */}
-          <button
-            onClick={onNewProject}
-            className="group relative flex flex-col items-center text-center gap-4 p-8 rounded-2xl bg-stone-900/50 border border-stone-800 hover:border-theme-primary-40 hover:bg-stone-900 transition-all cursor-pointer shadow-xl"
+          {/* New Game */}
+          <div
+            role="button"
+            tabIndex={0}
+            onClick={(e) => {
+              // Only trigger if clicking the card background or non-input elements
+              const target = e.target as HTMLElement;
+              if (target.tagName !== "INPUT" && target.tagName !== "SPAN") {
+                onNewGame(gameName);
+              }
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                const target = e.target as HTMLElement;
+                if (target.tagName !== "INPUT") {
+                  e.preventDefault();
+                  onNewGame(gameName);
+                }
+              }
+            }}
+            className="group relative flex flex-col items-center text-center gap-6 p-8 rounded-2xl bg-stone-900/50 border border-stone-800 hover:border-theme-primary-40 hover:bg-stone-900 transition-all cursor-pointer shadow-xl text-left"
           >
             <div className="w-14 h-14 rounded-full bg-theme-primary-10 flex items-center justify-center group-hover:scale-110 group-hover:bg-theme-primary-20 transition-all">
               <Plus className="w-6 h-6 text-theme-primary" />
             </div>
-            <div>
-              <h2 className="text-lg font-bold text-white mb-1">New Game Project</h2>
-              <p className="text-sm text-stone-400">Initialize a new board with fixed tile presets and customize it.</p>
+            <div className="w-full flex flex-col items-center">
+              <h2 className="text-lg font-bold text-white mb-1">New Game</h2>
+              <p className="text-sm text-stone-400 mb-4 text-center">Initialize a new board with fixed tile presets and customize it.</p>
+              
+              <div className="w-full flex flex-col gap-2 mt-2" onClick={(e) => e.stopPropagation()}>
+                <input
+                  type="text"
+                  placeholder="Game Name (optional)..."
+                  value={gameName}
+                  onChange={(e) => setGameName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === " ") {
+                      e.stopPropagation();
+                    }
+                  }}
+                  className="w-full bg-stone-950 border border-stone-800 hover:border-stone-700 text-stone-100 rounded-xl px-3 py-2 text-sm outline-none focus:border-theme-primary transition-colors text-center"
+                />
+                <span className="text-[10px] text-stone-500 text-center leading-normal">
+                  * If left blank, named by time of creation.
+                </span>
+              </div>
             </div>
-          </button>
+          </div>
 
-          {/* Load Project */}
+          {/* Load Game */}
           <div className="flex flex-col gap-4 p-6 rounded-2xl bg-stone-900/50 border border-stone-800 shadow-xl min-h-[300px] overflow-hidden">
             <div className="flex items-center gap-2.5 text-left border-b border-stone-800 pb-3">
               <div className="w-10 h-10 rounded-full bg-theme-primary-10 flex items-center justify-center">
@@ -52,15 +90,15 @@ export function LandingPage({ allSlots, onNewProject, onLoadSlot }: LandingPageP
               </div>
               <div>
                 <h2 className="text-base font-bold text-white">Load Game Layout</h2>
-                <p className="text-xs text-stone-500">Pick a previously saved profile</p>
+                <p className="text-xs text-stone-500">Pick a previously saved game</p>
               </div>
             </div>
 
             <div className="flex-1 overflow-y-auto pr-1 flex flex-col gap-2 min-h-0">
               {allSlots.length === 0 ? (
                 <div className="flex-1 flex flex-col items-center justify-center text-center py-10">
-                  <span className="text-xs text-stone-600">No saved layouts found.</span>
-                  <button onClick={onNewProject} className="text-xs text-theme-primary hover:text-theme-primary-200 underline mt-2">
+                  <span className="text-xs text-stone-600">No saved games found.</span>
+                  <button onClick={() => onNewGame("")} className="text-xs text-theme-primary hover:text-theme-primary-200 underline mt-2">
                     Start a new one now
                   </button>
                 </div>

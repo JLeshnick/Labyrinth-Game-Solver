@@ -10,6 +10,7 @@ declare module "../solver" {
   export const DELTAS: { r: number; c: number }[];
   export function hashBoard(board: any, spareTile: any): string;
   export function getOpenDirections(shape: string, dir: number): number[];
+  export function quickSolveMinTurns(board: any, spareTile: any, startPawnPos: any, targetTreasure: string, lastShiftArrowId: string | null, maxTurns: number): number | null;
 }
 
 declare module "./solver" {
@@ -24,6 +25,7 @@ declare module "./solver" {
   export const DELTAS: { r: number; c: number }[];
   export function hashBoard(board: any, spareTile: any): string;
   export function getOpenDirections(shape: string, dir: number): number[];
+  export function quickSolveMinTurns(board: any, spareTile: any, startPawnPos: any, targetTreasure: string, lastShiftArrowId: string | null, maxTurns: number): number | null;
 }
 
 export {};

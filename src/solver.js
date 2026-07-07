@@ -554,11 +554,86 @@ function getFallbackSuggestions(board, spareTile, startPawnPos, targetTreasure, 
   ]);
 }
 
-/**
- * Simulates all 48 possible opponent moves to evaluate player safety.
- * Measures average connectivity (freedom of movement) on the resulting grids.
- */
-function calculateSafetyScore(board, spareTile, pawnPos) {
+const TREASURE_NAMES = {
+  book: "Book with Clasp",
+  coins: "Bag of Gold Coins",
+  map: "Treasure Map",
+  crown: "Gold Crown",
+  keys: "Set of Keys",
+  skull: "Skull",
+  ring: "Gold Ring",
+  chest: "Treasure Chest",
+  emerald: "Jewel",
+  sword: "Sword",
+  menorah: "Gold Menorah",
+  helmet: "Helmet (armor)",
+  lizard: "Lizard",
+  moth: "Moth",
+  owl: "Owl",
+  scarab: "Scarab",
+  rat: "Rat",
+  spider: "Spider on Web",
+  bat: "Bat",
+  dragon: "Dragon",
+  ghost_bottle: "Ghost (in bottle)",
+  ghost_waving: "Ghost (waving)",
+  lady_pig: "Lady Pig",
+  sorceress: "Sorceress",
+  custom_target: "Custom Target"
+};
+
+function generateActionExplanation(board, spareTile, path) {
+  if (path.length === 0) return { slide: "", walk: "", safety: "" };
+  const step1 = path[0];
+  const { type, index, dir } = parseArrowId(step1.arrowId);
+  const targetId = path.cardId;
+  const targetName = TREASURE_NAMES[targetId] || "Target";
+  
+  const insertFrom = dir === 'left' ? 'Left' : dir === 'right' ? 'Right' : dir === 'top' ? 'Top' : 'Bottom';
+  const label = type === 'row' ? `Row ${index + 1}` : `Column ${index + 1}`;
+  const rotDegrees = step1.rotation * 90;
+  
+  const slideDesc = `Rotate spare to ${rotDegrees}° and slide into ${insertFrom} of ${label}`;
+  
+  let walkDesc = "";
+  if (path.isFallback) {
+    const endPos = step1.endPos;
+    const finalDist = path[path.length - 1].minDistance;
+    walkDesc = `Walks to (${endPos.r}, ${endPos.c}) getting you within ${finalDist} spaces of ${targetName}`;
+  } else {
+    if (path.length === 1) {
+      walkDesc = `Walks ${step1.pawnPath.length - 1} spaces to land directly on ${targetName}!`;
+    } else {
+      walkDesc = `Prepares a route that reaches ${targetName} in ${path.length} turns`;
+    }
+  }
+
+  // Safety explanation
+  const safety = path.safetyScore;
+  let safetyDesc = `${safety}% (`;
+  if (safety >= 75) {
+    safetyDesc += "Highly secure, ";
+  } else if (safety >= 45) {
+    safetyDesc += "Moderate safety, ";
+  } else {
+    safetyDesc += "Vulnerable, ";
+  }
+
+  const isFixed = step1.endPos.r % 2 === 0 && step1.endPos.c % 2 === 0;
+  if (isFixed) {
+    safetyDesc += "lands on a fixed tile immune to shifts)";
+  } else {
+    safetyDesc += "lands on a movable tile)";
+  }
+
+  return {
+    slide: slideDesc,
+    walk: walkDesc,
+    safety: safetyDesc
+  };
+}
+
+function calculateSafetyScore(board, spareTile, pawnPos, playerShiftArrowId = null) {
   const ARROWS = [
     'row-1-left', 'row-1-right', 'row-3-left', 'row-3-right', 'row-5-left', 'row-5-right',
     'col-1-top', 'col-1-bottom', 'col-3-top', 'col-3-bottom', 'col-5-top', 'col-5-bottom'
@@ -566,8 +641,13 @@ function calculateSafetyScore(board, spareTile, pawnPos) {
   
   let totalReachable = 0;
   let count = 0;
+  let wrapsCount = 0;
   
   for (const arrowId of ARROWS) {
+    if (playerShiftArrowId && isOppositeArrow(arrowId, playerShiftArrowId)) {
+      continue; // Opponent cannot reverse the player's shift immediately
+    }
+    
     const { type, index, dir } = parseArrowId(arrowId);
     for (let rot = 0; rot < 4; rot++) {
       const nextBoard = cloneBoard(board);
@@ -576,12 +656,27 @@ function calculateSafetyScore(board, spareTile, pawnPos) {
       executeSlideInGrid(nextBoard, rotatedSpare, type, index, dir);
 
       let newPawnPos = { ...pawnPos };
+      let wrapped = false;
       if (type === 'row' && index === pawnPos.r) {
-        if (dir === 'left') newPawnPos.c = (pawnPos.c === 6) ? 0 : pawnPos.c + 1;
-        else newPawnPos.c = (pawnPos.c === 0) ? 6 : pawnPos.c - 1;
+        if (dir === 'left') {
+          if (pawnPos.c === 6) wrapped = true;
+          newPawnPos.c = (pawnPos.c === 6) ? 0 : pawnPos.c + 1;
+        } else {
+          if (pawnPos.c === 0) wrapped = true;
+          newPawnPos.c = (pawnPos.c === 0) ? 6 : pawnPos.c - 1;
+        }
       } else if (type === 'col' && index === pawnPos.c) {
-        if (dir === 'top') newPawnPos.r = (pawnPos.r === 6) ? 0 : pawnPos.r + 1;
-        else newPawnPos.r = (pawnPos.r === 0) ? 6 : pawnPos.r - 1;
+        if (dir === 'top') {
+          if (pawnPos.r === 6) wrapped = true;
+          newPawnPos.r = (pawnPos.r === 6) ? 0 : pawnPos.r + 1;
+        } else {
+          if (pawnPos.r === 0) wrapped = true;
+          newPawnPos.r = (pawnPos.r === 0) ? 6 : pawnPos.r - 1;
+        }
+      }
+      
+      if (wrapped) {
+        wrapsCount++;
       }
       
       const reach = getReachableCells(nextBoard, newPawnPos.r, newPawnPos.c);
@@ -591,81 +686,139 @@ function calculateSafetyScore(board, spareTile, pawnPos) {
   }
   
   const average = totalReachable / count;
-  // A safety index where 15+ average reachable cells is considered 100% safe
-  return Math.min(100, Math.round((average / 15) * 100));
+  // Heuristic 1: Reachability size (up to 70 points)
+  let score = Math.min(70, Math.round((average / 15) * 70));
+  
+  // Heuristic 2: Fixed space bonus (up to 15 points)
+  const isFixedSpace = pawnPos.r % 2 === 0 && pawnPos.c % 2 === 0;
+  if (isFixedSpace) {
+    score += 15;
+  }
+  
+  // Heuristic 3: Exits of the landing tile (up to 15 points)
+  const landingTile = board[pawnPos.r]?.[pawnPos.c];
+  if (landingTile) {
+    let exits = 2;
+    if (landingTile.shape === 'T') exits = 3;
+    else if (landingTile.shape === 'I' || landingTile.shape === 'L') exits = 2;
+    score += (exits === 3) ? 15 : 10;
+  }
+  
+  // Heuristic 4: Wrap penalty (if opponent slides often push us off)
+  const wrapRate = wrapsCount / count;
+  score -= Math.round(wrapRate * 10);
+  
+  return Math.max(0, Math.min(100, score));
 }
 
 /**
- * Solves optimal paths for all cards currently in the player's hand.
- * Attaches a defensive safety score to the first step of each solution.
+ * Normalizes rotation for straight pieces (shape 'I').
+ * For straight pieces: 0° and 180° are identical, as are 90° and 270°.
+ * Returns the normalized rotation (0 or 1 for straight pieces, 0-3 for others).
  */
+function getNormalizedRotation(shape, rotation) {
+  if (shape === 'I') {
+    // For straight pieces, only 0 and 1 matter (vertical vs horizontal)
+    return rotation % 2;
+  }
+  return rotation;
+}
+
 function solveAllHand(board, spareTile, startPawnPos, handCards, lastShiftArrowId = null, maxTurns = 3) {
-  let allPaths = [];
+   let allPaths = [];
+   
+   if (!handCards || handCards.length === 0) {
+     return [];
+   }
+   
+   for (const cardId of handCards) {
+     let paths = solveLabyrinth(board, spareTile, startPawnPos, cardId, lastShiftArrowId, maxTurns);
+     let isFallback = false;
+     
+     if (paths.length === 0) {
+       paths = getFallbackSuggestions(board, spareTile, startPawnPos, cardId, lastShiftArrowId);
+       isFallback = true;
+     }
+     
+     for (const path of paths) {
+       if (path.length > 0) {
+         const step1 = path[0];
+         const { type, index, dir } = parseArrowId(step1.arrowId);
+         
+         const tempBoard = cloneBoard(board);
+         const tempSpare = { ...spareTile, dir: step1.rotation };
+         
+         const slideResult = executeSlideInGrid(tempBoard, tempSpare, type, index, dir);
+         const nextSpare = slideResult.newSpare;
+         
+         const safety = calculateSafetyScore(tempBoard, nextSpare, step1.endPos, step1.arrowId);
+         
+         path.safetyScore = safety;
+         path.cardId = cardId;
+         path.isFallback = isFallback;
+       }
+     }
+     
+     allPaths.push(...paths);
+   }
+   
+   // Sort aggregated solutions across all hand cards
+   allPaths.sort((a, b) => {
+     if (a.isFallback !== b.isFallback) {
+       return a.isFallback ? 1 : -1;
+     }
+     
+     if (a.length !== b.length) {
+       return a.length - b.length;
+     }
+     
+     if (a.isFallback && b.isFallback) {
+       const aDist = a[a.length - 1].minDistance;
+       const bDist = b[b.length - 1].minDistance;
+       if (aDist !== bDist) {
+         return aDist - bDist;
+       }
+     }
+     
+     return b.safetyScore - a.safetyScore;
+   });
+   
+   // Deduplicate sorted suggestions by keeping only the best suggestion for each unique first-turn action
+   // For straight pieces, normalize rotation since 0°/180° and 90°/270° are identical
+   const uniquePaths = [];
+   const seenAction = new Set();
+   for (const path of allPaths) {
+     if (path.length > 0) {
+       const step1 = path[0];
+       const normalizedRot = getNormalizedRotation(spareTile.shape, step1.rotation);
+       const actionKey = `${step1.arrowId}-${normalizedRot}`;
+       if (!seenAction.has(actionKey)) {
+         seenAction.add(actionKey);
+         uniquePaths.push(path);
+       }
+     }
+   }
   
-  if (!handCards || handCards.length === 0) {
-    return [];
+  // Generate natural language explanations for top suggestions
+  for (const path of uniquePaths) {
+    if (path.length > 0) {
+      path.explanation = generateActionExplanation(board, spareTile, path);
+    }
   }
   
-  for (const cardId of handCards) {
-    // 1. Solve paths
-    let paths = solveLabyrinth(board, spareTile, startPawnPos, cardId, lastShiftArrowId, maxTurns);
-    let isFallback = false;
-    
-    if (paths.length === 0) {
-      paths = getFallbackSuggestions(board, spareTile, startPawnPos, cardId, lastShiftArrowId);
-      isFallback = true;
-    }
-    
-    // 2. Attach safety score to the outcome of the first turn step
-    for (const path of paths) {
-      if (path.length > 0) {
-        const step1 = path[0];
-        const { type, index, dir } = parseArrowId(step1.arrowId);
-        
-        const tempBoard = cloneBoard(board);
-        const tempSpare = { ...spareTile, dir: step1.rotation };
-        
-        const slideResult = executeSlideInGrid(tempBoard, tempSpare, type, index, dir);
-        const nextSpare = slideResult.newSpare;
-        
-        // The safety score is evaluated at the end position where the pawn actually stops!
-        const safety = calculateSafetyScore(tempBoard, nextSpare, step1.endPos);
-        
-        path.safetyScore = safety;
-        path.cardId = cardId;
-        path.isFallback = isFallback;
-      }
-    }
-    
-    allPaths.push(...paths);
+  return uniquePaths;
+}
+
+/**
+ * Quickly estimates the minimum number of turns needed to reach a given treasure.
+ * Returns 1 if reachable in one turn, 2 if within 2 turns, or null if not found within maxTurns.
+ */
+function quickSolveMinTurns(board, spareTile, startPawnPos, targetTreasure, lastShiftArrowId = null, maxTurns = 3) {
+  const paths = solveLabyrinth(board, spareTile, startPawnPos, targetTreasure, lastShiftArrowId, Math.min(maxTurns, 3));
+  if (paths.length > 0) {
+    return Math.min(...paths.map(p => p.length));
   }
-  
-  // 3. Sort aggregated solutions across all hand cards
-  allPaths.sort((a, b) => {
-    // A: Direct solutions always rank higher than fallback approximations
-    if (a.isFallback !== b.isFallback) {
-      return a.isFallback ? 1 : -1;
-    }
-    
-    // B: Shortest turn paths first
-    if (a.length !== b.length) {
-      return a.length - b.length;
-    }
-    
-    // C: For fallback solutions, prioritize closer physical proximity
-    if (a.isFallback && b.isFallback) {
-      const aDist = a[a.length - 1].minDistance;
-      const bDist = b[b.length - 1].minDistance;
-      if (aDist !== bDist) {
-        return aDist - bDist;
-      }
-    }
-    
-    // D: Tie breaker - higher safety rating (defensive play)
-    return b.safetyScore - a.safetyScore;
-  });
-  
-  return allPaths;
+  return null; // Not reachable within maxTurns
 }
 
 export { 
@@ -674,6 +827,7 @@ export {
   isOppositeArrow, 
   executeSlideInGrid,
   solveAllHand,
+  quickSolveMinTurns,
   getReachableCells,
   areConnected,
   DIRECTIONS,

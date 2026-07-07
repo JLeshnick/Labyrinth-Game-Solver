@@ -10,9 +10,17 @@ interface TileProps {
   className?: string;
   disabled?: boolean;
   boardRotation?: number;
+  disableRotationTransition?: boolean;
 }
 
-export const Tile: React.FC<TileProps> = ({ tile, onClick, className, disabled, boardRotation = 0 }) => {
+export const Tile: React.FC<TileProps> = ({
+  tile,
+  onClick,
+  className,
+  disabled,
+  boardRotation = 0,
+  disableRotationTransition = false,
+}) => {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: tile.id,
     disabled: tile.isFixed || disabled,
@@ -72,13 +80,14 @@ export const Tile: React.FC<TileProps> = ({ tile, onClick, className, disabled, 
       style={style}
       {...attributes}
       {...listeners}
-      onClick={() => {
+      onClick={(e) => {
+        e.stopPropagation();
         // Prevent drag events from triggering click
         if (transform && (Math.abs(transform.x) > 5 || Math.abs(transform.y) > 5)) return;
         onClick?.();
       }}
       className={cn(
-        "relative w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 lg:w-20 lg:h-20 xl:w-24 xl:h-24 rounded-md shadow-sm border border-amber-900 overflow-hidden flex items-center justify-center transition-opacity",
+        "relative w-full h-full rounded-md shadow-sm border border-amber-900 overflow-hidden flex items-center justify-center transition-opacity",
         isDragging ? "opacity-50" : "opacity-100",
         tile.isFixed ? "bg-amber-800" : "bg-amber-700 cursor-grab active:cursor-grabbing",
         className
@@ -87,12 +96,12 @@ export const Tile: React.FC<TileProps> = ({ tile, onClick, className, disabled, 
     >
       {/* Rotation wrapper */}
       <div
-        className="absolute inset-0 transition-transform duration-200"
+        className={cn("absolute inset-0", !disableRotationTransition && "transition-transform duration-200")}
         style={{ transform: `rotate(${tile.rotation}deg)` }}
       >
         {getPathStyles()}
       </div>
-
+ 
       {/* Starting Corner Colors */}
       {tile.color && (
         <div
@@ -103,7 +112,7 @@ export const Tile: React.FC<TileProps> = ({ tile, onClick, className, disabled, 
           style={{ transform: `rotate(${-boardRotation}deg)` }}
         />
       )}
-
+ 
       {/* Fixed tile lock badge */}
       {tile.isFixed && (
         <div
@@ -114,7 +123,7 @@ export const Tile: React.FC<TileProps> = ({ tile, onClick, className, disabled, 
           <Lock className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
         </div>
       )}
-
+ 
       {/* Treasure Text Badge (Centered) */}
       {tile.treasure && (
         <div 

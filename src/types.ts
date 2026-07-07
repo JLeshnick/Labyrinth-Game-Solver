@@ -42,6 +42,7 @@ export interface AppGameState {
   activePawn: string;
   playerHands: PlayerMap<string[]>;
   playerActiveTargets: PlayerMap<string | null>;
+  obtainedTreasures: PlayerMap<string[]>;
   lastShiftArrowId: string | null;
   isGameStarted: boolean;
   gameStartState: AppGameState | null;
