@@ -794,12 +794,25 @@ function solveAllHand(board, spareTile, startPawnPos, handCards, lastShiftArrowI
   return uniquePaths;
 }
 
+/**
+ * Quickly estimates the minimum number of turns needed to reach a given treasure.
+ * Returns 1 if reachable in one turn, 2 if within 2 turns, or null if not found within maxTurns.
+ */
+function quickSolveMinTurns(board, spareTile, startPawnPos, targetTreasure, lastShiftArrowId = null, maxTurns = 3) {
+  const paths = solveLabyrinth(board, spareTile, startPawnPos, targetTreasure, lastShiftArrowId, Math.min(maxTurns, 3));
+  if (paths.length > 0) {
+    return Math.min(...paths.map(p => p.length));
+  }
+  return null; // Not reachable within maxTurns
+}
+
 export { 
   cloneBoard, 
   parseArrowId, 
   isOppositeArrow, 
   executeSlideInGrid,
   solveAllHand,
+  quickSolveMinTurns,
   getReachableCells,
   areConnected,
   DIRECTIONS,

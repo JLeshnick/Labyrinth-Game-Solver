@@ -12,6 +12,7 @@ import {
 import { FIXED_TILES_PRESETS, SHIFT_ARROWS, generateMovablePool, DEFAULT_PAWN_POSITIONS, EMPTY_PLAYER_HANDS, EMPTY_PLAYER_TARGETS } from "./constants";
 import type { TileData, Rotation, Shape, PlayerMap, PawnPositions } from "./types";
 import { toSolverBoard, toSolverSpare, fromSolverGrid, fromSolverSpare } from "./lib/solverAdapter";
+import { cn } from "./lib/utils";
 import { Board } from "./components/Board";
 import { Tile } from "./components/Tile";
 import { Button } from "./components/ui/button";
@@ -19,6 +20,8 @@ import { LandingPage } from "./components/LandingPage";
 import { SettingsDialog } from "./components/SettingsDialog";
 import { SolverPanel } from "./components/SolverPanel";
 import { SetupPanel } from "./components/SetupPanel";
+import { TrophyPanel } from "./components/TrophyPanel";
+import { StatsPanel } from "./components/StatsPanel";
 import { useLabyrinthHistory } from "./hooks/useLabyrinthHistory";
 import { useLabyrinthStorage, AUTOSAVE_KEY } from "./hooks/useLabyrinthStorage";
 import {
@@ -44,6 +47,7 @@ import {
   Plus,
   FolderOpen,
   Home,
+  Gauge,
 } from "lucide-react";
 import { executeSlideInGrid, isOppositeArrow, getReachableCells } from "./solver";
 
@@ -86,9 +90,17 @@ export default function App() {
   // Player Hands (deal cards) & Active Target Goals
   const [playerHands, setPlayerHands] = useState<PlayerMap<string[]>>(EMPTY_PLAYER_HANDS);
   const [playerActiveTargets, setPlayerActiveTargets] = useState<PlayerMap<string | null>>(EMPTY_PLAYER_TARGETS);
+  const [obtainedTreasures, setObtainedTreasures] = useState<PlayerMap<string[]>>({
+    red: [], blue: [], green: [], yellow: []
+  });
 
   // Pawn Positions
   const [pawnPositions, setPawnPositions] = useState<PawnPositions>(DEFAULT_PAWN_POSITIONS);
+
+  // Move Tracking / Stats
+  const [pawnStats, setPawnStats] = useState<Record<string, { tilesMoved: number; shiftsUsed: number; treasuresFound: number; totalTargets: number }>>({});
+  const [showStats, setShowStats] = useState(false);
+  const totalShiftsRef = useRef(0);
 
   // Active Drag
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -227,6 +239,7 @@ export default function App() {
         activePawn,
         playerHands,
         playerActiveTargets,
+        obtainedTreasures,
         lastShiftArrowId,
         isGameStarted,
         gameStartState,
@@ -309,6 +322,7 @@ export default function App() {
     setLastShiftArrowId(null);
     setPlayerHands(EMPTY_PLAYER_HANDS);
     setPlayerActiveTargets(EMPTY_PLAYER_TARGETS);
+    setObtainedTreasures({ red: [], blue: [], green: [], yellow: [] });
 
     const startState = {
       board: initialGrid,
@@ -316,6 +330,7 @@ export default function App() {
       activePawn: "red",
       playerHands: EMPTY_PLAYER_HANDS,
       playerActiveTargets: EMPTY_PLAYER_TARGETS,
+      obtainedTreasures: { red: [], blue: [], green: [], yellow: [] },
       lastShiftArrowId: null,
       pawnPositions: DEFAULT_PAWN_POSITIONS,
     };
@@ -363,10 +378,11 @@ export default function App() {
       activePawn: "red",
       playerHands: EMPTY_PLAYER_HANDS,
       playerActiveTargets: EMPTY_PLAYER_TARGETS,
+      obtainedTreasures: { red: [], blue: [], green: [], yellow: [] },
       lastShiftArrowId: null,
       pawnPositions: DEFAULT_PAWN_POSITIONS,
     };
- 
+
     resetHistory(startState);
     setCurrentSlotName(finalName);
     setLastSavedTime(Date.now());
@@ -416,6 +432,7 @@ export default function App() {
         activePawn: savedState.activePawn || "red",
         playerHands: savedState.playerHands || EMPTY_PLAYER_HANDS,
         playerActiveTargets: savedState.playerActiveTargets || EMPTY_PLAYER_TARGETS,
+        obtainedTreasures: savedState.obtainedTreasures || { red: [], blue: [], green: [], yellow: [] },
         pawnPositions: savedState.pawnPositions,
       };
       resetHistory(record);
@@ -501,6 +518,7 @@ export default function App() {
         activePawn,
         playerHands,
         playerActiveTargets,
+        obtainedTreasures,
         pawnPositions
       );
       showToast("Board Randomized Successfully!");
@@ -543,6 +561,7 @@ export default function App() {
       setActivePawn(saved.activePawn || "red");
       setPlayerHands(saved.playerHands || EMPTY_PLAYER_HANDS);
       setPlayerActiveTargets(saved.playerActiveTargets || EMPTY_PLAYER_TARGETS);
+      setObtainedTreasures(saved.obtainedTreasures || { red: [], blue: [], green: [], yellow: [] });
       setLastShiftArrowId(saved.lastShiftArrowId || null);
       setIsGameStarted(saved.isGameStarted || false);
       setGameStartState(saved.gameStartState || null);
@@ -560,6 +579,7 @@ export default function App() {
         activePawn: saved.activePawn || "red",
         playerHands: saved.playerHands || EMPTY_PLAYER_HANDS,
         playerActiveTargets: saved.playerActiveTargets || EMPTY_PLAYER_TARGETS,
+        obtainedTreasures: saved.obtainedTreasures || { red: [], blue: [], green: [], yellow: [] },
         pawnPositions: saved.pawnPositions,
       };
       resetHistory(record);
@@ -762,6 +782,7 @@ export default function App() {
         ...prev,
         [activePawn]: { r, c },
       }));
+      trackPawnMove(activePawn, 1);
 
       const activeTargetCard = playerActiveTargets[activePawn];
       const landedTreasure = grid[r][c]?.treasure;
@@ -774,6 +795,11 @@ export default function App() {
           ...prev,
           [activePawn]: nextHand.length > 0 ? nextHand[0] : null,
         }));
+        setObtainedTreasures((prev) => ({
+          ...prev,
+          [activePawn]: [...(prev[activePawn] || []), activeTargetCard]
+        }));
+        trackPawnTreasure(activePawn);
         showToast(`Goal Achieved: Found ${landedTreasure.name}! 🏆`);
       } else {
         showToast(`Moved ${activePawn.toUpperCase()} pawn to (${r}, ${c})`);
@@ -785,8 +811,14 @@ export default function App() {
         lastShiftArrowId,
         activePawn,
         playerHands,
-        playerActiveTargets
+        playerActiveTargets,
+        obtainedTreasures
       );
+
+      // Auto-switch to next pawn after manual move
+      if (!landedTreasure || landedTreasure.id !== activeTargetCard) {
+        switchToNextPawn();
+      }
     } else {
       if (customTargetCoords && customTargetCoords.r === r && customTargetCoords.c === c) {
         setCustomTargetCoords(null);
@@ -855,7 +887,8 @@ export default function App() {
       arrowId,
       activePawn,
       playerHands,
-      playerActiveTargets
+      playerActiveTargets,
+      obtainedTreasures
     );
 
     // Save Autosave
@@ -904,6 +937,43 @@ export default function App() {
     setCustomTargetCoords(null);
   }, []);
 
+  // Track pawn moves
+  const trackPawnMove = useCallback((pawnColor: string, tilesMoved: number = 1) => {
+    setPawnStats((prev) => {
+      const current = prev[pawnColor] || { tilesMoved: 0, shiftsUsed: 0, treasuresFound: 0, totalTargets: 0 };
+      return {
+        ...prev,
+        [pawnColor]: {
+          ...current,
+          tilesMoved: current.tilesMoved + tilesMoved,
+        },
+      };
+    });
+  }, []);
+
+  const trackPawnTreasure = useCallback((pawnColor: string) => {
+    setPawnStats((prev) => {
+      const current = prev[pawnColor] || { tilesMoved: 0, shiftsUsed: 0, treasuresFound: 0, totalTargets: 0 };
+      return {
+        ...prev,
+        [pawnColor]: {
+          ...current,
+          treasuresFound: current.treasuresFound + 1,
+        },
+      };
+    });
+  }, []);
+
+  // Auto-switch to next pawn
+  const switchToNextPawn = useCallback(() => {
+    const currentIndex = activePlayers.indexOf(activePawn);
+    const nextIndex = (currentIndex + 1) % activePlayers.length;
+    const nextPawn = activePlayers[nextIndex];
+    if (nextPawn) {
+      setActivePawn(nextPawn);
+    }
+  }, [activePawn, activePlayers, setActivePawn]);
+
   // Start gameplay
   const handleStartGame = () => {
     if (looseTiles.length !== 1) {
@@ -920,6 +990,7 @@ export default function App() {
       activePawn,
       playerHands: { ...playerHands },
       playerActiveTargets: { ...playerActiveTargets },
+      obtainedTreasures: { ...obtainedTreasures },
       lastShiftArrowId: null as string | null,
       isGameStarted: false,
       gameStartState: null,
@@ -931,7 +1002,7 @@ export default function App() {
     setIsGameStarted(true);
     setGameStartState(startState);
 
-    pushStateToHistory(grid, looseTiles[0], null, activePawn, playerHands, playerActiveTargets);
+    pushStateToHistory(grid, looseTiles[0], null, activePawn, playerHands, playerActiveTargets, obtainedTreasures);
 
     saveAutosave({
       board: grid,
@@ -993,6 +1064,8 @@ export default function App() {
     }));
 
     setLastShiftArrowId(turn1.arrowId);
+    totalShiftsRef.current += 1;
+    trackPawnMove(activePawn, 1);
 
     const activeTargetCard = playerActiveTargets[activePawn];
     const landedTreasure = nextGrid[finalPos.r][finalPos.c]?.treasure;
@@ -1005,6 +1078,11 @@ export default function App() {
         ...prev,
         [activePawn]: nextHand.length > 0 ? nextHand[0] : null,
       }));
+      setObtainedTreasures((prev) => ({
+        ...prev,
+        [activePawn]: [...(prev[activePawn] || []), activeTargetCard]
+      }));
+      trackPawnTreasure(activePawn);
       showToast(`Goal Achieved: Found ${landedTreasure.name}! 🏆`);
     }
 
@@ -1014,8 +1092,12 @@ export default function App() {
       turn1.arrowId,
       activePawn,
       playerHands,
-      playerActiveTargets
+      playerActiveTargets,
+      obtainedTreasures
     );
+
+    // Auto-switch to next pawn after execution
+    switchToNextPawn();
   };
 
   // Derive active paths for overlay suggestions
@@ -1023,6 +1105,23 @@ export default function App() {
     if (!hoveredSolution || hoveredSolution.length === 0) return null;
     return hoveredSolution[0].pawnPath as { r: number; c: number }[];
   }, [hoveredSolution]);
+
+  // Find active target coordinates on board for highlighting
+  const activeTargetCoords = useMemo(() => {
+    const targetId = playerActiveTargets[activePawn];
+    if (!targetId || !grid.length) return null;
+    
+    // Find the treasure on the board
+    for (let r = 0; r < 7; r++) {
+      for (let c = 0; c < 7; c++) {
+        const cell = grid[r]?.[c];
+        if (cell?.treasure && cell.treasure.id === targetId) {
+          return { r, c };
+        }
+      }
+    }
+    return null;
+  }, [playerActiveTargets, activePawn, grid]);
  
   const previewState = useMemo(() => {
     if (!hoveredSolution || hoveredSolution.length === 0) return null;
@@ -1170,20 +1269,21 @@ export default function App() {
             variant="outline"
             size="icon"
             disabled={!canUndo}
-            onClick={() => {
-              if (!isMuted) playClickSound();
-              undo((state: any) => {
-                setGrid(state.board);
-                setSpareTile(state.spareTile);
-                setLastShiftArrowId(state.lastShiftArrowId);
-                setActivePawn(state.activePawn);
-                setPlayerHands(state.playerHands);
-                setPlayerActiveTargets(state.playerActiveTargets);
-                if (state.pawnPositions) {
-                  setPawnPositions(state.pawnPositions);
-                }
-              });
-            }}
+          onClick={() => {
+            if (!isMuted) playClickSound();
+            undo((state: any) => {
+              setGrid(state.board);
+              setSpareTile(state.spareTile);
+              setLastShiftArrowId(state.lastShiftArrowId);
+              setActivePawn(state.activePawn);
+              setPlayerHands(state.playerHands);
+              setPlayerActiveTargets(state.playerActiveTargets);
+              setObtainedTreasures(state.obtainedTreasures || { red: [], blue: [], green: [], yellow: [] });
+              if (state.pawnPositions) {
+                setPawnPositions(state.pawnPositions);
+              }
+            });
+          }}
             className="border-stone-800 hover:bg-stone-900 disabled:opacity-30"
             title="Undo"
             aria-label="Undo"
@@ -1195,20 +1295,21 @@ export default function App() {
             variant="outline"
             size="icon"
             disabled={!canRedo}
-            onClick={() => {
-              if (!isMuted) playClickSound();
-              redo((state: any) => {
-                setGrid(state.board);
-                setSpareTile(state.spareTile);
-                setLastShiftArrowId(state.lastShiftArrowId);
-                setActivePawn(state.activePawn);
-                setPlayerHands(state.playerHands);
-                setPlayerActiveTargets(state.playerActiveTargets);
-                if (state.pawnPositions) {
-                  setPawnPositions(state.pawnPositions);
-                }
-              });
-            }}
+          onClick={() => {
+            if (!isMuted) playClickSound();
+            redo((state: any) => {
+              setGrid(state.board);
+              setSpareTile(state.spareTile);
+              setLastShiftArrowId(state.lastShiftArrowId);
+              setActivePawn(state.activePawn);
+              setPlayerHands(state.playerHands);
+              setPlayerActiveTargets(state.playerActiveTargets);
+              setObtainedTreasures(state.obtainedTreasures || { red: [], blue: [], green: [], yellow: [] });
+              if (state.pawnPositions) {
+                setPawnPositions(state.pawnPositions);
+              }
+            });
+          }}
             className="border-stone-800 hover:bg-stone-900 disabled:opacity-30"
             title="Redo"
             aria-label="Redo"
@@ -1246,6 +1347,25 @@ export default function App() {
           </Button>
 
           {/* Start/End game */}
+          {isGameStarted && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                if (!isMuted) playClickSound();
+                setShowStats((prev) => !prev);
+              }}
+              className={cn(
+                "border-stone-800 hover:bg-stone-900 gap-1.5 h-8",
+                showStats ? "bg-theme-primary-20 border-theme-primary-40 text-theme-primary" : "text-stone-300"
+              )}
+              title="Toggle Stats"
+            >
+              <Gauge className="w-3.5 h-3.5" />
+              <span className="text-xs">Stats</span>
+            </Button>
+          )}
+
           {isGameStarted ? (
             <Button variant="destructive" onClick={handleEndGame} className="gap-2">
               <Unlock className="w-4 h-4" />
@@ -1298,7 +1418,7 @@ export default function App() {
             setPeekSlotKey={setPeekSlotKey}
             peekedState={peekedState}
             onSaveSlot={async (name) => {
-              const currentAppState = { board: grid, spareTile, looseTiles, activePawn, playerHands, playerActiveTargets, lastShiftArrowId, isGameStarted, gameStartState, pawnPositions };
+              const currentAppState = { board: grid, spareTile, looseTiles, activePawn, playerHands, playerActiveTargets, obtainedTreasures, lastShiftArrowId, isGameStarted, gameStartState, pawnPositions };
               const success = await saveSlot(name, currentAppState);
               if (success) { showToast("Game Saved Successfully!"); setCurrentSlotName(name); setLastSavedTime(Date.now()); setSaveName(""); }
             }}
@@ -1356,32 +1476,45 @@ export default function App() {
                 hoveredSolutionArrow={hoveredSolution ? hoveredSolution[0].arrowId : null}
                 boardRotation={boardRotation}
                 customTargetCoords={customTargetCoords}
+                activeTargetCoords={activeTargetCoords}
               />
             </div>
           </div>
 
           {/* Sidebar Editor / Play Control panel */}
-          <div className="w-full lg:w-[400px] xl:w-[440px] flex flex-col flex-shrink-0 min-h-0 lg:h-full">
-            {isGameStarted ? (
-              <SolverPanel
-                solutions={solutions}
-                isLoadingSolutions={isLoadingSolutions}
-                hoveredSolution={hoveredSolution}
-                setHoveredSolution={setHoveredSolution}
-                maxTurns={maxTurns}
-                setMaxTurns={setMaxTurns}
-                activePawn={activePawn}
-                setActivePawn={setActivePawn}
-                activePlayers={activePlayers}
-                isMuted={isMuted}
-                spareTile={previewState ? previewState.spareTile : spareTile}
-                customTargetCoords={customTargetCoords}
-                setCustomTargetCoords={setCustomTargetCoords}
-                onExecuteSolution={handleExecuteSolution}
-                playerActiveTargets={playerActiveTargets}
-                onSelectTargetTreasure={handleSelectTargetTreasure}
-              />
-            ) : (
+          <div className="w-full lg:w-[400px] xl:w-[440px] flex flex-col flex-shrink-0 min-h-0 lg:h-full gap-3">
+            {isGameStarted && (
+              <>
+                <TrophyPanel
+                  activePlayers={activePlayers}
+                  playerHands={playerHands}
+                  obtainedTreasures={obtainedTreasures}
+                />
+                <SolverPanel
+                  solutions={solutions}
+                  isLoadingSolutions={isLoadingSolutions}
+                  hoveredSolution={hoveredSolution}
+                  setHoveredSolution={setHoveredSolution}
+                  maxTurns={maxTurns}
+                  setMaxTurns={setMaxTurns}
+                  activePawn={activePawn}
+                  setActivePawn={setActivePawn}
+                  activePlayers={activePlayers}
+                  isMuted={isMuted}
+                  spareTile={previewState ? previewState.spareTile : spareTile}
+                  customTargetCoords={customTargetCoords}
+                  setCustomTargetCoords={setCustomTargetCoords}
+                  onExecuteSolution={handleExecuteSolution}
+                  playerActiveTargets={playerActiveTargets}
+                  onSelectTargetTreasure={handleSelectTargetTreasure}
+                  obtainedTreasures={obtainedTreasures}
+                  grid={grid}
+                  pawnPositions={pawnPositions}
+                  lastShiftArrowId={lastShiftArrowId}
+                />
+              </>
+            )}
+            {!isGameStarted && (
               <SetupPanel
                 looseTiles={looseTiles}
                 activePlayers={activePlayers}
@@ -1483,6 +1616,18 @@ export default function App() {
         </DialogContent>
       </Dialog>
  
+      {/* Stats Dialog */}
+      <Dialog open={showStats} onOpenChange={setShowStats}>
+        <DialogContent className="sm:max-w-[500px] bg-stone-900 border border-stone-800 text-stone-100 shadow-2xl p-0 rounded-2xl overflow-hidden">
+          <StatsPanel
+            activePlayers={activePlayers}
+            pawnStats={pawnStats}
+            totalShifts={totalShiftsRef.current}
+            obtainedTreasures={obtainedTreasures}
+          />
+        </DialogContent>
+      </Dialog>
+
       {/* Floating Notification Toast */}
       {toastText && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 px-6 py-3 bg-stone-900 border border-theme-primary-20 text-stone-100 font-semibold text-sm rounded-full shadow-2xl shadow-black z-50 animate-toast-in flex items-center gap-2">

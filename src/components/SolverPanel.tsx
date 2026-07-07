@@ -3,6 +3,7 @@ import { Button } from "./ui/button";
 import { Tile } from "./Tile";
 import { PAWNS, TREASURES } from "../constants";
 import { playClickSound } from "../utils/audio";
+import { quickSolveMinTurns } from "../solver";
 import type { TileData } from "../types";
 
 interface SolverPanelProps {
@@ -22,6 +23,10 @@ interface SolverPanelProps {
   onExecuteSolution: (sol: any[]) => void;
   playerActiveTargets: Record<string, string | null>;
   onSelectTargetTreasure: (pawn: string, treasureId: string | null) => void;
+  obtainedTreasures: Record<string, string[]>;
+  grid: (TileData | null)[][];
+  pawnPositions: Record<string, { r: number; c: number }>;
+  lastShiftArrowId: string | null;
 }
  
 export function SolverPanel({
@@ -40,6 +45,10 @@ export function SolverPanel({
   onExecuteSolution,
   playerActiveTargets,
   onSelectTargetTreasure,
+  obtainedTreasures,
+  grid,
+  pawnPositions,
+  lastShiftArrowId,
 }: SolverPanelProps) {
   return (
     <div className="flex-1 flex flex-col min-h-0 gap-4 bg-stone-900/50 border border-stone-800 rounded-2xl p-5 backdrop-blur-xl">
@@ -89,14 +98,32 @@ export function SolverPanel({
                     const val = e.target.value || null;
                     onSelectTargetTreasure(activePawn, val);
                   }}
-                  className="bg-stone-905 border border-stone-800 text-stone-200 rounded px-1.5 py-0.5 text-xs focus:border-theme-primary outline-none transition-colors max-w-[150px] truncate"
+                  className="bg-stone-905 border border-stone-800 text-stone-200 rounded px-1.5 py-0.5 text-xs focus:border-theme-primary outline-none transition-colors max-w-[180px] truncate"
                 >
                   <option value="">-- No Target --</option>
-                  {TREASURES.map((t) => (
-                    <option key={t.id} value={t.id}>
-                      {t.name}
-                    </option>
-                  ))}
+                  {TREASURES.filter(t => {
+                    // Filter out treasures obtained by ANY player
+                    const allObtained = Object.values(obtainedTreasures).flat();
+                    return !allObtained.includes(t.id);
+                  })
+                    .sort((a, b) => a.name.localeCompare(b.name))
+                    .map((t) => {
+                      const pawnPos = pawnPositions[activePawn];
+                      if (!pawnPos) return <option key={t.id} value={t.id}>{t.name}</option>;
+                      const turns = quickSolveMinTurns(
+                        grid.map(row => row.map(cell => cell ? { ...cell, pawns: [] } : null)),
+                        { ...spareTile, pawns: [] },
+                        pawnPos,
+                        t.id,
+                        lastShiftArrowId,
+                        maxTurns
+                      );
+                      return (
+                        <option key={t.id} value={t.id}>
+                          {t.name} {turns !== null ? `(${turns} move${turns !== 1 ? 's' : ''})` : ''}
+                        </option>
+                      );
+                    })}
                 </select>
               )}
             </div>

@@ -20,6 +20,7 @@ interface BoardSpaceProps {
   onTileClick: (id: string) => void;
   boardRotation: number;
   isCustomTarget?: boolean;
+  isActiveTarget?: boolean;
   previewSlideClass?: string;
 }
 
@@ -36,6 +37,7 @@ const BoardSpace: React.FC<BoardSpaceProps> = ({
   onTileClick,
   boardRotation,
   isCustomTarget,
+  isActiveTarget,
   previewSlideClass,
 }) => {
   const isFixedSpace = x % 2 === 0 && y % 2 === 0;
@@ -66,11 +68,15 @@ const BoardSpace: React.FC<BoardSpaceProps> = ({
         isOver && !tile ? "ring-2 ring-theme-primary ring-inset bg-theme-primary-10" : "",
         isOnHoveredPath ? "ring-2 ring-theme-primary ring-offset-2 ring-offset-stone-950 shadow-[0_0_12px_rgba(var(--theme-color-rgb),0.3)]" : "",
         isCustomTarget ? "ring-2 ring-theme-primary ring-offset-2 ring-offset-stone-950 shadow-[0_0_15px_rgba(var(--theme-color-rgb),0.55)] z-10" : "",
-        previewSlideClass
+        previewSlideClass,
+        isActiveTarget ? "ring-4 ring-amber-300 ring-offset-2 ring-offset-stone-950 shadow-[0_0_20px_rgba(251,191,36,0.6)] animate-pulse-border" : ""
       )}
     >
       {isCustomTarget && (
         <div className="absolute top-1 right-1 w-2.5 h-2.5 rounded-full bg-theme-primary animate-ping pointer-events-none z-30" />
+      )}
+      {isActiveTarget && (
+        <div className="absolute top-1 left-1 w-3 h-3 rounded-full bg-amber-300 animate-ping pointer-events-none z-30 shadow-[0_0_8px_rgba(251,191,36,0.8)]" />
       )}
       {tile ? (
         <Tile
@@ -127,6 +133,7 @@ interface BoardProps {
   hoveredSolutionArrow: string | null;
   boardRotation?: number;
   customTargetCoords?: { r: number; c: number } | null;
+  activeTargetCoords?: { r: number; c: number } | null;
 }
 
 export const Board: React.FC<BoardProps> = ({
@@ -142,14 +149,15 @@ export const Board: React.FC<BoardProps> = ({
   hoveredSolutionArrow,
   boardRotation = 0,
   customTargetCoords,
+  activeTargetCoords,
 }) => {
 
   return (
-    <div className="p-3 sm:p-5 bg-stone-900 border-4 border-stone-800 rounded-3xl shadow-2xl relative w-full h-full flex items-center justify-center">
+    <div className="p-3 sm:p-5 bg-stone-900 border-4 border-stone-800 rounded-3xl shadow-2xl relative w-full h-full flex items-center justify-center overflow-visible">
       {/* CSS Grid Layout */}
       <div 
         className={cn(
-          "grid gap-1.5 w-full h-full justify-items-stretch items-stretch transition-transform duration-300 relative",
+          "grid gap-1.5 w-full h-full justify-items-stretch items-stretch transition-transform duration-300 overflow-visible",
           isGameStarted ? "grid-cols-9 grid-rows-9" : "grid-cols-7 grid-rows-7"
         )}
         style={{ transform: `rotate(${boardRotation}deg)` }}
@@ -252,6 +260,7 @@ export const Board: React.FC<BoardProps> = ({
             const isPathEnd = hoveredPath && hoveredPath.length > 0 ? (hoveredPath[hoveredPath.length - 1].r === r && hoveredPath[hoveredPath.length - 1].c === c) : false;
  
             const isCustomTarget = !!(customTargetCoords && customTargetCoords.r === r && customTargetCoords.c === c);
+            const isActiveTarget = !!(activeTargetCoords && activeTargetCoords.r === r && activeTargetCoords.c === c && !isCustomTarget);
  
             let previewSlideClass = "";
             if (hoveredSolutionArrow) {
@@ -280,13 +289,14 @@ export const Board: React.FC<BoardProps> = ({
                 onTileClick={onTileClick}
                 boardRotation={boardRotation}
                 isCustomTarget={isCustomTarget}
+                isActiveTarget={isActiveTarget}
                 previewSlideClass={previewSlideClass}
               />
             );
           })
         )}
  
-        {/* Render Pushed-Out Tile Preview */}
+      {/* Render Pushed-Out Tile Preview */}
         {isGameStarted && hoveredSolutionArrow && (() => {
           const arrow = SHIFT_ARROWS.find((a) => a.id === hoveredSolutionArrow);
           if (!arrow) return null;
@@ -296,7 +306,7 @@ export const Board: React.FC<BoardProps> = ({
           let gridRow = 0;
           let gridColumn = 0;
           let animClass = "";
- 
+  
           if (arrow.type === "row") {
             const r = arrow.index;
             if (arrow.dir === "left") {
@@ -324,13 +334,13 @@ export const Board: React.FC<BoardProps> = ({
               animClass = "animate-preview-slide-out-up";
             }
           }
- 
+  
           if (!pushedTile) return null;
- 
+  
           return (
             <div
               style={{ gridRow, gridColumn }}
-              className={cn("w-full h-full aspect-square rounded-lg overflow-hidden relative border border-stone-850 bg-stone-950 pointer-events-none opacity-60 z-20 shadow-2xl", animClass)}
+              className={cn("w-full h-full aspect-square rounded-lg overflow-hidden border border-stone-850 bg-stone-950 pointer-events-none opacity-60 shadow-2xl", animClass)}
             >
               <Tile tile={pushedTile} disabled boardRotation={boardRotation} disableRotationTransition={true} className="absolute inset-0 w-full h-full" />
             </div>

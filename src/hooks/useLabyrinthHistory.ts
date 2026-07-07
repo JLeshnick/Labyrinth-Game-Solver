@@ -13,6 +13,7 @@ interface HistoryRecord {
   activePawn: string;
   playerHands: PlayerMap<string[]>;
   playerActiveTargets: PlayerMap<string | null>;
+  obtainedTreasures: PlayerMap<string[]>;
   pawnPositions?: PawnPositions;
 }
 
@@ -34,6 +35,7 @@ export function useLabyrinthHistory(initialState: HistoryRecord | null) {
       activePawn: string,
       playerHands: PlayerMap<string[]>,
       playerActiveTargets: PlayerMap<string | null>,
+      obtainedTreasures: PlayerMap<string[]>,
       pawnPositions?: PawnPositions
     ) => {
       const record: HistoryRecord = deepClone({
@@ -43,6 +45,7 @@ export function useLabyrinthHistory(initialState: HistoryRecord | null) {
         activePawn,
         playerHands,
         playerActiveTargets,
+        obtainedTreasures,
         pawnPositions,
       });
 
