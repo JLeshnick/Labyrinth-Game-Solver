@@ -24,3 +24,7 @@ release/
 *.sln
 *.sw?
 .aider*
+
+# Release notes
+release_notes.md
+
