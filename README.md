@@ -21,20 +21,33 @@ It runs locally as a cross-platform desktop application powered by **Electron**,
 
 ## Getting Started
 
-### Option A: Standalone Desktop App (Recommended)
-You can compile and run Labyrinth Game Solver as a native standalone application on your operating system.
+### Option A: Standalone Desktop App (Recommended / Easiest)
+If you want to run the Labyrinth Game Solver instantly without editing code or using the terminal, you can download a pre-packaged installer:
+
+1. Go to the [Labyrinth Game Solver Releases page](https://github.com/JLeshnick/Labyrinth-Game-Solver/releases) on GitHub.
+2. Download the installer for your operating system:
+   - **macOS**: Download the `.dmg` or `.zip` file.
+   - **Windows**: Download the `.exe` installer.
+3. Install and launch:
+   - **macOS**: Open the `.dmg` and drag Coaster HUD Studio to your Applications folder.
+   - **Windows**: Run the `.exe` file and follow the onscreen setup prompts.
+
+The packaged app automatically checks for and applies new updates on startup.
+
+---
+
+### Option B: Developer Setup (Running from Source)
 
 #### Prerequisites
-- [Node.js](https://nodejs.org/) (v18 or newer)
-- [Git](https://git-scm.com/)
+To run the project from source, you need [Node.js](https://nodejs.org/) (v18 or newer) and [Git](https://git-scm.com/) installed on your computer.
 
 #### Installation
 1. Clone the repository:
    ```bash
-   git clone https://github.com/jleshnick/Labyrinth-Game-Solver.git
-   cd Labyrinth-Game-Solver
+   git clone https://github.com/jleshnick/Coaster-Telemetry-Video-Overlay.git
+   cd Coaster-Telemetry-Video-Overlay
    ```
-2. Install package dependencies:
+2. Install the package dependencies:
    ```bash
    npm install
    ```
