@@ -280,7 +280,7 @@ export default function App() {
       setSettingsTab("profiles");
       setIsSettingsOpen(true);
     }
-  }, [currentSlotName, grid, spareTile, looseTiles, activePawn, playerHands, playerActiveTargets, lastShiftArrowId, isGameStarted, gameStartState, pawnPositions, slots, showToast, isMuted, saveSlot]);
+  }, [currentSlotName, grid, spareTile, looseTiles, activePawn, playerHands, playerActiveTargets, obtainedTreasures, lastShiftArrowId, isGameStarted, gameStartState, pawnPositions, slots, showToast, isMuted, saveSlot]);
 
   // Board/spare → solver format (thin wrappers so callbacks can reference them)
   const getSolverFormattedBoard = useCallback(
@@ -523,7 +523,7 @@ export default function App() {
       );
       showToast("Board Randomized Successfully!");
     }
-  }, [isGameStarted, isMuted, activePawn, playerHands, playerActiveTargets, pawnPositions, pushStateToHistory, showToast]);
+  }, [isGameStarted, isMuted, activePawn, playerHands, playerActiveTargets, obtainedTreasures, pawnPositions, pushStateToHistory, showToast]);
 
   // Load layout from localStorage or initialize defaults
   useEffect(() => {
