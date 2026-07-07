@@ -79,7 +79,11 @@ export function SettingsDialog({
         </Button>
       </DialogTrigger>
 
-      <DialogContent className="sm:max-w-[90vw] w-[90vw] h-[90vh] max-h-[90vh] bg-stone-900 border-stone-800 text-stone-100 shadow-2xl p-0 rounded-2xl flex flex-col overflow-hidden">
+      <DialogContent className="sm:max-w-[90vw] w-[90vw] h-[90vh] max-h-[90vh] bg-stone-900 border-stone-800 text-stone-100 shadow-2xl p-0 rounded-2xl flex flex-col overflow-hidden" onKeyDown={(e) => {
+        if (e.key === " ") {
+          e.stopPropagation();
+        }
+      }}>
         <DialogHeader className="shrink-0 border-b border-stone-800 px-6 py-4 flex flex-row items-center justify-between bg-gradient-to-r from-stone-950/30 to-transparent">
           <DialogTitle className="text-lg font-bold tracking-tight text-theme-primary flex items-center gap-2">
             <Settings className="w-5 h-5 text-theme-primary" />
@@ -134,6 +138,11 @@ export function SettingsDialog({
                         placeholder="Slot Name (e.g. Map Trial 1)..."
                         value={saveName}
                         onChange={(e) => setSaveName(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === " ") {
+                            e.stopPropagation();
+                          }
+                        }}
                         className="flex-1 bg-stone-950 border border-stone-800 hover:border-stone-700 text-stone-100 rounded-xl px-3 py-2 text-sm outline-none focus:border-theme-primary transition-colors"
                       />
                       <Button

@@ -778,27 +778,35 @@ export default function App() {
 
     if (reachable) {
       if (!isMuted) playPawnMoveSound();
-      setPawnPositions((prev) => ({
-        ...prev,
+      const nextPositions = {
+        ...pawnPositions,
         [activePawn]: { r, c },
-      }));
+      };
+      setPawnPositions(nextPositions);
       trackPawnMove(activePawn, 1);
 
       const activeTargetCard = playerActiveTargets[activePawn];
       const landedTreasure = grid[r][c]?.treasure;
 
+      let nextPlayerHands = playerHands;
+      let nextPlayerActiveTargets = playerActiveTargets;
+      let nextObtainedTreasures = obtainedTreasures;
+
       if (landedTreasure && landedTreasure.id === activeTargetCard) {
         if (!isMuted) playSuccessSound();
         const nextHand = playerHands[activePawn].filter((id) => id !== activeTargetCard);
-        setPlayerHands((prev) => ({ ...prev, [activePawn]: nextHand }));
-        setPlayerActiveTargets((prev) => ({
-          ...prev,
+        nextPlayerHands = { ...playerHands, [activePawn]: nextHand };
+        nextPlayerActiveTargets = {
+          ...playerActiveTargets,
           [activePawn]: nextHand.length > 0 ? nextHand[0] : null,
-        }));
-        setObtainedTreasures((prev) => ({
-          ...prev,
-          [activePawn]: [...(prev[activePawn] || []), activeTargetCard]
-        }));
+        };
+        nextObtainedTreasures = {
+          ...obtainedTreasures,
+          [activePawn]: [...(obtainedTreasures[activePawn] || []), activeTargetCard]
+        };
+        setPlayerHands(nextPlayerHands);
+        setPlayerActiveTargets(nextPlayerActiveTargets);
+        setObtainedTreasures(nextObtainedTreasures);
         trackPawnTreasure(activePawn);
         showToast(`Goal Achieved: Found ${landedTreasure.name}! 🏆`);
       } else {
@@ -810,10 +818,26 @@ export default function App() {
         spareTile,
         lastShiftArrowId,
         activePawn,
-        playerHands,
-        playerActiveTargets,
-        obtainedTreasures
+        nextPlayerHands,
+        nextPlayerActiveTargets,
+        nextObtainedTreasures
       );
+
+      // Auto-save after manual pawn moves
+      saveAutosave({
+        board: grid,
+        looseTiles: [],
+        spareTile,
+        activePawn,
+        playerHands: nextPlayerHands,
+        playerActiveTargets: nextPlayerActiveTargets,
+        obtainedTreasures: nextObtainedTreasures,
+        lastShiftArrowId,
+        isGameStarted,
+        gameStartState,
+        pawnPositions: nextPositions,
+      });
+      setLastSavedTime(Date.now());
 
       // Auto-switch to next pawn after manual move
       if (!landedTreasure || landedTreasure.id !== activeTargetCard) {
@@ -904,6 +928,7 @@ export default function App() {
       gameStartState,
       pawnPositions: nextPositions,
     });
+    setLastSavedTime(Date.now());
   };
 
   // Deal card logic
@@ -974,6 +999,24 @@ export default function App() {
     }
   }, [activePawn, activePlayers, setActivePawn]);
 
+  // Auto-save on board setup changes (only when game is not started)
+  useEffect(() => {
+    if (isGameStarted) return;
+    saveAutosave({
+      board: grid,
+      looseTiles,
+      spareTile,
+      activePawn,
+      playerHands,
+      playerActiveTargets,
+      lastShiftArrowId,
+      isGameStarted,
+      gameStartState,
+      pawnPositions,
+    });
+    setLastSavedTime(Date.now());
+  }, [grid, looseTiles, spareTile, activePawn, playerHands, playerActiveTargets, lastShiftArrowId, isGameStarted, gameStartState, pawnPositions, saveAutosave]);
+
   // Start gameplay
   const handleStartGame = () => {
     if (looseTiles.length !== 1) {
@@ -1016,6 +1059,7 @@ export default function App() {
       gameStartState: startState,
       pawnPositions,
     });
+    setLastSavedTime(Date.now());
 
     showToast("Game started! Slide the spare tile and move your pawn to targets.");
   };
@@ -1054,14 +1098,16 @@ export default function App() {
 
     const nextGrid = fromSolverGrid(grid, solverBoard, nextTileId);
     setGrid(nextGrid);
-    setSpareTile(fromSolverSpare(newSpare, String(Date.now())));
+    const nextSpare = fromSolverSpare(newSpare, String(Date.now()));
+    setSpareTile(nextSpare);
 
     // End coordinate
     const finalPos = turn1.endPos;
-    setPawnPositions((prev) => ({
-      ...prev,
+    const nextPositions = {
+      ...pawnPositions,
       [activePawn]: { r: finalPos.r, c: finalPos.c },
-    }));
+    };
+    setPawnPositions(nextPositions);
 
     setLastShiftArrowId(turn1.arrowId);
     totalShiftsRef.current += 1;
@@ -1070,18 +1116,25 @@ export default function App() {
     const activeTargetCard = playerActiveTargets[activePawn];
     const landedTreasure = nextGrid[finalPos.r][finalPos.c]?.treasure;
 
+    let nextPlayerHands = playerHands;
+    let nextPlayerActiveTargets = playerActiveTargets;
+    let nextObtainedTreasures = obtainedTreasures;
+
     if (landedTreasure && landedTreasure.id === activeTargetCard) {
       if (!isMuted) playSuccessSound();
       const nextHand = playerHands[activePawn].filter((id) => id !== activeTargetCard);
-      setPlayerHands((prev) => ({ ...prev, [activePawn]: nextHand }));
-      setPlayerActiveTargets((prev) => ({
-        ...prev,
+      nextPlayerHands = { ...playerHands, [activePawn]: nextHand };
+      nextPlayerActiveTargets = {
+        ...playerActiveTargets,
         [activePawn]: nextHand.length > 0 ? nextHand[0] : null,
-      }));
-      setObtainedTreasures((prev) => ({
-        ...prev,
-        [activePawn]: [...(prev[activePawn] || []), activeTargetCard]
-      }));
+      };
+      nextObtainedTreasures = {
+        ...obtainedTreasures,
+        [activePawn]: [...(obtainedTreasures[activePawn] || []), activeTargetCard]
+      };
+      setPlayerHands(nextPlayerHands);
+      setPlayerActiveTargets(nextPlayerActiveTargets);
+      setObtainedTreasures(nextObtainedTreasures);
       trackPawnTreasure(activePawn);
       showToast(`Goal Achieved: Found ${landedTreasure.name}! 🏆`);
     }
@@ -1091,10 +1144,26 @@ export default function App() {
       spareTile,
       turn1.arrowId,
       activePawn,
-      playerHands,
-      playerActiveTargets,
-      obtainedTreasures
+      nextPlayerHands,
+      nextPlayerActiveTargets,
+      nextObtainedTreasures
     );
+
+    // Auto-save after executing solver solutions
+    saveAutosave({
+      board: nextGrid,
+      looseTiles: [],
+      spareTile: nextSpare,
+      activePawn,
+      playerHands: nextPlayerHands,
+      playerActiveTargets: nextPlayerActiveTargets,
+      obtainedTreasures: nextObtainedTreasures,
+      lastShiftArrowId: turn1.arrowId,
+      isGameStarted,
+      gameStartState,
+      pawnPositions: nextPositions,
+    });
+    setLastSavedTime(Date.now());
 
     // Auto-switch to next pawn after execution
     switchToNextPawn();
@@ -1557,7 +1626,11 @@ export default function App() {
         setIsNewGameDialogOpen(open);
         if (!open) setNewGameName("");
       }}>
-        <DialogContent className="sm:max-w-[425px] bg-stone-900 border border-stone-800 text-stone-100 shadow-2xl p-6 rounded-2xl">
+        <DialogContent className="sm:max-w-[425px] bg-stone-900 border border-stone-800 text-stone-100 shadow-2xl p-6 rounded-2xl" onKeyDown={(e) => {
+          if (e.key === " ") {
+            e.stopPropagation();
+          }
+        }}>
           <DialogHeader>
             <DialogTitle className="text-lg font-bold tracking-tight text-theme-primary flex items-center gap-2">
               <Plus className="w-5 h-5 text-theme-primary" />
@@ -1578,15 +1651,18 @@ export default function App() {
                 placeholder="e.g. My Game Layout"
                 value={newGameName}
                 onChange={(e) => setNewGameName(e.target.value)}
-                className="bg-stone-950 border border-stone-800 hover:border-stone-700 text-stone-100 rounded-xl px-3 py-2 text-sm outline-none focus:border-theme-primary transition-colors"
-                autoFocus
                 onKeyDown={(e) => {
                   if (e.key === "Enter") {
                     handleNewGame(newGameName);
                     setIsNewGameDialogOpen(false);
                     setNewGameName("");
                   }
+                  if (e.key === " ") {
+                    e.stopPropagation();
+                  }
                 }}
+                className="bg-stone-950 border border-stone-800 hover:border-stone-700 text-stone-100 rounded-xl px-3 py-2 text-sm outline-none focus:border-theme-primary transition-colors"
+                autoFocus
               />
             </div>
           </div>
@@ -1618,7 +1694,11 @@ export default function App() {
  
       {/* Stats Dialog */}
       <Dialog open={showStats} onOpenChange={setShowStats}>
-        <DialogContent className="sm:max-w-[500px] bg-stone-900 border border-stone-800 text-stone-100 shadow-2xl p-0 rounded-2xl overflow-hidden">
+        <DialogContent className="sm:max-w-[500px] bg-stone-900 border border-stone-800 text-stone-100 shadow-2xl p-0 rounded-2xl overflow-hidden" onKeyDown={(e) => {
+          if (e.key === " ") {
+            e.stopPropagation();
+          }
+        }}>
           <StatsPanel
             activePlayers={activePlayers}
             pawnStats={pawnStats}

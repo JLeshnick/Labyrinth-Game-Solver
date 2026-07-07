@@ -162,13 +162,48 @@ export function SolverPanel({
                     )}
                     <span className="text-[10px] text-stone-500">({sol.length} turn{sol.length > 1 ? "s" : ""})</span>
                   </div>
-                  <div className="text-xs font-medium text-stone-100 mt-2 font-mono leading-relaxed">
+                  <div className="text-xs font-semibold mt-1.5">
+                    {(() => {
+                      const firstStep = sol[0];
+                      if (!firstStep?.pawnPath) return null;
+                      const firstStepMoves = firstStep.pawnPath.length - 1;
+                      
+                      const firstStepText = firstStepMoves > 0 ? (
+                        <span className="text-blue-400/80">
+                          Pawn moves <span className="text-blue-300 font-bold">{firstStepMoves}</span> tile{firstStepMoves !== 1 ? 's' : ''} on execution
+                        </span>
+                      ) : (
+                        <span className="text-amber-400/80">
+                          Pawn stays stationary on execution
+                        </span>
+                      );
+
+                      if (sol.length === 1) {
+                        return firstStepText;
+                      } else {
+                        // Calculate total correct sum of moves across the whole multi-turn path
+                        const totalMoves = sol.reduce((sum: number, step: any) => {
+                          const stepMoves = step.pawnPath ? step.pawnPath.length - 1 : 0;
+                          return sum + Math.max(0, stepMoves);
+                        }, 0);
+                        return (
+                          <div className="flex flex-col gap-0.5">
+                            {firstStepText}
+                            <div className="text-purple-400/80 text-[10px]">
+                              Total route moves: <span className="text-purple-300 font-bold">{totalMoves}</span> tile{totalMoves !== 1 ? 's' : ''} across {sol.length} turns
+                            </div>
+                          </div>
+                        );
+                      }
+                    })()}
+                  </div>
+                  <div className="text-xs font-medium text-stone-100 mt-1 font-mono leading-relaxed">
                     {sol.explanation?.slide}
                   </div>
                   <div className="text-xs text-stone-400 mt-1 leading-relaxed">
                     {sol.explanation?.walk}
                   </div>
-                  <div className="text-[10px] text-stone-500 mt-2">
+                  <div className="text-[10px] text-stone-500 mt-1">
                     Safety: <span className={sol.safetyScore >= 75 ? "text-green-400 font-medium" : sol.safetyScore >= 45 ? "text-amber-400 font-medium" : "text-red-400 font-medium"}>
                       {sol.explanation?.safety}
                     </span>

@@ -34,8 +34,25 @@ export function LandingPage({ allSlots, onNewGame, onLoadSlot }: LandingPageProp
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-3xl min-h-0">
           {/* New Game */}
-          <button
-            onClick={() => onNewGame(gameName)}
+          <div
+            role="button"
+            tabIndex={0}
+            onClick={(e) => {
+              // Only trigger if clicking the card background or non-input elements
+              const target = e.target as HTMLElement;
+              if (target.tagName !== "INPUT" && target.tagName !== "SPAN") {
+                onNewGame(gameName);
+              }
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                const target = e.target as HTMLElement;
+                if (target.tagName !== "INPUT") {
+                  e.preventDefault();
+                  onNewGame(gameName);
+                }
+              }
+            }}
             className="group relative flex flex-col items-center text-center gap-6 p-8 rounded-2xl bg-stone-900/50 border border-stone-800 hover:border-theme-primary-40 hover:bg-stone-900 transition-all cursor-pointer shadow-xl text-left"
           >
             <div className="w-14 h-14 rounded-full bg-theme-primary-10 flex items-center justify-center group-hover:scale-110 group-hover:bg-theme-primary-20 transition-all">
@@ -51,6 +68,11 @@ export function LandingPage({ allSlots, onNewGame, onLoadSlot }: LandingPageProp
                   placeholder="Game Name (optional)..."
                   value={gameName}
                   onChange={(e) => setGameName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === " ") {
+                      e.stopPropagation();
+                    }
+                  }}
                   className="w-full bg-stone-950 border border-stone-800 hover:border-stone-700 text-stone-100 rounded-xl px-3 py-2 text-sm outline-none focus:border-theme-primary transition-colors text-center"
                 />
                 <span className="text-[10px] text-stone-500 text-center leading-normal">
@@ -58,7 +80,7 @@ export function LandingPage({ allSlots, onNewGame, onLoadSlot }: LandingPageProp
                 </span>
               </div>
             </div>
-          </button>
+          </div>
 
           {/* Load Game */}
           <div className="flex flex-col gap-4 p-6 rounded-2xl bg-stone-900/50 border border-stone-800 shadow-xl min-h-[300px] overflow-hidden">

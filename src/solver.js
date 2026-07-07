@@ -711,78 +711,93 @@ function calculateSafetyScore(board, spareTile, pawnPos, playerShiftArrowId = nu
   return Math.max(0, Math.min(100, score));
 }
 
+/**
+ * Normalizes rotation for straight pieces (shape 'I').
+ * For straight pieces: 0° and 180° are identical, as are 90° and 270°.
+ * Returns the normalized rotation (0 or 1 for straight pieces, 0-3 for others).
+ */
+function getNormalizedRotation(shape, rotation) {
+  if (shape === 'I') {
+    // For straight pieces, only 0 and 1 matter (vertical vs horizontal)
+    return rotation % 2;
+  }
+  return rotation;
+}
+
 function solveAllHand(board, spareTile, startPawnPos, handCards, lastShiftArrowId = null, maxTurns = 3) {
-  let allPaths = [];
-  
-  if (!handCards || handCards.length === 0) {
-    return [];
-  }
-  
-  for (const cardId of handCards) {
-    let paths = solveLabyrinth(board, spareTile, startPawnPos, cardId, lastShiftArrowId, maxTurns);
-    let isFallback = false;
-    
-    if (paths.length === 0) {
-      paths = getFallbackSuggestions(board, spareTile, startPawnPos, cardId, lastShiftArrowId);
-      isFallback = true;
-    }
-    
-    for (const path of paths) {
-      if (path.length > 0) {
-        const step1 = path[0];
-        const { type, index, dir } = parseArrowId(step1.arrowId);
-        
-        const tempBoard = cloneBoard(board);
-        const tempSpare = { ...spareTile, dir: step1.rotation };
-        
-        const slideResult = executeSlideInGrid(tempBoard, tempSpare, type, index, dir);
-        const nextSpare = slideResult.newSpare;
-        
-        const safety = calculateSafetyScore(tempBoard, nextSpare, step1.endPos, step1.arrowId);
-        
-        path.safetyScore = safety;
-        path.cardId = cardId;
-        path.isFallback = isFallback;
-      }
-    }
-    
-    allPaths.push(...paths);
-  }
-  
-  // Sort aggregated solutions across all hand cards
-  allPaths.sort((a, b) => {
-    if (a.isFallback !== b.isFallback) {
-      return a.isFallback ? 1 : -1;
-    }
-    
-    if (a.length !== b.length) {
-      return a.length - b.length;
-    }
-    
-    if (a.isFallback && b.isFallback) {
-      const aDist = a[a.length - 1].minDistance;
-      const bDist = b[b.length - 1].minDistance;
-      if (aDist !== bDist) {
-        return aDist - bDist;
-      }
-    }
-    
-    return b.safetyScore - a.safetyScore;
-  });
-  
-  // Deduplicate sorted suggestions by keeping only the best suggestion for each unique first-turn action (arrowId, rotation)
-  const uniquePaths = [];
-  const seenAction = new Set();
-  for (const path of allPaths) {
-    if (path.length > 0) {
-      const step1 = path[0];
-      const actionKey = `${step1.arrowId}-${step1.rotation}`;
-      if (!seenAction.has(actionKey)) {
-        seenAction.add(actionKey);
-        uniquePaths.push(path);
-      }
-    }
-  }
+   let allPaths = [];
+   
+   if (!handCards || handCards.length === 0) {
+     return [];
+   }
+   
+   for (const cardId of handCards) {
+     let paths = solveLabyrinth(board, spareTile, startPawnPos, cardId, lastShiftArrowId, maxTurns);
+     let isFallback = false;
+     
+     if (paths.length === 0) {
+       paths = getFallbackSuggestions(board, spareTile, startPawnPos, cardId, lastShiftArrowId);
+       isFallback = true;
+     }
+     
+     for (const path of paths) {
+       if (path.length > 0) {
+         const step1 = path[0];
+         const { type, index, dir } = parseArrowId(step1.arrowId);
+         
+         const tempBoard = cloneBoard(board);
+         const tempSpare = { ...spareTile, dir: step1.rotation };
+         
+         const slideResult = executeSlideInGrid(tempBoard, tempSpare, type, index, dir);
+         const nextSpare = slideResult.newSpare;
+         
+         const safety = calculateSafetyScore(tempBoard, nextSpare, step1.endPos, step1.arrowId);
+         
+         path.safetyScore = safety;
+         path.cardId = cardId;
+         path.isFallback = isFallback;
+       }
+     }
+     
+     allPaths.push(...paths);
+   }
+   
+   // Sort aggregated solutions across all hand cards
+   allPaths.sort((a, b) => {
+     if (a.isFallback !== b.isFallback) {
+       return a.isFallback ? 1 : -1;
+     }
+     
+     if (a.length !== b.length) {
+       return a.length - b.length;
+     }
+     
+     if (a.isFallback && b.isFallback) {
+       const aDist = a[a.length - 1].minDistance;
+       const bDist = b[b.length - 1].minDistance;
+       if (aDist !== bDist) {
+         return aDist - bDist;
+       }
+     }
+     
+     return b.safetyScore - a.safetyScore;
+   });
+   
+   // Deduplicate sorted suggestions by keeping only the best suggestion for each unique first-turn action
+   // For straight pieces, normalize rotation since 0°/180° and 90°/270° are identical
+   const uniquePaths = [];
+   const seenAction = new Set();
+   for (const path of allPaths) {
+     if (path.length > 0) {
+       const step1 = path[0];
+       const normalizedRot = getNormalizedRotation(spareTile.shape, step1.rotation);
+       const actionKey = `${step1.arrowId}-${normalizedRot}`;
+       if (!seenAction.has(actionKey)) {
+         seenAction.add(actionKey);
+         uniquePaths.push(path);
+       }
+     }
+   }
   
   // Generate natural language explanations for top suggestions
   for (const path of uniquePaths) {
