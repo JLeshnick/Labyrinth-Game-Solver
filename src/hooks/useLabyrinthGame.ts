@@ -50,13 +50,8 @@ export function useLabyrinthGame({
   } = useLabyrinthHistory(null);
 
   const {
-    slots,
     saveAutosave,
     loadAutosave,
-    saveSlot,
-    loadSlot,
-    deleteSlot,
-    refreshSlots,
   } = useLabyrinthStorage();
 
   // ── Tile ID counter ──────────────────────────────────────────────────────────
@@ -84,7 +79,6 @@ export function useLabyrinthGame({
   const [obtainedTreasures, setObtainedTreasures] = useState<PlayerMap<string[]>>(EMPTY_OBTAINED_TREASURES);
   const [pawnStats, setPawnStats] = useState<Record<string, PawnStat>>({});
   const [customTargetCoords, setCustomTargetCoords] = useState<{ r: number; c: number } | null>(null);
-  const [currentSlotName, setCurrentSlotName] = useState<string | null>(null);
   const totalShiftsRef = useRef(0);
 
   // Setup panel state (used by handleTileClick / handleCellClick)
@@ -100,20 +94,6 @@ export function useLabyrinthGame({
       return ["red", "blue", "green", "yellow"];
     }
   });
-
-  // ── Derived ──────────────────────────────────────────────────────────────────
-  const allSlots = useMemo<SaveSlot[]>(() => {
-    const list = [...slots];
-    const hasAutosave = localStorage.getItem(AUTOSAVE_KEY);
-    if (hasAutosave && !list.some((s) => s.key === AUTOSAVE_KEY)) {
-      list.unshift({
-        name: "Auto-Save (Default Slot)",
-        key: AUTOSAVE_KEY,
-        timestamp: Date.now(),
-      });
-    }
-    return list;
-  }, [slots]);
 
   // ── Effects ──────────────────────────────────────────────────────────────────
 
@@ -241,9 +221,8 @@ export function useLabyrinthGame({
 
   // ── Game actions ─────────────────────────────────────────────────────────────
 
-  const handleNewGame = useCallback(async (name?: string) => {
+  const handleNewGame = useCallback(async () => {
     if (!isMuted) playClickSound();
-    const finalName = (typeof name === "string" && name.trim()) ? name.trim() : `Game — ${new Date().toLocaleString()}`;
 
     const initialGrid: (TileData | null)[][] = Array(7).fill(null).map(() => Array(7).fill(null));
     Object.entries(FIXED_TILES_PRESETS).forEach(([coord, tilePartial]) => {
@@ -278,106 +257,9 @@ export function useLabyrinthGame({
       pawnPositions: DEFAULT_PAWN_POSITIONS,
     });
 
-    setCurrentSlotName(finalName);
-    const success = await saveSlot(finalName, {
-      board: initialGrid,
-      spareTile: { id: "spare_initial", shape: "straight" as Shape, rotation: 0 as Rotation, isFixed: false },
-      looseTiles: pool,
-      activePawn: "red",
-      playerHands: EMPTY_PLAYER_HANDS,
-      playerActiveTargets: EMPTY_PLAYER_TARGETS,
-      obtainedTreasures: EMPTY_OBTAINED_TREASURES,
-      lastShiftArrowId: null,
-      isGameStarted: false,
-      gameStartState: null,
-      pawnPositions: DEFAULT_PAWN_POSITIONS,
-    });
     onSaved(Date.now());
-    onToast(success ? `Created and saved "${finalName}"` : `Created "${finalName}" (autosaved)`);
-    onNavigateToGame();
-  }, [isMuted, saveSlot, resetHistory, onToast, onNavigateToGame, onSaved]);
-
-  const handleLoadSlot = useCallback(async (slotKey: string, name: string) => {
-    if (!isMuted) playClickSound();
-    const savedState = await loadSlot(slotKey);
-    if (!savedState) return;
-
-    setGrid(savedState.board ?? []);
-    setSpareTile(savedState.spareTile ?? spareTile);
-    setLooseTiles(savedState.looseTiles || []);
-    setActivePawn(savedState.activePawn || "red");
-    setPlayerHands(savedState.playerHands || EMPTY_PLAYER_HANDS);
-    setPlayerActiveTargets(savedState.playerActiveTargets || EMPTY_PLAYER_TARGETS);
-    setObtainedTreasures(savedState.obtainedTreasures || EMPTY_OBTAINED_TREASURES);
-    setLastShiftArrowId(savedState.lastShiftArrowId || null);
-    setIsGameStarted(savedState.isGameStarted || false);
-    setGameStartState(savedState.gameStartState || null);
-    setPawnPositions(savedState.pawnPositions || DEFAULT_PAWN_POSITIONS);
-
-    resetHistory({
-      board: savedState.board ?? [],
-      spareTile: savedState.spareTile ?? spareTile,
-      lastShiftArrowId: savedState.lastShiftArrowId || null,
-      activePawn: savedState.activePawn || "red",
-      playerHands: savedState.playerHands || EMPTY_PLAYER_HANDS,
-      playerActiveTargets: savedState.playerActiveTargets || EMPTY_PLAYER_TARGETS,
-      obtainedTreasures: savedState.obtainedTreasures || EMPTY_OBTAINED_TREASURES,
-      pawnPositions: savedState.pawnPositions,
-    });
-
-    setCurrentSlotName(name);
-    const slot = allSlots.find((s) => s.key === slotKey);
-    onSaved(slot?.timestamp ?? Date.now());
-    onNavigateToGame();
-    onCloseSettings();
-    onToast(`Loaded save slot: ${name}`);
-  }, [isMuted, loadSlot, allSlots, resetHistory, spareTile, onToast, onNavigateToGame, onCloseSettings, onSaved]);
-
-  const handleSaveActiveGame = useCallback(async () => {
-    if (!isMuted) playClickSound();
-    if (!currentSlotName) {
-      // No active slot — caller should open save dialog
-      return false;
-    }
-    const currentAppState: AppGameState = {
-      board: grid,
-      spareTile,
-      looseTiles,
-      activePawn,
-      playerHands,
-      playerActiveTargets,
-      obtainedTreasures,
-      lastShiftArrowId,
-      isGameStarted,
-      gameStartState,
-      pawnPositions,
-    };
-    // Find existing slot by name and overwrite, or create new
-    const existingSlot = slots.find((s) => s.name === currentSlotName);
-    if (existingSlot) {
-      try {
-        localStorage.setItem(existingSlot.key, JSON.stringify(currentAppState));
-        onSaved(Date.now());
-        onToast(`Saved "${currentSlotName}" successfully!`);
-        return true;
-      } catch {
-        onToast("Save failed — storage may be full.");
-        return false;
-      }
-    }
-    const success = await saveSlot(currentSlotName, currentAppState);
-    if (success) {
-      onSaved(Date.now());
-      onToast(`Saved "${currentSlotName}" successfully!`);
-      return true;
-    }
-    onToast("Save failed — storage may be full.");
-    return false;
-  }, [
-    isMuted, currentSlotName, grid, spareTile, looseTiles, activePawn,
-    playerHands, playerActiveTargets, obtainedTreasures, lastShiftArrowId,
-    isGameStarted, gameStartState, pawnPositions, slots, saveSlot, onToast, onSaved,
-  ]);
+    onToast("New game initialized");
+  }, [isMuted, resetHistory, onToast, onSaved]);
 
   const handleRandomizeBoard = useCallback(() => {
     if (isGameStarted) return;
@@ -722,26 +604,20 @@ export function useLabyrinthGame({
     obtainedTreasures,
     pawnStats,
     customTargetCoords, setCustomTargetCoords,
-    currentSlotName, setCurrentSlotName,
     setupTab, setSetupTab,
     activePawnPlacementColor, setActivePawnPlacementColor,
     totalShiftsRef,
-    // Derived
-    allSlots,
     // History
     canUndo, canRedo,
     handleUndo, handleRedo,
-    // Storage (exposed for SettingsDialog / AppHeader save-slot callback)
-    slots,
-    saveSlot, loadSlot, deleteSlot, refreshSlots, saveAutosave, loadAutosave,
+    // Storage
+    saveAutosave, loadAutosave,
     // Solver adapter helpers
     getSolverFormattedBoard, getSolverFormattedSpare,
     // Initialisation
     hydrateFromSaved, resetBoardToInitialPresets,
     // Game handlers
     handleNewGame,
-    handleLoadSlot,
-    handleSaveActiveGame,
     handleRandomizeBoard,
     handleTileClick,
     handleCellClick,
