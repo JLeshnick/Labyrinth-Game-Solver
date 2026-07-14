@@ -18,8 +18,21 @@ const MINIMAL_STATE: Partial<AppGameState> = {
   pawnPositions: DEFAULT_PAWN_POSITIONS,
 };
 
+const localStorageMock = (() => {
+  let store: Record<string, string> = {};
+  return {
+    getItem: (key: string) => store[key] || null,
+    setItem: (key: string, value: string) => { store[key] = String(value); },
+    removeItem: (key: string) => { delete store[key]; },
+    clear: () => { store = {}; }
+  };
+})();
+
+Object.defineProperty(window, 'localStorage', { value: localStorageMock, writable: true });
+Object.defineProperty(global, 'localStorage', { value: localStorageMock, writable: true });
+
 beforeEach(() => {
-  localStorage.clear();
+  window.localStorage.clear();
   vi.restoreAllMocks();
 });
 
@@ -31,7 +44,7 @@ describe("useLabyrinthStorage — autosave", () => {
       result.current.saveAutosave(MINIMAL_STATE);
     });
 
-    const raw = localStorage.getItem(AUTOSAVE_KEY);
+    const raw = window.localStorage.getItem(AUTOSAVE_KEY);
     expect(raw).not.toBeNull();
 
     const loaded = result.current.loadAutosave();
