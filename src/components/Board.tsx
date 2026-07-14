@@ -314,12 +314,12 @@ export const Board: React.FC<BoardProps> = ({
               pushedTile = sourceGrid[r][6];
               gridRow = r + 2;
               gridColumn = 9;
-              animClass = "animate-preview-slide-out-right";
+              animClass = "animate-preview-slide-right";
             } else {
               pushedTile = sourceGrid[r][0];
               gridRow = r + 2;
               gridColumn = 1;
-              animClass = "animate-preview-slide-out-left";
+              animClass = "animate-preview-slide-left";
             }
           } else {
             const c = arrow.index;
@@ -327,12 +327,12 @@ export const Board: React.FC<BoardProps> = ({
               pushedTile = sourceGrid[6][c];
               gridRow = 9;
               gridColumn = c + 2;
-              animClass = "animate-preview-slide-out-down";
+              animClass = "animate-preview-slide-down";
             } else {
               pushedTile = sourceGrid[0][c];
               gridRow = 1;
               gridColumn = c + 2;
-              animClass = "animate-preview-slide-out-up";
+              animClass = "animate-preview-slide-up";
             }
           }
   
