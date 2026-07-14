@@ -135,6 +135,11 @@ export const EMPTY_PLAYER_TARGETS: PlayerMap<string | null> = {
   red: null, blue: null, green: null, yellow: null,
 };
 
+/** Default empty obtained treasures map. */
+export const EMPTY_OBTAINED_TREASURES: PlayerMap<string[]> = {
+  red: [], blue: [], green: [], yellow: [],
+};
+
 export const SHIFT_ARROWS = [
   { id: "row-1-left", type: "row", index: 1, dir: "left", label: "Row 1 Right", gridRow: 3, gridColumn: 1, x: 0, y: 1, insertionDir: "left" },
   { id: "row-1-right", type: "row", index: 1, dir: "right", label: "Row 1 Left", gridRow: 3, gridColumn: 9, x: 6, y: 1, insertionDir: "right" },

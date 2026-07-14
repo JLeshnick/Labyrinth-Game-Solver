@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import type { TileData, PlayerMap, PawnPositions } from "../types";
 
 // Safe deep-clone that handles null cells in the React TileData grid
@@ -27,6 +27,9 @@ export function useLabyrinthHistory(initialState: HistoryRecord | null) {
 
   const [historyIndex, setHistoryIndex] = useState(initialState ? 0 : -1);
 
+  const historyIndexRef = useRef(historyIndex);
+  historyIndexRef.current = historyIndex;
+
   const pushStateToHistory = useCallback(
     (
       board: (TileData | null)[][],
@@ -50,12 +53,12 @@ export function useLabyrinthHistory(initialState: HistoryRecord | null) {
       });
 
       setHistory((prev) => {
-        const newHistory = prev.slice(0, historyIndex + 1);
+        const newHistory = prev.slice(0, historyIndexRef.current + 1);
         return [...newHistory, record];
       });
       setHistoryIndex((prev) => prev + 1);
     },
-    [historyIndex]
+    []
   );
 
   const resetHistory = useCallback((state: HistoryRecord) => {

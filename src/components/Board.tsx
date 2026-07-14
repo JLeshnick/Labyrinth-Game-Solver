@@ -167,6 +167,7 @@ export const Board: React.FC<BoardProps> = ({
           <svg
             viewBox="0 0 9 9"
             className="absolute inset-0 w-full h-full pointer-events-none z-10"
+            aria-hidden="true"
           >
             {hoveredPath.map((cell, idx) => {
               if (idx === 0) return null;
@@ -340,7 +341,7 @@ export const Board: React.FC<BoardProps> = ({
           return (
             <div
               style={{ gridRow, gridColumn }}
-              className={cn("w-full h-full aspect-square rounded-lg overflow-hidden border border-stone-850 bg-stone-950 pointer-events-none opacity-60 shadow-2xl", animClass)}
+              className={cn("w-full h-full aspect-square rounded-lg overflow-hidden border border-stone-800 bg-stone-950 pointer-events-none opacity-60 shadow-2xl", animClass)}
             >
               <Tile tile={pushedTile} disabled boardRotation={boardRotation} disableRotationTransition={true} className="absolute inset-0 w-full h-full" />
             </div>

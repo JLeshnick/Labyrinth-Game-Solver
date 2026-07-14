@@ -9,15 +9,13 @@ import {
   useSensors,
   PointerSensor,
 } from "@dnd-kit/core";
-import { FIXED_TILES_PRESETS, SHIFT_ARROWS, generateMovablePool, DEFAULT_PAWN_POSITIONS, EMPTY_PLAYER_HANDS, EMPTY_PLAYER_TARGETS } from "./constants";
+import { FIXED_TILES_PRESETS, SHIFT_ARROWS, generateMovablePool, DEFAULT_PAWN_POSITIONS, EMPTY_PLAYER_HANDS, EMPTY_PLAYER_TARGETS, EMPTY_OBTAINED_TREASURES } from "./constants";
 import type { TileData, Rotation, Shape, PlayerMap, PawnPositions } from "./types";
 import { toSolverBoard, toSolverSpare, fromSolverGrid, fromSolverSpare } from "./lib/solverAdapter";
-import { cn } from "./lib/utils";
 import { Board } from "./components/Board";
 import { Tile } from "./components/Tile";
 import { Button } from "./components/ui/button";
 import { LandingPage } from "./components/LandingPage";
-import { SettingsDialog } from "./components/SettingsDialog";
 import { SolverPanel } from "./components/SolverPanel";
 import { SetupPanel } from "./components/SetupPanel";
 import { TrophyPanel } from "./components/TrophyPanel";
@@ -32,23 +30,8 @@ import {
   playPawnMoveSound,
 } from "./utils/audio";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./components/ui/dialog";
-import {
-  Compass,
-  RefreshCcw,
-  Undo2,
-  Redo2,
-  Lock,
-  Unlock,
-  Volume2,
-  VolumeX,
-  RotateCw,
-  Sparkles,
-  Save,
-  Plus,
-  FolderOpen,
-  Home,
-  Gauge,
-} from "lucide-react";
+import { AppHeader } from "./components/AppHeader";
+import { Sparkles, Plus } from "lucide-react";
 import { executeSlideInGrid, isOppositeArrow, getReachableCells } from "./solver";
 
 export default function App() {
@@ -90,9 +73,7 @@ export default function App() {
   // Player Hands (deal cards) & Active Target Goals
   const [playerHands, setPlayerHands] = useState<PlayerMap<string[]>>(EMPTY_PLAYER_HANDS);
   const [playerActiveTargets, setPlayerActiveTargets] = useState<PlayerMap<string | null>>(EMPTY_PLAYER_TARGETS);
-  const [obtainedTreasures, setObtainedTreasures] = useState<PlayerMap<string[]>>({
-    red: [], blue: [], green: [], yellow: []
-  });
+  const [obtainedTreasures, setObtainedTreasures] = useState<PlayerMap<string[]>>(EMPTY_OBTAINED_TREASURES);
 
   // Pawn Positions
   const [pawnPositions, setPawnPositions] = useState<PawnPositions>(DEFAULT_PAWN_POSITIONS);
@@ -322,7 +303,7 @@ export default function App() {
     setLastShiftArrowId(null);
     setPlayerHands(EMPTY_PLAYER_HANDS);
     setPlayerActiveTargets(EMPTY_PLAYER_TARGETS);
-    setObtainedTreasures({ red: [], blue: [], green: [], yellow: [] });
+    setObtainedTreasures(EMPTY_OBTAINED_TREASURES);
 
     const startState = {
       board: initialGrid,
@@ -330,7 +311,7 @@ export default function App() {
       activePawn: "red",
       playerHands: EMPTY_PLAYER_HANDS,
       playerActiveTargets: EMPTY_PLAYER_TARGETS,
-      obtainedTreasures: { red: [], blue: [], green: [], yellow: [] },
+      obtainedTreasures: EMPTY_OBTAINED_TREASURES,
       lastShiftArrowId: null,
       pawnPositions: DEFAULT_PAWN_POSITIONS,
     };
@@ -378,7 +359,7 @@ export default function App() {
       activePawn: "red",
       playerHands: EMPTY_PLAYER_HANDS,
       playerActiveTargets: EMPTY_PLAYER_TARGETS,
-      obtainedTreasures: { red: [], blue: [], green: [], yellow: [] },
+      obtainedTreasures: EMPTY_OBTAINED_TREASURES,
       lastShiftArrowId: null,
       pawnPositions: DEFAULT_PAWN_POSITIONS,
     };
@@ -432,7 +413,7 @@ export default function App() {
         activePawn: savedState.activePawn || "red",
         playerHands: savedState.playerHands || EMPTY_PLAYER_HANDS,
         playerActiveTargets: savedState.playerActiveTargets || EMPTY_PLAYER_TARGETS,
-        obtainedTreasures: savedState.obtainedTreasures || { red: [], blue: [], green: [], yellow: [] },
+        obtainedTreasures: savedState.obtainedTreasures || EMPTY_OBTAINED_TREASURES,
         pawnPositions: savedState.pawnPositions,
       };
       resetHistory(record);
@@ -561,7 +542,7 @@ export default function App() {
       setActivePawn(saved.activePawn || "red");
       setPlayerHands(saved.playerHands || EMPTY_PLAYER_HANDS);
       setPlayerActiveTargets(saved.playerActiveTargets || EMPTY_PLAYER_TARGETS);
-      setObtainedTreasures(saved.obtainedTreasures || { red: [], blue: [], green: [], yellow: [] });
+      setObtainedTreasures(saved.obtainedTreasures || EMPTY_OBTAINED_TREASURES);
       setLastShiftArrowId(saved.lastShiftArrowId || null);
       setIsGameStarted(saved.isGameStarted || false);
       setGameStartState(saved.gameStartState || null);
@@ -579,7 +560,7 @@ export default function App() {
         activePawn: saved.activePawn || "red",
         playerHands: saved.playerHands || EMPTY_PLAYER_HANDS,
         playerActiveTargets: saved.playerActiveTargets || EMPTY_PLAYER_TARGETS,
-        obtainedTreasures: saved.obtainedTreasures || { red: [], blue: [], green: [], yellow: [] },
+        obtainedTreasures: saved.obtainedTreasures || EMPTY_OBTAINED_TREASURES,
         pawnPositions: saved.pawnPositions,
       };
       resetHistory(record);
@@ -820,7 +801,8 @@ export default function App() {
         activePawn,
         nextPlayerHands,
         nextPlayerActiveTargets,
-        nextObtainedTreasures
+        nextObtainedTreasures,
+        nextPositions
       );
 
       // Auto-save after manual pawn moves
@@ -878,7 +860,8 @@ export default function App() {
     );
 
     const nextGrid = fromSolverGrid(grid, solverBoard, nextTileId);
-    setSpareTile(fromSolverSpare(newSpare, String(Date.now())));
+    const nextSpare = fromSolverSpare(newSpare, String(Date.now()));
+    setSpareTile(nextSpare);
 
     // Update pawn positions due to slide push
     const nextPositions = { ...pawnPositions };
@@ -907,22 +890,24 @@ export default function App() {
 
     pushStateToHistory(
       nextGrid,
-      spareTile,
+      nextSpare,
       arrowId,
       activePawn,
       playerHands,
       playerActiveTargets,
-      obtainedTreasures
+      obtainedTreasures,
+      nextPositions
     );
 
     // Save Autosave
     saveAutosave({
       board: nextGrid,
       looseTiles: [],
-      spareTile,
+      spareTile: nextSpare,
       activePawn,
       playerHands,
       playerActiveTargets,
+      obtainedTreasures,
       lastShiftArrowId: arrowId,
       isGameStarted,
       gameStartState,
@@ -939,6 +924,10 @@ export default function App() {
     if (!playerActiveTargets[activePawn]) {
       setPlayerActiveTargets((prev) => ({ ...prev, [activePawn]: treasureId }));
     }
+    setPawnStats((prev) => {
+      const current = prev[activePawn] || { tilesMoved: 0, shiftsUsed: 0, treasuresFound: 0, totalTargets: 0 };
+      return { ...prev, [activePawn]: { ...current, totalTargets: current.totalTargets + 1 } };
+    });
   };
 
   const handleRemoveCard = (treasureId: string) => {
@@ -1141,12 +1130,13 @@ export default function App() {
 
     pushStateToHistory(
       nextGrid,
-      spareTile,
+      nextSpare,
       turn1.arrowId,
       activePawn,
       nextPlayerHands,
       nextPlayerActiveTargets,
-      nextObtainedTreasures
+      nextObtainedTreasures,
+      nextPositions
     );
 
     // Auto-save after executing solver solutions
@@ -1253,239 +1243,92 @@ export default function App() {
       ) : (
         <>
           {/* Header */}
-          <header className="relative z-10 p-4 sm:p-6 flex flex-col sm:flex-row items-center justify-between border-b border-stone-800 bg-stone-950/70 backdrop-blur-md">
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-theme-primary-10 border border-theme-primary-20 rounded-xl text-theme-primary">
-            <Compass className="w-6 h-6 animate-pulse" />
-          </div>
-          <div>
-            <h1 className="text-xl sm:text-2xl font-bold tracking-tight bg-gradient-to-r from-stone-200 to-theme-primary bg-clip-text text-transparent flex items-center">
-              Labyrinth Game Solver
-              {currentSlotName && (
-                <span className="ml-3 px-2 py-0.5 rounded-full bg-white/10 text-xs font-semibold text-stone-300 border border-stone-800">
-                  {currentSlotName}
-                </span>
-              )}
-            </h1>
-            <p className="text-xs text-stone-400">
-              Desktop Edition {lastSavedTime ? `• Last Saved: ${new Date(lastSavedTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}` : ''}
-            </p>
-          </div>
-        </div>
- 
-        <div className="mt-4 sm:mt-0 flex items-center gap-2">
-          {/* Menu */}
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => {
-              if (!isMuted) playClickSound();
-              setShowLandingPage(true);
-            }}
-            className="text-stone-400 hover:text-stone-200 gap-1.5 h-8 px-2"
-            title="Exit to Main Menu"
-          >
-            <Home className="w-3.5 h-3.5" />
-            <span className="text-xs hidden sm:inline">Menu</span>
-          </Button>
-
-          {/* New Game */}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              if (!isMuted) playClickSound();
-              setIsNewGameDialogOpen(true);
-            }}
-            className="border-stone-800 hover:bg-stone-900 text-stone-300 gap-1.5 h-8"
-            title="Create New Game"
-          >
-            <Plus className="w-3.5 h-3.5 text-theme-primary" />
-            <span className="text-xs hidden sm:inline">New Game</span>
-          </Button>
-
-          {/* Load Game */}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              if (!isMuted) playClickSound();
-              setIsSettingsOpen(true);
-            }}
-            className="border-stone-800 hover:bg-stone-900 text-stone-300 gap-1.5 h-8"
-            title="Load Saved Game"
-          >
-            <FolderOpen className="w-3.5 h-3.5 text-theme-primary" />
-            <span className="text-xs hidden sm:inline">Load Game</span>
-          </Button>
-
-          {/* Save button */}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleSaveActiveGame}
-            className="border-stone-800 hover:bg-stone-900 text-stone-300 gap-1.5 h-8"
-            title="Save Game"
-          >
-            <Save className="w-3.5 h-3.5 text-theme-primary" />
-            <span className="text-xs">Save</span>
-          </Button>
-
-          <div className="w-px h-4 bg-stone-800 mx-1" />
-
-          {/* Undo/Redo */}
-          <Button
-            variant="outline"
-            size="icon"
-            disabled={!canUndo}
-          onClick={() => {
-            if (!isMuted) playClickSound();
-            undo((state: any) => {
-              setGrid(state.board);
-              setSpareTile(state.spareTile);
-              setLastShiftArrowId(state.lastShiftArrowId);
-              setActivePawn(state.activePawn);
-              setPlayerHands(state.playerHands);
-              setPlayerActiveTargets(state.playerActiveTargets);
-              setObtainedTreasures(state.obtainedTreasures || { red: [], blue: [], green: [], yellow: [] });
-              if (state.pawnPositions) {
-                setPawnPositions(state.pawnPositions);
-              }
-            });
-          }}
-            className="border-stone-800 hover:bg-stone-900 disabled:opacity-30"
-            title="Undo"
-            aria-label="Undo"
-          >
-            <Undo2 className="w-4 h-4" />
-          </Button>
-
-          <Button
-            variant="outline"
-            size="icon"
-            disabled={!canRedo}
-          onClick={() => {
-            if (!isMuted) playClickSound();
-            redo((state: any) => {
-              setGrid(state.board);
-              setSpareTile(state.spareTile);
-              setLastShiftArrowId(state.lastShiftArrowId);
-              setActivePawn(state.activePawn);
-              setPlayerHands(state.playerHands);
-              setPlayerActiveTargets(state.playerActiveTargets);
-              setObtainedTreasures(state.obtainedTreasures || { red: [], blue: [], green: [], yellow: [] });
-              if (state.pawnPositions) {
-                setPawnPositions(state.pawnPositions);
-              }
-            });
-          }}
-            className="border-stone-800 hover:bg-stone-900 disabled:opacity-30"
-            title="Redo"
-            aria-label="Redo"
-          >
-            <Redo2 className="w-4 h-4" />
-          </Button>
-
-          <div className="w-px h-4 bg-stone-800 mx-1" />
-
-          {/* Reset presets */}
-          {!isGameStarted && (
-            <Button
-              variant="outline"
-              onClick={resetBoardToInitialPresets}
-              className="border-stone-800 hover:bg-stone-900 gap-2"
-            >
-              <RefreshCcw className="w-4 h-4" />
-              Reset Board
-            </Button>
-          )}
-
-          {/* Board Rotation */}
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => {
-              if (!isMuted) playClickSound();
-              setBoardRotation((prev) => (prev + 90) % 360);
-            }}
-            className="border-stone-800 hover:bg-stone-900 text-stone-300"
-            title="Rotate Board Perspective (90° Clockwise)"
-            aria-label="Rotate board perspective 90 degrees clockwise"
-          >
-            <RotateCw className="w-4 h-4" />
-          </Button>
-
-          {/* Start/End game */}
-          {isGameStarted && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                if (!isMuted) playClickSound();
-                setShowStats((prev) => !prev);
-              }}
-              className={cn(
-                "border-stone-800 hover:bg-stone-900 gap-1.5 h-8",
-                showStats ? "bg-theme-primary-20 border-theme-primary-40 text-theme-primary" : "text-stone-300"
-              )}
-              title="Toggle Stats"
-            >
-              <Gauge className="w-3.5 h-3.5" />
-              <span className="text-xs">Stats</span>
-            </Button>
-          )}
-
-          {isGameStarted ? (
-            <Button variant="destructive" onClick={handleEndGame} className="gap-2">
-              <Unlock className="w-4 h-4" />
-              Edit Board
-            </Button>
-          ) : (
-            <Button
-              onClick={handleStartGame}
-              disabled={looseTiles.length !== 1}
-              className="bg-theme-primary hover:bg-theme-primary-hover text-stone-950 font-semibold gap-2 disabled:bg-stone-800 disabled:text-stone-500 shadow-lg shadow-theme-glow"
-            >
-              <Lock className="w-4 h-4" />
-              Start Game
-            </Button>
-          )}
-
-          <div className="w-px h-4 bg-stone-800 mx-1" />
-
-          {/* Audio toggle */}
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={handleToggleMute}
-            className="border-stone-800 hover:bg-stone-900"
-            aria-label={isMuted ? "Unmute audio" : "Mute audio"}
-          >
-            {isMuted ? <VolumeX className="w-4 h-4 text-stone-400" /> : <Volume2 className="w-4 h-4 text-theme-primary" />}
-          </Button>
-
-          {/* Settings button */}
-          <SettingsDialog
-            open={isSettingsOpen}
-            onOpenChange={(open) => {
-              setIsSettingsOpen(open);
-              if (!open) { setSaveName(""); setPeekSlotKey(null); }
-            }}
-            settingsTab={settingsTab}
-            setSettingsTab={setSettingsTab}
+          <AppHeader
+            currentSlotName={currentSlotName}
+            lastSavedTime={lastSavedTime}
+            isGameStarted={isGameStarted}
+            canUndo={canUndo}
+            canRedo={canRedo}
             isMuted={isMuted}
-            onToggleMute={handleToggleMute}
+            showStats={showStats}
             activeTheme={activeTheme}
-            setActiveTheme={setActiveTheme}
             activePlayers={activePlayers}
-            setActivePlayers={setActivePlayers}
             activePawn={activePawn}
+            looseTiles={looseTiles}
             saveName={saveName}
             setSaveName={setSaveName}
             allSlots={allSlots}
             peekSlotKey={peekSlotKey}
             setPeekSlotKey={setPeekSlotKey}
             peekedState={peekedState}
+            settingsTab={settingsTab}
+            setSettingsTab={setSettingsTab}
+            isSettingsOpen={isSettingsOpen}
+            desktopSettings={desktopSettings}
+            grid={grid}
+            spareTile={spareTile}
+            playerHands={playerHands}
+            playerActiveTargets={playerActiveTargets}
+            obtainedTreasures={obtainedTreasures}
+            lastShiftArrowId={lastShiftArrowId}
+            gameStartState={gameStartState}
+            pawnPositions={pawnPositions}
+            onGoToMenu={() => {
+              if (!isMuted) playClickSound();
+              setShowLandingPage(true);
+            }}
+            onOpenNewGameDialog={() => {
+              if (!isMuted) playClickSound();
+              setIsNewGameDialogOpen(true);
+            }}
+            onOpenSettings={() => {
+              if (!isMuted) playClickSound();
+              setIsSettingsOpen(true);
+            }}
+            onCloseSettings={() => {
+              setIsSettingsOpen(false);
+              setSaveName("");
+              setPeekSlotKey(null);
+            }}
+            onSave={handleSaveActiveGame}
+            onUndo={() => {
+              if (!isMuted) playClickSound();
+              undo((state) => {
+                setGrid(state.board);
+                setSpareTile(state.spareTile);
+                setLastShiftArrowId(state.lastShiftArrowId);
+                setActivePawn(state.activePawn);
+                setPlayerHands(state.playerHands);
+                setPlayerActiveTargets(state.playerActiveTargets);
+                setObtainedTreasures(state.obtainedTreasures || EMPTY_OBTAINED_TREASURES);
+                if (state.pawnPositions) setPawnPositions(state.pawnPositions);
+              });
+            }}
+            onRedo={() => {
+              if (!isMuted) playClickSound();
+              redo((state) => {
+                setGrid(state.board);
+                setSpareTile(state.spareTile);
+                setLastShiftArrowId(state.lastShiftArrowId);
+                setActivePawn(state.activePawn);
+                setPlayerHands(state.playerHands);
+                setPlayerActiveTargets(state.playerActiveTargets);
+                setObtainedTreasures(state.obtainedTreasures || EMPTY_OBTAINED_TREASURES);
+                if (state.pawnPositions) setPawnPositions(state.pawnPositions);
+              });
+            }}
+            onResetBoard={resetBoardToInitialPresets}
+            onRotateBoard={() => {
+              if (!isMuted) playClickSound();
+              setBoardRotation((prev) => (prev + 90) % 360);
+            }}
+            onToggleStats={() => {
+              if (!isMuted) playClickSound();
+              setShowStats((prev) => !prev);
+            }}
+            onStartGame={handleStartGame}
+            onEndGame={handleEndGame}
+            onToggleMute={handleToggleMute}
             onSaveSlot={async (name) => {
               const currentAppState = { board: grid, spareTile, looseTiles, activePawn, playerHands, playerActiveTargets, obtainedTreasures, lastShiftArrowId, isGameStarted, gameStartState, pawnPositions };
               const success = await saveSlot(name, currentAppState);
@@ -1493,12 +1336,11 @@ export default function App() {
             }}
             onLoadSlot={handleLoadSlot}
             onDeleteSlot={deleteSlot}
-            showToast={showToast}
-            desktopSettings={desktopSettings}
+            onSetActiveTheme={setActiveTheme}
+            onSetActivePlayers={setActivePlayers}
             onSetDesktopSettings={handleSetDesktopSettings}
+            showToast={showToast}
           />
-        </div>
-      </header>
 
       {/* Main Panel layout */}
       <main className="flex-1 flex flex-col lg:flex-row relative z-10 w-full max-w-[1600px] mx-auto p-4 md:p-6 gap-6 lg:gap-8 justify-center overflow-y-auto lg:overflow-hidden min-h-0">
@@ -1613,7 +1455,7 @@ export default function App() {
                   looseTiles.find((t) => t.id === activeId) ||
                   grid.flat().find((t: any) => t?.id === activeId)!
                 }
-                className="w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 lg:w-24 lg:h-24 shadow-2xl shadow-black ring-4 ring-amber-500/50"
+                className="w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 lg:w-24 lg:h-24 shadow-2xl shadow-black ring-4 ring-theme-primary/50"
               />
             ) : null}
           </DragOverlay>
@@ -1709,8 +1551,9 @@ export default function App() {
       </Dialog>
 
       {/* Floating Notification Toast */}
+      <div role="status" aria-live="polite" aria-atomic="true" className="sr-only">{toastText}</div>
       {toastText && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 px-6 py-3 bg-stone-900 border border-theme-primary-20 text-stone-100 font-semibold text-sm rounded-full shadow-2xl shadow-black z-50 animate-toast-in flex items-center gap-2">
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 px-6 py-3 bg-stone-900 border border-theme-primary-20 text-stone-100 font-semibold text-sm rounded-full shadow-2xl shadow-black z-50 animate-toast-in flex items-center gap-2" aria-hidden="true">
           <Sparkles className="w-4 h-4 text-theme-primary" />
           {toastText}
         </div>

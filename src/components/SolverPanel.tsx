@@ -98,7 +98,7 @@ export function SolverPanel({
                     const val = e.target.value || null;
                     onSelectTargetTreasure(activePawn, val);
                   }}
-                  className="bg-stone-905 border border-stone-800 text-stone-200 rounded px-1.5 py-0.5 text-xs focus:border-theme-primary outline-none transition-colors max-w-[180px] truncate"
+                  className="bg-stone-900 border border-stone-800 text-stone-200 rounded px-1.5 py-0.5 text-xs focus:border-theme-primary outline-none transition-colors max-w-[180px] truncate"
                 >
                   <option value="">-- No Target --</option>
                   {TREASURES.filter(t => {

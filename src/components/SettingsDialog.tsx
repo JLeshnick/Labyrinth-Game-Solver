@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Button } from "./ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "./ui/dialog";
 import { Eye, FolderOpen, Settings, Palette, HardDrive, Trash2, Download, Upload, Volume2, VolumeX } from "lucide-react";
@@ -64,7 +65,10 @@ export function SettingsDialog({
   onSaveSlot, onLoadSlot, onDeleteSlot, showToast,
   desktopSettings, onSetDesktopSettings,
 }: SettingsDialogProps) {
+  const [deleteConfirmSlot, setDeleteConfirmSlot] = useState<SaveSlot | null>(null);
+
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogTrigger asChild>
         <Button
@@ -97,9 +101,14 @@ export function SettingsDialog({
         <div className="flex-1 flex min-h-0 overflow-hidden">
           {/* Sidebar */}
           <div className="w-56 border-r border-stone-800/80 flex flex-col py-4 px-3 gap-1 shrink-0 bg-stone-950/50">
+            <div role="tablist" aria-label="Settings sections" className="flex flex-col gap-1">
             {SIDEBAR_TABS.map((tab) => (
               <button
                 key={tab.key}
+                role="tab"
+                aria-selected={settingsTab === tab.key}
+                aria-controls={`settings-panel-${tab.key}`}
+                id={`settings-tab-${tab.key}`}
                 onClick={() => { if (!isMuted) playClickSound(); setSettingsTab(tab.key); }}
                 className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all duration-150 group cursor-pointer ${
                   settingsTab === tab.key
@@ -118,6 +127,7 @@ export function SettingsDialog({
                 </div>
               </button>
             ))}
+            </div>
             <div className="mt-auto pt-4 border-t border-stone-800/60">
               <p className="text-[10px] text-stone-500 font-semibold">Labyrinth Solver</p>
               <p className="text-[9px] text-stone-600">v{__APP_VERSION__} • Desktop</p>
@@ -128,7 +138,12 @@ export function SettingsDialog({
           <div className="flex-1 flex flex-col min-h-0 overflow-y-auto p-6 bg-stone-900/20">
 
             {settingsTab === "profiles" && (
-              <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6 min-h-0">
+              <div
+                id="settings-panel-profiles"
+                role="tabpanel"
+                aria-labelledby="settings-tab-profiles"
+                className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6 min-h-0"
+              >
                 <div className="lg:col-span-7 flex flex-col gap-4 min-h-0">
                   <div className="flex flex-col gap-2 shrink-0">
                     <h3 className="text-sm font-semibold text-stone-200">Save Current Layout</h3>
@@ -160,14 +175,14 @@ export function SettingsDialog({
                     <h3 className="text-sm font-semibold text-stone-200">Saved Games</h3>
                     <div className="flex-1 overflow-y-auto pr-1 flex flex-col gap-2 min-h-0">
                       {allSlots.length === 0 ? (
-                        <div className="flex-1 flex flex-col items-center justify-center text-center py-10 bg-stone-950/20 border border-dashed border-stone-850 rounded-2xl">
+                        <div className="flex-1 flex flex-col items-center justify-center text-center py-10 bg-stone-950/20 border border-dashed border-stone-800 rounded-2xl">
                           <span className="text-xs text-stone-600">No saved games found.</span>
                         </div>
                       ) : (
                         allSlots.map((slot) => (
                           <div
                             key={slot.key}
-                            className={`p-3 bg-stone-950/60 border border-stone-850 rounded-xl hover:border-theme-primary-20 transition-all flex items-center justify-between group ${
+                            className={`p-3 bg-stone-950/60 border border-stone-800 rounded-xl hover:border-theme-primary-20 transition-all flex items-center justify-between group ${
                               peekSlotKey === slot.key ? "border-theme-primary/30 bg-theme-primary-5" : ""
                             }`}
                           >
@@ -203,14 +218,11 @@ export function SettingsDialog({
                                   size="icon"
                                   onClick={() => {
                                     if (!isMuted) playClickSound();
-                                    if (window.confirm(`Are you sure you want to delete the saved game "${slot.name}"?`)) {
-                                      onDeleteSlot(slot.key);
-                                      if (peekSlotKey === slot.key) setPeekSlotKey(null);
-                                      showToast("Saved game deleted");
-                                    }
+                                    setDeleteConfirmSlot(slot);
                                   }}
                                   className="w-7 h-7 text-stone-400 hover:text-red-500 hover:bg-red-500/10 rounded-lg cursor-pointer"
                                   title="Delete Save"
+                                  aria-label={`Delete saved game: ${slot.name}`}
                                 >
                                   <Trash2 className="w-3.5 h-3.5" />
                                 </Button>
@@ -270,7 +282,7 @@ export function SettingsDialog({
             )}
 
             {settingsTab === "preferences" && (
-              <div className="flex flex-col gap-6 max-w-xl text-left">
+              <div id="settings-panel-preferences" role="tabpanel" aria-labelledby="settings-tab-preferences" className="flex flex-col gap-6 max-w-xl text-left">
                 <div className="p-4 bg-stone-950/40 border border-stone-800 rounded-xl flex flex-col gap-3">
                   <h3 className="text-sm font-semibold text-stone-200">System Preferences</h3>
                   <div className="flex justify-between items-center text-sm">
@@ -329,7 +341,7 @@ export function SettingsDialog({
             )}
 
             {settingsTab === "themes" && (
-              <div className="flex flex-col gap-4 max-w-xl text-left">
+              <div id="settings-panel-themes" role="tabpanel" aria-labelledby="settings-tab-themes" className="flex flex-col gap-4 max-w-xl text-left">
                 <h3 className="text-sm font-semibold text-stone-200">App Theme Colors</h3>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
                   {THEMES.map((t) => (
@@ -351,16 +363,20 @@ export function SettingsDialog({
             )}
 
             {settingsTab === "storage" && (
-              <div className="flex flex-col gap-4 max-w-xl text-left">
+              <div id="settings-panel-storage" role="tabpanel" aria-labelledby="settings-tab-storage" className="flex flex-col gap-4 max-w-xl text-left">
                 {/* Local Cache */}
                 <div className="p-4 bg-stone-950/40 border border-stone-800 rounded-xl flex flex-col gap-2.5 text-xs text-stone-400">
                   <h3 className="text-sm font-semibold text-stone-200">File Storage Information</h3>
                   <div>
                     <div className="font-semibold text-stone-300">Local Cache Directory:</div>
                     <div className="font-mono bg-stone-950 p-2.5 rounded-lg border border-stone-800 select-text break-all mt-1 mb-2">
-                      {navigator.userAgent.toLowerCase().includes("win")
-                        ? "%APPDATA%\\Labyrinth-Game-Solver\\Local Storage\\"
-                        : "~/Library/Application Support/Labyrinth-Game-Solver/Local Storage/"}
+                      {(() => {
+                        const platform = (window as { electronAPI?: { platform?: string } }).electronAPI?.platform
+                          ?? (navigator.userAgent.toLowerCase().includes("win") ? "win32" : "darwin");
+                        return platform === "win32"
+                          ? "%APPDATA%\\Labyrinth-Game-Solver\\Local Storage\\"
+                          : "~/Library/Application Support/Labyrinth-Game-Solver/Local Storage/";
+                      })()}
                     </div>
                     {/* Open folder button (Electron only) */}
                     {(window as any).electronAPI?.openLocalStorageFolder && (
@@ -430,5 +446,45 @@ export function SettingsDialog({
         </div>
       </DialogContent>
     </Dialog>
+
+    {/* Delete confirmation dialog */}
+
+    <Dialog open={!!deleteConfirmSlot} onOpenChange={(open) => { if (!open) setDeleteConfirmSlot(null); }}>
+      <DialogContent className="sm:max-w-[380px] bg-stone-900 border border-stone-800 text-stone-100 shadow-2xl p-6 rounded-2xl">
+        <DialogHeader>
+          <DialogTitle className="text-base font-bold text-stone-100 flex items-center gap-2">
+            <Trash2 className="w-4 h-4 text-red-400" />
+            Delete Saved Game?
+          </DialogTitle>
+        </DialogHeader>
+        <p className="text-sm text-stone-400 mt-2">
+          Are you sure you want to delete <span className="font-semibold text-stone-200">"{deleteConfirmSlot?.name}"</span>? This cannot be undone.
+        </p>
+        <div className="flex justify-end gap-3 mt-6">
+          <Button
+            variant="outline"
+            onClick={() => setDeleteConfirmSlot(null)}
+            className="border-stone-800 hover:bg-stone-800 text-stone-300 rounded-xl"
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="destructive"
+            onClick={() => {
+              if (deleteConfirmSlot) {
+                onDeleteSlot(deleteConfirmSlot.key);
+                if (peekSlotKey === deleteConfirmSlot.key) setPeekSlotKey(null);
+                showToast("Saved game deleted");
+                setDeleteConfirmSlot(null);
+              }
+            }}
+            className="rounded-xl"
+          >
+            Delete
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+    </>
   );
 }
