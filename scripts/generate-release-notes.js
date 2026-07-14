@@ -1,6 +1,5 @@
 import { execSync } from 'child_process';
 import fs from 'fs';
-import path from 'path';
 
 async function getLatestGoodRelease() {
   const repo = 'JLeshnick/Labyrinth';
@@ -158,7 +157,7 @@ async function generateReleaseNotes() {
     try {
       const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
       currentTag = `v${pkg.version}`;
-    } catch (err) {
+    } catch {
       currentTag = 'Release';
     }
   }

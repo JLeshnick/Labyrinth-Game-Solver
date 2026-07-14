@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 declare module "../solver" {
   export function cloneBoard(board: any): any;
   export function parseArrowId(arrowId: string): { type: string; index: number; dir: string };

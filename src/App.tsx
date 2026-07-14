@@ -417,6 +417,7 @@ export default function App() {
       });
       return { grid: previewGrid, pawnPositions: previewPawnPositions, spareTile: { ...game.spareTile, rotation: stagedRotation } };
     } catch { return null; }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hoveredSolution, stagedArrow, stagedRotation, turnPhase, game.grid, game.pawnPositions, game.spareTile, game.getSolverFormattedBoard, game.getSolverFormattedSpare]);
 
   const reachableCells = useMemo<{ r: number; c: number }[]>(() => {
@@ -442,6 +443,7 @@ export default function App() {
       } catch { return []; }
     }
     return [];
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [game.isGameStarted, turnPhase, game.grid, game.pawnPositions, game.activePawn, game.getSolverFormattedBoard, stagedPreviewState]);
 
   const effectivePreview = previewState || stagedPreviewState;
@@ -469,6 +471,7 @@ export default function App() {
         } catch { return false; }
       });
     } catch { return []; }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [game.isGameStarted, showOneMoveTargets, game.grid, game.pawnPositions, game.activePawn,
       game.spareTile, game.obtainedTreasures, game.lastShiftArrowId,
       game.getSolverFormattedBoard, game.getSolverFormattedSpare]);
