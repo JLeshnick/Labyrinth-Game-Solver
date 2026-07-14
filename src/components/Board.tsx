@@ -99,9 +99,6 @@ const BoardSpace: React.FC<BoardSpaceProps> = ({
       {isCustomTarget && (
         <div className="absolute top-1 right-1 w-2.5 h-2.5 rounded-full bg-theme-primary animate-ping pointer-events-none z-30" />
       )}
-      {isActiveTarget && (
-        <div className="absolute top-1 left-1 w-3 h-3 rounded-full bg-amber-300 animate-ping pointer-events-none z-30 shadow-[0_0_8px_rgba(251,191,36,0.8)]" />
-      )}
       {tile ? (
         <Tile
           tile={tile}
@@ -167,7 +164,7 @@ interface BoardProps {
   activeTargetCoords?: { r: number; c: number } | null;
   reachableCells?: { r: number; c: number }[];
   turnPhase?: "slide" | "move";
-  onArrowHover?: (arrowId: string | null) => void;
+  stagedArrow?: string | null;
   onTreasureClick?: (treasureId: string, alreadyObtained: boolean) => void;
   allObtainedTreasures?: string[];
   activeTargetTreasureId?: string | null;
@@ -189,7 +186,7 @@ export const Board: React.FC<BoardProps> = ({
   activeTargetCoords,
   reachableCells,
   turnPhase,
-  onArrowHover,
+  stagedArrow,
   onTreasureClick,
   allObtainedTreasures,
   activeTargetTreasureId,
@@ -238,37 +235,42 @@ export const Board: React.FC<BoardProps> = ({
           SHIFT_ARROWS.map((arrow) => {
             const isForbidden = !!(lastShiftArrowId && isOppositeArrow(arrow.id, lastShiftArrowId));
             const isHighlighted = hoveredSolutionArrow === arrow.id;
+            const isStaged = stagedArrow === arrow.id;
 
             return (
               <button
                 key={arrow.id}
                 onClick={() => !isForbidden && onArrowClick(arrow.id)}
                 disabled={isForbidden || turnPhase === "move"}
-                onMouseEnter={() => { if (!isForbidden && turnPhase !== "move") onArrowHover?.(arrow.id); }}
-                onMouseLeave={() => onArrowHover?.(null)}
                 style={{
                   gridRow: arrow.gridRow,
                   gridColumn: arrow.gridColumn,
                 }}
                 className={cn(
-                  "w-full h-full max-w-[85%] max-h-[85%] mx-auto p-1 rounded-lg border border-stone-800 bg-stone-950 text-theme-primary hover:text-theme-primary-200 hover:bg-stone-900 transition-all focus:outline-none flex items-center justify-center",
+                  "w-full h-full max-w-[85%] max-h-[85%] mx-auto p-1 rounded-lg border transition-all focus:outline-none flex items-center justify-center",
                   isForbidden
-                    ? "opacity-20 cursor-not-allowed border-red-950/40 text-red-700"
-                    : "cursor-pointer hover:scale-105 active:scale-95",
-                  isHighlighted
-                    ? "animate-pulse ring-2 ring-theme-primary bg-theme-primary-20 scale-110"
-                    : "",
-                  turnPhase === "move" ? "opacity-25 cursor-not-allowed" : "",
+                    ? "opacity-20 cursor-not-allowed border-red-950/40 text-red-700 bg-stone-950"
+                    : turnPhase === "move"
+                    ? "opacity-25 cursor-not-allowed border-stone-800 bg-stone-950 text-theme-primary"
+                    : isStaged
+                    ? "border-theme-primary bg-theme-primary text-stone-950 scale-110 shadow-lg shadow-theme-glow cursor-pointer"
+                    : isHighlighted
+                    ? "animate-pulse ring-2 ring-theme-primary bg-theme-primary-20 border-theme-primary text-theme-primary scale-110 cursor-pointer"
+                    : "border-stone-800 bg-stone-950 text-theme-primary hover:text-theme-primary-200 hover:bg-stone-900 hover:scale-105 active:scale-95 cursor-pointer",
                 )}
                 title={
                   isForbidden
                     ? "Forbidden: Cannot immediately reverse the previous shift"
-                    : `Insert spare tile into ${arrow.label}`
+                    : isStaged
+                    ? "Click again to rotate tile — then use Commit in the panel"
+                    : `Stage tile into ${arrow.label}`
                 }
                 aria-label={
                   isForbidden
                     ? `Forbidden: Cannot reverse previous shift into ${arrow.label}`
-                    : `Insert spare tile into ${arrow.label}`
+                    : isStaged
+                    ? `Rotate staged tile for ${arrow.label}`
+                    : `Stage spare tile into ${arrow.label}`
                 }
               >
                 <ChevronRight

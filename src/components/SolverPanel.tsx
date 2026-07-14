@@ -22,7 +22,11 @@ interface SolverPanelProps {
   onExecuteSolution: (sol: any[]) => void;
   playerActiveTargets: Record<string, string | null>;
   onSelectTargetTreasure: (pawn: string, treasureId: string | null) => void;
-  onRotateSpare: () => void;
+  stagedArrow: string | null;
+  stagedRotation: 0 | 90 | 180 | 270;
+  onRotateStaged: () => void;
+  onCommitSlide: () => void;
+  onCancelSlide: () => void;
   turnPhase: "slide" | "move";
 }
  
@@ -42,7 +46,11 @@ export function SolverPanel({
   onExecuteSolution,
   playerActiveTargets,
   onSelectTargetTreasure,
-  onRotateSpare,
+  stagedArrow,
+  stagedRotation,
+  onRotateStaged,
+  onCommitSlide,
+  onCancelSlide,
   turnPhase,
 }: SolverPanelProps) {
   return (
@@ -54,8 +62,10 @@ export function SolverPanel({
           : "bg-green-950/40 border-green-800/50 text-green-300"
       }`}>
         {turnPhase === "slide"
-          ? <><ArrowRightCircle className="w-3.5 h-3.5 shrink-0" /> Slide the spare tile into a row or column using a board arrow</>
-          : <><MousePointer2 className="w-3.5 h-3.5 shrink-0" /> Click a highlighted cell to move your pawn</>
+          ? stagedArrow
+            ? <><ArrowRightCircle className="w-3.5 h-3.5 shrink-0" /> Arrow staged — click it again to rotate, then <strong>Slide In</strong></>
+            : <><ArrowRightCircle className="w-3.5 h-3.5 shrink-0" /> Click a board arrow to stage your tile placement</>
+          : <><MousePointer2 className="w-3.5 h-3.5 shrink-0" /> Click a highlighted green cell to move your pawn</>
         }
       </div>
       <div className="flex items-center justify-between">
@@ -104,19 +114,44 @@ export function SolverPanel({
         </div>
         <div className="flex flex-col items-center gap-1">
           <div className="text-[10px] text-stone-500">Spare Tile</div>
-          <Tile tile={spareTile} disabled className="w-12 h-12 border-theme-primary-40" />
-          <div className="flex items-center gap-1.5 mt-0.5">
-            <button
-              onClick={onRotateSpare}
-              className="text-[10px] text-theme-primary hover:text-stone-200 flex items-center gap-0.5 cursor-pointer transition-colors"
-              title="Rotate spare tile 90° clockwise"
-            >
-              <RotateCw className="w-3 h-3" /> Rotate
-            </button>
-            <span className="text-[9px] text-stone-500">{spareTile.rotation}°</span>
-          </div>
+          <Tile
+            tile={{ ...spareTile, rotation: stagedArrow ? stagedRotation : spareTile.rotation }}
+            disabled
+            className="w-12 h-12 border-theme-primary-40"
+          />
+          {stagedArrow ? (
+            <div className="flex flex-col items-center gap-1 mt-0.5">
+              <button
+                onClick={onRotateStaged}
+                className="text-[10px] text-theme-primary hover:text-stone-200 flex items-center gap-0.5 cursor-pointer transition-colors"
+                title="Rotate staged spare tile 90° clockwise (or click the staged arrow on the board)"
+              >
+                <RotateCw className="w-3 h-3" /> {stagedRotation}°
+              </button>
+            </div>
+          ) : (
+            <span className="text-[9px] text-stone-500 mt-0.5">{spareTile.rotation}°</span>
+          )}
         </div>
       </div>
+
+      {/* Staged slide commit / cancel */}
+      {stagedArrow && turnPhase === "slide" && (
+        <div className="flex gap-2 shrink-0">
+          <button
+            onClick={onCommitSlide}
+            className="flex-1 py-1.5 rounded-xl bg-theme-primary text-stone-950 text-xs font-bold hover:bg-theme-primary-hover transition-colors cursor-pointer flex items-center justify-center gap-1.5"
+          >
+            <ArrowRightCircle className="w-3.5 h-3.5" /> Slide In
+          </button>
+          <button
+            onClick={onCancelSlide}
+            className="px-3 py-1.5 rounded-xl border border-stone-700 text-stone-400 text-xs hover:text-stone-200 hover:border-stone-600 transition-colors cursor-pointer"
+          >
+            Cancel
+          </button>
+        </div>
+      )}
 
       <div className="flex-1 overflow-y-auto min-h-0 pr-2 flex flex-col gap-2">
         {isLoadingSolutions ? (

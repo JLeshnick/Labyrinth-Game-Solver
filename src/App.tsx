@@ -54,7 +54,8 @@ export default function App() {
   const [lastSavedTime, setLastSavedTime] = useState<number | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [turnPhase, setTurnPhase] = useState<"slide" | "move">("slide");
-  const [hoveredArrow, setHoveredArrow] = useState<string | null>(null);
+  const [stagedArrow, setStagedArrow] = useState<string | null>(null);
+  const [stagedRotation, setStagedRotation] = useState<0 | 90 | 180 | 270>(0);
 
   // ── Solver worker ─────────────────────────────────────────────────────────────
   const [solutions, setSolutions] = useState<unknown[]>([]);
@@ -127,16 +128,44 @@ export default function App() {
     onSaved: (time) => setLastSavedTime(time),
   });
 
-  // ── Turn-phase-aware slide and cell-click ─────────────────────────────────────
-  const handleSlide = useCallback((arrowId: string) => {
-    game.handleSlide(arrowId);
+  // ── Turn-phase-aware slide, arrow staging, and cell-click ────────────────────
+  const handleArrowClick = useCallback((arrowId: string) => {
+    if (stagedArrow === arrowId) {
+      // Already staged — rotate the staged spare instead
+      setStagedRotation(prev => ([0, 90, 180, 270] as (0 | 90 | 180 | 270)[])[ ([0,90,180,270].indexOf(prev) + 1) % 4 ]);
+    } else {
+      setStagedArrow(arrowId);
+      // Initialise staged rotation from the current spare tile's actual rotation
+      setStagedRotation(game.spareTile.rotation as 0 | 90 | 180 | 270);
+    }
+  }, [stagedArrow, game.spareTile.rotation]);
+
+  const commitStagedSlide = useCallback(() => {
+    if (!stagedArrow) return;
+    // Apply staged rotation to the real spare, then slide
+    if (stagedRotation !== game.spareTile.rotation) {
+      // Rotate the spare to the staged rotation by clicking until it matches
+      const turns = ([0,90,180,270].indexOf(stagedRotation) - [0,90,180,270].indexOf(game.spareTile.rotation as 0|90|180|270) + 4) % 4;
+      for (let i = 0; i < turns; i++) game.handleTileClick(game.spareTile.id);
+    }
+    game.handleSlide(stagedArrow);
+    setStagedArrow(null);
     setTurnPhase("move");
-    setHoveredArrow(null);
-  }, [game]);
+  }, [stagedArrow, stagedRotation, game]);
+
+  const cancelStagedSlide = useCallback(() => {
+    setStagedArrow(null);
+    setStagedRotation(game.spareTile.rotation as 0 | 90 | 180 | 270);
+  }, [game.spareTile.rotation]);
 
   const handleManualCellClick = useCallback((r: number, c: number) => {
     if (!game.isGameStarted) {
       game.handleCellClick(r, c);
+      return;
+    }
+    if (turnPhase === "slide") {
+      // In slide phase, clicking a cell sets it as custom target (any cell, not just treasures)
+      game.setCustomTargetCoords({ r, c });
       return;
     }
     if (turnPhase !== "move") return;
@@ -182,8 +211,12 @@ export default function App() {
 
   // ── Turn phase reset ──────────────────────────────────────────────────────────
   useEffect(() => {
-    if (game.isGameStarted) setTurnPhase("slide");
-  }, [game.activePawn, game.isGameStarted]);
+    if (game.isGameStarted) {
+      setTurnPhase("slide");
+      setStagedArrow(null);
+      setStagedRotation(game.spareTile.rotation as 0 | 90 | 180 | 270);
+    }
+  }, [game.activePawn, game.isGameStarted, game.spareTile.rotation]);
 
   // ── Desktop settings ──────────────────────────────────────────────────────────
   const fetchDesktopSettings = useCallback(async () => {
@@ -369,15 +402,15 @@ export default function App() {
     } catch { return []; }
   }, [game.isGameStarted, turnPhase, game.grid, game.pawnPositions, game.activePawn, game.getSolverFormattedBoard]);
 
-  const arrowHoverPreviewState = useMemo(() => {
-    if (hoveredSolution || !hoveredArrow || turnPhase !== "slide") return null;
-    const arrow = SHIFT_ARROWS.find((a) => a.id === hoveredArrow);
+  const stagedPreviewState = useMemo(() => {
+    if (hoveredSolution || !stagedArrow || turnPhase !== "slide") return null;
+    const arrow = SHIFT_ARROWS.find((a) => a.id === stagedArrow);
     if (!arrow) return null;
     try {
       const solverBoard = game.getSolverFormattedBoard(game.grid, game.pawnPositions);
-      const solverSpare = game.getSolverFormattedSpare(game.spareTile);
+      const solverSpare = game.getSolverFormattedSpare({ ...game.spareTile, rotation: stagedRotation });
       executeSlideInGrid(solverBoard, solverSpare, arrow.type, arrow.index, arrow.dir);
-      const previewGrid = fromSolverGrid(game.grid, solverBoard, () => "arrow_preview");
+      const previewGrid = fromSolverGrid(game.grid, solverBoard, () => "staged_preview");
       const previewPawnPositions = { ...game.pawnPositions };
       Object.entries(game.pawnPositions).forEach(([color, pos]) => {
         let nr = pos.r, nc = pos.c;
@@ -388,11 +421,11 @@ export default function App() {
         }
         previewPawnPositions[color] = { r: nr, c: nc };
       });
-      return { grid: previewGrid, pawnPositions: previewPawnPositions, spareTile: game.spareTile };
+      return { grid: previewGrid, pawnPositions: previewPawnPositions, spareTile: { ...game.spareTile, rotation: stagedRotation } };
     } catch { return null; }
-  }, [hoveredSolution, hoveredArrow, turnPhase, game.grid, game.pawnPositions, game.spareTile, game.getSolverFormattedBoard, game.getSolverFormattedSpare]);
+  }, [hoveredSolution, stagedArrow, stagedRotation, turnPhase, game.grid, game.pawnPositions, game.spareTile, game.getSolverFormattedBoard, game.getSolverFormattedSpare]);
 
-  const effectivePreview = previewState || arrowHoverPreviewState;
+  const effectivePreview = previewState || stagedPreviewState;
 
   // ── Render ────────────────────────────────────────────────────────────────────
   return (
@@ -475,14 +508,11 @@ export default function App() {
             <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
               <div className="flex-1 lg:flex-[1.5] w-full flex min-w-0 min-h-0 items-center justify-center relative">
                 <div className="relative aspect-square w-full max-w-[min(100vw-2rem,100vh-280px)] lg:max-w-none lg:w-auto lg:h-full flex-shrink-0 mx-auto">
-                  {((hoveredSolution && (hoveredSolution as { arrowId: string }[]).length > 0) || hoveredArrow) && (
+                  {(hoveredSolution && (hoveredSolution as { arrowId: string }[]).length > 0) && (
                     <div
                       className="absolute animate-ping bg-theme-primary-20 border border-theme-primary-40 rounded-full pointer-events-none"
                       style={(() => {
-                        const arrowId = hoveredSolution
-                          ? (hoveredSolution as { arrowId: string }[])[0].arrowId
-                          : hoveredArrow!;
-                        const arrow = SHIFT_ARROWS.find((a) => a.id === arrowId);
+                        const arrow = SHIFT_ARROWS.find((a) => a.id === (hoveredSolution as { arrowId: string }[])[0].arrowId);
                         if (!arrow) return { display: "none" };
                         return { left: `${arrow.gridColumn * 11.1}%`, top: `${arrow.gridRow * 11.1}%`, width: "30px", height: "30px", transform: "translate(-50%, -50%)" };
                       })()}
@@ -497,20 +527,21 @@ export default function App() {
                     onTileClick={game.handleTileClick}
                     isGameStarted={game.isGameStarted}
                     lastShiftArrowId={game.lastShiftArrowId}
-                    onArrowClick={handleSlide}
-                    onArrowHover={(id) => { if (turnPhase === "slide") setHoveredArrow(id); }}
+                    onArrowClick={handleArrowClick}
                     hoveredPath={overlaySuggestedPath}
                     hoveredSolutionArrow={
                       hoveredSolution
                         ? (hoveredSolution as { arrowId: string }[])[0].arrowId
-                        : (hoveredArrow || null)
+                        : (stagedArrow || null)
                     }
                     boardRotation={boardRotation}
                     customTargetCoords={game.customTargetCoords}
                     activeTargetCoords={activeTargetCoords}
                     reachableCells={reachableCells}
                     turnPhase={turnPhase}
+                    stagedArrow={stagedArrow}
                     onTreasureClick={(treasureId, alreadyObtained) => {
+                      if (turnPhase === "move") return; // ignore treasure clicks during pawn movement
                       game.handleSelectTargetTreasure(game.activePawn, treasureId);
                       if (alreadyObtained) {
                         showToast(`⚠️ ${TREASURES.find(t => t.id === treasureId)?.name ?? treasureId} already obtained — solving anyway`);
@@ -547,7 +578,11 @@ export default function App() {
                       onExecuteSolution={game.handleExecuteSolution}
                       playerActiveTargets={game.playerActiveTargets}
                       onSelectTargetTreasure={game.handleSelectTargetTreasure}
-                      onRotateSpare={() => game.handleTileClick(game.spareTile.id)}
+                      stagedArrow={stagedArrow}
+                      stagedRotation={stagedRotation}
+                      onRotateStaged={() => setStagedRotation(prev => ([0,90,180,270] as (0|90|180|270)[])[ ([0,90,180,270].indexOf(prev)+1)%4 ])}
+                      onCommitSlide={commitStagedSlide}
+                      onCancelSlide={cancelStagedSlide}
                       turnPhase={turnPhase}
                     />
                   </>

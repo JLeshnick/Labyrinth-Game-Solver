@@ -91,9 +91,13 @@ export const Tile: React.FC<TileProps> = ({
         onClick?.();
       }}
       className={cn(
-        "relative w-full h-full rounded-md shadow-sm border border-amber-900 overflow-hidden flex items-center justify-center transition-opacity",
+        "relative w-full h-full rounded-md shadow-sm border overflow-hidden flex items-center justify-center transition-opacity",
         isDragging ? "opacity-50" : "opacity-100",
-        tile.isFixed ? "bg-amber-800" : "bg-amber-700 cursor-grab active:cursor-grabbing",
+        isCurrentTarget
+          ? "border-amber-300 bg-amber-600 cursor-grab active:cursor-grabbing"
+          : tile.isFixed
+          ? "border-amber-900 bg-amber-800"
+          : "border-amber-900 bg-amber-700 cursor-grab active:cursor-grabbing",
         isObtainedTreasure && "after:absolute after:inset-0 after:bg-stone-950/30 after:rounded-md after:pointer-events-none",
         className
       )}
