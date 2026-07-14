@@ -10,7 +10,7 @@ import {
   PointerSensor,
 } from "@dnd-kit/core";
 import { SHIFT_ARROWS, TREASURES } from "./constants";
-import type { TileData, AppGameState } from "./types";
+import type { TileData, AppGameState, SolverSolution } from "./types";
 import { Board } from "./components/Board";
 import { Tile } from "./components/Tile";
 import { Button } from "./components/ui/button";
@@ -58,8 +58,8 @@ export default function App() {
   const [showOneMoveTargets, setShowOneMoveTargets] = useState(false);
 
   // ── Solver worker ─────────────────────────────────────────────────────────────
-  const [solutions, setSolutions] = useState<unknown[]>([]);
-  const [hoveredSolution, setHoveredSolution] = useState<unknown[] | null>(null);
+  const [solutions, setSolutions] = useState<SolverSolution[]>([]);
+  const [hoveredSolution, setHoveredSolution] = useState<SolverSolution | null>(null);
   const [isLoadingSolutions, setIsLoadingSolutions] = useState(false);
   const [maxTurns, setMaxTurns] = useState(2);
   const workerRef = useRef<Worker | null>(null);
@@ -207,6 +207,7 @@ export default function App() {
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isMuted, game.handleUndo, game.handleRedo, game.handleSaveActiveGame]);
 
   // ── Turn phase reset ──────────────────────────────────────────────────────────
@@ -233,6 +234,7 @@ export default function App() {
       setDesktopSettings(updated);
       if (game.refreshSlots) await game.refreshSlots();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [game.refreshSlots]);
 
   useEffect(() => { fetchDesktopSettings(); }, [fetchDesktopSettings]);
@@ -243,6 +245,7 @@ export default function App() {
     if (!peekSlotKey) { setPeekedState(null); return; }
     game.loadSlot(peekSlotKey).then((state) => { if (active) setPeekedState(state); });
     return () => { active = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [peekSlotKey, game.loadSlot]);
 
   // ── Solver worker lifecycle ───────────────────────────────────────────────────
@@ -250,7 +253,7 @@ export default function App() {
     try {
       workerRef.current = new Worker(new URL("./solver.worker.js", import.meta.url), { type: "module" });
       workerRef.current.onmessage = (e) => {
-        const { success, solutions: computed, error } = e.data as { success: boolean; solutions: unknown[]; error: string };
+        const { success, solutions: computed, error } = e.data as { success: boolean; solutions: SolverSolution[]; error: string };
         if (success) setSolutions(computed || []);
         else { console.error("Worker solver failed:", error); showToast("Solver error — try adjusting targets or reducing max turns."); }
         setIsLoadingSolutions(false);
@@ -304,6 +307,7 @@ export default function App() {
       lastShiftArrowId: game.lastShiftArrowId,
       maxTurns,
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [game.grid, game.spareTile, game.activePawn, game.playerHands, game.lastShiftArrowId, maxTurns, game.isGameStarted, game.pawnPositions, game.getSolverFormattedBoard, game.getSolverFormattedSpare, game.customTargetCoords]);
 
   // ── Drag and Drop ─────────────────────────────────────────────────────────────
@@ -372,6 +376,7 @@ export default function App() {
       });
       return { grid: previewGrid, pawnPositions: previewPawnPositions, spareTile: { ...game.spareTile, rotation: rotDegrees } };
     } catch { return null; }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hoveredSolution, game.grid, game.pawnPositions, game.spareTile, game.getSolverFormattedBoard, game.getSolverFormattedSpare]);
 
   const overlaySuggestedPath = useMemo(() => {

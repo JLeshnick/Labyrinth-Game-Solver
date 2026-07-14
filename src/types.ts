@@ -73,3 +73,26 @@ declare global {
     electronAPI?: ElectronAPI;
   }
 }
+
+export interface SolverSolutionStep {
+  arrowId: string;
+  rotation: number;
+  endPos: { r: number; c: number };
+  pawnPath?: { r: number; c: number }[];
+  explanation?: {
+    slide: string;
+    walk: string;
+    safety: string;
+  };
+  safetyScore?: number;
+}
+
+export interface SolverSolution extends Array<SolverSolutionStep> {
+  explanation?: {
+    slide: string;
+    walk: string;
+    safety: string;
+  };
+  safetyScore: number;
+  isFallback?: boolean;
+}

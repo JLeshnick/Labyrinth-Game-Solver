@@ -3,13 +3,13 @@ import { Button } from "./ui/button";
 import { Tile } from "./Tile";
 import { PAWNS, TREASURES } from "../constants";
 import { playClickSound } from "../utils/audio";
-import type { TileData } from "../types";
+import type { TileData, SolverSolution, SolverSolutionStep } from "../types";
 
 interface SolverPanelProps {
-  solutions: any[];
+  solutions: SolverSolution[];
   isLoadingSolutions: boolean;
-  hoveredSolution: any | null;
-  setHoveredSolution: (sol: any | null) => void;
+  hoveredSolution: SolverSolution | null;
+  setHoveredSolution: (sol: SolverSolution | null) => void;
   maxTurns: number;
   setMaxTurns: (n: number) => void;
   activePawn: string;
@@ -19,7 +19,7 @@ interface SolverPanelProps {
   spareTile: TileData;
   customTargetCoords: { r: number; c: number } | null;
   setCustomTargetCoords: (coords: { r: number; c: number } | null) => void;
-  onExecuteSolution: (sol: any[]) => void;
+  onExecuteSolution: (sol: SolverSolution) => void;
   playerActiveTargets: Record<string, string | null>;
   onSelectTargetTreasure: (pawn: string, treasureId: string | null) => void;
   stagedArrow: string | null;
@@ -254,7 +254,7 @@ export function SolverPanel({
                         return firstStepText;
                       } else {
                         // Calculate total correct sum of moves across the whole multi-turn path
-                        const totalMoves = sol.reduce((sum: number, step: any) => {
+                        const totalMoves = sol.reduce((sum: number, step: SolverSolutionStep) => {
                           const stepMoves = step.pawnPath ? step.pawnPath.length - 1 : 0;
                           return sum + Math.max(0, stepMoves);
                         }, 0);
