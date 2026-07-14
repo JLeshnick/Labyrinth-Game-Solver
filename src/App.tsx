@@ -110,23 +110,6 @@ export default function App() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ── Turn-phase-aware slide and cell-click ─────────────────────────────────────
-  const handleSlide = useCallback((arrowId: string) => {
-    game.handleSlide(arrowId);
-    setTurnPhase("move");
-    setHoveredArrow(null);
-  }, [game]);
-
-  const handleManualCellClick = useCallback((r: number, c: number) => {
-    if (!game.isGameStarted) {
-      game.handleCellClick(r, c);
-      return;
-    }
-    if (turnPhase !== "move") return;
-    game.handleCellClick(r, c);
-    setTurnPhase("slide");
-  }, [game, turnPhase]);
-
   // ── Mute toggle ───────────────────────────────────────────────────────────────
   const handleToggleMute = useCallback(() => {
     const next = !isMuted;
@@ -143,6 +126,23 @@ export default function App() {
     onCloseSettings: () => { setIsSettingsOpen(false); setSaveName(""); setPeekSlotKey(null); },
     onSaved: (time) => setLastSavedTime(time),
   });
+
+  // ── Turn-phase-aware slide and cell-click ─────────────────────────────────────
+  const handleSlide = useCallback((arrowId: string) => {
+    game.handleSlide(arrowId);
+    setTurnPhase("move");
+    setHoveredArrow(null);
+  }, [game]);
+
+  const handleManualCellClick = useCallback((r: number, c: number) => {
+    if (!game.isGameStarted) {
+      game.handleCellClick(r, c);
+      return;
+    }
+    if (turnPhase !== "move") return;
+    game.handleCellClick(r, c);
+    setTurnPhase("slide");
+  }, [game, turnPhase]);
 
   // ── Keyboard shortcuts ────────────────────────────────────────────────────────
   useEffect(() => {
