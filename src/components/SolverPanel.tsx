@@ -3,7 +3,6 @@ import { Button } from "./ui/button";
 import { Tile } from "./Tile";
 import { PAWNS, TREASURES } from "../constants";
 import { playClickSound } from "../utils/audio";
-import { quickSolveMinTurns } from "../solver";
 import type { TileData } from "../types";
 
 interface SolverPanelProps {
@@ -23,10 +22,6 @@ interface SolverPanelProps {
   onExecuteSolution: (sol: any[]) => void;
   playerActiveTargets: Record<string, string | null>;
   onSelectTargetTreasure: (pawn: string, treasureId: string | null) => void;
-  obtainedTreasures: Record<string, string[]>;
-  grid: (TileData | null)[][];
-  pawnPositions: Record<string, { r: number; c: number }>;
-  lastShiftArrowId: string | null;
 }
  
 export function SolverPanel({
@@ -45,10 +40,6 @@ export function SolverPanel({
   onExecuteSolution,
   playerActiveTargets,
   onSelectTargetTreasure,
-  obtainedTreasures,
-  grid,
-  pawnPositions,
-  lastShiftArrowId,
 }: SolverPanelProps) {
   return (
     <div className="flex-1 flex flex-col min-h-0 gap-4 p-2">
@@ -83,48 +74,15 @@ export function SolverPanel({
               {customTargetCoords ? (
                 <span className="text-theme-primary font-bold flex items-center gap-1 text-xs">
                   Custom Target ({customTargetCoords.r}, {customTargetCoords.c})
-                  <button
-                    onClick={() => setCustomTargetCoords(null)}
-                    className="text-stone-500 hover:text-stone-300 text-xs ml-1 underline cursor-pointer"
-                    title="Clear Custom Target"
-                  >
-                    (clear)
-                  </button>
+                  <button onClick={() => setCustomTargetCoords(null)} className="text-stone-500 hover:text-stone-300 text-xs ml-1 underline cursor-pointer" title="Clear Custom Target">(clear)</button>
+                </span>
+              ) : playerActiveTargets[activePawn] ? (
+                <span className="text-theme-primary font-bold text-xs flex items-center gap-1">
+                  {TREASURES.find(t => t.id === playerActiveTargets[activePawn])?.name ?? playerActiveTargets[activePawn]}
+                  <button onClick={() => onSelectTargetTreasure(activePawn, null)} className="text-stone-500 hover:text-stone-300 text-xs ml-1 underline cursor-pointer" title="Clear target">(clear)</button>
                 </span>
               ) : (
-                <select
-                  value={playerActiveTargets[activePawn] || ""}
-                  onChange={(e) => {
-                    const val = e.target.value || null;
-                    onSelectTargetTreasure(activePawn, val);
-                  }}
-                  className="bg-stone-900 border border-stone-800 text-stone-200 rounded px-1.5 py-0.5 text-xs focus:border-theme-primary outline-none transition-colors max-w-[180px] truncate"
-                >
-                  <option value="">-- No Target --</option>
-                  {TREASURES.filter(t => {
-                    // Filter out treasures obtained by ANY player
-                    const allObtained = Object.values(obtainedTreasures).flat();
-                    return !allObtained.includes(t.id);
-                  })
-                    .sort((a, b) => a.name.localeCompare(b.name))
-                    .map((t) => {
-                      const pawnPos = pawnPositions[activePawn];
-                      if (!pawnPos) return <option key={t.id} value={t.id}>{t.name}</option>;
-                      const turns = quickSolveMinTurns(
-                        grid.map(row => row.map(cell => cell ? { ...cell, pawns: [] } : null)),
-                        { ...spareTile, pawns: [] },
-                        pawnPos,
-                        t.id,
-                        lastShiftArrowId,
-                        maxTurns
-                      );
-                      return (
-                        <option key={t.id} value={t.id}>
-                          {t.name} {turns !== null ? `(${turns} move${turns !== 1 ? 's' : ''})` : ''}
-                        </option>
-                      );
-                    })}
-                </select>
+                <span className="text-stone-500 text-xs italic">Click a treasure on the board</span>
               )}
             </div>
           </div>

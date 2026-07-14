@@ -22,6 +22,9 @@ interface BoardSpaceProps {
   isCustomTarget?: boolean;
   isActiveTarget?: boolean;
   previewSlideClass?: string;
+  onTreasureClick?: (treasureId: string, alreadyObtained: boolean) => void;
+  isObtainedTreasure?: boolean;
+  isCurrentTarget?: boolean;
 }
 
 const BoardSpace: React.FC<BoardSpaceProps> = ({
@@ -39,6 +42,9 @@ const BoardSpace: React.FC<BoardSpaceProps> = ({
   isCustomTarget,
   isActiveTarget,
   previewSlideClass,
+  onTreasureClick,
+  isObtainedTreasure,
+  isCurrentTarget,
 }) => {
   const isFixedSpace = x % 2 === 0 && y % 2 === 0;
   const id = `board_${x}_${y}`;
@@ -53,8 +59,23 @@ const BoardSpace: React.FC<BoardSpaceProps> = ({
       ref={setNodeRef}
       role="button"
       tabIndex={isGameStarted ? 0 : -1}
-      onClick={() => onCellClick(y, x)}
-      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onCellClick(y, x); } }}
+      onClick={() => {
+        if (isGameStarted && tile?.treasure && onTreasureClick) {
+          onTreasureClick(tile.treasure.id, !!isObtainedTreasure);
+        } else {
+          onCellClick(y, x);
+        }
+      }}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          if (isGameStarted && tile?.treasure && onTreasureClick) {
+            onTreasureClick(tile.treasure.id, !!isObtainedTreasure);
+          } else {
+            onCellClick(y, x);
+          }
+        }
+      }}
       aria-label={`Board cell row ${y} column ${x}${tile ? ` — ${tile.isFixed ? "fixed" : ""} tile` : " — empty"}`}
       style={{
         gridRow: isGameStarted ? y + 2 : y + 1,
@@ -85,6 +106,8 @@ const BoardSpace: React.FC<BoardSpaceProps> = ({
           disabled={isGameStarted}
           boardRotation={boardRotation}
           disableRotationTransition={true}
+          isObtainedTreasure={isObtainedTreasure}
+          isCurrentTarget={isCurrentTarget}
           className={cn(
             "absolute inset-0 w-full h-full",
             isOnHoveredPath && "border-theme-primary",
@@ -134,6 +157,9 @@ interface BoardProps {
   boardRotation?: number;
   customTargetCoords?: { r: number; c: number } | null;
   activeTargetCoords?: { r: number; c: number } | null;
+  onTreasureClick?: (treasureId: string, alreadyObtained: boolean) => void;
+  allObtainedTreasures?: string[];
+  activeTargetTreasureId?: string | null;
 }
 
 export const Board: React.FC<BoardProps> = ({
@@ -150,6 +176,9 @@ export const Board: React.FC<BoardProps> = ({
   boardRotation = 0,
   customTargetCoords,
   activeTargetCoords,
+  onTreasureClick,
+  allObtainedTreasures,
+  activeTargetTreasureId,
 }) => {
 
   return (
@@ -190,11 +219,6 @@ export const Board: React.FC<BoardProps> = ({
             })}
           </svg>
         )}
-        {/* Shifting tracks graphics */}
-        {isGameStarted && (
-          <div className="absolute inset-y-12 left-0 right-0 border-t border-stone-800 pointer-events-none opacity-20" />
-        )}
-
         {/* Render Shifting Arrows */}
         {isGameStarted &&
           SHIFT_ARROWS.map((arrow) => {
@@ -262,6 +286,8 @@ export const Board: React.FC<BoardProps> = ({
  
             const isCustomTarget = !!(customTargetCoords && customTargetCoords.r === r && customTargetCoords.c === c);
             const isActiveTarget = !!(activeTargetCoords && activeTargetCoords.r === r && activeTargetCoords.c === c && !isCustomTarget);
+            const isObtainedTreasure = !!(tile?.treasure && allObtainedTreasures?.includes(tile.treasure.id));
+            const isCurrentTarget = !!(tile?.treasure && tile.treasure.id === activeTargetTreasureId);
  
             let previewSlideClass = "";
             if (hoveredSolutionArrow) {
@@ -292,6 +318,9 @@ export const Board: React.FC<BoardProps> = ({
                 isCustomTarget={isCustomTarget}
                 isActiveTarget={isActiveTarget}
                 previewSlideClass={previewSlideClass}
+                onTreasureClick={onTreasureClick}
+                isObtainedTreasure={isObtainedTreasure}
+                isCurrentTarget={isCurrentTarget}
               />
             );
           })

@@ -9,7 +9,7 @@ import {
   useSensors,
   PointerSensor,
 } from "@dnd-kit/core";
-import { SHIFT_ARROWS } from "./constants";
+import { SHIFT_ARROWS, TREASURES } from "./constants";
 import type { TileData } from "./types";
 import { Board } from "./components/Board";
 import { Tile } from "./components/Tile";
@@ -411,7 +411,7 @@ export default function App() {
             showToast={showToast}
           />
 
-          <main className="flex-1 flex flex-col lg:flex-row relative z-10 w-full max-w-[1600px] mx-auto p-4 md:p-6 gap-4 lg:gap-6 justify-center overflow-y-auto lg:overflow-hidden min-h-0">
+          <main className="flex-1 flex flex-col lg:flex-row relative z-10 w-full px-3 pt-3 pb-3 gap-6 lg:gap-8 justify-center overflow-y-auto lg:overflow-hidden min-h-0">
             <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
               <div className="flex-1 lg:flex-[1.5] w-full flex min-w-0 min-h-0 items-center justify-center relative">
                 <div className="relative aspect-square w-full max-w-[min(100vw-2rem,100vh-280px)] lg:max-w-none lg:w-auto lg:h-full flex-shrink-0 mx-auto">
@@ -440,6 +440,16 @@ export default function App() {
                     boardRotation={boardRotation}
                     customTargetCoords={game.customTargetCoords}
                     activeTargetCoords={activeTargetCoords}
+                    onTreasureClick={(treasureId, alreadyObtained) => {
+                      if (alreadyObtained) {
+                        game.handleSelectTargetTreasure(game.activePawn, treasureId);
+                        showToast(`⚠️ ${TREASURES.find(t => t.id === treasureId)?.name ?? treasureId} already obtained — solving anyway`);
+                      } else {
+                        game.handleSelectTargetTreasure(game.activePawn, treasureId);
+                      }
+                    }}
+                    allObtainedTreasures={Object.values(game.obtainedTreasures).flat()}
+                    activeTargetTreasureId={game.playerActiveTargets[game.activePawn]}
                   />
                 </div>
               </div>
@@ -469,10 +479,6 @@ export default function App() {
                       onExecuteSolution={game.handleExecuteSolution}
                       playerActiveTargets={game.playerActiveTargets}
                       onSelectTargetTreasure={game.handleSelectTargetTreasure}
-                      obtainedTreasures={game.obtainedTreasures}
-                      grid={game.grid}
-                      pawnPositions={game.pawnPositions}
-                      lastShiftArrowId={game.lastShiftArrowId}
                     />
                   </>
                 )}

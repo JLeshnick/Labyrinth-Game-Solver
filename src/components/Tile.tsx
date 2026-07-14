@@ -11,6 +11,8 @@ interface TileProps {
   disabled?: boolean;
   boardRotation?: number;
   disableRotationTransition?: boolean;
+  isObtainedTreasure?: boolean;
+  isCurrentTarget?: boolean;
 }
 
 export const Tile: React.FC<TileProps> = ({
@@ -20,6 +22,8 @@ export const Tile: React.FC<TileProps> = ({
   disabled,
   boardRotation = 0,
   disableRotationTransition = false,
+  isObtainedTreasure = false,
+  isCurrentTarget = false,
 }) => {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: tile.id,
@@ -90,6 +94,7 @@ export const Tile: React.FC<TileProps> = ({
         "relative w-full h-full rounded-md shadow-sm border border-amber-900 overflow-hidden flex items-center justify-center transition-opacity",
         isDragging ? "opacity-50" : "opacity-100",
         tile.isFixed ? "bg-amber-800" : "bg-amber-700 cursor-grab active:cursor-grabbing",
+        isObtainedTreasure && "after:absolute after:inset-0 after:bg-stone-950/30 after:rounded-md after:pointer-events-none",
         className
       )}
       title={tile.isFixed ? "This preset tile is permanently glued to the board. It cannot be moved, slid, or rotated." : undefined}
@@ -126,11 +131,18 @@ export const Tile: React.FC<TileProps> = ({
  
       {/* Treasure Text Badge (Centered) */}
       {tile.treasure && (
-        <div 
-          className="absolute z-10 p-1 bg-stone-950/85 backdrop-blur-sm rounded border border-amber-500/20 text-[6px] sm:text-[8px] md:text-[9px] font-bold text-center leading-tight max-w-[90%] text-amber-100 shadow-sm pointer-events-none uppercase tracking-wide transition-transform duration-300"
+        <div
+          className={cn(
+            "absolute z-10 p-1 backdrop-blur-sm rounded border text-[6px] sm:text-[8px] md:text-[9px] font-bold text-center leading-tight max-w-[90%] shadow-sm pointer-events-none uppercase tracking-wide transition-transform duration-300",
+            isObtainedTreasure
+              ? "line-through opacity-50 bg-stone-800/80 text-stone-400 border-stone-700/20"
+              : isCurrentTarget
+              ? "ring-1 ring-amber-400/60 bg-amber-900/60 text-amber-100 border-amber-500/30"
+              : "bg-stone-950/85 text-amber-100 border-amber-500/20"
+          )}
           style={{ transform: `rotate(${-boardRotation}deg)` }}
         >
-          {tile.treasure.name}
+          {isObtainedTreasure ? `✓ ${tile.treasure.name}` : tile.treasure.name}
         </div>
       )}
     </div>
