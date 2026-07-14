@@ -35,8 +35,6 @@ interface SettingsDialogProps {
   onLoadSlot: (key: string, name: string) => Promise<void>;
   onDeleteSlot: (key: string) => Promise<boolean>;
   showToast: (msg: string) => void;
-  desktopSettings: { gamesDir: string } | null;
-  onSetDesktopSettings: (settings: { gamesDir: string }) => void | Promise<void>;
 }
 
 const ACCENT_PRESETS = [
@@ -79,19 +77,16 @@ export function SettingsDialog({
   saveName, setSaveName,
   allSlots, peekSlotKey, setPeekSlotKey, peekedState,
   onSaveSlot, onLoadSlot, onDeleteSlot, showToast,
-  desktopSettings, onSetDesktopSettings,
 }: SettingsDialogProps) {
   const [deleteConfirmSlot, setDeleteConfirmSlot] = useState<SaveSlot | null>(null);
   const [updateChecking, setUpdateChecking] = useState(false);
   const [updateResult, setUpdateResult] = useState<string | null>(null);
 
-  const isElectron = typeof window !== "undefined" && !!(window as { electronAPI?: unknown }).electronAPI;
-
   const sidebarTabs = [
     { key: "profiles",    label: "Saved Games",  description: "Manage slots & previews",  icon: <FolderOpen className="w-4 h-4" /> },
     { key: "preferences", label: "Preferences",  description: "General & active players", icon: <Settings className="w-4 h-4" /> },
     { key: "appearance",  label: "Appearance",   description: "Themes & accent color",    icon: <Palette className="w-4 h-4" /> },
-    { key: "storage",     label: isElectron ? "File Storage" : "Browser Storage", description: isElectron ? "Local cache pathways" : "Local storage stats",     icon: <HardDrive className="w-4 h-4" /> },
+    { key: "storage",     label: "Browser Storage", description: "Local storage stats",     icon: <HardDrive className="w-4 h-4" /> },
     { key: "application", label: "Application",  description: "Info & shortcuts",         icon: <Cpu className="w-4 h-4" /> },
   ] as const;
 
@@ -103,11 +98,7 @@ export function SettingsDialog({
       setUpdateResult("You're up to date!");
     }, 1500);
     const releasesUrl = "https://github.com/jleshnick/Labyrinth-Game-Solver/releases";
-    if (window.electronAPI?.openExternal) {
-      window.electronAPI.openExternal(releasesUrl);
-    } else {
-      window.open(releasesUrl, "_blank", "noopener,noreferrer");
-    }
+    window.open(releasesUrl, "_blank", "noopener,noreferrer");
   };
 
   const handleResetCache = () => {
@@ -181,7 +172,7 @@ export function SettingsDialog({
             </div>
             <div className="hidden md:block mt-auto pt-4 border-t border-stone-800/60 w-full">
               <p className="text-[10px] text-stone-500 font-semibold">Labyrinth Solver</p>
-              <p className="text-[9px] text-stone-600">v{__APP_VERSION__} • {isElectron ? "Desktop" : "Web"}</p>
+              <p className="text-[9px] text-stone-600">v{__APP_VERSION__} • Web</p>
             </div>
           </div>
 
@@ -502,88 +493,20 @@ export function SettingsDialog({
                 {/* Local Cache */}
                 <div className="p-4 bg-stone-950/40 border border-stone-800 rounded-xl flex flex-col gap-2.5 text-xs text-stone-400">
                   <h3 className="text-sm font-semibold text-stone-200">
-                    {isElectron ? "File Storage Information" : "Web Storage Information"}
+                    Web Storage Information
                   </h3>
                   <div>
                     <div className="font-semibold text-stone-300">
-                      {isElectron ? "Local Cache Directory:" : "Web Browser Storage Type:"}
+                      Web Browser Storage Type:
                     </div>
                     <div className="font-mono bg-stone-950 p-2.5 rounded-lg border border-stone-800 select-text break-all mt-1 mb-2">
-                      {isElectron ? (
-                        (() => {
-                          const platform = (window as { electronAPI?: { platform?: string } }).electronAPI?.platform
-                            ?? (navigator.userAgent.toLowerCase().includes("win") ? "win32" : "darwin");
-                          return platform === "win32"
-                            ? "%APPDATA%\\Labyrinth-Game-Solver\\Local Storage\\"
-                            : "~/Library/Application Support/Labyrinth-Game-Solver/Local Storage/";
-                        })()
-                      ) : (
-                        "HTML5 LocalStorage (Sandbox bound to browser domain)"
-                      )}
+                      HTML5 LocalStorage (Sandbox bound to browser domain)
                     </div>
-                    {/* Open folder button (Electron only) */}
-                    {isElectron && window.electronAPI?.openLocalStorageFolder && (
-                      <Button
-                        variant="outline"
-                        onClick={() => {
-                          if (!isMuted) playClickSound();
-                          window.electronAPI!.openLocalStorageFolder();
-                        }}
-                        className="border-stone-800 hover:bg-stone-900 text-stone-300 gap-1.5 rounded-xl text-xs"
-                      >
-                        <FolderOpen className="w-3.5 h-3.5 text-theme-primary" />
-                        Open Folder in Explorer/Finder
-                      </Button>
-                    )}
                   </div>
                   <div className="mt-1 leading-normal">
-                    {isElectron
-                      ? "Layout presets and custom slots are persisted securely locally within your sandboxed app configurations folder."
-                      : "Layout presets and custom slots are saved directly inside your web browser's local database. Clearing your browser cookies/cache for this site will reset them."}
+                    Layout presets and custom slots are saved directly inside your web browser's local database. Clearing your browser cookies/cache for this site will reset them.
                   </div>
                 </div>
-
-                {/* Disk JSON Storage (Desktop Only) */}
-                {desktopSettings && (
-                  <div className="p-4 bg-stone-950/40 border border-stone-800 rounded-xl flex flex-col gap-2.5 text-xs text-stone-400 mt-2">
-                    <h3 className="text-sm font-semibold text-stone-200">Disk JSON Storage (Desktop)</h3>
-                    <div>
-                      <div className="font-semibold text-stone-300">Saved Games Folder:</div>
-                      <div className="font-mono bg-stone-950 p-2.5 rounded-lg border border-stone-800 select-text break-all mt-1 mb-2">
-                        {desktopSettings.gamesDir}
-                      </div>
-                      <div className="flex gap-2">
-                        <Button
-                          variant="outline"
-                          onClick={async () => {
-                            if (!isMuted) playClickSound();
-                            const path = await window.electronAPI!.selectDirectory("Select Saved Games Folder");
-                            if (path) {
-                              onSetDesktopSettings({ gamesDir: path });
-                            }
-                          }}
-                          className="border-stone-800 hover:bg-stone-900 text-stone-300 gap-1.5 rounded-xl text-xs"
-                        >
-                          Change Folder
-                        </Button>
-                        <Button
-                          variant="outline"
-                          onClick={() => {
-                            if (!isMuted) playClickSound();
-                            window.electronAPI!.openDirectory(desktopSettings.gamesDir);
-                          }}
-                          className="border-stone-800 hover:bg-stone-900 text-stone-300 gap-1.5 rounded-xl text-xs"
-                        >
-                          <FolderOpen className="w-3.5 h-3.5 text-theme-primary" />
-                          Open Folder
-                        </Button>
-                      </div>
-                    </div>
-                    <div className="mt-1 leading-normal">
-                      Desktop mode saves games as individual <code>.json</code> files directly in this directory, making it easy to share, backup, or organize them.
-                    </div>
-                  </div>
-                )}
               </div>
             )}
 
@@ -600,7 +523,7 @@ export function SettingsDialog({
                     <div className="flex flex-col">
                       <span className="text-xs font-bold text-stone-200">Software Version</span>
                       <span className="text-[10px] text-stone-500 mt-0.5">
-                        {isElectron ? "Desktop Application Release" : "Web Edition Release"}
+                        Web Edition Release
                       </span>
                     </div>
                     <span className="px-2.5 py-1 rounded-lg bg-theme-primary-10 border border-theme-primary/20 text-[11px] font-bold text-theme-primary">

@@ -3,13 +3,9 @@
   "private": true,
   "version": "1.2.4",
   "type": "module",
-  "main": "src/main-electron.cjs",
   "scripts": {
-    "dev:web": "vite --port=3000 --host=0.0.0.0",
-    "dev": "concurrently -k \"vite --port=3000 --host=0.0.0.0 --no-open\" \"electron src/main-electron.cjs\"",
+    "dev": "vite --port=3000 --host=0.0.0.0",
     "build": "vite build",
-    "build:electron": "tsc -b && vite build && electron-builder",
-    "pack:electron": "tsc -b && vite build && electron-builder --dir",
     "lint": "oxlint",
     "preview": "vite preview",
     "test": "vitest run",
@@ -35,9 +31,6 @@
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.3",
     "@vitest/ui": "^3.2.4",
-    "concurrently": "^8.2.2",
-    "electron": "^43.0.0",
-    "electron-builder": "^26.15.3",
     "husky": "^9.1.7",
     "jsdom": "^26.1.0",
     "oxlint": "^1.71.0",
@@ -45,36 +38,5 @@
     "typescript": "~6.0.2",
     "vite": "^8.1.1",
     "vitest": "^3.2.4"
-  },
-  "build": {
-    "appId": "com.labyrinth.solver",
-    "productName": "Labyrinth-Game-Solver",
-    "directories": {
-      "output": "release"
-    },
-    "files": [
-      "dist/**/*",
-      "src/main-electron.cjs",
-      "src/preload.cjs",
-      "package.json"
-    ],
-    "mac": {
-      "target": [
-        "dmg",
-        "zip"
-      ],
-      "category": "public.app-category.games"
-    },
-    "win": {
-      "target": [
-        "nsis"
-      ]
-    },
-    "publish": {
-      "provider": "github",
-      "owner": "jleshnick",
-      "repo": "Labyrinth-Game-Solver",
-      "releaseType": "release"
-    }
   }
 }

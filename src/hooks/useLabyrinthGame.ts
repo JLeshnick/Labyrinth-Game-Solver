@@ -352,18 +352,7 @@ export function useLabyrinthGame({
       gameStartState,
       pawnPositions,
     };
-    const isElectron = !!(window as { electronAPI?: unknown }).electronAPI;
-    if (isElectron) {
-      const success = await saveSlot(currentSlotName, currentAppState);
-      if (success) {
-        onSaved(Date.now());
-        onToast(`Saved "${currentSlotName}" successfully!`);
-        return true;
-      }
-      onToast("Save failed — storage may be full.");
-      return false;
-    }
-    // Web: find existing slot by name and overwrite, or create new
+    // Find existing slot by name and overwrite, or create new
     const existingSlot = slots.find((s) => s.name === currentSlotName);
     if (existingSlot) {
       try {

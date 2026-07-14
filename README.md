@@ -1,91 +1,77 @@
-# Labyrinth Game Solver (Desktop Edition)
+# Labyrinth Game Solver (Web Edition)
 
-Labyrinth Game Solver is a desktop application designed to solve configurations of the classic board game **Ravensburger Labyrinth**. The application helps users design board layouts, set up player pawns and target cards, and utilizes an optimized Breadth-First Search (BFS) solver to compute the shortest path of moves (tile shifts and pawn steps) required to collect target cards.
+Labyrinth Game Solver is a web application designed to solve configurations of the classic board game **Ravensburger Labyrinth**. The application helps users design board layouts, set up player pawns and target cards, and utilizes an optimized Breadth-First Search (BFS) solver to compute the shortest path of moves (tile shifts and pawn steps) required to collect target cards.
 
-It runs locally as a cross-platform desktop application powered by **Electron**, **Vite**, **React**, **TypeScript**, and **Tailwind CSS v4**.
-
----
-
-## Key Features
-
-1. **Intuitive Drag-and-Drop Editor**: Build board configurations easily. Drag movable tiles from a side panel, drop them on the grid, and click to rotate. The app enforces strict game board setup constraints (12 movable corner tiles, 12 movable straight tiles, 9 movable T-junction tiles, and exactly 1 spare tile).
-2. **Accurate Official Board Game Layouts**:
-   - Swapped diagonal corner colors to exactly match the board game: **Red (Top-Left)** is diagonal to **Blue (Bottom-Right)**, and **Yellow (Top-Right)** is diagonal to **Green (Bottom-Left)**.
-   - Textual labels replace vague emojis, displaying exact board treasures (e.g. "Foot Ghost", "Lady Pig", "Gold Menorah", "Book with Clasp").
-3. **Multi-Threaded BFS Solver**: Computes path combinations on a separate background Web Worker (`solver.worker.js`), keeping the Electron UI fluid and responsive even during complex, high-depth searches.
-4. **Interactive Path Overlays**: Shows visual indicators on the 7x7 board for reachable cells, invalid shift arrow moves (restricting immediate opposite slidebacks), and overlays the gold path of the suggested move. Click "Execute" to execute the move instantly.
-5. **Retro Synthesized Sounds**: Retro sound effects built natively using Web Audio API oscillators to provide feedback on tile rotation, grid sliding, pawn hops, and successful target card capture.
-6. **Timeline History & Persistence**: Support for complete Undo/Redo history states and automatic local storage synchronization to seamlessly resume setup or gameplay sessions.
+It runs directly in any modern mobile or desktop web browser and is hosted for free on **GitHub Pages**, built using **Vite**, **React**, **TypeScript**, and **Tailwind CSS v4**.
 
 ---
 
-## Getting Started
+## 📱 Mobile-First & Web Features
 
-### Option A: Standalone Desktop App (Recommended / Easiest)
-If you want to run the Labyrinth Game Solver instantly without editing code or using the terminal, you can download a pre-packaged installer:
-
-1. Go to the [Labyrinth Game Solver Releases page](https://github.com/JLeshnick/Labyrinth-Game-Solver/releases) on GitHub.
-2. Download the installer for your operating system:
-   - **macOS**: Download the `.dmg` or `.zip` file.
-   - **Windows**: Download the `.exe` installer.
-3. Install and launch:
-   - **macOS**: Open the `.dmg` and drag Coaster HUD Studio to your Applications folder.
-   - **Windows**: Run the `.exe` file and follow the onscreen setup prompts.
-
-The packaged app automatically checks for and applies new updates on startup.
+1. **iPhone / iOS Home Screen PWA**: Configured with Apple Web App meta tags and viewport constraints to disable browser double-tap zoom bouncing. Use **"Add to Home Screen"** in Safari to run it full-screen just like a native mobile app.
+2. **Sticky Mobile Action Bar**: Controls like **Undo**, **Redo**, **Rotate Board Perspective**, **Stats**, and **Audio** are placed in a thumb-friendly bottom toolbar on mobile viewports.
+3. **Intuitive Tab Editor & Drag-and-Drop**: Build configurations easily on touch screens. Drag movable tiles onto the grid or tap them to rotate. The app enforces official setup limits (12 movable corners, 12 straight corridors, 9 T-junctions, and exactly 1 spare tile).
+4. **Official Board Rules**:
+   - Spawns match exact game rules: **Red (Top-Left)** is diagonal to **Blue (Bottom-Right)**, and **Yellow (Top-Right)** diagonal to **Green (Bottom-Left)**.
+   - Core treasures labeled textually (e.g., "Foot Ghost", "Lady Pig", "Gold Menorah").
+5. **Multi-Threaded BFS Solver**: Path search searches are handed off to a background thread Web Worker (`solver.worker.js`), keeping the browser UI fully responsive.
+6. **Timeline History & LocalStorage Sync**: Full Undo/Redo support. All saves, auto-saves, and layouts are synced directly to your browser's client-side `LocalStorage` database (runs serverless).
+7. **Synthesized Retro Audio**: Retro sound effects built natively using the browser's Web Audio API (oscillators) for game actions.
 
 ---
 
-### Option B: Developer Setup (Running from Source)
+## 🎮 How to Play / Run Online
 
-#### Prerequisites
-To run the project from source, you need [Node.js](https://nodejs.org/) (v18 or newer) and [Git](https://git-scm.com/) installed on your computer.
+Simply open the live URL on your desktop browser or mobile phone:
+👉 **[https://jleshnick.github.io/Labyrinth-Game-Solver/](https://jleshnick.github.io/Labyrinth-Game-Solver/)**
 
-#### Installation
+### 📲 Save as an iOS App:
+1. Load the link above in **Safari** on your iPhone.
+2. Tap the **Share** button in Safari's bottom toolbar.
+3. Scroll down and choose **Add to Home Screen**.
+4. Launch it from your home screen to enjoy the full-screen standalone experience!
+
+---
+
+## 🛠️ Developer Setup (Running from Source)
+
+### Prerequisites
+You need [Node.js](https://nodejs.org/) (v20 or newer) and [Git](https://git-scm.com/) installed on your computer.
+
+### Installation
 1. Clone the repository:
    ```bash
-   git clone https://github.com/jleshnick/Coaster-Telemetry-Video-Overlay.git
-   cd Coaster-Telemetry-Video-Overlay
+   git clone https://github.com/JLeshnick/Labyrinth-Game-Solver.git
+   cd Labyrinth-Game-Solver
    ```
-2. Install the package dependencies:
+2. Install package dependencies:
    ```bash
    npm install
    ```
 
 ---
 
-## How to Run & Build
+## Developer Commands
 
-### 1. Run Electron Desktop (Development Mode)
-Launches the application inside the native Electron shell with Hot Module Replacement (HMR) enabled:
+### 1. Run Development Server
+Launches the local Vite hot-reloading dev server:
 ```bash
 npm run dev
 ```
+Open **`http://localhost:3000`** in your browser.
 
-### 2. Compile Standalone Desktop App (Local Package)
-Builds the production assets and packages the app as a standalone executable in the `release/` directory:
+### 2. Compile Web Application
+Compiles production assets and outputs them to the `dist/` directory:
 ```bash
-npm run build:electron
+npm run build
 ```
-- **macOS output**: `./release/mac/` or `./release/mac-arm64/`
-- **Windows output**: `./release/win-unpacked/`
 
----
-
-## Interactive Workspace Tabs
-
-### 🛠️ Setup Phase (Edit Mode)
-Before starting the game, you configure the board configuration using three tabs in the sidebar:
-- **Tiles Tab**: Drag the 33 movable pieces from the loose pool onto the 7x7 grid. Clicking a placed tile rotates it clockwise. Standard board constraints must be met to play.
-- **Pawns Tab**: Choose a pawn color and click any cell on the grid to position it.
-- **Cards Tab**: Assign target treasure cards to each player's hand.
-
-### 🎮 Gameplay Phase (Play Mode)
-Clicking **Start Game** locks the board configuration and transitions the app to gameplay:
-- **Slide Insertions**: Click highlighted orange shift arrows along the edges to push the spare tile into the grid, shifting tiles along that row/column and sliding a new spare tile out the opposite end.
-- **Pawn Movements**: Move the active player's pawn to any reachable coordinate on the path. Capturing the active target card pops it off the hand.
-- **Solver Suggestions**: Click "Solver" to let the BFS algorithm find the optimal next move. Click **Execute** to run the suggested path step.
-- **Undo / Redo**: Use the history controls in the top header to navigate forward or backward through shifts.
+### 3. Run Tests & Lint
+```bash
+npm run test        # Runs Vitest unit tests
+npm run typecheck   # Typechecks the TypeScript source
+npm run lint        # Lints files using oxlint
+```
 
 ---
 
@@ -93,8 +79,6 @@ Clicking **Start Game** locks the board configuration and transitions the app to
 
 ```
 src/
-├── main-electron.cjs       # Electron main process & port polling
-├── preload.cjs             # Electron context isolation bridge
 ├── App.tsx                 # Core application controller & React state machine
 ├── index.css               # Tailwind CSS v4 styling & scrollbars
 ├── main.tsx                # Bootstrap React mounting
@@ -109,8 +93,8 @@ src/
 │   ├── Tile.tsx            # Corridor renders, starting colors, and descriptions
 │   └── ui/                 # Accessible Radix primitives and UI shells
 ├── hooks/                  # Custom React hooks
-│   ├── useLabyrinthHistory.ts  # deepClone timeline undo/redo
-│   └── useLabyrinthStorage.ts  # Autosave state management
+│   ├── useLabyrinthHistory.ts  # Timeline undo/redo snapshot stack
+│   └── useLabyrinthStorage.ts  # Browser LocalStorage persistence
 └── utils/                  # Utility functions
     └── audio.ts            # Web Audio API retro oscillator sound effects
 ```

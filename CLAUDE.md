@@ -1,30 +1,30 @@
 # Labyrinth Game Solver — Claude/Gemini Context
 
-This is the project root for Labyrinth Game Solver, a native desktop application built with Electron, React, TypeScript, and Tailwind CSS v4 to configure and solve Ravensburger Labyrinth board game layouts.
+This is the project root for Labyrinth Game Solver, a responsive, mobile-friendly web application built with React, TypeScript, and Tailwind CSS v4 to configure and solve Ravensburger Labyrinth board game layouts.
 
 ## Quick Reference
 
 | Command | Action | Description |
 |---|---|---|
-| `npm run dev` | Launch Dev Mode | Starts Vite server on port 3000/3001 and Electron concurrent window |
-| `npm run dev:electron` | Launch Dev Mode | Alias for concurrent dev start |
-| `npm run dev:web` | Start Web Server | Starts local browser-only dev server at http://localhost:3000 |
+| `npm run dev` | Start Dev Server | Launches local browser-only dev server at http://localhost:3000 |
 | `npm run build` | Vite compile | Compiles static assets under `dist/` |
-| `npm run pack:electron` | Local Build Unpacked | Builds local executables under `release/mac-arm64/` or `release/win-unpacked/` |
-| `npm run build:electron` | Local Package Installer | Packages production installers (.dmg, .zip, .exe) in `release/` |
+| `npm run preview` | Local preview | Serves the compiled `dist/` production build locally |
 | `npm run lint` | Lint check | Runs `oxlint` |
+| `npm run typecheck` | TS Check | Runs `tsc -b --noEmit` to verify type safety |
+| `npm run test` | Run tests | Runs unit tests once via `vitest` |
+| `npm run test:watch` | Watch tests | Runs unit tests in interactive watch mode |
 
 ## Essential Facts
 
-- **Tech Stack**: React 19, Vite 8, TypeScript 6, Tailwind CSS v4, `@dnd-kit/core` (drag and drop), `lucide-react` (icons), Electron 43.
-- **Port Detection**: Electron's entry points poll ports `3000` and `3001` sequentially to locate the Vite dev server before loading the renderer window.
-- **Path Resolving**: In `vite.config.ts`, `base: './'` is configured so that files compile with relative links to support Electron's `file://` protocol. Alias `@/` maps to the `src/` folder.
+- **Tech Stack**: React 19, Vite 8, TypeScript 6, Tailwind CSS v4, `@dnd-kit/core` (drag and drop), `lucide-react` (icons).
+- **Mobile Standalone / PWA**: Configured with Apple Web App meta tags to allow launching full-screen from the iPhone home screen. Max viewport bounds prevent bouncing and double-tap zoom.
+- **Path Resolving**: In `vite.config.ts`, `base: './'` is configured so that files compile with relative links to support hosting on GitHub Pages subpaths. Alias `@/` maps to the `src/` folder.
 - **Safe Deep Copy**: `useLabyrinthHistory.ts` uses a custom `deepClone` (via `JSON.parse(JSON.stringify(...))`) instead of solver's `cloneBoard()` to avoid crash errors with `null` grid values.
-- **Auto-Save**: The state synchronizes to `localStorage` under `labyrinth_saved_slots_list` and `labyrinth_strategist_state`.
+- **Auto-Save / Game Storage**: The state synchronizes to the browser's `localStorage` database under `labyrinth_saved_slots_list` and `labyrinth_strategist_state`.
 
 ## Release Pipeline
 
-Merging any PR to `main` automatically bumps the version and publishes a GitHub Release — **do not merge to main unless shipping is intended**.
+Merging any PR to `main` automatically bumps the version, publishes a GitHub Release, and deploys to GitHub Pages — **do not merge to main unless shipping is intended**.
 
 Version bump is driven by the merge commit message prefix:
 - `feat:` → minor bump

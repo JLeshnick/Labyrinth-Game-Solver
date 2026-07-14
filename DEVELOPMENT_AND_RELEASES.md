@@ -1,35 +1,36 @@
 # Labyrinth Game Solver — Development & Releases Guide
 
-This guide explains how to test the application locally, how to save changes to GitHub without releasing them, and how the automated release pipeline works.
+This guide explains how to test the application locally, how to commit changes to GitHub, and how the automated release and deployment pipeline works.
 
 ---
 
 ## 🛠️ Part 1: How to Test Your Changes Locally
 
 ### 1. Developer Mode (Hot Reloading)
-Runs the app inside the Electron shell. Code edits update the window instantly.
+Runs the app inside your local web browser. Code edits update the browser window instantly.
 
 ```bash
 npm run dev
 ```
+Open **`http://localhost:3000`** in your browser.
 
 ### 2. Run Tests & Type-Check
+Ensure your edits do not break compiler types or solver expectations:
 ```bash
 npm run test        # Vitest unit tests (run once)
-npm run test:watch  # Watch mode
-npm run typecheck   # TypeScript type-check only
-npm run lint        # oxlint
+npm run test:watch  # Watch mode for active development
+npm run typecheck   # TypeScript compile check
+npm run lint        # Lint check via oxlint
 ```
 
-### 3. Test the Packaged Production App
-Build and run the final executable locally before publishing.
+### 3. Test the Production Bundle Locally
+Build and preview the final minified web assets locally before pushing:
 
 ```bash
-npm run build:electron
+npm run build       # Compiles static files into dist/
+npm run preview     # Serves the compiled dist/ folder locally
 ```
-
-- **macOS:** `release/mac/Labyrinth-Game-Solver.app`
-- **Windows:** `release/win-unpacked/Labyrinth-Game-Solver.exe`
+Open **`http://localhost:4173`** (or the port output in terminal) to test the exact production output.
 
 ---
 
@@ -41,7 +42,7 @@ Work on a feature branch and open a PR. Merging to `main` automatically triggers
 # Create a branch
 git checkout -b feat/my-improvement
 
-# Commit with a conventional commit prefix (controls version bump — see below)
+# Commit with a conventional commit prefix (controls version bump)
 git add .
 git commit -m "feat: add solver depth selector"
 
@@ -51,9 +52,9 @@ git push -u origin feat/my-improvement
 
 ---
 
-## 🚀 Part 3: Automated Release Pipeline
+## 🚀 Part 3: Automated Release & Deploy Pipeline
 
-**Merging to `main` automatically creates a release.** You do not manually tag or bump the version — the pipeline handles it.
+**Merging to `main` automatically creates a release and deploys it.** You do not manually tag or bump the version — the pipeline handles it.
 
 ```mermaid
 graph TD
@@ -61,10 +62,10 @@ graph TD
     B --> C[Reads commit message for bump type]
     C --> D[Bumps package.json version]
     D --> E[Commits bump + creates vX.Y.Z tag]
-    E --> F[release-on-merge.yml explicitly calls release.yml]
-    F --> G[Builds macOS dmg/zip and Windows exe]
-    G --> H[Publishes GitHub Release with binaries]
-    H --> I[Existing apps auto-update on launch]
+    E --> F[release-on-merge.yml calls release.yml]
+    F --> G[Runs unit tests and builds Vite web app]
+    G --> H[Publishes GitHub Release with changelog notes]
+    H --> I[Deploys built assets directly to GitHub Pages]
 ```
 
 ### Version Bump Rules (Conventional Commits)
@@ -83,14 +84,14 @@ Use these prefixes on **every commit** so the release pipeline knows what kind o
 
 | Prefix | When to use |
 |---|---|
-| `feat:` | A new user-facing feature |
+| `feat:` | A new user-facing feature (like a new UI element) |
 | `fix:` | A bug fix |
 | `refactor:` | Internal code restructure, no behaviour change |
-| `chore:` | Tooling, deps, config — nothing the user sees |
-| `docs:` | Documentation only |
-| `style:` | Formatting, whitespace |
-| `perf:` | Performance improvement |
-| `test:` | Adding or fixing tests |
+| `chore:` | Tooling, dependencies, configuration changes |
+| `docs:` | Documentation edits |
+| `style:` | Code formatting, trailing commas, whitespace |
+| `perf:` | Performance improvements |
+| `test:` | Adding or fixing unit tests |
 | `ci:` | CI/CD pipeline changes |
 | `BREAKING CHANGE:` | Anything that breaks existing saved data or behaviour |
 
@@ -102,19 +103,14 @@ git commit -m "fix: correct pawn start positions at red and green corners"
 
 # Minor bump (1.0.1 → 1.1.0) — new feature
 git commit -m "feat: add multi-turn solver preview overlay"
-
-# Major bump (1.0.1 → 2.0.0) — breaks saves or API
-git commit -m "refactor: redesign save slot schema
-
-BREAKING CHANGE: existing save slots are not compatible with this version"
 ```
 
 ### What Happens After a Merge
 
 1. `release-on-merge.yml` reads the commit message, bumps `package.json`, commits `chore: bump version to vX.Y.Z`, and pushes a `vX.Y.Z` tag.
 2. `release-on-merge.yml` then explicitly calls the reusable `release.yml` workflow, passing the new tag to it.
-3. `release.yml` builds on both macOS and Windows runners and uploads the binaries to a new GitHub Release.
-4. The release is published automatically — no manual step required.
+3. `release.yml` runs on a fast, free Ubuntu runner. It runs unit tests, compiles the production code, generates release notes, and uploads the artifacts.
+4. The GitHub Release is published, and the new build is instantly deployed to your **GitHub Pages** URL!
 
 ### If You Need to Skip a Release
 
@@ -123,21 +119,3 @@ Add `[skip ci]` to your commit message to prevent the pipeline from running:
 ```bash
 git commit -m "docs: update readme [skip ci]"
 ```
-
----
-
-## 🔧 Part 4: Manual Release (Fallback)
-
-If you ever need to cut a release manually without merging (e.g. hotfix directly on main):
-
-```bash
-git checkout main && git pull origin main
-
-# Manually set the version in package.json, then:
-git add package.json
-git commit -m "chore: bump version to v1.2.0"
-git tag v1.2.0
-git push origin main --follow-tags
-```
-
-This skips `release-on-merge.yml` and triggers `release.yml` directly via the tag push.

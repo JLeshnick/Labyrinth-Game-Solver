@@ -8,19 +8,8 @@ export const AUTOSAVE_KEY = "labyrinth_strategist_state";
 
 export function useLabyrinthStorage() {
   const [slots, setSlots] = useState<SaveSlot[]>([]);
-  const isElectron = !!window.electronAPI;
 
   const refreshSlots = useCallback(async () => {
-    if (isElectron) {
-      try {
-        const list = await window.electronAPI!.listGames();
-        setSlots(list);
-      } catch (e) {
-        console.error("Failed to list games from disk:", e);
-      }
-      return;
-    }
-
     try {
       const rawList = localStorage.getItem(SLOTS_LIST_KEY);
       if (rawList) {
@@ -40,7 +29,7 @@ export function useLabyrinthStorage() {
     } catch (e) {
       console.warn("Failed to load save slots list from localStorage:", e);
     }
-  }, [isElectron]);
+  }, []);
 
   useEffect(() => {
     refreshSlots();
@@ -65,20 +54,6 @@ export function useLabyrinthStorage() {
   }, []);
 
   const saveSlot = useCallback(async (slotName: string, stateData: Partial<AppGameState>): Promise<boolean> => {
-    if (isElectron) {
-      try {
-        const result = await window.electronAPI!.saveGame(slotName, stateData);
-        if (result.success) {
-          await refreshSlots();
-          return true;
-        }
-        return false;
-      } catch (e) {
-        console.error("Save slot to disk failed:", e);
-        return false;
-      }
-    }
-
     try {
       const slotKey = `labyrinth_slot_${Date.now()}`;
       localStorage.setItem(slotKey, JSON.stringify(stateData));
@@ -92,18 +67,9 @@ export function useLabyrinthStorage() {
       console.error("Save slot failed:", e);
       return false;
     }
-  }, [slots, isElectron, refreshSlots]);
+  }, [slots]);
 
   const loadSlot = useCallback(async (slotKey: string): Promise<Partial<AppGameState> | null> => {
-    if (isElectron) {
-      try {
-        return await window.electronAPI!.loadGame(slotKey);
-      } catch (e) {
-        console.error("Load slot from disk failed:", e);
-        return null;
-      }
-    }
-
     try {
       const raw = localStorage.getItem(slotKey);
       if (!raw) return null;
@@ -112,23 +78,9 @@ export function useLabyrinthStorage() {
       console.error("Load slot failed:", e);
       return null;
     }
-  }, [isElectron]);
+  }, []);
 
   const deleteSlot = useCallback(async (slotKey: string): Promise<boolean> => {
-    if (isElectron) {
-      try {
-        const success = await window.electronAPI!.deleteGame(slotKey);
-        if (success) {
-          await refreshSlots();
-          return true;
-        }
-        return false;
-      } catch (e) {
-        console.error("Delete slot from disk failed:", e);
-        return false;
-      }
-    }
-
     try {
       localStorage.removeItem(slotKey);
       const updatedSlots = slots.filter((s) => s.key !== slotKey);
@@ -139,7 +91,7 @@ export function useLabyrinthStorage() {
       console.error("Delete slot failed:", e);
       return false;
     }
-  }, [slots, isElectron, refreshSlots]);
+  }, [slots]);
 
   return { slots, saveAutosave, loadAutosave, saveSlot, loadSlot, deleteSlot, refreshSlots };
 }

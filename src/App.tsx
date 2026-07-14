@@ -47,7 +47,6 @@ export default function App() {
   const [saveName, setSaveName] = useState("");
   const [peekSlotKey, setPeekSlotKey] = useState<string | null>(null);
   const [peekedState, setPeekedState] = useState<Partial<AppGameState> | null>(null);
-  const [desktopSettings, setDesktopSettings] = useState<{ gamesDir: string } | null>(null);
   const [isNewGameDialogOpen, setIsNewGameDialogOpen] = useState(false);
   const [newGameName, setNewGameName] = useState("");
   const [showStats, setShowStats] = useState(false);
@@ -220,25 +219,7 @@ export default function App() {
     }
   }, [game.activePawn, game.isGameStarted, game.spareTile.rotation]);
 
-  // ── Desktop settings ──────────────────────────────────────────────────────────
-  const fetchDesktopSettings = useCallback(async () => {
-    if ((window as { electronAPI?: { getSettings?: () => Promise<{ gamesDir: string }> } }).electronAPI?.getSettings) {
-      const s = await (window as unknown as { electronAPI: { getSettings: () => Promise<{ gamesDir: string }> } }).electronAPI.getSettings();
-      setDesktopSettings(s);
-    }
-  }, []);
 
-  const handleSetDesktopSettings = useCallback(async (settings: { gamesDir: string }) => {
-    const api = (window as { electronAPI?: { setSettings?: (s: { gamesDir: string }) => Promise<{ gamesDir: string }>; } }).electronAPI;
-    if (api?.setSettings) {
-      const updated = await api.setSettings(settings);
-      setDesktopSettings(updated);
-      if (game.refreshSlots) await game.refreshSlots();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [game.refreshSlots]);
-
-  useEffect(() => { fetchDesktopSettings(); }, [fetchDesktopSettings]);
 
   // ── Peek slot ─────────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -512,7 +493,6 @@ export default function App() {
             settingsTab={settingsTab}
             setSettingsTab={setSettingsTab}
             isSettingsOpen={isSettingsOpen}
-            desktopSettings={desktopSettings}
             grid={game.grid}
             spareTile={game.spareTile}
             playerHands={game.playerHands}
@@ -550,7 +530,6 @@ export default function App() {
             setAccentColor={setAccentColor}
             onSetBaseTheme={setBaseTheme}
             onSetActivePlayers={game.setActivePlayers}
-            onSetDesktopSettings={handleSetDesktopSettings}
             showToast={showToast}
           />
 
