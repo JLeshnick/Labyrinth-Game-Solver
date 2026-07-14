@@ -92,7 +92,7 @@ const BoardSpace: React.FC<BoardSpaceProps> = ({
         isOnHoveredPath ? "ring-2 ring-theme-primary ring-offset-2 ring-offset-stone-950 shadow-[0_0_12px_rgba(var(--theme-color-rgb),0.3)]" : "",
         isCustomTarget ? "ring-2 ring-theme-primary ring-offset-2 ring-offset-stone-950 shadow-[0_0_15px_rgba(var(--theme-color-rgb),0.55)] z-10" : "",
         previewSlideClass,
-        isActiveTarget ? "ring-4 ring-amber-300 ring-offset-2 ring-offset-stone-950 shadow-[0_0_20px_rgba(251,191,36,0.6)] animate-pulse-border" : "",
+        isActiveTarget ? "ring-4 ring-white shadow-[0_0_0_2px_rgba(251,191,36,0.9),0_0_20px_rgba(251,191,36,0.5)]" : "",
         isReachable ? "ring-2 ring-green-400/60 bg-green-900/20 hover:ring-green-400 hover:bg-green-900/30 cursor-pointer" : "",
       )}
     >

@@ -28,6 +28,9 @@ interface SolverPanelProps {
   onCommitSlide: () => void;
   onCancelSlide: () => void;
   turnPhase: "slide" | "move";
+  showOneMoveTargets: boolean;
+  onToggleOneMoveTargets: () => void;
+  oneMoveTargets: { id: string; name: string }[];
 }
  
 export function SolverPanel({
@@ -52,40 +55,91 @@ export function SolverPanel({
   onCommitSlide,
   onCancelSlide,
   turnPhase,
+  showOneMoveTargets,
+  onToggleOneMoveTargets,
+  oneMoveTargets,
 }: SolverPanelProps) {
   return (
     <div className="flex-1 flex flex-col min-h-0 gap-4 p-2">
       {/* Turn phase banner */}
-      <div className={`px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 border ${
-        turnPhase === "slide"
-          ? "bg-blue-950/40 border-blue-800/50 text-blue-300"
-          : "bg-green-950/40 border-green-800/50 text-green-300"
-      }`}>
-        {turnPhase === "slide"
-          ? stagedArrow
-            ? <><ArrowRightCircle className="w-3.5 h-3.5 shrink-0" /> Arrow staged — click it again to rotate, then <strong>Slide In</strong></>
-            : <><ArrowRightCircle className="w-3.5 h-3.5 shrink-0" /> Click a board arrow to stage your tile placement</>
-          : <><MousePointer2 className="w-3.5 h-3.5 shrink-0" /> Click a highlighted green cell to move your pawn</>
-        }
-      </div>
+      {turnPhase === "move" ? (
+        <div className="px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 border bg-green-950/40 border-green-800/50 text-green-300">
+          <MousePointer2 className="w-3.5 h-3.5 shrink-0" />
+          <span>Click a highlighted green cell to move your pawn</span>
+        </div>
+      ) : stagedArrow ? (
+        <div className="px-3 py-2 rounded-xl text-xs font-semibold flex flex-col gap-1.5 border bg-theme-primary-10 border-theme-primary/30 text-stone-200">
+          <div className="flex items-center gap-2">
+            <ArrowRightCircle className="w-3.5 h-3.5 text-theme-primary shrink-0" />
+            <span className="font-bold text-theme-primary">Arrow staged — preview locked in</span>
+          </div>
+          <div className="flex flex-col gap-0.5 pl-5 text-[10px] text-stone-400 font-normal">
+            <span>• Click the <span className="text-stone-200 font-semibold">same arrow</span> again to rotate the tile</span>
+            <span>• Click a <span className="text-stone-200 font-semibold">different arrow</span> to move the stage</span>
+            <span>• Press <span className="text-theme-primary font-semibold">Slide In</span> below to commit</span>
+          </div>
+        </div>
+      ) : (
+        <div className="px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 border bg-blue-950/40 border-blue-800/50 text-blue-300">
+          <ArrowRightCircle className="w-3.5 h-3.5 shrink-0" />
+          <span>Click any board arrow to preview and stage that slide</span>
+        </div>
+      )}
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-bold text-theme-primary flex items-center gap-2">
           <Sparkles className="w-5 h-5 text-theme-primary" />
           Solver Suggestions
         </h2>
-        <div className="text-xs px-2 py-1 bg-stone-800 rounded text-stone-400">
-          Turns:
-          <select
-            value={maxTurns}
-            onChange={(e) => setMaxTurns(parseInt(e.target.value))}
-            className="ml-1 bg-stone-900 border border-stone-700 text-stone-200 rounded text-xs focus:outline-none"
+        <div className="flex items-center gap-2">
+          <button
+            onClick={onToggleOneMoveTargets}
+            className={`text-[10px] px-2 py-1 rounded-lg border transition-colors cursor-pointer font-semibold ${
+              showOneMoveTargets
+                ? "bg-theme-primary-10 border-theme-primary/40 text-theme-primary"
+                : "border-stone-700 text-stone-500 hover:text-stone-300 hover:border-stone-600"
+            }`}
+            title="Show all treasures reachable in exactly 1 turn"
           >
-            <option value={1}>1</option>
-            <option value={2}>2</option>
-            <option value={3}>3</option>
-          </select>
+            1-move targets
+          </button>
+          <div className="text-xs px-2 py-1 bg-stone-800 rounded text-stone-400">
+            Turns:
+            <select
+              value={maxTurns}
+              onChange={(e) => setMaxTurns(parseInt(e.target.value))}
+              className="ml-1 bg-stone-900 border border-stone-700 text-stone-200 rounded text-xs focus:outline-none"
+            >
+              <option value={1}>1</option>
+              <option value={2}>2</option>
+              <option value={3}>3</option>
+            </select>
+          </div>
         </div>
       </div>
+
+      {showOneMoveTargets && (
+        <div className="flex flex-col gap-1.5 shrink-0">
+          <div className="text-[10px] font-bold text-stone-500 uppercase tracking-widest">
+            Reachable in 1 Turn ({oneMoveTargets.length})
+          </div>
+          {oneMoveTargets.length === 0 ? (
+            <p className="text-[10px] text-stone-600 italic">None found with current board state</p>
+          ) : (
+            <div className="flex flex-wrap gap-1.5">
+              {oneMoveTargets.map(t => (
+                <button
+                  key={t.id}
+                  onClick={() => onSelectTargetTreasure(activePawn, t.id)}
+                  className="text-[10px] px-2 py-0.5 rounded-full bg-green-950/60 border border-green-700/40 text-green-300 hover:bg-green-900/60 hover:border-green-600/60 cursor-pointer transition-colors font-medium"
+                  title={`Set ${t.name} as target`}
+                >
+                  {t.name}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="p-4 bg-stone-950/60 border border-stone-800/80 rounded-xl flex items-center justify-between text-left">
         <div className="flex items-center gap-3">
@@ -117,7 +171,7 @@ export function SolverPanel({
           <Tile
             tile={{ ...spareTile, rotation: stagedArrow ? stagedRotation : spareTile.rotation }}
             disabled
-            className="w-12 h-12 border-theme-primary-40"
+            className="w-20 h-20 border-theme-primary-40"
           />
           {stagedArrow ? (
             <div className="flex flex-col items-center gap-1 mt-0.5">

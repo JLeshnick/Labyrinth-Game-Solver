@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { TileData, PlayerMap, PawnPositions } from "../types";
+import { PAWNS, TREASURES } from "../constants";
 import { Button } from "./ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
 import { SettingsDialog } from "./SettingsDialog";
@@ -128,6 +129,8 @@ export function AppHeader({
   onSetActivePlayers,
   onSetDesktopSettings,
   showToast,
+  playerHands,
+  obtainedTreasures,
 }: AppHeaderProps) {
   const [showGameMenu, setShowGameMenu] = useState(false);
   const [showEndGameConfirm, setShowEndGameConfirm] = useState(false);
@@ -213,6 +216,60 @@ export function AppHeader({
           <Home className="w-3.5 h-3.5" />
           <span className="text-xs hidden sm:inline">Menu</span>
         </Button>
+
+        {/* Pawn score pills — only during game */}
+        {isGameStarted && activePlayers.length > 0 && (
+          <div className="flex items-center gap-1 border-r border-stone-800 pr-3 mr-1">
+            {activePlayers.map(pawnId => {
+              const pawn = PAWNS.find(p => p.id === pawnId);
+              const obtained = (obtainedTreasures as Record<string, string[]>)[pawnId] ?? [];
+              const hand = (playerHands as Record<string, string[]>)[pawnId] ?? [];
+              const total = obtained.length + hand.length;
+              return (
+                <div key={pawnId} className="relative group">
+                  <div className={`flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold cursor-default border transition-colors ${
+                    pawnId === activePawn
+                      ? "border-white/20 bg-white/8 text-stone-100"
+                      : "border-transparent text-stone-400"
+                  }`}>
+                    <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${pawn?.colorClass ?? "bg-stone-500"}`} />
+                    <span>{obtained.length}{total > 0 ? `/${total}` : ""}</span>
+                  </div>
+                  {/* Hover tooltip */}
+                  <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-52 rounded-xl border border-stone-700 bg-stone-950 shadow-2xl p-3 z-50 invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-all duration-150 flex flex-col gap-1 pointer-events-none">
+                    <div className="text-[10px] font-bold text-stone-200 capitalize border-b border-stone-800 pb-1.5 mb-0.5 flex items-center gap-1.5">
+                      <div className={`w-3 h-3 rounded-full ${pawn?.colorClass ?? "bg-stone-500"}`} />
+                      {pawn?.name ?? pawnId} — {obtained.length} collected
+                    </div>
+                    {obtained.length === 0 && hand.length === 0 && (
+                      <p className="text-[9px] text-stone-600 italic">No cards assigned</p>
+                    )}
+                    {obtained.map(id => {
+                      const t = TREASURES.find(x => x.id === id);
+                      return (
+                        <div key={id} className="flex items-center gap-1.5">
+                          <span className="text-emerald-400 text-[9px] flex-shrink-0">✓</span>
+                          <span className="text-[9px] text-emerald-300 line-through opacity-75">{t?.name ?? id}</span>
+                        </div>
+                      );
+                    })}
+                    {hand.map((id, i) => {
+                      const t = TREASURES.find(x => x.id === id);
+                      return (
+                        <div key={id} className="flex items-center gap-1.5">
+                          <span className={`text-[9px] flex-shrink-0 ${i === 0 ? "text-amber-400" : "text-stone-600"}`}>{i === 0 ? "▶" : "·"}</span>
+                          <span className={`text-[9px] ${i === 0 ? "text-amber-200 font-medium" : "text-stone-500"}`}>
+                            {t?.name ?? id}{i === 0 ? " ← next" : ""}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
 
         {/* Game ▼ dropdown */}
         <div className="relative">

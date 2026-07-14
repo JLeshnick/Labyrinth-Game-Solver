@@ -17,14 +17,13 @@ import { Button } from "./components/ui/button";
 import { LandingPage } from "./components/LandingPage";
 import { SolverPanel } from "./components/SolverPanel";
 import { SetupPanel } from "./components/SetupPanel";
-import { TrophyPanel } from "./components/TrophyPanel";
 import { StatsPanel } from "./components/StatsPanel";
 import { AppHeader } from "./components/AppHeader";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./components/ui/dialog";
 import { useLabyrinthGame } from "./hooks/useLabyrinthGame";
 import { playClickSound } from "./utils/audio";
 import { fromSolverGrid } from "./lib/solverAdapter";
-import { executeSlideInGrid, getReachableCells } from "./solver";
+import { executeSlideInGrid, getReachableCells, quickSolveMinTurns } from "./solver";
 import type { Rotation } from "./types";
 import { Sparkles, Plus } from "lucide-react";
 
@@ -56,6 +55,7 @@ export default function App() {
   const [turnPhase, setTurnPhase] = useState<"slide" | "move">("slide");
   const [stagedArrow, setStagedArrow] = useState<string | null>(null);
   const [stagedRotation, setStagedRotation] = useState<0 | 90 | 180 | 270>(0);
+  const [showOneMoveTargets, setShowOneMoveTargets] = useState(false);
 
   // ── Solver worker ─────────────────────────────────────────────────────────────
   const [solutions, setSolutions] = useState<unknown[]>([]);
@@ -391,17 +391,6 @@ export default function App() {
     return null;
   }, [game.playerActiveTargets, game.activePawn, game.grid, previewState]);
 
-  const reachableCells = useMemo<{ r: number; c: number }[]>(() => {
-    if (!game.isGameStarted || turnPhase !== "move") return [];
-    const pawnPos = game.pawnPositions[game.activePawn];
-    if (!pawnPos) return [];
-    try {
-      const solverBoard = game.getSolverFormattedBoard(game.grid, game.pawnPositions);
-      const { cells } = getReachableCells(solverBoard, pawnPos.r, pawnPos.c);
-      return cells as { r: number; c: number }[];
-    } catch { return []; }
-  }, [game.isGameStarted, turnPhase, game.grid, game.pawnPositions, game.activePawn, game.getSolverFormattedBoard]);
-
   const stagedPreviewState = useMemo(() => {
     if (hoveredSolution || !stagedArrow || turnPhase !== "slide") return null;
     const arrow = SHIFT_ARROWS.find((a) => a.id === stagedArrow);
@@ -425,7 +414,59 @@ export default function App() {
     } catch { return null; }
   }, [hoveredSolution, stagedArrow, stagedRotation, turnPhase, game.grid, game.pawnPositions, game.spareTile, game.getSolverFormattedBoard, game.getSolverFormattedSpare]);
 
+  const reachableCells = useMemo<{ r: number; c: number }[]>(() => {
+    if (!game.isGameStarted) return [];
+    // During move phase, use the post-slide game grid
+    if (turnPhase === "move") {
+      const pawnPos = game.pawnPositions[game.activePawn];
+      if (!pawnPos) return [];
+      try {
+        const solverBoard = game.getSolverFormattedBoard(game.grid, game.pawnPositions);
+        const { cells } = getReachableCells(solverBoard, pawnPos.r, pawnPos.c);
+        return cells as { r: number; c: number }[];
+      } catch { return []; }
+    }
+    // During staged preview, show reachable cells from the staged board
+    if (stagedPreviewState) {
+      const pawnPos = stagedPreviewState.pawnPositions[game.activePawn];
+      if (!pawnPos) return [];
+      try {
+        const solverBoard = game.getSolverFormattedBoard(stagedPreviewState.grid, stagedPreviewState.pawnPositions);
+        const { cells } = getReachableCells(solverBoard, pawnPos.r, pawnPos.c);
+        return cells as { r: number; c: number }[];
+      } catch { return []; }
+    }
+    return [];
+  }, [game.isGameStarted, turnPhase, game.grid, game.pawnPositions, game.activePawn, game.getSolverFormattedBoard, stagedPreviewState]);
+
   const effectivePreview = previewState || stagedPreviewState;
+
+  const oneMoveTargets = useMemo<{ id: string; name: string }[]>(() => {
+    if (!game.isGameStarted || !showOneMoveTargets) return [];
+    const pawnPos = game.pawnPositions[game.activePawn];
+    if (!pawnPos) return [];
+    const allObtained = Object.values(game.obtainedTreasures).flat();
+    try {
+      const solverBoard = game.getSolverFormattedBoard(game.grid, game.pawnPositions);
+      const solverSpare = game.getSolverFormattedSpare(game.spareTile);
+      return TREASURES.filter(t => {
+        if (allObtained.includes(t.id)) return false;
+        try {
+          const turns = quickSolveMinTurns(
+            solverBoard.map((row: any[]) => row.map((c: any) => ({ ...c }))),
+            { ...solverSpare },
+            pawnPos,
+            t.id,
+            game.lastShiftArrowId,
+            1
+          );
+          return turns === 1;
+        } catch { return false; }
+      });
+    } catch { return []; }
+  }, [game.isGameStarted, showOneMoveTargets, game.grid, game.pawnPositions, game.activePawn,
+      game.spareTile, game.obtainedTreasures, game.lastShiftArrowId,
+      game.getSolverFormattedBoard, game.getSolverFormattedSpare]);
 
   // ── Render ────────────────────────────────────────────────────────────────────
   return (
@@ -556,11 +597,6 @@ export default function App() {
               <div className="w-full lg:w-[400px] xl:w-[440px] flex flex-col flex-shrink-0 min-h-0 lg:h-full gap-3">
                 {game.isGameStarted && (
                   <>
-                    <TrophyPanel
-                      activePlayers={game.activePlayers}
-                      playerHands={game.playerHands}
-                      obtainedTreasures={game.obtainedTreasures}
-                    />
                     <SolverPanel
                       solutions={solutions}
                       isLoadingSolutions={isLoadingSolutions}
@@ -584,6 +620,9 @@ export default function App() {
                       onCommitSlide={commitStagedSlide}
                       onCancelSlide={cancelStagedSlide}
                       turnPhase={turnPhase}
+                      showOneMoveTargets={showOneMoveTargets}
+                      onToggleOneMoveTargets={() => setShowOneMoveTargets(v => !v)}
+                      oneMoveTargets={oneMoveTargets}
                     />
                   </>
                 )}
