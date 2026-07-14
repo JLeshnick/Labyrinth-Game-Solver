@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { TileData, PlayerMap, PawnPositions } from "../types";
+import type { TileData, PlayerMap, PawnPositions, AppGameState } from "../types";
 import { PAWNS, TREASURES } from "../constants";
 import { Button } from "./ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
@@ -43,7 +43,7 @@ export interface AppHeaderProps {
   allSlots: SaveSlot[];
   peekSlotKey: string | null;
   setPeekSlotKey: (v: string | null) => void;
-  peekedState: unknown;
+  peekedState: Partial<AppGameState> | null;
   settingsTab: "profiles" | "preferences" | "appearance" | "storage" | "application";
   setSettingsTab: (tab: "profiles" | "preferences" | "appearance" | "storage" | "application") => void;
   accentColor: string;
@@ -56,7 +56,7 @@ export interface AppHeaderProps {
   playerActiveTargets: PlayerMap<string | null>;
   obtainedTreasures: PlayerMap<string[]>;
   lastShiftArrowId: string | null;
-  gameStartState: unknown;
+  gameStartState: AppGameState | null;
   pawnPositions: PawnPositions;
   onGoToMenu: () => void;
   onOpenNewGameDialog: () => void;

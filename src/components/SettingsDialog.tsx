@@ -9,7 +9,7 @@ import { Tile } from "./Tile";
 import { PAWNS } from "../constants";
 import { AUTOSAVE_KEY } from "../hooks/useLabyrinthStorage";
 import { playClickSound } from "../utils/audio";
-import type { SaveSlot } from "../hooks/useLabyrinthStorage";
+import type { AppGameState, TileData, SaveSlot } from "../types";
 
 interface SettingsDialogProps {
   open: boolean;
@@ -30,13 +30,13 @@ interface SettingsDialogProps {
   allSlots: SaveSlot[];
   peekSlotKey: string | null;
   setPeekSlotKey: (key: string | null) => void;
-  peekedState: any;
-  onSaveSlot: (name: string) => void | Promise<any>;
-  onLoadSlot: (key: string, name: string) => void | Promise<any>;
-  onDeleteSlot: (key: string) => void | Promise<any>;
+  peekedState: Partial<AppGameState> | null;
+  onSaveSlot: (name: string) => Promise<void>;
+  onLoadSlot: (key: string, name: string) => Promise<void>;
+  onDeleteSlot: (key: string) => Promise<boolean>;
   showToast: (msg: string) => void;
   desktopSettings: { gamesDir: string } | null;
-  onSetDesktopSettings: (settings: { gamesDir: string }) => void | Promise<any>;
+  onSetDesktopSettings: (settings: { gamesDir: string }) => void | Promise<void>;
 }
 
 const ACCENT_PRESETS = [
@@ -101,8 +101,8 @@ export function SettingsDialog({
       setUpdateResult("You're up to date!");
     }, 1500);
     const releasesUrl = "https://github.com/jleshnick/Labyrinth-Game-Solver/releases";
-    if ((window as any).electronAPI?.openExternal) {
-      (window as any).electronAPI.openExternal(releasesUrl);
+    if (window.electronAPI?.openExternal) {
+      window.electronAPI.openExternal(releasesUrl);
     } else {
       window.open(releasesUrl, "_blank", "noopener,noreferrer");
     }
@@ -292,12 +292,12 @@ export function SettingsDialog({
                         Previewing Saved Board:
                       </div>
                       <div className="grid grid-cols-7 grid-rows-7 gap-[4px] p-3 bg-stone-900 border border-stone-800 rounded-xl max-w-full aspect-square">
-                        {peekedState.board.map((row: any[], rIdx: number) =>
-                          row.map((cell: any, cIdx: number) => {
+                        {peekedState.board.map((row: (TileData | null)[], rIdx: number) =>
+                          row.map((cell: TileData | null, cIdx: number) => {
                             let hasPawn: string | null = null;
                             if (peekedState.pawnPositions) {
                               const found = Object.entries(peekedState.pawnPositions).find(
-                                ([, pos]: any) => pos.r === rIdx && pos.c === cIdx
+                                ([, pos]: [string, { r: number; c: number }]) => pos.r === rIdx && pos.c === cIdx
                               );
                               if (found) hasPawn = found[0];
                             }
@@ -512,12 +512,12 @@ export function SettingsDialog({
                       })()}
                     </div>
                     {/* Open folder button (Electron only) */}
-                    {(window as any).electronAPI?.openLocalStorageFolder && (
+                    {window.electronAPI?.openLocalStorageFolder && (
                       <Button
                         variant="outline"
                         onClick={() => {
                           if (!isMuted) playClickSound();
-                          (window as any).electronAPI.openLocalStorageFolder();
+                          window.electronAPI!.openLocalStorageFolder();
                         }}
                         className="border-stone-800 hover:bg-stone-900 text-stone-300 gap-1.5 rounded-xl text-xs"
                       >
@@ -545,7 +545,7 @@ export function SettingsDialog({
                           variant="outline"
                           onClick={async () => {
                             if (!isMuted) playClickSound();
-                            const path = await (window as any).electronAPI.selectDirectory("Select Saved Games Folder");
+                            const path = await window.electronAPI!.selectDirectory("Select Saved Games Folder");
                             if (path) {
                               onSetDesktopSettings({ gamesDir: path });
                             }
@@ -558,7 +558,7 @@ export function SettingsDialog({
                           variant="outline"
                           onClick={() => {
                             if (!isMuted) playClickSound();
-                            (window as any).electronAPI.openDirectory(desktopSettings.gamesDir);
+                            window.electronAPI!.openDirectory(desktopSettings.gamesDir);
                           }}
                           className="border-stone-800 hover:bg-stone-900 text-stone-300 gap-1.5 rounded-xl text-xs"
                         >

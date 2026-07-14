@@ -10,7 +10,7 @@ import {
   PointerSensor,
 } from "@dnd-kit/core";
 import { SHIFT_ARROWS, TREASURES } from "./constants";
-import type { TileData } from "./types";
+import type { TileData, AppGameState } from "./types";
 import { Board } from "./components/Board";
 import { Tile } from "./components/Tile";
 import { Button } from "./components/ui/button";
@@ -45,7 +45,7 @@ export default function App() {
   const [accentColor, setAccentColorState] = useState(() => localStorage.getItem("labyrinth_accent_color") ?? "");
   const [saveName, setSaveName] = useState("");
   const [peekSlotKey, setPeekSlotKey] = useState<string | null>(null);
-  const [peekedState, setPeekedState] = useState<unknown>(null);
+  const [peekedState, setPeekedState] = useState<Partial<AppGameState> | null>(null);
   const [desktopSettings, setDesktopSettings] = useState<{ gamesDir: string } | null>(null);
   const [isNewGameDialogOpen, setIsNewGameDialogOpen] = useState(false);
   const [newGameName, setNewGameName] = useState("");
@@ -453,7 +453,7 @@ export default function App() {
         if (allObtained.includes(t.id)) return false;
         try {
           const turns = quickSolveMinTurns(
-            solverBoard.map((row: any[]) => row.map((c: any) => ({ ...c }))),
+            solverBoard.map((row) => row.map((c) => ({ ...c }))),
             { ...solverSpare },
             pawnPos,
             t.id,
