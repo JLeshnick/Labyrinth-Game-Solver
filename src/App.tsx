@@ -25,7 +25,7 @@ import { playClickSound } from "./utils/audio";
 import { fromSolverGrid } from "./lib/solverAdapter";
 import { executeSlideInGrid, getReachableCells, quickSolveMinTurns } from "./solver";
 import type { Rotation } from "./types";
-import { Sparkles, Plus, Undo2, Redo2, RotateCw, Gauge, Volume2, VolumeX } from "lucide-react";
+import { Sparkles, Plus, Undo2, Redo2, RotateCw, Volume2, VolumeX, ChevronUp, ChevronDown as ChevronDownIcon } from "lucide-react";
 import { cn } from "./lib/utils";
 
 export default function App() {
@@ -56,6 +56,7 @@ export default function App() {
   const [stagedArrow, setStagedArrow] = useState<string | null>(null);
   const [stagedRotation, setStagedRotation] = useState<0 | 90 | 180 | 270>(0);
   const [showOneMoveTargets, setShowOneMoveTargets] = useState(false);
+  const [mobileSheetOpen, setMobileSheetOpen] = useState(false);
 
   // ── Solver worker ─────────────────────────────────────────────────────────────
   const [solutions, setSolutions] = useState<SolverSolution[]>([]);
@@ -533,10 +534,10 @@ export default function App() {
             showToast={showToast}
           />
 
-          <main className="flex-1 flex flex-col lg:flex-row relative z-10 w-full px-3 pt-3 pb-20 lg:pb-3 gap-4 lg:gap-8 justify-center overflow-hidden lg:overflow-hidden min-h-0">
+          <main className="flex-1 flex flex-col lg:flex-row relative z-10 w-full px-2 sm:px-3 pt-2 sm:pt-3 pb-[72px] lg:pb-3 gap-3 lg:gap-8 justify-center overflow-hidden min-h-0">
             <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
               <div className="flex-1 lg:flex-[1.5] w-full flex min-w-0 min-h-0 items-center justify-center relative">
-                <div className="relative aspect-square w-full max-w-[min(100vw-2rem,100vh-340px)] lg:max-w-none lg:w-auto lg:h-full flex-shrink-0 mx-auto">
+                <div className="relative aspect-square w-full max-w-[min(100vw-1rem,calc(100svh-220px))] sm:max-w-[min(100vw-2rem,calc(100svh-280px))] lg:max-w-none lg:w-auto lg:h-full flex-shrink-0 mx-auto">
                   {(hoveredSolution && (hoveredSolution as { arrowId: string }[]).length > 0) && (
                     <div
                       className="absolute animate-ping bg-theme-primary-20 border border-theme-primary-40 rounded-full pointer-events-none"
@@ -582,7 +583,8 @@ export default function App() {
                 </div>
               </div>
 
-              <div className="w-full lg:w-[400px] xl:w-[440px] flex flex-col flex-shrink-0 min-h-0 lg:h-full gap-3">
+              {/* Desktop side panel */}
+              <div className="hidden lg:flex w-full lg:w-[400px] xl:w-[440px] flex-col flex-shrink-0 min-h-0 lg:h-full gap-3">
                 {game.isGameStarted && (
                   <>
                     <SolverPanel
@@ -633,6 +635,79 @@ export default function App() {
                     setSetupTab={game.setSetupTab}
                   />
                 )}
+              </div>
+
+              {/* Mobile bottom sheet panel */}
+              <div className={cn(
+                "lg:hidden fixed inset-x-0 bottom-[56px] z-30 transition-transform duration-300 ease-out",
+                mobileSheetOpen ? "translate-y-0" : "translate-y-full"
+              )} style={{ maxHeight: "70svh" }}>
+                {/* Backdrop */}
+                {mobileSheetOpen && (
+                  <div
+                    className="fixed inset-0 bottom-[56px] bg-black/50 backdrop-blur-sm -z-10"
+                    onClick={() => setMobileSheetOpen(false)}
+                  />
+                )}
+                {/* Sheet */}
+                <div className="bg-stone-950/98 backdrop-blur-xl border-t border-stone-800 rounded-t-2xl shadow-2xl flex flex-col" style={{ maxHeight: "70svh" }}>
+                  {/* Drag handle */}
+                  <div
+                    className="flex items-center justify-center pt-2 pb-1 cursor-pointer"
+                    onClick={() => setMobileSheetOpen(false)}
+                  >
+                    <div className="w-10 h-1 rounded-full bg-stone-600" />
+                  </div>
+                  <div className="flex-1 overflow-y-auto overscroll-contain">
+                    {game.isGameStarted ? (
+                      <SolverPanel
+                        solutions={solutions}
+                        isLoadingSolutions={isLoadingSolutions}
+                        hoveredSolution={hoveredSolution}
+                        setHoveredSolution={setHoveredSolution}
+                        maxTurns={maxTurns}
+                        setMaxTurns={setMaxTurns}
+                        activePawn={game.activePawn}
+                        setActivePawn={game.setActivePawn}
+                        activePlayers={game.activePlayers}
+                        isMuted={isMuted}
+                        spareTile={previewState ? previewState.spareTile : game.spareTile}
+                        customTargetCoords={game.customTargetCoords}
+                        setCustomTargetCoords={game.setCustomTargetCoords}
+                        onExecuteSolution={game.handleExecuteSolution}
+                        playerActiveTargets={game.playerActiveTargets}
+                        onSelectTargetTreasure={game.handleSelectTargetTreasure}
+                        stagedArrow={stagedArrow}
+                        stagedRotation={stagedRotation}
+                        onRotateStaged={() => setStagedRotation(prev => ([0,90,180,270] as (0|90|180|270)[])[ ([0,90,180,270].indexOf(prev)+1)%4 ])}
+                        onCommitSlide={commitStagedSlide}
+                        onCancelSlide={cancelStagedSlide}
+                        turnPhase={turnPhase}
+                        showOneMoveTargets={showOneMoveTargets}
+                        onToggleOneMoveTargets={() => setShowOneMoveTargets(v => !v)}
+                        oneMoveTargets={oneMoveTargets}
+                      />
+                    ) : (
+                      <SetupPanel
+                        looseTiles={game.looseTiles}
+                        activePlayers={game.activePlayers}
+                        activePawn={game.activePawn}
+                        setActivePawn={game.setActivePawn}
+                        isMuted={isMuted}
+                        activePawnPlacementColor={game.activePawnPlacementColor}
+                        setActivePawnPlacementColor={game.setActivePawnPlacementColor}
+                        pawnPositions={game.pawnPositions}
+                        playerHands={game.playerHands}
+                        onTileClick={game.handleTileClick}
+                        onRandomizeBoard={game.handleRandomizeBoard}
+                        onAddCard={game.handleAddCard}
+                        onRemoveCard={game.handleRemoveCard}
+                        setupTab={game.setupTab}
+                        setSetupTab={game.setSetupTab}
+                      />
+                    )}
+                  </div>
+                </div>
               </div>
 
               <DragOverlay dropAnimation={null}>
@@ -707,24 +782,26 @@ export default function App() {
       {/* Toast */}
       <div role="status" aria-live="polite" aria-atomic="true" className="sr-only">{toastText}</div>
       {toastText && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 px-6 py-3 bg-stone-900 border border-theme-primary-20 text-stone-100 font-semibold text-sm rounded-full shadow-2xl shadow-black z-50 animate-toast-in flex items-center gap-2" aria-hidden="true">
-          <Sparkles className="w-4 h-4 text-theme-primary" />
+        <div className="fixed bottom-[72px] lg:bottom-6 left-1/2 -translate-x-1/2 px-4 sm:px-6 py-2.5 sm:py-3 bg-stone-900 border border-theme-primary-20 text-stone-100 font-semibold text-xs sm:text-sm rounded-full shadow-2xl shadow-black z-50 animate-toast-in flex items-center gap-2 whitespace-nowrap" aria-hidden="true">
+          <Sparkles className="w-4 h-4 text-theme-primary shrink-0" />
           {toastText}
         </div>
       )}
 
       {/* Mobile Actions Bar */}
       {!showLandingPage && (
-        <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-stone-950/95 backdrop-blur-md border-t border-stone-850 px-4 py-2 flex items-center justify-around z-40 pb-[calc(env(safe-area-inset-bottom)+0.5rem)]">
+        <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-stone-950/98 backdrop-blur-xl border-t border-stone-800/80 px-2 flex items-center justify-around z-40"
+          style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 6px)", paddingTop: "6px", height: "56px" }}
+        >
           <Button
             variant="ghost"
             size="sm"
             disabled={!game.canUndo}
             onClick={game.handleUndo}
-            className="flex flex-col items-center gap-1 text-stone-400 hover:text-stone-200 disabled:opacity-30 h-auto py-1 cursor-pointer"
+            className="flex flex-col items-center gap-0.5 text-stone-400 hover:text-stone-200 disabled:opacity-30 h-auto py-1 px-3 cursor-pointer"
           >
-            <Undo2 className="w-5 h-5" />
-            <span className="text-[10px] font-medium">Undo</span>
+            <Undo2 className="w-4 h-4" />
+            <span className="text-[9px] font-medium">Undo</span>
           </Button>
           
           <Button
@@ -732,49 +809,54 @@ export default function App() {
             size="sm"
             disabled={!game.canRedo}
             onClick={game.handleRedo}
-            className="flex flex-col items-center gap-1 text-stone-400 hover:text-stone-200 disabled:opacity-30 h-auto py-1 cursor-pointer"
+            className="flex flex-col items-center gap-0.5 text-stone-400 hover:text-stone-200 disabled:opacity-30 h-auto py-1 px-3 cursor-pointer"
           >
-            <Redo2 className="w-5 h-5" />
-            <span className="text-[10px] font-medium">Redo</span>
+            <Redo2 className="w-4 h-4" />
+            <span className="text-[9px] font-medium">Redo</span>
           </Button>
 
           <Button
             variant="ghost"
             size="sm"
             onClick={() => { if (!isMuted) playClickSound(); setBoardRotation((prev) => (prev + 90) % 360); }}
-            className="flex flex-col items-center gap-1 text-stone-400 hover:text-stone-200 h-auto py-1 cursor-pointer"
+            className="flex flex-col items-center gap-0.5 text-stone-400 hover:text-stone-200 h-auto py-1 px-3 cursor-pointer"
           >
-            <RotateCw className="w-5 h-5" />
-            <span className="text-[10px] font-medium">Rotate</span>
+            <RotateCw className="w-4 h-4" />
+            <span className="text-[9px] font-medium">Rotate</span>
           </Button>
 
-          {game.isGameStarted && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => { if (!isMuted) playClickSound(); setShowStats((prev) => !prev); }}
-              className={cn(
-                "flex flex-col items-center gap-1 h-auto py-1 cursor-pointer",
-                showStats ? "text-theme-primary font-semibold" : "text-stone-400 hover:text-stone-200"
-              )}
-            >
-              <Gauge className="w-5 h-5" />
-              <span className="text-[10px] font-medium">Stats</span>
-            </Button>
-          )}
+          {/* Panel toggle button — opens bottom sheet */}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setMobileSheetOpen(v => !v)}
+            className={cn(
+              "flex flex-col items-center gap-0.5 h-auto py-1 px-3 cursor-pointer relative",
+              mobileSheetOpen ? "text-theme-primary" : "text-stone-400 hover:text-stone-200"
+            )}
+          >
+            {mobileSheetOpen ? <ChevronDownIcon className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
+            <span className="text-[9px] font-medium">{game.isGameStarted ? "Solver" : "Setup"}</span>
+            {/* Badge for solver solutions */}
+            {game.isGameStarted && solutions.length > 0 && !mobileSheetOpen && (
+              <span className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-theme-primary text-stone-950 text-[8px] font-bold flex items-center justify-center">
+                {solutions.length}
+              </span>
+            )}
+          </Button>
 
           <Button
             variant="ghost"
             size="sm"
             onClick={handleToggleMute}
-            className="flex flex-col items-center gap-1 text-stone-400 hover:text-stone-200 h-auto py-1 cursor-pointer"
+            className="flex flex-col items-center gap-0.5 text-stone-400 hover:text-stone-200 h-auto py-1 px-3 cursor-pointer"
           >
             {isMuted ? (
-              <VolumeX className="w-5 h-5 text-stone-500" />
+              <VolumeX className="w-4 h-4 text-stone-500" />
             ) : (
-              <Volume2 className="w-5 h-5 text-theme-primary" />
+              <Volume2 className="w-4 h-4 text-theme-primary" />
             )}
-            <span className="text-[10px] font-medium">{isMuted ? "Unmute" : "Mute"}</span>
+            <span className="text-[9px] font-medium">{isMuted ? "Unmute" : "Mute"}</span>
           </Button>
         </div>
       )}

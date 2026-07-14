@@ -1,6 +1,9 @@
 @import "tailwindcss";
 
 @theme {
+  /* Custom xs breakpoint for 480px devices (between default mobile and sm) */
+  --breakpoint-xs: 480px;
+
   /* shadcn/ui semantic color tokens — these make Button, Card, Dialog render correctly */
   --color-background: #0c0a09;
   --color-foreground: #f5f5f4;
@@ -25,6 +28,12 @@
 @layer base {
   body {
     @apply bg-stone-950 text-stone-50 overflow-hidden select-none;
+    /* Smooth scrolling for bottom sheets */
+    -webkit-overflow-scrolling: touch;
+  }
+  /* Remove tap highlight on mobile for interactive elements */
+  button, [role="button"] {
+    -webkit-tap-highlight-color: transparent;
   }
 }
 

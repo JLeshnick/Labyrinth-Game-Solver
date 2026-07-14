@@ -79,8 +79,8 @@ export interface AppHeaderProps {
 }
 
 const STEPS = [
-  { id: "setup" as const, label: "Edit Layout", icon: <Layers className="w-3.5 h-3.5" /> },
-  { id: "game"  as const, label: "Play Game",  icon: <Play   className="w-3.5 h-3.5" /> },
+  { id: "setup" as const, label: "Edit Layout", shortLabel: "Setup", icon: <Layers className="w-3.5 h-3.5" /> },
+  { id: "game"  as const, label: "Play Game",  shortLabel: "Play",  icon: <Play   className="w-3.5 h-3.5" /> },
 ];
 
 export function AppHeader({
@@ -139,24 +139,24 @@ export function AppHeader({
 
   return (
     <>
-    <header className="relative z-40 px-4 sm:px-6 py-3 flex items-center justify-between border-b border-stone-800 bg-stone-950/70 backdrop-blur-md gap-4">
+    <header className="relative z-40 px-3 sm:px-6 py-2 sm:py-3 flex items-center justify-between border-b border-stone-800 bg-stone-950/70 backdrop-blur-md gap-2 sm:gap-4">
 
       {/* Left — branding */}
-      <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-        <div className="p-1.5 sm:p-2 bg-theme-primary-10 border border-theme-primary-20 rounded-xl text-theme-primary">
-          <Compass className="w-4 h-4 sm:w-5 sm:h-5 animate-pulse" />
+      <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
+        <div className="p-1.5 bg-theme-primary-10 border border-theme-primary-20 rounded-xl text-theme-primary">
+          <Compass className="w-4 h-4 animate-pulse" />
         </div>
         <div>
           <h1 className="text-sm sm:text-lg md:text-xl font-bold tracking-tight bg-gradient-to-r from-stone-200 to-theme-primary bg-clip-text text-transparent flex items-center">
             <span className="hidden sm:inline">Labyrinth Game Solver</span>
             <span className="sm:hidden">Labyrinth</span>
             {currentSlotName && (
-              <span className="ml-2 sm:ml-3 px-1.5 sm:px-2 py-0.5 rounded-full bg-white/10 text-[9px] sm:text-xs font-medium text-stone-300 border border-stone-800">
+              <span className="ml-1.5 sm:ml-3 px-1.5 sm:px-2 py-0.5 rounded-full bg-white/10 text-[9px] sm:text-xs font-medium text-stone-300 border border-stone-800 max-w-[80px] sm:max-w-none truncate">
                 {currentSlotName}
               </span>
             )}
           </h1>
-          <p className="text-[10px] sm:text-xs text-stone-400">
+          <p className="text-[10px] text-stone-400 hidden sm:block">
             {typeof window !== "undefined" && !!(window as { electronAPI?: unknown }).electronAPI ? "Desktop Edition" : "Web Edition"}
             {lastSavedTime
               ? ` • Saved: ${new Date(lastSavedTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`
@@ -166,8 +166,8 @@ export function AppHeader({
       </div>
 
       {/* Center — Step Nav */}
-      <div className="flex-1 flex items-center justify-center">
-        <div className="flex items-center app-step-nav rounded-full p-1 border border-stone-800">
+      <div className="flex-1 flex items-center justify-center min-w-0">
+        <div className="flex items-center app-step-nav rounded-full p-0.5 sm:p-1 border border-stone-800">
           {STEPS.map((s) => {
             const isActive = s.id === currentStep;
             const isDisabled = s.id === "game" && !isGameStarted && !canStartGame;
@@ -184,7 +184,7 @@ export function AppHeader({
                   }
                 }}
                 title={isDisabled ? "Place all 33 movable tiles first" : undefined}
-                className={`flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-medium transition-all ${
+                className={`flex items-center gap-1 sm:gap-2 px-2.5 sm:px-4 py-1.5 rounded-full text-xs font-medium transition-all ${
                   isActive
                     ? "bg-theme-primary text-stone-950 font-semibold shadow-sm"
                     : isDisabled
@@ -193,7 +193,9 @@ export function AppHeader({
                 }`}
               >
                 {s.icon}
-                {s.label}
+                <span className="hidden xs:inline sm:hidden">{s.shortLabel}</span>
+                <span className="hidden sm:inline">{s.label}</span>
+                <span className="xs:hidden">{s.shortLabel}</span>
               </button>
             );
           })}

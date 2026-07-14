@@ -13,7 +13,7 @@ export function LandingPage({ allSlots, onNewGame, onLoadSlot }: LandingPageProp
   const [gameName, setGameName] = useState("");
 
   return (
-    <div className="flex-1 flex items-center justify-center bg-[#0c0a09] p-6 relative min-h-0 overflow-y-auto z-20">
+    <div className="flex-1 flex items-center justify-center bg-[#0c0a09] p-4 sm:p-6 relative min-h-0 overflow-y-auto z-20">
       {/* Background patterns */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
         <div className="absolute inset-0 opacity-[0.03]" style={{
@@ -23,16 +23,16 @@ export function LandingPage({ allSlots, onNewGame, onLoadSlot }: LandingPageProp
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-theme-primary-10 rounded-full blur-[120px] pointer-events-none" />
       </div>
 
-      <div className="max-w-4xl w-full z-10 flex flex-col items-center">
-        <div className="flex flex-col items-center gap-4 mb-16 text-center">
-          <div className="w-16 h-16 rounded-2xl bg-theme-primary-10 flex items-center justify-center border border-theme-primary-20 mb-2 shadow-lg shadow-theme-glow">
-            <Compass className="w-8 h-8 text-theme-primary animate-pulse" />
+      <div className="max-w-4xl w-full z-10 flex flex-col items-center py-4 sm:py-0">
+        <div className="flex flex-col items-center gap-3 sm:gap-4 mb-8 sm:mb-16 text-center">
+          <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-2xl bg-theme-primary-10 flex items-center justify-center border border-theme-primary-20 mb-1 sm:mb-2 shadow-lg shadow-theme-glow">
+            <Compass className="w-6 h-6 sm:w-8 sm:h-8 text-theme-primary animate-pulse" />
           </div>
-          <h1 className="text-4xl font-extrabold text-white tracking-tight bg-gradient-to-r from-stone-200 to-theme-primary bg-clip-text text-transparent">Labyrinth Game Solver</h1>
-          <p className="text-stone-400 max-w-md text-lg">Create, edit, simulate, and solve Labyrinth board game configurations.</p>
+          <h1 className="text-2xl sm:text-4xl font-extrabold text-white tracking-tight bg-gradient-to-r from-stone-200 to-theme-primary bg-clip-text text-transparent">Labyrinth Game Solver</h1>
+          <p className="text-stone-400 max-w-md text-sm sm:text-lg">Create, edit, simulate, and solve Labyrinth board game configurations.</p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-3xl min-h-0">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 w-full max-w-3xl min-h-0">
           {/* New Game */}
           <div
             role="button"
@@ -53,7 +53,7 @@ export function LandingPage({ allSlots, onNewGame, onLoadSlot }: LandingPageProp
                 }
               }
             }}
-            className="group relative flex flex-col items-center text-center gap-6 p-8 rounded-2xl bg-stone-900/50 border border-stone-800 hover:border-theme-primary-40 hover:bg-stone-900 transition-all cursor-pointer shadow-xl text-left"
+            className="group relative flex flex-col items-center text-center gap-4 sm:gap-6 p-5 sm:p-8 rounded-2xl bg-stone-900/50 border border-stone-800 hover:border-theme-primary-40 hover:bg-stone-900 transition-all cursor-pointer shadow-xl text-left"
           >
             <div className="w-14 h-14 rounded-full bg-theme-primary-10 flex items-center justify-center group-hover:scale-110 group-hover:bg-theme-primary-20 transition-all">
               <Plus className="w-6 h-6 text-theme-primary" />
@@ -83,7 +83,7 @@ export function LandingPage({ allSlots, onNewGame, onLoadSlot }: LandingPageProp
           </div>
 
           {/* Load Game */}
-          <div className="flex flex-col gap-4 p-6 rounded-2xl bg-stone-900/50 border border-stone-800 shadow-xl min-h-[300px] overflow-hidden">
+          <div className="flex flex-col gap-3 sm:gap-4 p-4 sm:p-6 rounded-2xl bg-stone-900/50 border border-stone-800 shadow-xl min-h-[240px] sm:min-h-[300px] overflow-hidden">
             <div className="flex items-center gap-2.5 text-left border-b border-stone-800 pb-3">
               <div className="w-10 h-10 rounded-full bg-theme-primary-10 flex items-center justify-center">
                 <FolderOpen className="w-5 h-5 text-theme-primary" />
