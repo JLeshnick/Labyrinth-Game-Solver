@@ -112,7 +112,7 @@ Break the 2,123-line god component into focused pieces. Do this after Phase 4 so
 - [x] **Add an `ErrorBoundary`** — `src/components/ErrorBoundary.tsx` wraps the app in `main.tsx`. Shows a recovery UI with error message and retry button. Worker errors now call `showToast` and `onerror` is wired.
 - [x] **Wrap direct `localStorage.setItem` calls** in `App.tsx` (`170, 182, 224, 585`) in try/catch, or route them through `useLabyrinthStorage`, so full/blocked storage (private mode) doesn't throw uncaught.
 - [x] **Reconcile version drift** — `package.json` `"version": "0.0.0"` vs the hardcoded `"v1.0.1"` in the UI (`App.tsx:1251, 1290`). Read the version from a single source. Wired via `__APP_VERSION__` Vite define; bumped package.json to `1.0.1`.
-- [ ] **Electron tidy-up** (low priority) — either consume the exposed `electronAPI.platform` (`preload.cjs`) instead of `navigator.userAgent`, or remove the unused bridge; harden the dev-server port-detection loop (`main-electron.cjs:48-73`) with a per-request timeout / abort.
+- [x] **Web-first migration & Electron removal**: Replaced the Electron desktop shell and build pipeline with a pure web application optimized for mobile (iPhone Safari/PWA) and hosted for free via GitHub Pages.
 - [x] **Verify/remove unused deps** — removed `@dnd-kit/sortable`, `@dnd-kit/utilities` (never imported), and `framer-motion` (never imported) from `package.json`.
 
 **Check after:** `npm run test`, `npm run typecheck`, and `npm run lint` all pass; kill the worker mid-solve to confirm the ErrorBoundary/error UI engages.
