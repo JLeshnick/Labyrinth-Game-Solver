@@ -153,7 +153,7 @@ export const Board: React.FC<BoardProps> = ({
 }) => {
 
   return (
-    <div className="p-3 sm:p-5 bg-stone-900 border-4 border-stone-800 rounded-3xl shadow-2xl relative w-full h-full flex items-center justify-center overflow-visible">
+    <div className="relative w-full h-full flex items-center justify-center overflow-visible">
       {/* CSS Grid Layout */}
       <div 
         className={cn(
