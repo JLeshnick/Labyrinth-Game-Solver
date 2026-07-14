@@ -1,16 +1,15 @@
-import { Sparkles } from "lucide-react";
+import { Sparkles, ArrowRightCircle, MousePointer2, RotateCw } from "lucide-react";
 import { Button } from "./ui/button";
 import { Tile } from "./Tile";
 import { PAWNS, TREASURES } from "../constants";
 import { playClickSound } from "../utils/audio";
-import { quickSolveMinTurns } from "../solver";
-import type { TileData } from "../types";
+import type { TileData, SolverSolution, SolverSolutionStep } from "../types";
 
 interface SolverPanelProps {
-  solutions: any[];
+  solutions: SolverSolution[];
   isLoadingSolutions: boolean;
-  hoveredSolution: any | null;
-  setHoveredSolution: (sol: any | null) => void;
+  hoveredSolution: SolverSolution | null;
+  setHoveredSolution: (sol: SolverSolution | null) => void;
   maxTurns: number;
   setMaxTurns: (n: number) => void;
   activePawn: string;
@@ -20,13 +19,18 @@ interface SolverPanelProps {
   spareTile: TileData;
   customTargetCoords: { r: number; c: number } | null;
   setCustomTargetCoords: (coords: { r: number; c: number } | null) => void;
-  onExecuteSolution: (sol: any[]) => void;
+  onExecuteSolution: (sol: SolverSolution) => void;
   playerActiveTargets: Record<string, string | null>;
   onSelectTargetTreasure: (pawn: string, treasureId: string | null) => void;
-  obtainedTreasures: Record<string, string[]>;
-  grid: (TileData | null)[][];
-  pawnPositions: Record<string, { r: number; c: number }>;
-  lastShiftArrowId: string | null;
+  stagedArrow: string | null;
+  stagedRotation: 0 | 90 | 180 | 270;
+  onRotateStaged: () => void;
+  onCommitSlide: () => void;
+  onCancelSlide: () => void;
+  turnPhase: "slide" | "move";
+  showOneMoveTargets: boolean;
+  onToggleOneMoveTargets: () => void;
+  oneMoveTargets: { id: string; name: string }[];
 }
  
 export function SolverPanel({
@@ -45,31 +49,97 @@ export function SolverPanel({
   onExecuteSolution,
   playerActiveTargets,
   onSelectTargetTreasure,
-  obtainedTreasures,
-  grid,
-  pawnPositions,
-  lastShiftArrowId,
+  stagedArrow,
+  stagedRotation,
+  onRotateStaged,
+  onCommitSlide,
+  onCancelSlide,
+  turnPhase,
+  showOneMoveTargets,
+  onToggleOneMoveTargets,
+  oneMoveTargets,
 }: SolverPanelProps) {
   return (
-    <div className="flex-1 flex flex-col min-h-0 gap-4 bg-stone-900/50 border border-stone-800 rounded-2xl p-5 backdrop-blur-xl">
+    <div className="flex-1 flex flex-col min-h-0 gap-4 p-2">
+      {/* Turn phase banner */}
+      {turnPhase === "move" ? (
+        <div className="px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 border bg-green-950/40 border-green-800/50 text-green-300">
+          <MousePointer2 className="w-3.5 h-3.5 shrink-0" />
+          <span>Click a highlighted green cell to move your pawn</span>
+        </div>
+      ) : stagedArrow ? (
+        <div className="px-3 py-2 rounded-xl text-xs font-semibold flex flex-col gap-1.5 border bg-theme-primary-10 border-theme-primary/30 text-stone-200">
+          <div className="flex items-center gap-2">
+            <ArrowRightCircle className="w-3.5 h-3.5 text-theme-primary shrink-0" />
+            <span className="font-bold text-theme-primary">Arrow staged — preview locked in</span>
+          </div>
+          <div className="flex flex-col gap-0.5 pl-5 text-[10px] text-stone-400 font-normal">
+            <span>• Click the <span className="text-stone-200 font-semibold">same arrow</span> again to rotate the tile</span>
+            <span>• Click a <span className="text-stone-200 font-semibold">different arrow</span> to move the stage</span>
+            <span>• Press <span className="text-theme-primary font-semibold">Slide In</span> below to commit</span>
+          </div>
+        </div>
+      ) : (
+        <div className="px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 border bg-blue-950/40 border-blue-800/50 text-blue-300">
+          <ArrowRightCircle className="w-3.5 h-3.5 shrink-0" />
+          <span>Click any board arrow to preview and stage that slide</span>
+        </div>
+      )}
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-bold text-theme-primary flex items-center gap-2">
           <Sparkles className="w-5 h-5 text-theme-primary" />
           Solver Suggestions
         </h2>
-        <div className="text-xs px-2 py-1 bg-stone-800 rounded text-stone-400">
-          Turns:
-          <select
-            value={maxTurns}
-            onChange={(e) => setMaxTurns(parseInt(e.target.value))}
-            className="ml-1 bg-stone-900 border border-stone-700 text-stone-200 rounded text-xs focus:outline-none"
+        <div className="flex items-center gap-2">
+          <button
+            onClick={onToggleOneMoveTargets}
+            className={`text-[10px] px-2 py-1 rounded-lg border transition-colors cursor-pointer font-semibold ${
+              showOneMoveTargets
+                ? "bg-theme-primary-10 border-theme-primary/40 text-theme-primary"
+                : "border-stone-700 text-stone-500 hover:text-stone-300 hover:border-stone-600"
+            }`}
+            title="Show all treasures reachable in exactly 1 turn"
           >
-            <option value={1}>1</option>
-            <option value={2}>2</option>
-            <option value={3}>3</option>
-          </select>
+            1-move targets
+          </button>
+          <div className="text-xs px-2 py-1 bg-stone-800 rounded text-stone-400">
+            Turns:
+            <select
+              value={maxTurns}
+              onChange={(e) => setMaxTurns(parseInt(e.target.value))}
+              className="ml-1 bg-stone-900 border border-stone-700 text-stone-200 rounded text-xs focus:outline-none"
+            >
+              <option value={1}>1</option>
+              <option value={2}>2</option>
+              <option value={3}>3</option>
+            </select>
+          </div>
         </div>
       </div>
+
+      {showOneMoveTargets && (
+        <div className="flex flex-col gap-1.5 shrink-0">
+          <div className="text-[10px] font-bold text-stone-500 uppercase tracking-widest">
+            Reachable in 1 Turn ({oneMoveTargets.length})
+          </div>
+          {oneMoveTargets.length === 0 ? (
+            <p className="text-[10px] text-stone-600 italic">None found with current board state</p>
+          ) : (
+            <div className="flex flex-wrap gap-1.5">
+              {oneMoveTargets.map(t => (
+                <button
+                  key={t.id}
+                  onClick={() => onSelectTargetTreasure(activePawn, t.id)}
+                  className="text-[10px] px-2 py-0.5 rounded-full bg-green-950/60 border border-green-700/40 text-green-300 hover:bg-green-900/60 hover:border-green-600/60 cursor-pointer transition-colors font-medium"
+                  title={`Set ${t.name} as target`}
+                >
+                  {t.name}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="p-4 bg-stone-950/60 border border-stone-800/80 rounded-xl flex items-center justify-between text-left">
         <div className="flex items-center gap-3">
@@ -83,57 +153,59 @@ export function SolverPanel({
               {customTargetCoords ? (
                 <span className="text-theme-primary font-bold flex items-center gap-1 text-xs">
                   Custom Target ({customTargetCoords.r}, {customTargetCoords.c})
-                  <button
-                    onClick={() => setCustomTargetCoords(null)}
-                    className="text-stone-500 hover:text-stone-300 text-xs ml-1 underline cursor-pointer"
-                    title="Clear Custom Target"
-                  >
-                    (clear)
-                  </button>
+                  <button onClick={() => setCustomTargetCoords(null)} className="text-stone-500 hover:text-stone-300 text-xs ml-1 underline cursor-pointer" title="Clear Custom Target">(clear)</button>
+                </span>
+              ) : playerActiveTargets[activePawn] ? (
+                <span className="text-theme-primary font-bold text-xs flex items-center gap-1">
+                  {TREASURES.find(t => t.id === playerActiveTargets[activePawn])?.name ?? playerActiveTargets[activePawn]}
+                  <button onClick={() => onSelectTargetTreasure(activePawn, null)} className="text-stone-500 hover:text-stone-300 text-xs ml-1 underline cursor-pointer" title="Clear target">(clear)</button>
                 </span>
               ) : (
-                <select
-                  value={playerActiveTargets[activePawn] || ""}
-                  onChange={(e) => {
-                    const val = e.target.value || null;
-                    onSelectTargetTreasure(activePawn, val);
-                  }}
-                  className="bg-stone-905 border border-stone-800 text-stone-200 rounded px-1.5 py-0.5 text-xs focus:border-theme-primary outline-none transition-colors max-w-[180px] truncate"
-                >
-                  <option value="">-- No Target --</option>
-                  {TREASURES.filter(t => {
-                    // Filter out treasures obtained by ANY player
-                    const allObtained = Object.values(obtainedTreasures).flat();
-                    return !allObtained.includes(t.id);
-                  })
-                    .sort((a, b) => a.name.localeCompare(b.name))
-                    .map((t) => {
-                      const pawnPos = pawnPositions[activePawn];
-                      if (!pawnPos) return <option key={t.id} value={t.id}>{t.name}</option>;
-                      const turns = quickSolveMinTurns(
-                        grid.map(row => row.map(cell => cell ? { ...cell, pawns: [] } : null)),
-                        { ...spareTile, pawns: [] },
-                        pawnPos,
-                        t.id,
-                        lastShiftArrowId,
-                        maxTurns
-                      );
-                      return (
-                        <option key={t.id} value={t.id}>
-                          {t.name} {turns !== null ? `(${turns} move${turns !== 1 ? 's' : ''})` : ''}
-                        </option>
-                      );
-                    })}
-                </select>
+                <span className="text-stone-500 text-xs italic">Click a treasure on the board</span>
               )}
             </div>
           </div>
         </div>
         <div className="flex flex-col items-center gap-1">
           <div className="text-[10px] text-stone-500">Spare Tile</div>
-          <Tile tile={spareTile} disabled className="w-12 h-12 border-theme-primary-40" />
+          <Tile
+            tile={{ ...spareTile, rotation: stagedArrow ? stagedRotation : spareTile.rotation }}
+            disabled
+            className="w-20 h-20 border-theme-primary-40"
+          />
+          {stagedArrow ? (
+            <div className="flex flex-col items-center gap-1 mt-0.5">
+              <button
+                onClick={onRotateStaged}
+                className="text-[10px] text-theme-primary hover:text-stone-200 flex items-center gap-0.5 cursor-pointer transition-colors"
+                title="Rotate staged spare tile 90° clockwise (or click the staged arrow on the board)"
+              >
+                <RotateCw className="w-3 h-3" /> {stagedRotation}°
+              </button>
+            </div>
+          ) : (
+            <span className="text-[9px] text-stone-500 mt-0.5">{spareTile.rotation}°</span>
+          )}
         </div>
       </div>
+
+      {/* Staged slide commit / cancel */}
+      {stagedArrow && turnPhase === "slide" && (
+        <div className="flex gap-2 shrink-0">
+          <button
+            onClick={onCommitSlide}
+            className="flex-1 py-1.5 rounded-xl bg-theme-primary text-stone-950 text-xs font-bold hover:bg-theme-primary-hover transition-colors cursor-pointer flex items-center justify-center gap-1.5"
+          >
+            <ArrowRightCircle className="w-3.5 h-3.5" /> Slide In
+          </button>
+          <button
+            onClick={onCancelSlide}
+            className="px-3 py-1.5 rounded-xl border border-stone-700 text-stone-400 text-xs hover:text-stone-200 hover:border-stone-600 transition-colors cursor-pointer"
+          >
+            Cancel
+          </button>
+        </div>
+      )}
 
       <div className="flex-1 overflow-y-auto min-h-0 pr-2 flex flex-col gap-2">
         {isLoadingSolutions ? (
@@ -182,7 +254,7 @@ export function SolverPanel({
                         return firstStepText;
                       } else {
                         // Calculate total correct sum of moves across the whole multi-turn path
-                        const totalMoves = sol.reduce((sum: number, step: any) => {
+                        const totalMoves = sol.reduce((sum: number, step: SolverSolutionStep) => {
                           const stepMoves = step.pawnPath ? step.pawnPath.length - 1 : 0;
                           return sum + Math.max(0, stepMoves);
                         }, 0);

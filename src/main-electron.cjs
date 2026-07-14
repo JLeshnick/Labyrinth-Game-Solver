@@ -89,12 +89,14 @@ function waitForDevServer(ports, timeoutMs) {
       let remaining = ports.length;
       let found = false;
       ports.forEach((port) => {
-        http.get(`http://localhost:${port}`, (_res) => {
+        const req = http.get(`http://localhost:${port}`, (_res) => {
           if (!found) {
             found = true;
             resolve(port);
           }
-        }).on('error', () => {
+        });
+        req.setTimeout(1000, () => req.destroy());
+        req.on('error', () => {
           remaining--;
           if (remaining === 0 && !found) {
             setTimeout(tryNext, 200);

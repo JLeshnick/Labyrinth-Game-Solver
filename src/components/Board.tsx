@@ -22,6 +22,10 @@ interface BoardSpaceProps {
   isCustomTarget?: boolean;
   isActiveTarget?: boolean;
   previewSlideClass?: string;
+  isReachable?: boolean;
+  onTreasureClick?: (treasureId: string, alreadyObtained: boolean) => void;
+  isObtainedTreasure?: boolean;
+  isCurrentTarget?: boolean;
 }
 
 const BoardSpace: React.FC<BoardSpaceProps> = ({
@@ -39,6 +43,10 @@ const BoardSpace: React.FC<BoardSpaceProps> = ({
   isCustomTarget,
   isActiveTarget,
   previewSlideClass,
+  isReachable,
+  onTreasureClick,
+  isObtainedTreasure,
+  isCurrentTarget,
 }) => {
   const isFixedSpace = x % 2 === 0 && y % 2 === 0;
   const id = `board_${x}_${y}`;
@@ -53,8 +61,23 @@ const BoardSpace: React.FC<BoardSpaceProps> = ({
       ref={setNodeRef}
       role="button"
       tabIndex={isGameStarted ? 0 : -1}
-      onClick={() => onCellClick(y, x)}
-      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onCellClick(y, x); } }}
+      onClick={() => {
+        if (isGameStarted && tile?.treasure && onTreasureClick) {
+          onTreasureClick(tile.treasure.id, !!isObtainedTreasure);
+        } else {
+          onCellClick(y, x);
+        }
+      }}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          if (isGameStarted && tile?.treasure && onTreasureClick) {
+            onTreasureClick(tile.treasure.id, !!isObtainedTreasure);
+          } else {
+            onCellClick(y, x);
+          }
+        }
+      }}
       aria-label={`Board cell row ${y} column ${x}${tile ? ` — ${tile.isFixed ? "fixed" : ""} tile` : " — empty"}`}
       style={{
         gridRow: isGameStarted ? y + 2 : y + 1,
@@ -69,22 +92,27 @@ const BoardSpace: React.FC<BoardSpaceProps> = ({
         isOnHoveredPath ? "ring-2 ring-theme-primary ring-offset-2 ring-offset-stone-950 shadow-[0_0_12px_rgba(var(--theme-color-rgb),0.3)]" : "",
         isCustomTarget ? "ring-2 ring-theme-primary ring-offset-2 ring-offset-stone-950 shadow-[0_0_15px_rgba(var(--theme-color-rgb),0.55)] z-10" : "",
         previewSlideClass,
-        isActiveTarget ? "ring-4 ring-amber-300 ring-offset-2 ring-offset-stone-950 shadow-[0_0_20px_rgba(251,191,36,0.6)] animate-pulse-border" : ""
+        isActiveTarget ? "ring-4 ring-white shadow-[0_0_0_2px_rgba(251,191,36,0.9),0_0_20px_rgba(251,191,36,0.5)]" : "",
+        isReachable ? "ring-2 ring-green-400/60 bg-green-900/20 hover:ring-green-400 hover:bg-green-900/30 cursor-pointer" : "",
       )}
     >
       {isCustomTarget && (
         <div className="absolute top-1 right-1 w-2.5 h-2.5 rounded-full bg-theme-primary animate-ping pointer-events-none z-30" />
       )}
-      {isActiveTarget && (
-        <div className="absolute top-1 left-1 w-3 h-3 rounded-full bg-amber-300 animate-ping pointer-events-none z-30 shadow-[0_0_8px_rgba(251,191,36,0.8)]" />
-      )}
       {tile ? (
         <Tile
           tile={tile}
-          onClick={() => onTileClick(tile.id)}
+          onClick={isGameStarted
+            ? (tile?.treasure && onTreasureClick
+                ? () => onTreasureClick(tile.treasure!.id, !!isObtainedTreasure)
+                : () => onCellClick(y, x))
+            : () => onTileClick(tile.id)
+          }
           disabled={isGameStarted}
           boardRotation={boardRotation}
           disableRotationTransition={true}
+          isObtainedTreasure={isObtainedTreasure}
+          isCurrentTarget={isCurrentTarget}
           className={cn(
             "absolute inset-0 w-full h-full",
             isOnHoveredPath && "border-theme-primary",
@@ -134,6 +162,12 @@ interface BoardProps {
   boardRotation?: number;
   customTargetCoords?: { r: number; c: number } | null;
   activeTargetCoords?: { r: number; c: number } | null;
+  reachableCells?: { r: number; c: number }[];
+  turnPhase?: "slide" | "move";
+  stagedArrow?: string | null;
+  onTreasureClick?: (treasureId: string, alreadyObtained: boolean) => void;
+  allObtainedTreasures?: string[];
+  activeTargetTreasureId?: string | null;
 }
 
 export const Board: React.FC<BoardProps> = ({
@@ -150,10 +184,16 @@ export const Board: React.FC<BoardProps> = ({
   boardRotation = 0,
   customTargetCoords,
   activeTargetCoords,
+  reachableCells,
+  turnPhase,
+  stagedArrow,
+  onTreasureClick,
+  allObtainedTreasures,
+  activeTargetTreasureId,
 }) => {
 
   return (
-    <div className="p-3 sm:p-5 bg-stone-900 border-4 border-stone-800 rounded-3xl shadow-2xl relative w-full h-full flex items-center justify-center overflow-visible">
+    <div className="relative w-full h-full flex items-center justify-center overflow-visible">
       {/* CSS Grid Layout */}
       <div 
         className={cn(
@@ -167,6 +207,7 @@ export const Board: React.FC<BoardProps> = ({
           <svg
             viewBox="0 0 9 9"
             className="absolute inset-0 w-full h-full pointer-events-none z-10"
+            aria-hidden="true"
           >
             {hoveredPath.map((cell, idx) => {
               if (idx === 0) return null;
@@ -189,44 +230,47 @@ export const Board: React.FC<BoardProps> = ({
             })}
           </svg>
         )}
-        {/* Shifting tracks graphics */}
-        {isGameStarted && (
-          <div className="absolute inset-y-12 left-0 right-0 border-t border-stone-800 pointer-events-none opacity-20" />
-        )}
-
         {/* Render Shifting Arrows */}
         {isGameStarted &&
           SHIFT_ARROWS.map((arrow) => {
             const isForbidden = !!(lastShiftArrowId && isOppositeArrow(arrow.id, lastShiftArrowId));
             const isHighlighted = hoveredSolutionArrow === arrow.id;
+            const isStaged = stagedArrow === arrow.id;
 
             return (
               <button
                 key={arrow.id}
                 onClick={() => !isForbidden && onArrowClick(arrow.id)}
-                disabled={isForbidden}
+                disabled={isForbidden || turnPhase === "move"}
                 style={{
                   gridRow: arrow.gridRow,
                   gridColumn: arrow.gridColumn,
                 }}
                 className={cn(
-                  "w-full h-full max-w-[85%] max-h-[85%] mx-auto p-1 rounded-lg border border-stone-800 bg-stone-950 text-theme-primary hover:text-theme-primary-200 hover:bg-stone-900 transition-all focus:outline-none flex items-center justify-center",
+                  "w-full h-full max-w-[85%] max-h-[85%] mx-auto p-1 rounded-lg border transition-all focus:outline-none flex items-center justify-center",
                   isForbidden
-                    ? "opacity-20 cursor-not-allowed border-red-950/40 text-red-700"
-                    : "cursor-pointer hover:scale-105 active:scale-95",
-                  isHighlighted
-                    ? "animate-pulse ring-2 ring-theme-primary bg-theme-primary-20 scale-110"
-                    : ""
+                    ? "opacity-20 cursor-not-allowed border-red-950/40 text-red-700 bg-stone-950"
+                    : turnPhase === "move"
+                    ? "opacity-25 cursor-not-allowed border-stone-800 bg-stone-950 text-theme-primary"
+                    : isStaged
+                    ? "border-theme-primary bg-theme-primary text-stone-950 scale-110 shadow-lg shadow-theme-glow cursor-pointer"
+                    : isHighlighted
+                    ? "animate-pulse ring-2 ring-theme-primary bg-theme-primary-20 border-theme-primary text-theme-primary scale-110 cursor-pointer"
+                    : "border-stone-800 bg-stone-950 text-theme-primary hover:text-theme-primary-200 hover:bg-stone-900 hover:scale-105 active:scale-95 cursor-pointer",
                 )}
                 title={
                   isForbidden
                     ? "Forbidden: Cannot immediately reverse the previous shift"
-                    : `Insert spare tile into ${arrow.label}`
+                    : isStaged
+                    ? "Click again to rotate tile — then use Commit in the panel"
+                    : `Stage tile into ${arrow.label}`
                 }
                 aria-label={
                   isForbidden
                     ? `Forbidden: Cannot reverse previous shift into ${arrow.label}`
-                    : `Insert spare tile into ${arrow.label}`
+                    : isStaged
+                    ? `Rotate staged tile for ${arrow.label}`
+                    : `Stage spare tile into ${arrow.label}`
                 }
               >
                 <ChevronRight
@@ -261,7 +305,10 @@ export const Board: React.FC<BoardProps> = ({
  
             const isCustomTarget = !!(customTargetCoords && customTargetCoords.r === r && customTargetCoords.c === c);
             const isActiveTarget = !!(activeTargetCoords && activeTargetCoords.r === r && activeTargetCoords.c === c && !isCustomTarget);
- 
+            const isObtainedTreasure = !!(tile?.treasure && allObtainedTreasures?.includes(tile.treasure.id));
+            const isCurrentTarget = !!(tile?.treasure && tile.treasure.id === activeTargetTreasureId);
+            const isReachable = !!(reachableCells?.some(cell => cell.r === r && cell.c === c));
+
             let previewSlideClass = "";
             if (hoveredSolutionArrow) {
               const arrow = SHIFT_ARROWS.find((a) => a.id === hoveredSolutionArrow);
@@ -291,6 +338,10 @@ export const Board: React.FC<BoardProps> = ({
                 isCustomTarget={isCustomTarget}
                 isActiveTarget={isActiveTarget}
                 previewSlideClass={previewSlideClass}
+                onTreasureClick={onTreasureClick}
+                isObtainedTreasure={isObtainedTreasure}
+                isCurrentTarget={isCurrentTarget}
+                isReachable={isReachable}
               />
             );
           })
@@ -313,12 +364,12 @@ export const Board: React.FC<BoardProps> = ({
               pushedTile = sourceGrid[r][6];
               gridRow = r + 2;
               gridColumn = 9;
-              animClass = "animate-preview-slide-out-right";
+              animClass = "animate-preview-slide-right";
             } else {
               pushedTile = sourceGrid[r][0];
               gridRow = r + 2;
               gridColumn = 1;
-              animClass = "animate-preview-slide-out-left";
+              animClass = "animate-preview-slide-left";
             }
           } else {
             const c = arrow.index;
@@ -326,12 +377,12 @@ export const Board: React.FC<BoardProps> = ({
               pushedTile = sourceGrid[6][c];
               gridRow = 9;
               gridColumn = c + 2;
-              animClass = "animate-preview-slide-out-down";
+              animClass = "animate-preview-slide-down";
             } else {
               pushedTile = sourceGrid[0][c];
               gridRow = 1;
               gridColumn = c + 2;
-              animClass = "animate-preview-slide-out-up";
+              animClass = "animate-preview-slide-up";
             }
           }
   
@@ -339,10 +390,14 @@ export const Board: React.FC<BoardProps> = ({
   
           return (
             <div
-              style={{ gridRow, gridColumn }}
-              className={cn("w-full h-full aspect-square rounded-lg overflow-hidden border border-stone-850 bg-stone-950 pointer-events-none opacity-60 shadow-2xl", animClass)}
+              style={{ gridRow, gridColumn, zIndex: 30 }}
+              className={cn("relative w-full h-full aspect-square rounded-lg overflow-hidden border-2 border-stone-600 pointer-events-none shadow-2xl", animClass)}
             >
-              <Tile tile={pushedTile} disabled boardRotation={boardRotation} disableRotationTransition={true} className="absolute inset-0 w-full h-full" />
+              <Tile tile={pushedTile} disabled boardRotation={boardRotation} disableRotationTransition={true} className="absolute inset-0 w-full h-full opacity-70" />
+              <div className="absolute inset-0 bg-stone-950/20 rounded-lg pointer-events-none" />
+              <div className="absolute inset-0 flex items-end justify-center pb-0.5 pointer-events-none">
+                <span className="text-[8px] font-bold text-stone-300 bg-stone-950/70 px-1 rounded leading-tight">pushed out</span>
+              </div>
             </div>
           );
         })()}

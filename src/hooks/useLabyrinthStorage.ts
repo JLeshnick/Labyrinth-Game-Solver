@@ -1,23 +1,19 @@
 import { useState, useEffect, useCallback } from "react";
-import type { AppGameState } from "../types";
+import type { AppGameState, SaveSlot } from "../types";
+
+export type { SaveSlot };
 
 const SLOTS_LIST_KEY = "labyrinth_saved_slots_list";
 export const AUTOSAVE_KEY = "labyrinth_strategist_state";
 
-export interface SaveSlot {
-  name: string;
-  key: string;
-  timestamp: number;
-}
-
 export function useLabyrinthStorage() {
   const [slots, setSlots] = useState<SaveSlot[]>([]);
-  const isElectron = !!(window as any).electronAPI;
+  const isElectron = !!window.electronAPI;
 
   const refreshSlots = useCallback(async () => {
     if (isElectron) {
       try {
-        const list = await (window as any).electronAPI.listGames();
+        const list = await window.electronAPI!.listGames();
         setSlots(list);
       } catch (e) {
         console.error("Failed to list games from disk:", e);
@@ -71,7 +67,7 @@ export function useLabyrinthStorage() {
   const saveSlot = useCallback(async (slotName: string, stateData: Partial<AppGameState>): Promise<boolean> => {
     if (isElectron) {
       try {
-        const result = await (window as any).electronAPI.saveGame(slotName, stateData);
+        const result = await window.electronAPI!.saveGame(slotName, stateData);
         if (result.success) {
           await refreshSlots();
           return true;
@@ -101,7 +97,7 @@ export function useLabyrinthStorage() {
   const loadSlot = useCallback(async (slotKey: string): Promise<Partial<AppGameState> | null> => {
     if (isElectron) {
       try {
-        return await (window as any).electronAPI.loadGame(slotKey);
+        return await window.electronAPI!.loadGame(slotKey);
       } catch (e) {
         console.error("Load slot from disk failed:", e);
         return null;
@@ -121,7 +117,7 @@ export function useLabyrinthStorage() {
   const deleteSlot = useCallback(async (slotKey: string): Promise<boolean> => {
     if (isElectron) {
       try {
-        const success = await (window as any).electronAPI.deleteGame(slotKey);
+        const success = await window.electronAPI!.deleteGame(slotKey);
         if (success) {
           await refreshSlots();
           return true;

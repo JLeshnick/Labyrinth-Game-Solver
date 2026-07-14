@@ -1,6 +1,6 @@
 import { Sparkles, Layers, User, Compass } from "lucide-react";
-import { Button } from "./ui/button";
 import { SidePanel } from "./SidePanel";
+import { Button } from "./ui/button";
 import { PAWNS, TREASURES } from "../constants";
 import { playClickSound } from "../utils/audio";
 import type { TileData } from "../types";
@@ -42,7 +42,7 @@ export function SetupPanel({
 }: SetupPanelProps) {
 
   return (
-    <div className="flex-1 flex flex-col min-h-0 gap-4 bg-stone-900/50 border border-stone-800 rounded-2xl p-5 backdrop-blur-xl">
+    <div className="flex-1 flex flex-col min-h-0 gap-4 p-2">
       {/* Checklist */}
       <div className="p-3 bg-stone-950/60 border border-stone-800 rounded-xl flex flex-col gap-2 text-xs text-left">
         <h3 className="font-bold text-stone-200 flex items-center gap-1.5 border-b border-stone-800 pb-1.5">
@@ -71,28 +71,25 @@ export function SetupPanel({
       </div>
 
       {/* Tab bar */}
-      <div className="flex border-b border-stone-800 pb-2 gap-2">
-        <Button
-          variant={setupTab === "tiles" ? "default" : "ghost"}
-          onClick={() => setSetupTab("tiles")}
-          className={`flex-1 rounded-lg ${setupTab === "tiles" ? "bg-theme-primary text-stone-950 font-semibold" : "text-stone-400 hover:text-stone-100"}`}
-        >
-          <Layers className="w-4 h-4 mr-2" />Tiles
-        </Button>
-        <Button
-          variant={setupTab === "pawns" ? "default" : "ghost"}
-          onClick={() => setSetupTab("pawns")}
-          className={`flex-1 rounded-lg ${setupTab === "pawns" ? "bg-theme-primary text-stone-950 font-semibold" : "text-stone-400 hover:text-stone-100"}`}
-        >
-          <User className="w-4 h-4 mr-2" />Pawns
-        </Button>
-        <Button
-          variant={setupTab === "cards" ? "default" : "ghost"}
-          onClick={() => setSetupTab("cards")}
-          className={`flex-1 rounded-lg ${setupTab === "cards" ? "bg-theme-primary text-stone-950 font-semibold" : "text-stone-400 hover:text-stone-100"}`}
-        >
-          <Compass className="w-4 h-4 mr-2" />Cards
-        </Button>
+      <div className="flex items-center bg-stone-950/60 rounded-full p-1 border border-stone-800 self-start">
+        {([
+          { id: "tiles", label: "Tiles", icon: <Layers className="w-3.5 h-3.5" /> },
+          { id: "pawns", label: "Pawns", icon: <User className="w-3.5 h-3.5" /> },
+          { id: "cards", label: "Cards", icon: <Compass className="w-3.5 h-3.5" /> },
+        ] as const).map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => setSetupTab(tab.id)}
+            className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-medium transition-all cursor-pointer ${
+              setupTab === tab.id
+                ? "bg-theme-primary text-stone-950 font-semibold shadow-sm"
+                : "text-stone-400 hover:text-stone-200 hover:bg-stone-900/40"
+            }`}
+          >
+            {tab.icon}
+            {tab.label}
+          </button>
+        ))}
       </div>
 
       {/* Tab content */}

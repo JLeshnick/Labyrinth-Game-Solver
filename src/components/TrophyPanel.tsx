@@ -30,7 +30,7 @@ export function TrophyPanel({ activePlayers, playerHands, obtainedTreasures }: T
   const totalCards = Object.values(playerHands).flat().length + totalObtained;
 
   return (
-    <div className="bg-stone-900/50 border border-stone-800 rounded-2xl overflow-hidden flex-shrink-0">
+    <div className="overflow-hidden flex-shrink-0 px-2">
       {/* Header — clickable to collapse */}
       <button
         onClick={() => setIsOpen(prev => !prev)}

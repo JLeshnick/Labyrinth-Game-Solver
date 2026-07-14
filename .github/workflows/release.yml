@@ -52,7 +52,8 @@ jobs:
       - name: Generate Release Notes
         run: node scripts/generate-release-notes.js
         env:
-          GITHUB_REF_NAME: ${{ inputs.tag || github.ref_name }}
+          TARGET_TAG: ${{ inputs.tag || github.ref_name }}
+          GITHUB_TOKEN: ${{ github.token }}
 
       - name: Publish to GitHub Releases
         uses: softprops/action-gh-release@v3

@@ -1,20 +1,88 @@
 import { execSync } from 'child_process';
 import fs from 'fs';
 
-function getPreviousTag() {
+async function getLatestGoodRelease() {
+  const repo = 'JLeshnick/Labyrinth';
+  const url = `https://api.github.com/repos/${repo}/releases`;
+  
+  console.log(`[Release Notes] Fetching releases from GitHub API: ${url}`);
   try {
-    // Finds the closest tag before HEAD
-    const tag = execSync('git describe --tags --abbrev=0 HEAD^', { encoding: 'utf8' }).trim();
-    return tag;
+    const headers = {
+      'User-Agent': 'release-notes-generator'
+    };
+    if (process.env.GITHUB_TOKEN) {
+      headers['Authorization'] = `Bearer ${process.env.GITHUB_TOKEN}`;
+    }
+    const response = await fetch(url, { headers });
+    if (response.ok) {
+      const releases = await response.json();
+      // Resolve the current version tag to exclude it and perform version rollups
+      const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+      const currentTag = process.env.TARGET_TAG || `v${pkg.version}`;
+      
+      // Find the latest release that was successfully published and is not a fallback/empty release
+      const latestGoodRelease = releases.find(r => {
+        console.log(`[Debug] Checking tag: ${r.tag_name} against currentTag: ${currentTag}`);
+        
+        // Exclude the current version being built (prevents race condition between runners)
+        if (r.tag_name === currentTag) {
+          console.log(`[Debug] Skipping ${r.tag_name} because it matches currentTag`);
+          return false;
+        }
+        
+        // If building a v2.0.x release, roll up all commits since the last v1 release (v1.2.0)
+        // by excluding other v2.0.x tags from being baselines
+        if (currentTag.startsWith('v2.0.') && r.tag_name.startsWith('v2.0.')) {
+          console.log(`[Debug] Skipping ${r.tag_name} because both start with v2.0.`);
+          return false;
+        }
+        
+        const isValid = !r.draft && !r.prerelease && r.body && !r.body.includes('Initial release reference');
+        console.log(`[Debug] isValid for ${r.tag_name}: ${isValid}`);
+        return isValid;
+      });
+      if (latestGoodRelease) {
+        console.log(`[Release Notes] Found latest successfully published release tag on GitHub: ${latestGoodRelease.tag_name} (published at ${latestGoodRelease.published_at})`);
+        return latestGoodRelease;
+      }
+    }
   } catch (err) {
-    console.log('No previous tag found:', err.message);
-    return null;
+    console.log('[Release Notes] Failed to fetch releases from GitHub API:', err.message);
   }
+  return null;
+}
+
+async function getLatestMergedPR() {
+  const repo = 'JLeshnick/Labyrinth';
+  const url = `https://api.github.com/repos/${repo}/pulls?state=closed&base=main&sort=updated&direction=desc&per_page=10`;
+  
+  console.log(`[Release Notes] Fetching closed pulls from GitHub API: ${url}`);
+  try {
+    const headers = {
+      'User-Agent': 'release-notes-generator'
+    };
+    if (process.env.GITHUB_TOKEN) {
+      headers['Authorization'] = `Bearer ${process.env.GITHUB_TOKEN}`;
+    }
+    const response = await fetch(url, { headers });
+    if (response.ok) {
+      const prs = await response.json();
+      const latestMerged = prs.find(p => p.merged_at !== null);
+      if (latestMerged) {
+        console.log(`[Release Notes] Found latest merged PR: #${latestMerged.number} - ${latestMerged.title} (merged at ${latestMerged.merged_at})`);
+        return latestMerged;
+      }
+    }
+  } catch (err) {
+    console.log('[Release Notes] Failed to fetch PRs from GitHub API:', err.message);
+  }
+  return null;
 }
 
 function getCommitLogs(prevTag) {
   try {
     const range = prevTag ? `${prevTag}..HEAD` : 'HEAD~10..HEAD'; // Fallback to last 10 commits if no previous tag
+    console.log(`[Release Notes] Fetching commit logs for range: ${range}`);
     const logOutput = execSync(`git log ${range} --pretty=format:"%s%n%b%n---COMMIT---"`, { encoding: 'utf8' });
     
     const rawCommits = logOutput
@@ -22,6 +90,7 @@ function getCommitLogs(prevTag) {
       .map(c => c.trim())
       .filter(Boolean);
       
+    console.log(`[Release Notes] Raw git log returned ${rawCommits.length} commits.`);
     return rawCommits.map(c => {
       const lines = c.split('\n');
       const subject = lines[0];
@@ -29,13 +98,29 @@ function getCommitLogs(prevTag) {
       return { subject, body };
     });
   } catch (err) {
-    console.error('Error getting commit logs:', err.message);
+    console.error('[Release Notes] Error getting commit logs:', err.message);
     return [];
   }
 }
 
-function generateReleaseNotes() {
-  const prevTag = getPreviousTag();
+async function generateReleaseNotes() {
+  const latestGoodRelease = await getLatestGoodRelease();
+  const latestMergedPR = await getLatestMergedPR();
+  
+  // Resolve previous tag for git log commit diffing
+  let prevTag = null;
+  if (latestGoodRelease) {
+    prevTag = latestGoodRelease.tag_name;
+  } else {
+    try {
+      console.log('[Release Notes] No good release in API, running git describe to find baseline tag...');
+      prevTag = execSync('git describe --tags --abbrev=0 HEAD^', { encoding: 'utf8' }).trim();
+    } catch (err) {
+      console.log('[Release Notes] git describe failed:', err.message);
+    }
+  }
+  
+  console.log(`[Release Notes] Git commit diff baseline tag: ${prevTag}`);
   const commits = getCommitLogs(prevTag);
   
   const features = [];
@@ -45,13 +130,10 @@ function generateReleaseNotes() {
   const breaking = [];
   
   commits.forEach(({ subject, body }) => {
-    // Skip version bump commits to keep release notes clean
     if (subject.startsWith('chore: bump version to')) {
       return;
     }
-
     const isBreaking = subject.includes('!') || body.includes('BREAKING CHANGE');
-    
     const formattedCommit = `- ${subject}`;
     
     if (isBreaking) {
@@ -63,7 +145,6 @@ function generateReleaseNotes() {
     } else if (subject.match(/^perf(\(.*\))?:/i)) {
       perf.push(formattedCommit);
     } else {
-      // Group chores, refactors, docs, etc. under maintenance
       maintenance.push(formattedCommit);
     }
   });
@@ -71,49 +152,76 @@ function generateReleaseNotes() {
   let md = '';
   
   // Title / Tag
-  const currentTag = process.env.GITHUB_REF_NAME || 'v1.0.8';
+  let currentTag = process.env.TARGET_TAG || '';
+  if (!currentTag || currentTag === 'main' || currentTag === 'master') {
+    try {
+      const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+      currentTag = `v${pkg.version}`;
+    } catch {
+      currentTag = 'Release';
+    }
+  }
   md += `# Labyrinth Game Solver ${currentTag}\n\n`;
   
   md += `## 🚀 What's New\n\n`;
   
+  let hasEmbedPR = false;
+  if (latestMergedPR) {
+    // If there is no previous good release, or if the PR was merged AFTER the last successful release
+    const isNewPR = !latestGoodRelease || (new Date(latestMergedPR.merged_at) > new Date(latestGoodRelease.published_at));
+    if (isNewPR) {
+      console.log(`[Release Notes] Prepending description from PR #${latestMergedPR.number}`);
+      md += `### 📝 Release Details (from PR #${latestMergedPR.number}: ${latestMergedPR.title})\n\n`;
+      if (latestMergedPR.body) {
+        md += `${latestMergedPR.body}\n\n`;
+      } else {
+        md += `*No description provided in PR #${latestMergedPR.number}.*\n\n`;
+      }
+      md += `---\n\n`;
+      hasEmbedPR = true;
+    }
+  }
+  
+  // Append detailed changelog of individual commits
+  md += `### 🔍 Detailed Changelog\n\n`;
   let hasUpdates = false;
   
   if (breaking.length > 0) {
-    md += `### ⚠️ Breaking Changes\n`;
+    md += `#### ⚠️ Breaking Changes\n`;
     breaking.forEach(c => md += `${c}\n`);
     md += `\n`;
     hasUpdates = true;
   }
   
   if (features.length > 0) {
-    md += `### ✨ New Features\n`;
+    md += `#### ✨ New Features\n`;
     features.forEach(c => md += `${c}\n`);
     md += `\n`;
     hasUpdates = true;
   }
   
   if (fixes.length > 0) {
-    md += `### 🐛 Bug Fixes\n`;
+    md += `#### 🐛 Bug Fixes\n`;
     fixes.forEach(c => md += `${c}\n`);
     md += `\n`;
     hasUpdates = true;
   }
   
   if (perf.length > 0) {
-    md += `### ⚡ Performance Improvements\n`;
+    md += `#### ⚡ Performance Improvements\n`;
     perf.forEach(c => md += `${c}\n`);
     md += `\n`;
     hasUpdates = true;
   }
   
   if (maintenance.length > 0) {
-    md += `### ⚙️ Maintenance & Tooling\n`;
+    md += `#### ⚙️ Maintenance & Tooling\n`;
     maintenance.forEach(c => md += `${c}\n`);
     md += `\n`;
     hasUpdates = true;
   }
   
-  if (!hasUpdates) {
+  if (!hasUpdates && !hasEmbedPR) {
     md += `- Initial release reference and automated packaging setup.\n\n`;
   }
   
@@ -137,7 +245,10 @@ function generateReleaseNotes() {
   md += `*Note: The desktop app includes automatic background updates on startup using electron-updater. Please keep the update metadata files (.yml and .blockmap) uploaded to ensure auto-update continues to work smoothly.*`;
   
   fs.writeFileSync('release_notes.md', md);
-  console.log('Successfully generated release_notes.md');
+  console.log('[Release Notes] Successfully generated release_notes.md');
 }
 
-generateReleaseNotes();
+generateReleaseNotes().catch(err => {
+  console.error('Error generating release notes:', err);
+  process.exit(1);
+});
