@@ -42,7 +42,7 @@ export function SetupPanel({
 }: SetupPanelProps) {
 
   return (
-    <div className="flex-1 flex flex-col min-h-0 gap-4 bg-stone-900/50 border border-stone-800 rounded-2xl p-5 backdrop-blur-xl">
+    <div className="flex-1 flex flex-col min-h-0 gap-4 p-2">
       {/* Checklist */}
       <div className="p-3 bg-stone-950/60 border border-stone-800 rounded-xl flex flex-col gap-2 text-xs text-left">
         <h3 className="font-bold text-stone-200 flex items-center gap-1.5 border-b border-stone-800 pb-1.5">

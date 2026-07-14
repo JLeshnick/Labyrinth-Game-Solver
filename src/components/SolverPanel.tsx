@@ -51,7 +51,7 @@ export function SolverPanel({
   lastShiftArrowId,
 }: SolverPanelProps) {
   return (
-    <div className="flex-1 flex flex-col min-h-0 gap-4 bg-stone-900/50 border border-stone-800 rounded-2xl p-5 backdrop-blur-xl">
+    <div className="flex-1 flex flex-col min-h-0 gap-4 p-2">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-bold text-theme-primary flex items-center gap-2">
           <Sparkles className="w-5 h-5 text-theme-primary" />

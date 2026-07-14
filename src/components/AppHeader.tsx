@@ -140,7 +140,7 @@ export function AppHeader({
 
   return (
     <>
-    <header className="relative z-10 px-4 sm:px-6 py-3 flex items-center justify-between border-b border-stone-800 bg-stone-950/70 backdrop-blur-md gap-4">
+    <header className="relative z-40 px-4 sm:px-6 py-3 flex items-center justify-between border-b border-stone-800 bg-stone-950/70 backdrop-blur-md gap-4">
 
       {/* Left — branding */}
       <div className="flex items-center gap-3 shrink-0">

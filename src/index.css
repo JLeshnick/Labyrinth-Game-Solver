@@ -168,6 +168,8 @@
   --color-secondary-foreground: #1c1917;
   --color-muted: #e7e5e4;
   --color-muted-foreground: #78716c;
+  --color-accent: #e7e5e4;
+  --color-accent-foreground: #1c1917;
   --color-border: #d6d3d1;
   --color-input: #d6d3d1;
 }
