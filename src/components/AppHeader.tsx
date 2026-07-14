@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import type { TileData, PlayerMap, PawnPositions, AppGameState } from "../types";
+import type { TileData, PlayerMap } from "../types";
 import { PAWNS, TREASURES } from "../constants";
 import { Button } from "./ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
@@ -18,14 +18,11 @@ import {
   Play,
   Unlock,
   Menu,
-  Save,
   Settings2,
   Sparkles,
 } from "lucide-react";
 
 export interface AppHeaderProps {
-  currentSlotName?: string | null;
-  lastSavedTime: number | null;
   isGameStarted: boolean;
   canUndo: boolean;
   canRedo: boolean;
@@ -38,15 +35,8 @@ export interface AppHeaderProps {
   accentColor: string;
   setAccentColor: (hex: string) => void;
   isSettingsOpen: boolean;
-  grid: (TileData | null)[][];
-  spareTile: TileData;
   playerHands: PlayerMap<string[]>;
-  playerActiveTargets: PlayerMap<string | null>;
   obtainedTreasures: PlayerMap<string[]>;
-  lastShiftArrowId: string | null;
-  gameStartState: AppGameState | null;
-  pawnPositions: PawnPositions;
-  onGoToMenu?: () => void;
   onOpenSettings: () => void;
   onCloseSettings: () => void;
   onUndo: () => void;
@@ -61,12 +51,21 @@ export interface AppHeaderProps {
   onSetActivePlayers: (players: string[]) => void;
   showToast: (msg: string) => void;
   onRandomizeBoard?: () => void | Promise<void>;
-  onSave?: () => void | Promise<void>;
 }
 
 const STEPS = [
-  { id: "setup" as const, label: "Edit Layout", shortLabel: "Setup", icon: <Layers className="w-3.5 h-3.5" /> },
-  { id: "game"  as const, label: "Play Game",  shortLabel: "Play",  icon: <Play   className="w-3.5 h-3.5" /> },
+  {
+    id: "setup" as const,
+    label: "Edit Layout",
+    shortLabel: "Setup",
+    icon: <Layers className="w-3 h-3" />,
+  },
+  {
+    id: "game" as const,
+    label: "Play Game",
+    shortLabel: "Play",
+    icon: <Play className="w-3 h-3" />,
+  },
 ];
 
 type MenuAction = {
@@ -80,8 +79,6 @@ type MenuAction = {
 };
 
 export function AppHeader({
-  currentSlotName,
-  lastSavedTime,
   isGameStarted,
   canUndo,
   canRedo,
@@ -94,7 +91,6 @@ export function AppHeader({
   accentColor,
   setAccentColor,
   isSettingsOpen,
-  onGoToMenu,
   onOpenSettings,
   onCloseSettings,
   onUndo,
@@ -111,7 +107,6 @@ export function AppHeader({
   playerHands,
   obtainedTreasures,
   onRandomizeBoard,
-  onSave,
 }: AppHeaderProps) {
   const [showGameMenu, setShowGameMenu] = useState(false);
   const [showEndGameConfirm, setShowEndGameConfirm] = useState(false);
@@ -119,23 +114,24 @@ export function AppHeader({
   const menuButtonRef = useRef<HTMLButtonElement | null>(null);
 
   const currentStep = isGameStarted ? "game" : "setup";
-  const canStartGame = looseTiles.length === 1;
+  const canStartGame = looseTiles.length === 1 || looseTiles.length === 0;
 
   const menuItemClass =
-    "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-xs text-stone-400 hover:bg-stone-900 hover:text-stone-200 cursor-pointer transition-colors";
+    "flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-left text-xs text-stone-400 hover:bg-stone-900 hover:text-stone-200 cursor-pointer transition-colors";
 
   const editionLabel =
     typeof window !== "undefined" && !!(window as { electronAPI?: unknown }).electronAPI
       ? "Desktop Edition"
       : "Web Edition";
 
-  const savedDate = lastSavedTime ? new Date(lastSavedTime) : null;
-  const savedLabel = savedDate
-    ? `Last saved ${savedDate.toLocaleDateString()} ${savedDate.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`
-    : null;
-
-  const slotLabel = currentSlotName ? `Active: ${currentSlotName}` : "Unsaved layout";
-  const subtitle = [editionLabel, slotLabel, savedLabel].filter(Boolean).join(" • ");
+  const movableTilesRemaining = Math.max(0, looseTiles.length - 1);
+  const tilesPlaced = Math.max(0, 33 - movableTilesRemaining);
+  const phaseLabel = isGameStarted
+    ? "Play phase • Slide, then move"
+    : looseTiles.length <= 1
+    ? "Setup complete"
+    : `${tilesPlaced}/33 tiles placed`;
+  const subtitle = [editionLabel, phaseLabel].filter(Boolean).join(" • ");
 
   useEffect(() => {
     if (!showGameMenu) return;
@@ -195,13 +191,6 @@ export function AppHeader({
       hidden: isGameStarted,
     },
     {
-      id: "save",
-      label: currentSlotName ? `Save “${currentSlotName}”` : "Save Layout",
-      icon: <Save className="w-3.5 h-3.5" />,
-      onSelect: onSave,
-      hidden: !onSave,
-    },
-    {
       id: "stats",
       label: showStats ? "Hide Stats" : "Show Stats",
       icon: <Gauge className="w-3.5 h-3.5" />,
@@ -215,19 +204,16 @@ export function AppHeader({
       onSelect: onOpenSettings,
     },
     {
-      id: "menu",
-      label: "Return to Menu",
-      icon: <Compass className="w-3.5 h-3.5" />,
-      onSelect: onGoToMenu,
-      hidden: !onGoToMenu,
-    },
-    {
       id: "mute",
       label: isMuted ? "Unmute Sound" : "Mute Sound",
-      icon: isMuted ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5 text-theme-primary" />,
+      icon: isMuted ? (
+        <VolumeX className="w-3.5 h-3.5" />
+      ) : (
+        <Volume2 className="w-3.5 h-3.5 text-theme-primary" />
+      ),
       onSelect: onToggleMute,
     },
-  ].filter(action => !action.hidden);
+  ].filter((action) => !action.hidden);
 
   const handleMenuItemClick = async (action: MenuAction) => {
     if (action.disabled || !action.onSelect) return;
@@ -254,53 +240,57 @@ export function AppHeader({
               <span className="hidden sm:inline">Labyrinth Game Solver</span>
               <span className="sm:hidden">Labyrinth</span>
             </h1>
-            <p className="text-[10px] text-stone-400 hidden sm:block">
-              {subtitle}
-            </p>
+            <p className="text-[10px] text-stone-400 hidden sm:block">{subtitle}</p>
           </div>
         </div>
 
         {/* Center — Step Nav */}
-        <div className="flex-1 flex items-center justify-center min-w-0">
-          <div className="flex items-center app-step-nav rounded-full p-0.5 sm:p-1 border border-stone-800">
-            {STEPS.map((s) => {
-              const isActive = s.id === currentStep;
-              const isDisabled = s.id === "game" && !isGameStarted && !canStartGame;
-              return (
-                <button
-                  key={s.id}
-                  disabled={isDisabled}
-                  onClick={() => {
-                    if (!isMuted) playClickSound();
-                    if (s.id === "game" && !isGameStarted) {
-                      onStartGame();
-                    } else if (s.id === "setup" && isGameStarted) {
-                      setShowEndGameConfirm(true);
-                    }
-                  }}
-                  title={isDisabled ? "Place all 33 movable tiles first" : undefined}
-                  className={`flex items-center gap-1 sm:gap-2 px-2.5 sm:px-4 py-1.5 rounded-full text-xs font-medium transition-all ${
-                    isActive
-                      ? "bg-theme-primary text-stone-950 font-semibold shadow-sm"
-                      : isDisabled
-                      ? "text-stone-600 cursor-not-allowed"
-                      : "text-stone-400 hover:text-stone-200 hover:bg-stone-900/40 cursor-pointer"
-                  }`}
-                >
-                  {s.icon}
-                  <span className="hidden xs:inline sm:hidden">{s.shortLabel}</span>
-                  <span className="hidden sm:inline">{s.label}</span>
-                  <span className="xs:hidden">{s.shortLabel}</span>
-                </button>
-              );
-            })}
+        <div className="flex-1 flex flex-col items-center justify-center min-w-0 gap-1">
+          <div className="w-full max-w-[280px] sm:max-w-none">
+            <div className="flex w-full sm:w-auto items-center app-step-nav rounded-full border border-stone-800 px-1 py-0.5 sm:p-1 gap-1">
+              {STEPS.map((s) => {
+                const isActive = s.id === currentStep;
+                const isDisabled = s.id === "game" && !isGameStarted && !canStartGame;
+                return (
+                  <button
+                    key={s.id}
+                    disabled={isDisabled}
+                    onClick={() => {
+                      if (!isMuted) playClickSound();
+                      if (s.id === "game" && !isGameStarted) {
+                        onStartGame();
+                      } else if (s.id === "setup" && isGameStarted) {
+                        setShowEndGameConfirm(true);
+                      }
+                    }}
+                    title={isDisabled ? "Place all 33 movable tiles first" : undefined}
+                    className={cn(
+                      "flex-1 sm:flex-none flex items-center justify-center gap-1 sm:gap-2 px-3 sm:px-4 py-1.5 rounded-full text-[11px] sm:text-xs font-semibold transition-all min-w-[96px] sm:min-w-0",
+                      isActive
+                        ? "bg-theme-primary text-stone-950 shadow-sm"
+                        : isDisabled
+                        ? "text-stone-600 cursor-not-allowed"
+                        : "text-stone-400 hover:text-stone-200 hover:bg-stone-900/40 cursor-pointer"
+                    )}
+                  >
+                    {s.icon}
+                    <span className="hidden xs:inline sm:hidden">{s.shortLabel}</span>
+                    <span className="hidden sm:inline">{s.label}</span>
+                    <span className="xs:hidden">{s.shortLabel}</span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
+          <span className="sm:hidden text-[10px] text-stone-500 font-semibold uppercase tracking-wide">
+            {phaseLabel}
+          </span>
         </div>
 
         {/* Right — compact toolbar */}
         <div className="flex items-center gap-2 shrink-0">
-          {/* Game menu trigger */}
-          <div className="relative">
+          {/* Game menu trigger (desktop only) */}
+          <div className="relative hidden lg:block">
             <Button
               ref={menuButtonRef}
               variant="outline"
@@ -312,7 +302,7 @@ export function AppHeader({
               id="app-game-menu-button"
               aria-haspopup="menu"
               aria-expanded={showGameMenu}
-              className="border-stone-800 hover:bg-stone-900 w-8 h-8"
+              className="border-stone-800 hover:bg-stone-900 w-9 h-9"
             >
               <Menu className="w-3.5 h-3.5" />
             </Button>
@@ -333,7 +323,8 @@ export function AppHeader({
                       title={action.title}
                       className={cn(
                         menuItemClass,
-                        action.disabled && "opacity-50 cursor-not-allowed hover:bg-transparent hover:text-stone-400"
+                        action.disabled &&
+                          "opacity-50 cursor-not-allowed hover:bg-transparent hover:text-stone-400"
                       )}
                     >
                       {action.icon}
@@ -345,7 +336,7 @@ export function AppHeader({
             )}
           </div>
 
-          {/* Reset board option on header (desktop only, clean layout) */}
+          {/* Randomize layout (desktop & tablets) */}
           {!isGameStarted && onRandomizeBoard && (
             <Button
               variant="ghost"
@@ -365,46 +356,80 @@ export function AppHeader({
           {/* Pawn score pills — only during game */}
           {isGameStarted && activePlayers.length > 0 && (
             <div className="hidden sm:flex items-center gap-1 border-r border-stone-800 pr-3 mr-1">
-              {activePlayers.map(pawnId => {
-                const pawn = PAWNS.find(p => p.id === pawnId);
-                const obtained = (obtainedTreasures as Record<string, string[]>)[pawnId] ?? [];
+              {activePlayers.map((pawnId) => {
+                const pawn = PAWNS.find((p) => p.id === pawnId);
+                const obtained =
+                  (obtainedTreasures as Record<string, string[]>)[pawnId] ?? [];
                 const hand = (playerHands as Record<string, string[]>)[pawnId] ?? [];
                 const total = obtained.length + hand.length;
                 return (
                   <div key={pawnId} className="relative group">
-                    <div className={`flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold cursor-default border transition-colors ${
-                      pawnId === activePawn
-                        ? "border-white/20 bg-white/8 text-stone-100"
-                        : "border-transparent text-stone-400"
-                    }`}>
-                      <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${pawn?.colorClass ?? "bg-stone-500"}`} />
-                      <span>{obtained.length}{total > 0 ? `/${total}` : ""}</span>
+                    <div
+                      className={cn(
+                        "flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold cursor-default border transition-colors",
+                        pawnId === activePawn
+                          ? "border-white/20 bg-white/8 text-stone-100"
+                          : "border-transparent text-stone-400"
+                      )}
+                    >
+                      <div
+                        className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${
+                          pawn?.colorClass ?? "bg-stone-500"
+                        }`}
+                      />
+                      <span>
+                        {obtained.length}
+                        {total > 0 ? `/${total}` : ""}
+                      </span>
                     </div>
                     {/* Hover tooltip */}
                     <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-52 rounded-xl border border-stone-700 bg-stone-950 shadow-2xl p-3 z-50 invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-all duration-150 flex flex-col gap-1 pointer-events-none">
                       <div className="text-[10px] font-bold text-stone-200 capitalize border-b border-stone-800 pb-1.5 mb-0.5 flex items-center gap-1.5">
-                        <div className={`w-3 h-3 rounded-full ${pawn?.colorClass ?? "bg-stone-500"}`} />
+                        <div
+                          className={`w-3 h-3 rounded-full ${
+                            pawn?.colorClass ?? "bg-stone-500"
+                          }`}
+                        />
                         {pawn?.name ?? pawnId} — {obtained.length} collected
                       </div>
                       {obtained.length === 0 && hand.length === 0 && (
-                        <p className="text-[9px] text-stone-600 italic">No cards assigned</p>
+                        <p className="text-[9px] text-stone-600 italic">
+                          No cards assigned
+                        </p>
                       )}
-                      {obtained.map(id => {
-                        const t = TREASURES.find(x => x.id === id);
+                      {obtained.map((id) => {
+                        const t = TREASURES.find((x) => x.id === id);
                         return (
                           <div key={id} className="flex items-center gap-1.5">
                             <span className="text-emerald-400 text-[9px] flex-shrink-0">✓</span>
-                            <span className="text-[9px] text-emerald-300 line-through opacity-75">{t?.name ?? id}</span>
+                            <span className="text-[9px] text-emerald-300 line-through opacity-75">
+                              {t?.name ?? id}
+                            </span>
                           </div>
                         );
                       })}
                       {hand.map((id, i) => {
-                        const t = TREASURES.find(x => x.id === id);
+                        const t = TREASURES.find((x) => x.id === id);
                         return (
                           <div key={id} className="flex items-center gap-1.5">
-                            <span className={`text-[9px] flex-shrink-0 ${i === 0 ? "text-amber-400" : "text-stone-600"}`}>{i === 0 ? "▶" : "·"}</span>
-                            <span className={`text-[9px] ${i === 0 ? "text-amber-200 font-medium" : "text-stone-500"}`}>
-                              {t?.name ?? id}{i === 0 ? " ← next" : ""}
+                            <span
+                              className={cn(
+                                "text-[9px] flex-shrink-0",
+                                i === 0 ? "text-amber-400" : "text-stone-600"
+                              )}
+                            >
+                              {i === 0 ? "▶" : "·"}
+                            </span>
+                            <span
+                              className={cn(
+                                "text-[9px]",
+                                i === 0
+                                  ? "text-amber-200 font-medium"
+                                  : "text-stone-500"
+                              )}
+                            >
+                              {t?.name ?? id}
+                              {i === 0 ? " ← next" : ""}
                             </span>
                           </div>
                         );
@@ -531,8 +556,18 @@ export function AppHeader({
       </header>
 
       {/* End Game confirmation dialog */}
-      <Dialog open={showEndGameConfirm} onOpenChange={(open) => { if (!open) setShowEndGameConfirm(false); }}>
-        <DialogContent className="sm:max-w-[360px] app-dialog-panel border border-stone-800 text-stone-100 shadow-2xl p-6 rounded-2xl" onKeyDown={(e) => { if (e.key === " ") e.stopPropagation(); }}>
+      <Dialog
+        open={showEndGameConfirm}
+        onOpenChange={(open) => {
+          if (!open) setShowEndGameConfirm(false);
+        }}
+      >
+        <DialogContent
+          className="sm:max-w-[360px] app-dialog-panel border border-stone-800 text-stone-100 shadow-2xl p-6 rounded-2xl"
+          onKeyDown={(e) => {
+            if (e.key === " ") e.stopPropagation();
+          }}
+        >
           <DialogHeader>
             <DialogTitle className="text-base font-bold text-stone-100 flex items-center gap-2">
               <Unlock className="w-4 h-4 text-amber-400" />
@@ -540,7 +575,8 @@ export function AppHeader({
             </DialogTitle>
           </DialogHeader>
           <p className="text-sm text-stone-400 mt-2 leading-relaxed">
-            This will end the current game and return to board setup. Your game progress will not be saved automatically.
+            This will end the current game and return to board setup. Your game progress will
+            not be saved automatically.
           </p>
           <div className="flex justify-end gap-3 mt-6">
             <Button
