@@ -1,7 +1,12 @@
 import { useState } from "react";
 import { Compass, Plus, FolderOpen, Upload } from "lucide-react";
 import { Button } from "./ui/button";
-import type { SaveSlot } from "../hooks/useLabyrinthStorage";
+
+interface SaveSlot {
+  key: string;
+  name: string;
+  timestamp: number;
+}
 
 interface LandingPageProps {
   allSlots: SaveSlot[];
