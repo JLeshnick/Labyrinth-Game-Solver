@@ -2,7 +2,7 @@ import { execSync } from 'child_process';
 import fs from 'fs';
 
 async function getLatestGoodRelease() {
-  const repo = 'JLeshnick/Labyrinth';
+  const repo = 'JLeshnick/Labyrinth-Game-Solver';
   const url = `https://api.github.com/repos/${repo}/releases`;
   
   console.log(`[Release Notes] Fetching releases from GitHub API: ${url}`);
@@ -53,7 +53,7 @@ async function getLatestGoodRelease() {
 }
 
 async function getLatestMergedPR() {
-  const repo = 'JLeshnick/Labyrinth';
+  const repo = 'JLeshnick/Labyrinth-Game-Solver';
   const url = `https://api.github.com/repos/${repo}/pulls?state=closed&base=main&sort=updated&direction=desc&per_page=10`;
   
   console.log(`[Release Notes] Fetching closed pulls from GitHub API: ${url}`);
