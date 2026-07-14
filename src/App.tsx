@@ -10,7 +10,7 @@ import {
   PointerSensor,
 } from "@dnd-kit/core";
 import { SHIFT_ARROWS, TREASURES } from "./constants";
-import type { TileData, AppGameState, SolverSolution } from "./types";
+import type { TileData, SolverSolution } from "./types";
 import { Board } from "./components/Board";
 import { Tile } from "./components/Tile";
 import { Button } from "./components/ui/button";
@@ -25,7 +25,7 @@ import { playClickSound } from "./utils/audio";
 import { fromSolverGrid } from "./lib/solverAdapter";
 import { executeSlideInGrid, getReachableCells, quickSolveMinTurns } from "./solver";
 import type { Rotation } from "./types";
-import { Sparkles, Plus, Undo2, Redo2, RotateCw, Volume2, VolumeX, ChevronUp, ChevronDown as ChevronDownIcon } from "lucide-react";
+import { Sparkles, Undo2, Redo2, RotateCw, Volume2, VolumeX, ChevronUp, ChevronDown as ChevronDownIcon } from "lucide-react";
 import { cn } from "./lib/utils";
 
 export default function App() {
@@ -119,7 +119,7 @@ export default function App() {
     isMuted,
     onToast: showToast,
     onNavigateToGame: () => setShowLandingPage(false),
-    onCloseSettings: () => { setIsSettingsOpen(false); setSaveName(""); setPeekSlotKey(null); },
+    onCloseSettings: () => setIsSettingsOpen(false),
     onSaved: (time) => setLastSavedTime(time),
   });
 
@@ -195,7 +195,6 @@ export default function App() {
       }
       if (e.key === "?" && !ctrl) {
         e.preventDefault();
-        setSettingsTab("application");
         setIsSettingsOpen(true);
         return;
       }
@@ -213,17 +212,6 @@ export default function App() {
       setStagedRotation(game.spareTile.rotation as 0 | 90 | 180 | 270);
     }
   }, [game.activePawn, game.isGameStarted, game.spareTile.rotation]);
-
-
-
-  // ── Peek slot ─────────────────────────────────────────────────────────────────
-  useEffect(() => {
-    let active = true;
-    if (!peekSlotKey) { setPeekedState(null); return; }
-    game.loadSlot(peekSlotKey).then((state) => { if (active) setPeekedState(state); });
-    return () => { active = false; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [peekSlotKey, game.loadSlot]);
 
   // ── Solver worker lifecycle ───────────────────────────────────────────────────
   useEffect(() => {
@@ -479,14 +467,8 @@ export default function App() {
             activePlayers={game.activePlayers}
             activePawn={game.activePawn}
             looseTiles={game.looseTiles}
-            saveName={saveName}
-            setSaveName={setSaveName}
-            allSlots={game.allSlots}
-            peekSlotKey={peekSlotKey}
-            setPeekSlotKey={setPeekSlotKey}
-            peekedState={peekedState}
-            settingsTab={settingsTab}
-            setSettingsTab={setSettingsTab}
+            accentColor={accentColor}
+            setAccentColor={setAccentColor}
             isSettingsOpen={isSettingsOpen}
             grid={game.grid}
             spareTile={game.spareTile}
@@ -496,36 +478,28 @@ export default function App() {
             lastShiftArrowId={game.lastShiftArrowId}
             gameStartState={game.gameStartState}
             pawnPositions={game.pawnPositions}
-            onGoToMenu={() => { if (!isMuted) playClickSound(); setShowLandingPage(true); }}
-            onOpenNewGameDialog={() => { if (!isMuted) playClickSound(); setIsNewGameDialogOpen(true); }}
-            onOpenSettings={() => { if (!isMuted) playClickSound(); setIsSettingsOpen(true); }}
-            onCloseSettings={() => { setIsSettingsOpen(false); setSaveName(""); setPeekSlotKey(null); }}
-            onSave={game.handleSaveActiveGame}
-            onUndo={() => { if (!isMuted) playClickSound(); game.handleUndo(); }}
-            onRedo={() => { if (!isMuted) playClickSound(); game.handleRedo(); }}
-            onResetBoard={game.resetBoardToInitialPresets}
-            onRotateBoard={() => { if (!isMuted) playClickSound(); setBoardRotation((prev) => (prev + 90) % 360); }}
-            onToggleStats={() => { if (!isMuted) playClickSound(); setShowStats((prev) => !prev); }}
+            onGoToMenu={() => {
+              if (!isMuted) playClickSound();
+              setShowLandingPage(true);
+            }}
+            onOpenSettings={() => {
+              if (!isMuted) playClickSound();
+              setIsSettingsOpen(true);
+            }}
+            onCloseSettings={() => setIsSettingsOpen(false)}
+            onUndo={() => game.handleUndo()}
+            onRedo={() => game.handleRedo()}
+            onResetBoard={() => game.resetBoardToInitialPresets()}
+            onRotateBoard={() => setBoardRotation((prev) => (prev + 90) % 360)}
+            onToggleStats={() => setShowStats((prev) => !prev)}
             onStartGame={game.handleStartGame}
             onEndGame={game.handleEndGame}
             onToggleMute={handleToggleMute}
-            onSaveSlot={async (name) => {
-              const success = await game.saveSlot(name, {
-                board: game.grid, spareTile: game.spareTile, looseTiles: game.looseTiles,
-                activePawn: game.activePawn, playerHands: game.playerHands,
-                playerActiveTargets: game.playerActiveTargets, obtainedTreasures: game.obtainedTreasures,
-                lastShiftArrowId: game.lastShiftArrowId, isGameStarted: game.isGameStarted,
-                gameStartState: game.gameStartState, pawnPositions: game.pawnPositions,
-              });
-              if (success) { showToast("Game Saved Successfully!"); game.setCurrentSlotName(name); setLastSavedTime(Date.now()); setSaveName(""); }
-            }}
-            onLoadSlot={game.handleLoadSlot}
-            onDeleteSlot={game.deleteSlot}
-            accentColor={accentColor}
-            setAccentColor={setAccentColor}
             onSetBaseTheme={setBaseTheme}
             onSetActivePlayers={game.setActivePlayers}
             showToast={showToast}
+            onRandomizeBoard={game.handleRandomizeBoard}
+            onSave={() => game.handleSaveActiveGame()}
           />
 
           <main className="flex-1 flex flex-col lg:flex-row relative z-10 w-full px-2 sm:px-3 pt-2 sm:pt-3 pb-[72px] lg:pb-3 gap-3 lg:gap-8 justify-center overflow-hidden min-h-0">
@@ -720,47 +694,6 @@ export default function App() {
         </>
       )}
 
-      {/* New Game dialog */}
-      <Dialog open={isNewGameDialogOpen} onOpenChange={(open) => { setIsNewGameDialogOpen(open); if (!open) setNewGameName(""); }}>
-        <DialogContent className="sm:max-w-[425px] app-dialog-panel border border-stone-800 text-stone-100 shadow-2xl p-6 rounded-2xl" onKeyDown={(e) => { if (e.key === " ") e.stopPropagation(); }}>
-          <DialogHeader>
-            <DialogTitle className="text-lg font-bold tracking-tight text-theme-primary flex items-center gap-2">
-              <Plus className="w-5 h-5 text-theme-primary" />
-              Create New Game
-            </DialogTitle>
-          </DialogHeader>
-          <div className="flex flex-col gap-4 py-4">
-            <div className="text-sm text-stone-400">
-              Enter a name for your new game. If left blank, it will automatically be named with the current timestamp and saved.
-            </div>
-            <div className="flex flex-col gap-1.5 text-left font-sans">
-              <label htmlFor="ribbonGameName" className="text-xs font-semibold text-stone-300">Game Name</label>
-              <input
-                id="ribbonGameName"
-                type="text"
-                placeholder="e.g. My Game Layout"
-                value={newGameName}
-                onChange={(e) => setNewGameName(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") { game.handleNewGame(newGameName); setIsNewGameDialogOpen(false); setNewGameName(""); }
-                  if (e.key === " ") e.stopPropagation();
-                }}
-                className="bg-stone-950 border border-stone-800 hover:border-stone-700 text-stone-100 rounded-xl px-3 py-2 text-sm outline-none focus:border-theme-primary transition-colors"
-                autoFocus
-              />
-            </div>
-          </div>
-          <div className="flex justify-end gap-3 pt-2">
-            <Button variant="outline" onClick={() => { if (!isMuted) playClickSound(); setIsNewGameDialogOpen(false); setNewGameName(""); }} className="border-stone-800 hover:bg-stone-900 text-stone-300 rounded-xl">
-              Cancel
-            </Button>
-            <Button onClick={() => { game.handleNewGame(newGameName); setIsNewGameDialogOpen(false); setNewGameName(""); }} className="bg-theme-primary text-stone-950 font-bold hover:bg-theme-primary-hover rounded-xl cursor-pointer">
-              Create
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-
       {/* Stats dialog */}
       <Dialog open={showStats} onOpenChange={setShowStats}>
         <DialogContent className="sm:max-w-[500px] app-dialog-panel border border-stone-800 text-stone-100 shadow-2xl p-0 rounded-2xl overflow-hidden" onKeyDown={(e) => { if (e.key === " ") e.stopPropagation(); }}>
@@ -791,7 +724,10 @@ export default function App() {
             variant="ghost"
             size="sm"
             disabled={!game.canUndo}
-            onClick={game.handleUndo}
+            onClick={() => {
+              if (!isMuted) playClickSound();
+              game.handleUndo();
+            }}
             className="flex flex-col items-center gap-0.5 text-stone-400 hover:text-stone-200 disabled:opacity-30 h-auto py-1 px-3 cursor-pointer"
           >
             <Undo2 className="w-4 h-4" />
@@ -802,7 +738,10 @@ export default function App() {
             variant="ghost"
             size="sm"
             disabled={!game.canRedo}
-            onClick={game.handleRedo}
+            onClick={() => {
+              if (!isMuted) playClickSound();
+              game.handleRedo();
+            }}
             className="flex flex-col items-center gap-0.5 text-stone-400 hover:text-stone-200 disabled:opacity-30 h-auto py-1 px-3 cursor-pointer"
           >
             <Redo2 className="w-4 h-4" />
@@ -812,7 +751,10 @@ export default function App() {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => { if (!isMuted) playClickSound(); setBoardRotation((prev) => (prev + 90) % 360); }}
+            onClick={() => {
+              if (!isMuted) playClickSound();
+              setBoardRotation((prev) => (prev + 90) % 360);
+            }}
             className="flex flex-col items-center gap-0.5 text-stone-400 hover:text-stone-200 h-auto py-1 px-3 cursor-pointer"
           >
             <RotateCw className="w-4 h-4" />
