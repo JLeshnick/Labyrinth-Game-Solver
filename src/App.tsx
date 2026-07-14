@@ -25,7 +25,8 @@ import { playClickSound } from "./utils/audio";
 import { fromSolverGrid } from "./lib/solverAdapter";
 import { executeSlideInGrid, getReachableCells, quickSolveMinTurns } from "./solver";
 import type { Rotation } from "./types";
-import { Sparkles, Plus } from "lucide-react";
+import { Sparkles, Plus, Undo2, Redo2, RotateCw, Gauge, Volume2, VolumeX } from "lucide-react";
+import { cn } from "./lib/utils";
 
 export default function App() {
   const sensors = useSensors(
@@ -553,10 +554,10 @@ export default function App() {
             showToast={showToast}
           />
 
-          <main className="flex-1 flex flex-col lg:flex-row relative z-10 w-full px-3 pt-3 pb-3 gap-6 lg:gap-8 justify-center overflow-y-auto lg:overflow-hidden min-h-0">
+          <main className="flex-1 flex flex-col lg:flex-row relative z-10 w-full px-3 pt-3 pb-20 lg:pb-3 gap-4 lg:gap-8 justify-center overflow-hidden lg:overflow-hidden min-h-0">
             <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
               <div className="flex-1 lg:flex-[1.5] w-full flex min-w-0 min-h-0 items-center justify-center relative">
-                <div className="relative aspect-square w-full max-w-[min(100vw-2rem,100vh-280px)] lg:max-w-none lg:w-auto lg:h-full flex-shrink-0 mx-auto">
+                <div className="relative aspect-square w-full max-w-[min(100vw-2rem,100vh-340px)] lg:max-w-none lg:w-auto lg:h-full flex-shrink-0 mx-auto">
                   {(hoveredSolution && (hoveredSolution as { arrowId: string }[]).length > 0) && (
                     <div
                       className="absolute animate-ping bg-theme-primary-20 border border-theme-primary-40 rounded-full pointer-events-none"
@@ -730,6 +731,72 @@ export default function App() {
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 px-6 py-3 bg-stone-900 border border-theme-primary-20 text-stone-100 font-semibold text-sm rounded-full shadow-2xl shadow-black z-50 animate-toast-in flex items-center gap-2" aria-hidden="true">
           <Sparkles className="w-4 h-4 text-theme-primary" />
           {toastText}
+        </div>
+      )}
+
+      {/* Mobile Actions Bar */}
+      {!showLandingPage && (
+        <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-stone-950/95 backdrop-blur-md border-t border-stone-850 px-4 py-2 flex items-center justify-around z-40 pb-[calc(env(safe-area-inset-bottom)+0.5rem)]">
+          <Button
+            variant="ghost"
+            size="sm"
+            disabled={!game.canUndo}
+            onClick={game.handleUndo}
+            className="flex flex-col items-center gap-1 text-stone-400 hover:text-stone-200 disabled:opacity-30 h-auto py-1 cursor-pointer"
+          >
+            <Undo2 className="w-5 h-5" />
+            <span className="text-[10px] font-medium">Undo</span>
+          </Button>
+          
+          <Button
+            variant="ghost"
+            size="sm"
+            disabled={!game.canRedo}
+            onClick={game.handleRedo}
+            className="flex flex-col items-center gap-1 text-stone-400 hover:text-stone-200 disabled:opacity-30 h-auto py-1 cursor-pointer"
+          >
+            <Redo2 className="w-5 h-5" />
+            <span className="text-[10px] font-medium">Redo</span>
+          </Button>
+
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => { if (!isMuted) playClickSound(); setBoardRotation((prev) => (prev + 90) % 360); }}
+            className="flex flex-col items-center gap-1 text-stone-400 hover:text-stone-200 h-auto py-1 cursor-pointer"
+          >
+            <RotateCw className="w-5 h-5" />
+            <span className="text-[10px] font-medium">Rotate</span>
+          </Button>
+
+          {game.isGameStarted && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => { if (!isMuted) playClickSound(); setShowStats((prev) => !prev); }}
+              className={cn(
+                "flex flex-col items-center gap-1 h-auto py-1 cursor-pointer",
+                showStats ? "text-theme-primary font-semibold" : "text-stone-400 hover:text-stone-200"
+              )}
+            >
+              <Gauge className="w-5 h-5" />
+              <span className="text-[10px] font-medium">Stats</span>
+            </Button>
+          )}
+
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleToggleMute}
+            className="flex flex-col items-center gap-1 text-stone-400 hover:text-stone-200 h-auto py-1 cursor-pointer"
+          >
+            {isMuted ? (
+              <VolumeX className="w-5 h-5 text-stone-500" />
+            ) : (
+              <Volume2 className="w-5 h-5 text-theme-primary" />
+            )}
+            <span className="text-[10px] font-medium">{isMuted ? "Unmute" : "Mute"}</span>
+          </Button>
         </div>
       )}
     </div>

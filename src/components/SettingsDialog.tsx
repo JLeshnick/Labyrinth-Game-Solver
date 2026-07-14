@@ -69,14 +69,6 @@ const KEYBOARD_SHORTCUTS = [
   },
 ];
 
-const SIDEBAR_TABS = [
-  { key: "profiles",    label: "Saved Games",  description: "Manage slots & previews",  icon: <FolderOpen className="w-4 h-4" /> },
-  { key: "preferences", label: "Preferences",  description: "General & active players", icon: <Settings className="w-4 h-4" /> },
-  { key: "appearance",  label: "Appearance",   description: "Themes & accent color",    icon: <Palette className="w-4 h-4" /> },
-  { key: "storage",     label: "File Storage", description: "Local cache pathways",     icon: <HardDrive className="w-4 h-4" /> },
-  { key: "application", label: "Application",  description: "Info & shortcuts",         icon: <Cpu className="w-4 h-4" /> },
-] as const;
-
 export function SettingsDialog({
   open, onOpenChange,
   settingsTab, setSettingsTab,
@@ -92,6 +84,16 @@ export function SettingsDialog({
   const [deleteConfirmSlot, setDeleteConfirmSlot] = useState<SaveSlot | null>(null);
   const [updateChecking, setUpdateChecking] = useState(false);
   const [updateResult, setUpdateResult] = useState<string | null>(null);
+
+  const isElectron = typeof window !== "undefined" && !!(window as { electronAPI?: unknown }).electronAPI;
+
+  const sidebarTabs = [
+    { key: "profiles",    label: "Saved Games",  description: "Manage slots & previews",  icon: <FolderOpen className="w-4 h-4" /> },
+    { key: "preferences", label: "Preferences",  description: "General & active players", icon: <Settings className="w-4 h-4" /> },
+    { key: "appearance",  label: "Appearance",   description: "Themes & accent color",    icon: <Palette className="w-4 h-4" /> },
+    { key: "storage",     label: isElectron ? "File Storage" : "Browser Storage", description: isElectron ? "Local cache pathways" : "Local storage stats",     icon: <HardDrive className="w-4 h-4" /> },
+    { key: "application", label: "Application",  description: "Info & shortcuts",         icon: <Cpu className="w-4 h-4" /> },
+  ] as const;
 
   const handleCheckForUpdates = () => {
     setUpdateChecking(true);
@@ -147,11 +149,11 @@ export function SettingsDialog({
           </span>
         </DialogHeader>
 
-        <div className="flex-1 flex min-h-0 overflow-hidden">
-          {/* Sidebar */}
-          <div className="w-56 border-r border-stone-800/80 flex flex-col py-4 px-3 gap-1 shrink-0 bg-stone-950/50">
-            <div role="tablist" aria-label="Settings sections" className="flex flex-col gap-1">
-            {SIDEBAR_TABS.map((tab) => (
+        <div className="flex-1 flex flex-col md:flex-row min-h-0 overflow-hidden">
+          {/* Sidebar / Topbar */}
+          <div className="w-full md:w-56 border-b md:border-b-0 md:border-r border-stone-800/80 flex flex-row md:flex-col py-2 px-3 md:py-4 md:px-3 gap-1.5 md:gap-1 overflow-x-auto md:overflow-x-visible shrink-0 bg-stone-950/50">
+            <div role="tablist" aria-label="Settings sections" className="flex flex-row md:flex-col gap-1.5 min-w-max md:w-full">
+            {sidebarTabs.map((tab) => (
               <button
                 key={tab.key}
                 role="tab"
@@ -159,7 +161,7 @@ export function SettingsDialog({
                 aria-controls={`settings-panel-${tab.key}`}
                 id={`settings-tab-${tab.key}`}
                 onClick={() => { if (!isMuted) playClickSound(); setSettingsTab(tab.key); }}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all duration-150 group cursor-pointer ${
+                className={`flex items-center gap-2 md:gap-3 px-3 py-1.5 md:py-2.5 rounded-xl text-left transition-all duration-150 group cursor-pointer ${
                   settingsTab === tab.key
                     ? "bg-theme-primary-10 border border-theme-primary/30 text-theme-primary"
                     : "text-stone-400 hover:text-stone-200 hover:bg-stone-900/40 border border-transparent"
@@ -170,21 +172,21 @@ export function SettingsDialog({
                 </span>
                 <div className="min-w-0">
                   <div className="text-xs font-semibold leading-none">{tab.label}</div>
-                  <div className={`text-[9px] mt-1 leading-none truncate ${settingsTab === tab.key ? "text-theme-primary/70" : "text-stone-500"}`}>
+                  <div className={`text-[9px] mt-1 leading-none truncate hidden md:block ${settingsTab === tab.key ? "text-theme-primary/70" : "text-stone-500"}`}>
                     {tab.description}
                   </div>
                 </div>
               </button>
             ))}
             </div>
-            <div className="mt-auto pt-4 border-t border-stone-800/60">
+            <div className="hidden md:block mt-auto pt-4 border-t border-stone-800/60 w-full">
               <p className="text-[10px] text-stone-500 font-semibold">Labyrinth Solver</p>
-              <p className="text-[9px] text-stone-600">v{__APP_VERSION__} • Desktop</p>
+              <p className="text-[9px] text-stone-600">v{__APP_VERSION__} • {isElectron ? "Desktop" : "Web"}</p>
             </div>
           </div>
 
           {/* Content */}
-          <div key={settingsTab} className="flex-1 flex flex-col min-h-0 overflow-y-auto p-6 bg-stone-900/20 animate-slide-in-bottom">
+          <div key={settingsTab} className="flex-1 flex flex-col min-h-0 overflow-y-auto p-4 md:p-6 bg-stone-900/20 animate-slide-in-bottom">
 
             {settingsTab === "profiles" && (
               <div
@@ -499,20 +501,28 @@ export function SettingsDialog({
               <div id="settings-panel-storage" role="tabpanel" aria-labelledby="settings-tab-storage" className="flex flex-col gap-4 max-w-xl text-left">
                 {/* Local Cache */}
                 <div className="p-4 bg-stone-950/40 border border-stone-800 rounded-xl flex flex-col gap-2.5 text-xs text-stone-400">
-                  <h3 className="text-sm font-semibold text-stone-200">File Storage Information</h3>
+                  <h3 className="text-sm font-semibold text-stone-200">
+                    {isElectron ? "File Storage Information" : "Web Storage Information"}
+                  </h3>
                   <div>
-                    <div className="font-semibold text-stone-300">Local Cache Directory:</div>
+                    <div className="font-semibold text-stone-300">
+                      {isElectron ? "Local Cache Directory:" : "Web Browser Storage Type:"}
+                    </div>
                     <div className="font-mono bg-stone-950 p-2.5 rounded-lg border border-stone-800 select-text break-all mt-1 mb-2">
-                      {(() => {
-                        const platform = (window as { electronAPI?: { platform?: string } }).electronAPI?.platform
-                          ?? (navigator.userAgent.toLowerCase().includes("win") ? "win32" : "darwin");
-                        return platform === "win32"
-                          ? "%APPDATA%\\Labyrinth-Game-Solver\\Local Storage\\"
-                          : "~/Library/Application Support/Labyrinth-Game-Solver/Local Storage/";
-                      })()}
+                      {isElectron ? (
+                        (() => {
+                          const platform = (window as { electronAPI?: { platform?: string } }).electronAPI?.platform
+                            ?? (navigator.userAgent.toLowerCase().includes("win") ? "win32" : "darwin");
+                          return platform === "win32"
+                            ? "%APPDATA%\\Labyrinth-Game-Solver\\Local Storage\\"
+                            : "~/Library/Application Support/Labyrinth-Game-Solver/Local Storage/";
+                        })()
+                      ) : (
+                        "HTML5 LocalStorage (Sandbox bound to browser domain)"
+                      )}
                     </div>
                     {/* Open folder button (Electron only) */}
-                    {window.electronAPI?.openLocalStorageFolder && (
+                    {isElectron && window.electronAPI?.openLocalStorageFolder && (
                       <Button
                         variant="outline"
                         onClick={() => {
@@ -527,7 +537,9 @@ export function SettingsDialog({
                     )}
                   </div>
                   <div className="mt-1 leading-normal">
-                    Layout presets and custom slots are persisted securely locally within your sandboxed app configurations folder.
+                    {isElectron
+                      ? "Layout presets and custom slots are persisted securely locally within your sandboxed app configurations folder."
+                      : "Layout presets and custom slots are saved directly inside your web browser's local database. Clearing your browser cookies/cache for this site will reset them."}
                   </div>
                 </div>
 
@@ -587,7 +599,9 @@ export function SettingsDialog({
                   <div className="flex justify-between items-center border-b border-stone-800 pb-3">
                     <div className="flex flex-col">
                       <span className="text-xs font-bold text-stone-200">Software Version</span>
-                      <span className="text-[10px] text-stone-500 mt-0.5">Desktop Application Release</span>
+                      <span className="text-[10px] text-stone-500 mt-0.5">
+                        {isElectron ? "Desktop Application Release" : "Web Edition Release"}
+                      </span>
                     </div>
                     <span className="px-2.5 py-1 rounded-lg bg-theme-primary-10 border border-theme-primary/20 text-[11px] font-bold text-theme-primary">
                       v{__APP_VERSION__}

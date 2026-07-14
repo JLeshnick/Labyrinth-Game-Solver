@@ -146,23 +146,24 @@ export function AppHeader({
     <header className="relative z-40 px-4 sm:px-6 py-3 flex items-center justify-between border-b border-stone-800 bg-stone-950/70 backdrop-blur-md gap-4">
 
       {/* Left — branding */}
-      <div className="flex items-center gap-3 shrink-0">
-        <div className="p-2 bg-theme-primary-10 border border-theme-primary-20 rounded-xl text-theme-primary">
-          <Compass className="w-5 h-5 animate-pulse" />
+      <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+        <div className="p-1.5 sm:p-2 bg-theme-primary-10 border border-theme-primary-20 rounded-xl text-theme-primary">
+          <Compass className="w-4 h-4 sm:w-5 sm:h-5 animate-pulse" />
         </div>
         <div>
-          <h1 className="text-lg sm:text-xl font-bold tracking-tight bg-gradient-to-r from-stone-200 to-theme-primary bg-clip-text text-transparent flex items-center">
-            Labyrinth Game Solver
+          <h1 className="text-sm sm:text-lg md:text-xl font-bold tracking-tight bg-gradient-to-r from-stone-200 to-theme-primary bg-clip-text text-transparent flex items-center">
+            <span className="hidden sm:inline">Labyrinth Game Solver</span>
+            <span className="sm:hidden">Labyrinth</span>
             {currentSlotName && (
-              <span className="ml-3 px-2 py-0.5 rounded-full bg-white/10 text-xs font-medium text-stone-300 border border-stone-800">
+              <span className="ml-2 sm:ml-3 px-1.5 sm:px-2 py-0.5 rounded-full bg-white/10 text-[9px] sm:text-xs font-medium text-stone-300 border border-stone-800">
                 {currentSlotName}
               </span>
             )}
           </h1>
-          <p className="text-xs text-stone-400">
-            Desktop Edition
+          <p className="text-[10px] sm:text-xs text-stone-400">
+            {typeof window !== "undefined" && !!(window as { electronAPI?: unknown }).electronAPI ? "Desktop Edition" : "Web Edition"}
             {lastSavedTime
-              ? ` • Last Saved: ${new Date(lastSavedTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}`
+              ? ` • Saved: ${new Date(lastSavedTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`
               : ""}
           </p>
         </div>
@@ -219,7 +220,7 @@ export function AppHeader({
 
         {/* Pawn score pills — only during game */}
         {isGameStarted && activePlayers.length > 0 && (
-          <div className="flex items-center gap-1 border-r border-stone-800 pr-3 mr-1">
+          <div className="hidden sm:flex items-center gap-1 border-r border-stone-800 pr-3 mr-1">
             {activePlayers.map(pawnId => {
               const pawn = PAWNS.find(p => p.id === pawnId);
               const obtained = (obtainedTreasures as Record<string, string[]>)[pawnId] ?? [];
@@ -326,79 +327,82 @@ export function AppHeader({
           )}
         </div>
 
-        <div className="w-px h-4 bg-stone-800/60 mx-1" />
+        {/* Desktop actions toolbar */}
+        <div className="hidden lg:flex items-center gap-2">
+          <div className="w-px h-4 bg-stone-800/60 mx-1" />
 
-        <Button
-          variant="outline"
-          size="icon"
-          disabled={!canUndo}
-          onClick={onUndo}
-          className="border-stone-800 hover:bg-stone-900 disabled:opacity-30 w-8 h-8"
-          title="Undo (Ctrl+Z)"
-          aria-label="Undo"
-        >
-          <Undo2 className="w-3.5 h-3.5" />
-        </Button>
-
-        <Button
-          variant="outline"
-          size="icon"
-          disabled={!canRedo}
-          onClick={onRedo}
-          className="border-stone-800 hover:bg-stone-900 disabled:opacity-30 w-8 h-8"
-          title="Redo (Ctrl+Y)"
-          aria-label="Redo"
-        >
-          <Redo2 className="w-3.5 h-3.5" />
-        </Button>
-
-        <div className="w-px h-4 bg-stone-800/60 mx-1" />
-
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={onRotateBoard}
-          className="border-stone-800 hover:bg-stone-900 text-stone-300 w-8 h-8"
-          title="Rotate Board Perspective (90° Clockwise)"
-          aria-label="Rotate board perspective 90 degrees clockwise"
-        >
-          <RotateCw className="w-3.5 h-3.5" />
-        </Button>
-
-        {isGameStarted && (
           <Button
             variant="outline"
-            size="sm"
-            onClick={onToggleStats}
-            className={cn(
-              "border-stone-800 hover:bg-stone-900 gap-1.5 h-8",
-              showStats
-                ? "bg-theme-primary-20 border-theme-primary-40 text-theme-primary"
-                : "text-stone-300"
-            )}
-            title="Toggle Stats"
-            aria-label="Toggle game statistics"
+            size="icon"
+            disabled={!canUndo}
+            onClick={onUndo}
+            className="border-stone-800 hover:bg-stone-900 disabled:opacity-30 w-8 h-8"
+            title="Undo (Ctrl+Z)"
+            aria-label="Undo"
           >
-            <Gauge className="w-3.5 h-3.5" />
-            <span className="text-xs">Stats</span>
+            <Undo2 className="w-3.5 h-3.5" />
           </Button>
-        )}
 
-        <div className="w-px h-4 bg-stone-800/60 mx-1" />
+          <Button
+            variant="outline"
+            size="icon"
+            disabled={!canRedo}
+            onClick={onRedo}
+            className="border-stone-800 hover:bg-stone-900 disabled:opacity-30 w-8 h-8"
+            title="Redo (Ctrl+Y)"
+            aria-label="Redo"
+          >
+            <Redo2 className="w-3.5 h-3.5" />
+          </Button>
 
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={onToggleMute}
-          className="border-stone-800 hover:bg-stone-900 w-8 h-8"
-          aria-label={isMuted ? "Unmute audio" : "Mute audio"}
-        >
-          {isMuted ? (
-            <VolumeX className="w-3.5 h-3.5 text-stone-400" />
-          ) : (
-            <Volume2 className="w-3.5 h-3.5 text-theme-primary" />
+          <div className="w-px h-4 bg-stone-800/60 mx-1" />
+
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={onRotateBoard}
+            className="border-stone-800 hover:bg-stone-900 text-stone-300 w-8 h-8"
+            title="Rotate Board Perspective (90° Clockwise)"
+            aria-label="Rotate board perspective 90 degrees clockwise"
+          >
+            <RotateCw className="w-3.5 h-3.5" />
+          </Button>
+
+          {isGameStarted && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onToggleStats}
+              className={cn(
+                "border-stone-800 hover:bg-stone-900 gap-1.5 h-8",
+                showStats
+                  ? "bg-theme-primary-20 border-theme-primary-40 text-theme-primary"
+                  : "text-stone-300"
+              )}
+              title="Toggle Stats"
+              aria-label="Toggle game statistics"
+            >
+              <Gauge className="w-3.5 h-3.5" />
+              <span className="text-xs">Stats</span>
+            </Button>
           )}
-        </Button>
+
+          <div className="w-px h-4 bg-stone-800/60 mx-1" />
+
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={onToggleMute}
+            className="border-stone-800 hover:bg-stone-900 w-8 h-8"
+            aria-label={isMuted ? "Unmute audio" : "Mute audio"}
+          >
+            {isMuted ? (
+              <VolumeX className="w-3.5 h-3.5 text-stone-400" />
+            ) : (
+              <Volume2 className="w-3.5 h-3.5 text-theme-primary" />
+            )}
+          </Button>
+        </div>
 
         <SettingsDialog
           open={isSettingsOpen}
