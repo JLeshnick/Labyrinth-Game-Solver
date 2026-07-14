@@ -24,7 +24,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./components/u
 import { useLabyrinthGame } from "./hooks/useLabyrinthGame";
 import { playClickSound } from "./utils/audio";
 import { fromSolverGrid } from "./lib/solverAdapter";
-import { executeSlideInGrid } from "./solver";
+import { executeSlideInGrid, getReachableCells } from "./solver";
 import type { Rotation } from "./types";
 import { Sparkles, Plus } from "lucide-react";
 
@@ -53,6 +53,8 @@ export default function App() {
   const [showStats, setShowStats] = useState(false);
   const [lastSavedTime, setLastSavedTime] = useState<number | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [turnPhase, setTurnPhase] = useState<"slide" | "move">("slide");
+  const [hoveredArrow, setHoveredArrow] = useState<string | null>(null);
 
   // ── Solver worker ─────────────────────────────────────────────────────────────
   const [solutions, setSolutions] = useState<unknown[]>([]);
@@ -108,6 +110,23 @@ export default function App() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // ── Turn-phase-aware slide and cell-click ─────────────────────────────────────
+  const handleSlide = useCallback((arrowId: string) => {
+    game.handleSlide(arrowId);
+    setTurnPhase("move");
+    setHoveredArrow(null);
+  }, [game]);
+
+  const handleManualCellClick = useCallback((r: number, c: number) => {
+    if (!game.isGameStarted) {
+      game.handleCellClick(r, c);
+      return;
+    }
+    if (turnPhase !== "move") return;
+    game.handleCellClick(r, c);
+    setTurnPhase("slide");
+  }, [game, turnPhase]);
+
   // ── Mute toggle ───────────────────────────────────────────────────────────────
   const handleToggleMute = useCallback(() => {
     const next = !isMuted;
@@ -160,6 +179,11 @@ export default function App() {
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
   }, [isMuted, game.handleUndo, game.handleRedo, game.handleSaveActiveGame]);
+
+  // ── Turn phase reset ──────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (game.isGameStarted) setTurnPhase("slide");
+  }, [game.activePawn, game.isGameStarted]);
 
   // ── Desktop settings ──────────────────────────────────────────────────────────
   const fetchDesktopSettings = useCallback(async () => {
@@ -334,6 +358,42 @@ export default function App() {
     return null;
   }, [game.playerActiveTargets, game.activePawn, game.grid, previewState]);
 
+  const reachableCells = useMemo<{ r: number; c: number }[]>(() => {
+    if (!game.isGameStarted || turnPhase !== "move") return [];
+    const pawnPos = game.pawnPositions[game.activePawn];
+    if (!pawnPos) return [];
+    try {
+      const solverBoard = game.getSolverFormattedBoard(game.grid, game.pawnPositions);
+      const { cells } = getReachableCells(solverBoard, pawnPos.r, pawnPos.c);
+      return cells as { r: number; c: number }[];
+    } catch { return []; }
+  }, [game.isGameStarted, turnPhase, game.grid, game.pawnPositions, game.activePawn, game.getSolverFormattedBoard]);
+
+  const arrowHoverPreviewState = useMemo(() => {
+    if (hoveredSolution || !hoveredArrow || turnPhase !== "slide") return null;
+    const arrow = SHIFT_ARROWS.find((a) => a.id === hoveredArrow);
+    if (!arrow) return null;
+    try {
+      const solverBoard = game.getSolverFormattedBoard(game.grid, game.pawnPositions);
+      const solverSpare = game.getSolverFormattedSpare(game.spareTile);
+      executeSlideInGrid(solverBoard, solverSpare, arrow.type, arrow.index, arrow.dir);
+      const previewGrid = fromSolverGrid(game.grid, solverBoard, () => "arrow_preview");
+      const previewPawnPositions = { ...game.pawnPositions };
+      Object.entries(game.pawnPositions).forEach(([color, pos]) => {
+        let nr = pos.r, nc = pos.c;
+        if (arrow.type === "row" && arrow.index === pos.r) {
+          nc = arrow.dir === "left" ? (pos.c === 6 ? 0 : pos.c + 1) : (pos.c === 0 ? 6 : pos.c - 1);
+        } else if (arrow.type === "col" && arrow.index === pos.c) {
+          nr = arrow.dir === "top" ? (pos.r === 6 ? 0 : pos.r + 1) : (pos.r === 0 ? 6 : pos.r - 1);
+        }
+        previewPawnPositions[color] = { r: nr, c: nc };
+      });
+      return { grid: previewGrid, pawnPositions: previewPawnPositions, spareTile: game.spareTile };
+    } catch { return null; }
+  }, [hoveredSolution, hoveredArrow, turnPhase, game.grid, game.pawnPositions, game.spareTile, game.getSolverFormattedBoard, game.getSolverFormattedSpare]);
+
+  const effectivePreview = previewState || arrowHoverPreviewState;
+
   // ── Render ────────────────────────────────────────────────────────────────────
   return (
     <div className="h-screen bg-stone-950 text-stone-100 flex flex-col font-sans select-none relative overflow-hidden">
@@ -415,11 +475,14 @@ export default function App() {
             <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
               <div className="flex-1 lg:flex-[1.5] w-full flex min-w-0 min-h-0 items-center justify-center relative">
                 <div className="relative aspect-square w-full max-w-[min(100vw-2rem,100vh-280px)] lg:max-w-none lg:w-auto lg:h-full flex-shrink-0 mx-auto">
-                  {hoveredSolution && (hoveredSolution as { arrowId: string }[]).length > 0 && (
+                  {((hoveredSolution && (hoveredSolution as { arrowId: string }[]).length > 0) || hoveredArrow) && (
                     <div
                       className="absolute animate-ping bg-theme-primary-20 border border-theme-primary-40 rounded-full pointer-events-none"
                       style={(() => {
-                        const arrow = SHIFT_ARROWS.find((a) => a.id === (hoveredSolution as { arrowId: string }[])[0].arrowId);
+                        const arrowId = hoveredSolution
+                          ? (hoveredSolution as { arrowId: string }[])[0].arrowId
+                          : hoveredArrow!;
+                        const arrow = SHIFT_ARROWS.find((a) => a.id === arrowId);
                         if (!arrow) return { display: "none" };
                         return { left: `${arrow.gridColumn * 11.1}%`, top: `${arrow.gridRow * 11.1}%`, width: "30px", height: "30px", transform: "translate(-50%, -50%)" };
                       })()}
@@ -427,25 +490,30 @@ export default function App() {
                   )}
 
                   <Board
-                    grid={previewState ? previewState.grid : game.grid}
+                    grid={effectivePreview ? effectivePreview.grid : game.grid}
                     originalGrid={game.grid}
-                    pawnPositions={previewState ? previewState.pawnPositions : game.pawnPositions}
-                    onCellClick={game.handleCellClick}
+                    pawnPositions={effectivePreview ? effectivePreview.pawnPositions : game.pawnPositions}
+                    onCellClick={handleManualCellClick}
                     onTileClick={game.handleTileClick}
                     isGameStarted={game.isGameStarted}
                     lastShiftArrowId={game.lastShiftArrowId}
-                    onArrowClick={game.handleSlide}
+                    onArrowClick={handleSlide}
+                    onArrowHover={(id) => { if (turnPhase === "slide") setHoveredArrow(id); }}
                     hoveredPath={overlaySuggestedPath}
-                    hoveredSolutionArrow={hoveredSolution ? (hoveredSolution as { arrowId: string }[])[0].arrowId : null}
+                    hoveredSolutionArrow={
+                      hoveredSolution
+                        ? (hoveredSolution as { arrowId: string }[])[0].arrowId
+                        : (hoveredArrow || null)
+                    }
                     boardRotation={boardRotation}
                     customTargetCoords={game.customTargetCoords}
                     activeTargetCoords={activeTargetCoords}
+                    reachableCells={reachableCells}
+                    turnPhase={turnPhase}
                     onTreasureClick={(treasureId, alreadyObtained) => {
+                      game.handleSelectTargetTreasure(game.activePawn, treasureId);
                       if (alreadyObtained) {
-                        game.handleSelectTargetTreasure(game.activePawn, treasureId);
                         showToast(`⚠️ ${TREASURES.find(t => t.id === treasureId)?.name ?? treasureId} already obtained — solving anyway`);
-                      } else {
-                        game.handleSelectTargetTreasure(game.activePawn, treasureId);
                       }
                     }}
                     allObtainedTreasures={Object.values(game.obtainedTreasures).flat()}
@@ -479,6 +547,8 @@ export default function App() {
                       onExecuteSolution={game.handleExecuteSolution}
                       playerActiveTargets={game.playerActiveTargets}
                       onSelectTargetTreasure={game.handleSelectTargetTreasure}
+                      onRotateSpare={() => game.handleTileClick(game.spareTile.id)}
+                      turnPhase={turnPhase}
                     />
                   </>
                 )}

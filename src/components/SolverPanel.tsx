@@ -1,4 +1,4 @@
-import { Sparkles } from "lucide-react";
+import { Sparkles, ArrowRightCircle, MousePointer2, RotateCw } from "lucide-react";
 import { Button } from "./ui/button";
 import { Tile } from "./Tile";
 import { PAWNS, TREASURES } from "../constants";
@@ -22,6 +22,8 @@ interface SolverPanelProps {
   onExecuteSolution: (sol: any[]) => void;
   playerActiveTargets: Record<string, string | null>;
   onSelectTargetTreasure: (pawn: string, treasureId: string | null) => void;
+  onRotateSpare: () => void;
+  turnPhase: "slide" | "move";
 }
  
 export function SolverPanel({
@@ -40,9 +42,22 @@ export function SolverPanel({
   onExecuteSolution,
   playerActiveTargets,
   onSelectTargetTreasure,
+  onRotateSpare,
+  turnPhase,
 }: SolverPanelProps) {
   return (
     <div className="flex-1 flex flex-col min-h-0 gap-4 p-2">
+      {/* Turn phase banner */}
+      <div className={`px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 border ${
+        turnPhase === "slide"
+          ? "bg-blue-950/40 border-blue-800/50 text-blue-300"
+          : "bg-green-950/40 border-green-800/50 text-green-300"
+      }`}>
+        {turnPhase === "slide"
+          ? <><ArrowRightCircle className="w-3.5 h-3.5 shrink-0" /> Slide the spare tile into a row or column using a board arrow</>
+          : <><MousePointer2 className="w-3.5 h-3.5 shrink-0" /> Click a highlighted cell to move your pawn</>
+        }
+      </div>
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-bold text-theme-primary flex items-center gap-2">
           <Sparkles className="w-5 h-5 text-theme-primary" />
@@ -90,6 +105,16 @@ export function SolverPanel({
         <div className="flex flex-col items-center gap-1">
           <div className="text-[10px] text-stone-500">Spare Tile</div>
           <Tile tile={spareTile} disabled className="w-12 h-12 border-theme-primary-40" />
+          <div className="flex items-center gap-1.5 mt-0.5">
+            <button
+              onClick={onRotateSpare}
+              className="text-[10px] text-theme-primary hover:text-stone-200 flex items-center gap-0.5 cursor-pointer transition-colors"
+              title="Rotate spare tile 90° clockwise"
+            >
+              <RotateCw className="w-3 h-3" /> Rotate
+            </button>
+            <span className="text-[9px] text-stone-500">{spareTile.rotation}°</span>
+          </div>
         </div>
       </div>
 

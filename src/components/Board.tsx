@@ -22,6 +22,7 @@ interface BoardSpaceProps {
   isCustomTarget?: boolean;
   isActiveTarget?: boolean;
   previewSlideClass?: string;
+  isReachable?: boolean;
   onTreasureClick?: (treasureId: string, alreadyObtained: boolean) => void;
   isObtainedTreasure?: boolean;
   isCurrentTarget?: boolean;
@@ -42,6 +43,7 @@ const BoardSpace: React.FC<BoardSpaceProps> = ({
   isCustomTarget,
   isActiveTarget,
   previewSlideClass,
+  isReachable,
   onTreasureClick,
   isObtainedTreasure,
   isCurrentTarget,
@@ -90,7 +92,8 @@ const BoardSpace: React.FC<BoardSpaceProps> = ({
         isOnHoveredPath ? "ring-2 ring-theme-primary ring-offset-2 ring-offset-stone-950 shadow-[0_0_12px_rgba(var(--theme-color-rgb),0.3)]" : "",
         isCustomTarget ? "ring-2 ring-theme-primary ring-offset-2 ring-offset-stone-950 shadow-[0_0_15px_rgba(var(--theme-color-rgb),0.55)] z-10" : "",
         previewSlideClass,
-        isActiveTarget ? "ring-4 ring-amber-300 ring-offset-2 ring-offset-stone-950 shadow-[0_0_20px_rgba(251,191,36,0.6)] animate-pulse-border" : ""
+        isActiveTarget ? "ring-4 ring-amber-300 ring-offset-2 ring-offset-stone-950 shadow-[0_0_20px_rgba(251,191,36,0.6)] animate-pulse-border" : "",
+        isReachable ? "ring-2 ring-green-400/60 bg-green-900/20 hover:ring-green-400 hover:bg-green-900/30 cursor-pointer" : "",
       )}
     >
       {isCustomTarget && (
@@ -102,7 +105,12 @@ const BoardSpace: React.FC<BoardSpaceProps> = ({
       {tile ? (
         <Tile
           tile={tile}
-          onClick={() => onTileClick(tile.id)}
+          onClick={isGameStarted
+            ? (tile?.treasure && onTreasureClick
+                ? () => onTreasureClick(tile.treasure!.id, !!isObtainedTreasure)
+                : () => onCellClick(y, x))
+            : () => onTileClick(tile.id)
+          }
           disabled={isGameStarted}
           boardRotation={boardRotation}
           disableRotationTransition={true}
@@ -157,6 +165,9 @@ interface BoardProps {
   boardRotation?: number;
   customTargetCoords?: { r: number; c: number } | null;
   activeTargetCoords?: { r: number; c: number } | null;
+  reachableCells?: { r: number; c: number }[];
+  turnPhase?: "slide" | "move";
+  onArrowHover?: (arrowId: string | null) => void;
   onTreasureClick?: (treasureId: string, alreadyObtained: boolean) => void;
   allObtainedTreasures?: string[];
   activeTargetTreasureId?: string | null;
@@ -176,6 +187,9 @@ export const Board: React.FC<BoardProps> = ({
   boardRotation = 0,
   customTargetCoords,
   activeTargetCoords,
+  reachableCells,
+  turnPhase,
+  onArrowHover,
   onTreasureClick,
   allObtainedTreasures,
   activeTargetTreasureId,
@@ -229,7 +243,9 @@ export const Board: React.FC<BoardProps> = ({
               <button
                 key={arrow.id}
                 onClick={() => !isForbidden && onArrowClick(arrow.id)}
-                disabled={isForbidden}
+                disabled={isForbidden || turnPhase === "move"}
+                onMouseEnter={() => { if (!isForbidden && turnPhase !== "move") onArrowHover?.(arrow.id); }}
+                onMouseLeave={() => onArrowHover?.(null)}
                 style={{
                   gridRow: arrow.gridRow,
                   gridColumn: arrow.gridColumn,
@@ -241,7 +257,8 @@ export const Board: React.FC<BoardProps> = ({
                     : "cursor-pointer hover:scale-105 active:scale-95",
                   isHighlighted
                     ? "animate-pulse ring-2 ring-theme-primary bg-theme-primary-20 scale-110"
-                    : ""
+                    : "",
+                  turnPhase === "move" ? "opacity-25 cursor-not-allowed" : "",
                 )}
                 title={
                   isForbidden
@@ -288,7 +305,8 @@ export const Board: React.FC<BoardProps> = ({
             const isActiveTarget = !!(activeTargetCoords && activeTargetCoords.r === r && activeTargetCoords.c === c && !isCustomTarget);
             const isObtainedTreasure = !!(tile?.treasure && allObtainedTreasures?.includes(tile.treasure.id));
             const isCurrentTarget = !!(tile?.treasure && tile.treasure.id === activeTargetTreasureId);
- 
+            const isReachable = !!(reachableCells?.some(cell => cell.r === r && cell.c === c));
+
             let previewSlideClass = "";
             if (hoveredSolutionArrow) {
               const arrow = SHIFT_ARROWS.find((a) => a.id === hoveredSolutionArrow);
@@ -321,6 +339,7 @@ export const Board: React.FC<BoardProps> = ({
                 onTreasureClick={onTreasureClick}
                 isObtainedTreasure={isObtainedTreasure}
                 isCurrentTarget={isCurrentTarget}
+                isReachable={isReachable}
               />
             );
           })
