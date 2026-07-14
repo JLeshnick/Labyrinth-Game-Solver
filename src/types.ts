@@ -54,26 +54,6 @@ export interface SaveSlot {
   timestamp: number;
 }
 
-export interface ElectronAPI {
-  platform: string;
-  openLocalStorageFolder: () => void;
-  listGames: () => Promise<SaveSlot[]>;
-  saveGame: (name: string, content: Partial<AppGameState>) => Promise<{ success: boolean }>;
-  loadGame: (key: string) => Promise<Partial<AppGameState> | null>;
-  deleteGame: (key: string) => Promise<boolean>;
-  getSettings: () => Promise<{ gamesDir: string } | null>;
-  setSettings: (settings: { gamesDir: string }) => Promise<boolean>;
-  selectDirectory: (title: string) => Promise<string | null>;
-  openDirectory: (dirPath: string) => Promise<boolean>;
-  openExternal?: (url: string) => void | Promise<void>;
-}
-
-declare global {
-  interface Window {
-    electronAPI?: ElectronAPI;
-  }
-}
-
 export interface SolverSolutionStep {
   arrowId: string;
   rotation: number;

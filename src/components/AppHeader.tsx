@@ -49,7 +49,6 @@ export interface AppHeaderProps {
   accentColor: string;
   setAccentColor: (hex: string) => void;
   isSettingsOpen: boolean;
-  desktopSettings: { gamesDir: string } | null;
   grid: (TileData | null)[][];
   spareTile: TileData;
   playerHands: PlayerMap<string[]>;
@@ -76,7 +75,6 @@ export interface AppHeaderProps {
   onDeleteSlot: (key: string) => Promise<boolean>;
   onSetBaseTheme: (theme: "dark" | "light") => void;
   onSetActivePlayers: (players: string[]) => void;
-  onSetDesktopSettings: (s: { gamesDir: string }) => void;
   showToast: (msg: string) => void;
 }
 
@@ -108,7 +106,6 @@ export function AppHeader({
   accentColor,
   setAccentColor,
   isSettingsOpen,
-  desktopSettings,
   onGoToMenu,
   onOpenNewGameDialog,
   onOpenSettings,
@@ -127,7 +124,6 @@ export function AppHeader({
   onDeleteSlot,
   onSetBaseTheme,
   onSetActivePlayers,
-  onSetDesktopSettings,
   showToast,
   playerHands,
   obtainedTreasures,
@@ -431,8 +427,6 @@ export function AppHeader({
           onLoadSlot={onLoadSlot}
           onDeleteSlot={onDeleteSlot}
           showToast={showToast}
-          desktopSettings={desktopSettings}
-          onSetDesktopSettings={onSetDesktopSettings}
         />
       </div>
     </header>
