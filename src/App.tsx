@@ -34,7 +34,7 @@ export default function App() {
   );
 
   // ── UI-only state (stays in App) ─────────────────────────────────────────────
-  const [showLandingPage, setShowLandingPage] = useState(true);
+  const [showLandingPage, setShowLandingPage] = useState(false);
   const [isMuted, setIsMuted] = useState(() => localStorage.getItem("labyrinth_audio_muted") === "true");
   const [baseTheme, setBaseThemeState] = useState<"dark" | "light">(() => {
     const saved = localStorage.getItem("labyrinth_theme") ?? "";
@@ -42,13 +42,7 @@ export default function App() {
   });
   const [boardRotation, setBoardRotation] = useState(0);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [settingsTab, setSettingsTab] = useState<"profiles" | "preferences" | "appearance" | "storage" | "application">("profiles");
   const [accentColor, setAccentColorState] = useState(() => localStorage.getItem("labyrinth_accent_color") ?? "");
-  const [saveName, setSaveName] = useState("");
-  const [peekSlotKey, setPeekSlotKey] = useState<string | null>(null);
-  const [peekedState, setPeekedState] = useState<Partial<AppGameState> | null>(null);
-  const [isNewGameDialogOpen, setIsNewGameDialogOpen] = useState(false);
-  const [newGameName, setNewGameName] = useState("");
   const [showStats, setShowStats] = useState(false);
   const [lastSavedTime, setLastSavedTime] = useState<number | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -56,7 +50,7 @@ export default function App() {
   const [stagedArrow, setStagedArrow] = useState<string | null>(null);
   const [stagedRotation, setStagedRotation] = useState<0 | 90 | 180 | 270>(0);
   const [showOneMoveTargets, setShowOneMoveTargets] = useState(false);
-  const [mobileSheetOpen, setMobileSheetOpen] = useState(false);
+  const [mobileSheetOpen, setMobileSheetOpen] = useState(true);
 
   // ── Solver worker ─────────────────────────────────────────────────────────────
   const [solutions, setSolutions] = useState<SolverSolution[]>([]);

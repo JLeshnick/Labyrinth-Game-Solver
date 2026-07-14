@@ -4,7 +4,6 @@ import { PAWNS, TREASURES } from "../constants";
 import { Button } from "./ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
 import { SettingsDialog } from "./SettingsDialog";
-import type { SaveSlot } from "../hooks/useLabyrinthStorage";
 import { cn } from "../lib/utils";
 import { playClickSound } from "../utils/audio";
 import {
@@ -14,20 +13,13 @@ import {
   Volume2,
   VolumeX,
   RotateCw,
-  Save,
-  Plus,
-  FolderOpen,
-  Home,
   Gauge,
-  RefreshCcw,
   Layers,
   Play,
-  ChevronDown,
   Unlock,
 } from "lucide-react";
 
 export interface AppHeaderProps {
-  currentSlotName: string | null;
   lastSavedTime: number | null;
   isGameStarted: boolean;
   canUndo: boolean;
@@ -38,14 +30,6 @@ export interface AppHeaderProps {
   activePlayers: string[];
   activePawn: string;
   looseTiles: TileData[];
-  saveName: string;
-  setSaveName: (v: string) => void;
-  allSlots: SaveSlot[];
-  peekSlotKey: string | null;
-  setPeekSlotKey: (v: string | null) => void;
-  peekedState: Partial<AppGameState> | null;
-  settingsTab: "profiles" | "preferences" | "appearance" | "storage" | "application";
-  setSettingsTab: (tab: "profiles" | "preferences" | "appearance" | "storage" | "application") => void;
   accentColor: string;
   setAccentColor: (hex: string) => void;
   isSettingsOpen: boolean;
@@ -57,11 +41,8 @@ export interface AppHeaderProps {
   lastShiftArrowId: string | null;
   gameStartState: AppGameState | null;
   pawnPositions: PawnPositions;
-  onGoToMenu: () => void;
-  onOpenNewGameDialog: () => void;
   onOpenSettings: () => void;
   onCloseSettings: () => void;
-  onSave: () => void;
   onUndo: () => void;
   onRedo: () => void;
   onResetBoard: () => void;
@@ -70,12 +51,10 @@ export interface AppHeaderProps {
   onStartGame: () => void;
   onEndGame: () => void;
   onToggleMute: () => void;
-  onSaveSlot: (name: string) => Promise<void>;
-  onLoadSlot: (key: string, name: string) => Promise<void>;
-  onDeleteSlot: (key: string) => Promise<boolean>;
   onSetBaseTheme: (theme: "dark" | "light") => void;
   onSetActivePlayers: (players: string[]) => void;
   showToast: (msg: string) => void;
+  onRandomizeBoard?: () => void;
 }
 
 const STEPS = [
@@ -84,7 +63,6 @@ const STEPS = [
 ];
 
 export function AppHeader({
-  currentSlotName,
   lastSavedTime,
   isGameStarted,
   canUndo,
@@ -95,22 +73,11 @@ export function AppHeader({
   activePlayers,
   activePawn,
   looseTiles,
-  saveName,
-  setSaveName,
-  allSlots,
-  peekSlotKey,
-  setPeekSlotKey,
-  peekedState,
-  settingsTab,
-  setSettingsTab,
   accentColor,
   setAccentColor,
   isSettingsOpen,
-  onGoToMenu,
-  onOpenNewGameDialog,
   onOpenSettings,
   onCloseSettings,
-  onSave,
   onUndo,
   onRedo,
   onResetBoard,
@@ -119,14 +86,12 @@ export function AppHeader({
   onStartGame,
   onEndGame,
   onToggleMute,
-  onSaveSlot,
-  onLoadSlot,
-  onDeleteSlot,
   onSetBaseTheme,
   onSetActivePlayers,
   showToast,
   playerHands,
   obtainedTreasures,
+  onRandomizeBoard,
 }: AppHeaderProps) {
   const [showGameMenu, setShowGameMenu] = useState(false);
   const [showEndGameConfirm, setShowEndGameConfirm] = useState(false);
@@ -150,16 +115,14 @@ export function AppHeader({
           <h1 className="text-sm sm:text-lg md:text-xl font-bold tracking-tight bg-gradient-to-r from-stone-200 to-theme-primary bg-clip-text text-transparent flex items-center">
             <span className="hidden sm:inline">Labyrinth Game Solver</span>
             <span className="sm:hidden">Labyrinth</span>
-            {currentSlotName && (
-              <span className="ml-1.5 sm:ml-3 px-1.5 sm:px-2 py-0.5 rounded-full bg-white/10 text-[9px] sm:text-xs font-medium text-stone-300 border border-stone-800 max-w-[80px] sm:max-w-none truncate">
-                {currentSlotName}
-              </span>
-            )}
+          <h1 className="text-sm sm:text-lg md:text-xl font-bold tracking-tight bg-gradient-to-r from-stone-200 to-theme-primary bg-clip-text text-transparent flex items-center">
+            <span className="hidden sm:inline">Labyrinth Game Solver</span>
+            <span className="sm:hidden">Labyrinth</span>
           </h1>
           <p className="text-[10px] text-stone-400 hidden sm:block">
             {typeof window !== "undefined" && !!(window as { electronAPI?: unknown }).electronAPI ? "Desktop Edition" : "Web Edition"}
             {lastSavedTime
-              ? ` • Saved: ${new Date(lastSavedTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`
+              ? ` • Active Layout Persisted`
               : ""}
           </p>
         </div>
@@ -204,17 +167,19 @@ export function AppHeader({
 
       {/* Right — compact toolbar */}
       <div className="flex items-center gap-2 shrink-0">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={onGoToMenu}
-          className="text-stone-400 hover:text-stone-200 gap-1.5 h-8 px-2"
-          title="Exit to Main Menu"
-          aria-label="Exit to Main Menu"
-        >
-          <Home className="w-3.5 h-3.5" />
-          <span className="text-xs hidden sm:inline">Menu</span>
-        </Button>
+        {/* Reset board option on header (desktop only, clean layout) */}
+        {!isGameStarted && onRandomizeBoard && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onRandomizeBoard}
+            className="text-stone-400 hover:text-stone-200 gap-1.5 h-8 px-2 hidden md:flex cursor-pointer"
+            title="Randomize layout"
+          >
+            <Compass className="w-3.5 h-3.5" />
+            <span className="text-xs">Randomize</span>
+          </Button>
+        )}
 
         {/* Pawn score pills — only during game */}
         {isGameStarted && activePlayers.length > 0 && (
@@ -269,61 +234,6 @@ export function AppHeader({
             })}
           </div>
         )}
-
-        {/* Game ▼ dropdown */}
-        <div className="relative">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => { if (!isMuted) playClickSound(); setShowGameMenu((v) => !v); }}
-            className="border-stone-800 bg-stone-900/40 text-stone-300 hover:text-stone-100 gap-1.5 h-8 px-3 cursor-pointer"
-            aria-haspopup="menu"
-            aria-expanded={showGameMenu}
-          >
-            <Unlock className="w-3.5 h-3.5 text-theme-primary" />
-            <span className="text-xs">Game</span>
-            <ChevronDown className="w-3 h-3 text-stone-500 ml-0.5" />
-          </Button>
-
-          {showGameMenu && (
-            <>
-              <div className="fixed inset-0 z-40" onClick={() => setShowGameMenu(false)} />
-              <div className="absolute right-0 mt-1.5 w-48 rounded-lg border border-stone-800 p-1.5 shadow-xl z-50 animate-fade-in app-dropdown-panel">
-                <button
-                  onClick={() => { if (!isMuted) playClickSound(); onOpenNewGameDialog(); setShowGameMenu(false); }}
-                  className={menuItemClass}
-                >
-                  <Plus className="w-3.5 h-3.5 text-theme-primary shrink-0" />
-                  New Game
-                </button>
-                <button
-                  onClick={() => { if (!isMuted) playClickSound(); onOpenSettings(); setShowGameMenu(false); }}
-                  className={menuItemClass}
-                >
-                  <FolderOpen className="w-3.5 h-3.5 text-theme-primary shrink-0" />
-                  Load Game
-                </button>
-                {!isGameStarted && (
-                  <button
-                    onClick={() => { if (!isMuted) playClickSound(); onResetBoard(); setShowGameMenu(false); }}
-                    className={menuItemClass}
-                  >
-                    <RefreshCcw className="w-3.5 h-3.5 text-stone-400 shrink-0" />
-                    Reset Board
-                  </button>
-                )}
-                <div className="my-1 border-t border-stone-800" />
-                <button
-                  onClick={() => { if (!isMuted) playClickSound(); onSave(); setShowGameMenu(false); }}
-                  className={menuItemClass}
-                >
-                  <Save className="w-3.5 h-3.5 text-theme-primary shrink-0" />
-                  Save
-                </button>
-              </div>
-            </>
-          )}
-        </div>
 
         {/* Desktop actions toolbar */}
         <div className="hidden lg:flex items-center gap-2">
@@ -408,8 +318,6 @@ export function AppHeader({
             if (open) onOpenSettings();
             else onCloseSettings();
           }}
-          settingsTab={settingsTab}
-          setSettingsTab={setSettingsTab}
           isMuted={isMuted}
           onToggleMute={onToggleMute}
           baseTheme={baseTheme}
@@ -418,16 +326,6 @@ export function AppHeader({
           setAccentColor={setAccentColor}
           activePlayers={activePlayers}
           setActivePlayers={onSetActivePlayers}
-          activePawn={activePawn}
-          saveName={saveName}
-          setSaveName={setSaveName}
-          allSlots={allSlots}
-          peekSlotKey={peekSlotKey}
-          setPeekSlotKey={setPeekSlotKey}
-          peekedState={peekedState}
-          onSaveSlot={onSaveSlot}
-          onLoadSlot={onLoadSlot}
-          onDeleteSlot={onDeleteSlot}
           showToast={showToast}
         />
       </div>
