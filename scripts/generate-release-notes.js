@@ -1,4 +1,4 @@
-import { execSync } from 'child_process';
+import { execSync, execFileSync } from 'child_process';
 import fs from 'fs';
 
 async function getLatestGoodRelease() {
@@ -83,7 +83,7 @@ function getCommitLogs(prevTag) {
   try {
     const range = prevTag ? `${prevTag}..HEAD` : 'HEAD~10..HEAD'; // Fallback to last 10 commits if no previous tag
     console.log(`[Release Notes] Fetching commit logs for range: ${range}`);
-    const logOutput = execSync(`git log ${range} --pretty=format:"%s%n%b%n---COMMIT---"`, { encoding: 'utf8' });
+    const logOutput = execFileSync('git', ['log', range, '--pretty=format:%s%n%b%n---COMMIT---'], { encoding: 'utf8' });
     
     const rawCommits = logOutput
       .split('---COMMIT---')
@@ -114,7 +114,7 @@ async function generateReleaseNotes() {
   } else {
     try {
       console.log('[Release Notes] No good release in API, running git describe to find baseline tag...');
-      prevTag = execSync('git describe --tags --abbrev=0 HEAD^', { encoding: 'utf8' }).trim();
+      prevTag = execFileSync('git', ['describe', '--tags', '--abbrev=0', 'HEAD^'], { encoding: 'utf8' }).trim();
     } catch (err) {
       console.log('[Release Notes] git describe failed:', err.message);
     }
