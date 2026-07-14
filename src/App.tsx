@@ -36,10 +36,14 @@ export default function App() {
   // ── UI-only state (stays in App) ─────────────────────────────────────────────
   const [showLandingPage, setShowLandingPage] = useState(true);
   const [isMuted, setIsMuted] = useState(() => localStorage.getItem("labyrinth_audio_muted") === "true");
-  const [activeTheme, setActiveTheme] = useState(() => localStorage.getItem("labyrinth_theme") || "amber");
+  const [baseTheme, setBaseThemeState] = useState<"dark" | "light">(() => {
+    const saved = localStorage.getItem("labyrinth_theme") ?? "";
+    return saved === "light" ? "light" : "dark";
+  });
   const [boardRotation, setBoardRotation] = useState(0);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [settingsTab, setSettingsTab] = useState<"profiles" | "preferences" | "themes" | "storage">("profiles");
+  const [settingsTab, setSettingsTab] = useState<"profiles" | "preferences" | "appearance" | "storage" | "application">("profiles");
+  const [accentColor, setAccentColorState] = useState(() => localStorage.getItem("labyrinth_accent_color") ?? "");
   const [saveName, setSaveName] = useState("");
   const [peekSlotKey, setPeekSlotKey] = useState<string | null>(null);
   const [peekedState, setPeekedState] = useState<unknown>(null);
@@ -71,10 +75,38 @@ export default function App() {
   }, [toastText]);
 
   // ── Theme effect ─────────────────────────────────────────────────────────────
+  const setBaseTheme = useCallback((t: "dark" | "light") => {
+    setBaseThemeState(t);
+  }, []);
+
   useEffect(() => {
-    document.documentElement.setAttribute("data-theme", activeTheme);
-    try { localStorage.setItem("labyrinth_theme", activeTheme); } catch { /* storage full */ }
-  }, [activeTheme]);
+    document.documentElement.setAttribute("data-theme", baseTheme);
+    try { localStorage.setItem("labyrinth_theme", baseTheme); } catch { /* storage full */ }
+  }, [baseTheme]);
+
+  // ── Accent color ──────────────────────────────────────────────────────────────
+  const applyAccentColor = useCallback((hex: string) => {
+    if (!hex) return;
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+    document.documentElement.style.setProperty("--theme-color", hex);
+    document.documentElement.style.setProperty("--theme-color-hover", hex);
+    document.documentElement.style.setProperty("--theme-color-rgb", `${r}, ${g}, ${b}`);
+    document.documentElement.style.setProperty("--theme-glow", `rgba(${r}, ${g}, ${b}, 0.15)`);
+  }, []);
+
+  const setAccentColor = useCallback((hex: string) => {
+    setAccentColorState(hex);
+    applyAccentColor(hex);
+    try { localStorage.setItem("labyrinth_accent_color", hex); } catch { /* storage full */ }
+  }, [applyAccentColor]);
+
+  // Apply saved accent color on mount
+  useEffect(() => {
+    if (accentColor) applyAccentColor(accentColor);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // ── Mute toggle ───────────────────────────────────────────────────────────────
   const handleToggleMute = useCallback(() => {
@@ -92,6 +124,42 @@ export default function App() {
     onCloseSettings: () => { setIsSettingsOpen(false); setSaveName(""); setPeekSlotKey(null); },
     onSaved: (time) => setLastSavedTime(time),
   });
+
+  // ── Keyboard shortcuts ────────────────────────────────────────────────────────
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      const active = document.activeElement;
+      const tag = active?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA") return;
+
+      const ctrl = e.ctrlKey || e.metaKey;
+      if (ctrl && e.key === "z" && !e.shiftKey) {
+        e.preventDefault();
+        if (!isMuted) playClickSound();
+        game.handleUndo();
+        return;
+      }
+      if (ctrl && (e.key === "y" || (e.key === "z" && e.shiftKey))) {
+        e.preventDefault();
+        if (!isMuted) playClickSound();
+        game.handleRedo();
+        return;
+      }
+      if (ctrl && e.key === "s") {
+        e.preventDefault();
+        game.handleSaveActiveGame();
+        return;
+      }
+      if (e.key === "?" && !ctrl) {
+        e.preventDefault();
+        setSettingsTab("application");
+        setIsSettingsOpen(true);
+        return;
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [isMuted, game.handleUndo, game.handleRedo, game.handleSaveActiveGame]);
 
   // ── Desktop settings ──────────────────────────────────────────────────────────
   const fetchDesktopSettings = useCallback(async () => {
@@ -256,13 +324,15 @@ export default function App() {
 
   const activeTargetCoords = useMemo(() => {
     const targetId = game.playerActiveTargets[game.activePawn];
-    if (!targetId || !game.grid.length) return null;
+    if (!targetId) return null;
+    const gridToSearch = previewState?.grid ?? game.grid;
+    if (!gridToSearch.length) return null;
     for (let r = 0; r < 7; r++) for (let c = 0; c < 7; c++) {
-      const cell = game.grid[r]?.[c];
+      const cell = gridToSearch[r]?.[c];
       if (cell?.treasure?.id === targetId) return { r, c };
     }
     return null;
-  }, [game.playerActiveTargets, game.activePawn, game.grid]);
+  }, [game.playerActiveTargets, game.activePawn, game.grid, previewState]);
 
   // ── Render ────────────────────────────────────────────────────────────────────
   return (
@@ -286,7 +356,7 @@ export default function App() {
             canRedo={game.canRedo}
             isMuted={isMuted}
             showStats={showStats}
-            activeTheme={activeTheme}
+            baseTheme={baseTheme}
             activePlayers={game.activePlayers}
             activePawn={game.activePawn}
             looseTiles={game.looseTiles}
@@ -333,7 +403,9 @@ export default function App() {
             }}
             onLoadSlot={game.handleLoadSlot}
             onDeleteSlot={game.deleteSlot}
-            onSetActiveTheme={setActiveTheme}
+            accentColor={accentColor}
+            setAccentColor={setAccentColor}
+            onSetBaseTheme={setBaseTheme}
             onSetActivePlayers={game.setActivePlayers}
             onSetDesktopSettings={handleSetDesktopSettings}
             showToast={showToast}
@@ -443,7 +515,7 @@ export default function App() {
 
       {/* New Game dialog */}
       <Dialog open={isNewGameDialogOpen} onOpenChange={(open) => { setIsNewGameDialogOpen(open); if (!open) setNewGameName(""); }}>
-        <DialogContent className="sm:max-w-[425px] bg-stone-900 border border-stone-800 text-stone-100 shadow-2xl p-6 rounded-2xl" onKeyDown={(e) => { if (e.key === " ") e.stopPropagation(); }}>
+        <DialogContent className="sm:max-w-[425px] app-dialog-panel border border-stone-800 text-stone-100 shadow-2xl p-6 rounded-2xl" onKeyDown={(e) => { if (e.key === " ") e.stopPropagation(); }}>
           <DialogHeader>
             <DialogTitle className="text-lg font-bold tracking-tight text-theme-primary flex items-center gap-2">
               <Plus className="w-5 h-5 text-theme-primary" />
@@ -484,7 +556,7 @@ export default function App() {
 
       {/* Stats dialog */}
       <Dialog open={showStats} onOpenChange={setShowStats}>
-        <DialogContent className="sm:max-w-[500px] bg-stone-900 border border-stone-800 text-stone-100 shadow-2xl p-0 rounded-2xl overflow-hidden" onKeyDown={(e) => { if (e.key === " ") e.stopPropagation(); }}>
+        <DialogContent className="sm:max-w-[500px] app-dialog-panel border border-stone-800 text-stone-100 shadow-2xl p-0 rounded-2xl overflow-hidden" onKeyDown={(e) => { if (e.key === " ") e.stopPropagation(); }}>
           <StatsPanel
             activePlayers={game.activePlayers}
             pawnStats={game.pawnStats}

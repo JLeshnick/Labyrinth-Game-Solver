@@ -35,6 +35,143 @@
   --theme-glow: rgba(245, 158, 11, 0.15);
 }
 
+/* Dark mode — explicit alias of :root defaults */
+[data-theme="dark"] {
+  --theme-color: #f59e0b;
+  --theme-color-hover: #d97706;
+  --theme-color-rgb: 245, 158, 11;
+  --theme-glow: rgba(245, 158, 11, 0.15);
+}
+
+/* Light mode */
+[data-theme="light"] {
+  --theme-color: #f59e0b;
+  --theme-color-hover: #d97706;
+  --theme-color-rgb: 245, 158, 11;
+  --theme-glow: rgba(245, 158, 11, 0.15);
+}
+
+/* ── Semantic utility classes (theme-aware) ────────────────────────── */
+
+/* Dropdown panel — opaque surface for menus */
+.app-dropdown-panel {
+  background-color: #0c0a09;
+}
+[data-theme="light"] .app-dropdown-panel {
+  background-color: #ffffff;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.12);
+}
+
+/* Step nav pill container */
+.app-step-nav {
+  background-color: rgba(0,0,0,0.4);
+}
+[data-theme="light"] .app-step-nav {
+  background-color: rgba(231,229,228,0.7);
+}
+
+/* Dialog / modal panel */
+.app-dialog-panel {
+  background-color: #1c1917;
+}
+[data-theme="light"] .app-dialog-panel {
+  background-color: #ffffff;
+}
+
+/* ── Light mode surface overrides ──────────────────────────────────── */
+
+/* Body */
+[data-theme="light"] body {
+  background-color: #fafaf9;
+  color: #1c1917;
+}
+
+/* Scrollbar track */
+[data-theme="light"] ::-webkit-scrollbar-track {
+  background: rgba(214, 211, 209, 0.4);
+}
+[data-theme="light"] ::-webkit-scrollbar-thumb {
+  border: 1px solid rgba(214, 211, 209, 0.6);
+}
+
+/* ── Backgrounds ── */
+[data-theme="light"] .bg-stone-950    { background-color: #fafaf9 !important; }
+[data-theme="light"] .bg-\[\#0c0a09\] { background-color: #fafaf9 !important; }
+[data-theme="light"] .bg-stone-950\/70 { background-color: rgba(250,250,249,0.95) !important; }
+[data-theme="light"] .bg-stone-950\/60 { background-color: rgba(250,250,249,0.9) !important; }
+[data-theme="light"] .bg-stone-950\/50 { background-color: rgba(250,250,249,0.85) !important; }
+[data-theme="light"] .bg-stone-950\/40 { background-color: rgba(250,250,249,0.75) !important; }
+[data-theme="light"] .bg-stone-950\/30 { background-color: rgba(250,250,249,0.6) !important; }
+[data-theme="light"] .bg-stone-950\/20 { background-color: rgba(250,250,249,0.5) !important; }
+[data-theme="light"] .bg-stone-900    { background-color: #f5f5f4 !important; }
+[data-theme="light"] .bg-stone-900\/90 { background-color: rgba(245,245,244,0.95) !important; }
+[data-theme="light"] .bg-stone-900\/50 { background-color: rgba(245,245,244,0.85) !important; }
+[data-theme="light"] .bg-stone-900\/40 { background-color: rgba(245,245,244,0.75) !important; }
+[data-theme="light"] .bg-stone-900\/20 { background-color: rgba(245,245,244,0.55) !important; }
+[data-theme="light"] .bg-stone-800    { background-color: #e7e5e4 !important; }
+[data-theme="light"] .bg-stone-800\/60 { background-color: rgba(231,229,228,0.7) !important; }
+[data-theme="light"] .bg-stone-800\/50 { background-color: rgba(231,229,228,0.6) !important; }
+[data-theme="light"] .bg-stone-800\/40 { background-color: rgba(231,229,228,0.5) !important; }
+[data-theme="light"] .bg-stone-800\/30 { background-color: rgba(231,229,228,0.4) !important; }
+[data-theme="light"] .bg-stone-800\/20 { background-color: rgba(231,229,228,0.3) !important; }
+[data-theme="light"] .bg-black\/40    { background-color: rgba(231,229,228,0.7) !important; }
+[data-theme="light"] .bg-black\/30    { background-color: rgba(231,229,228,0.5) !important; }
+[data-theme="light"] .bg-black\/20    { background-color: rgba(231,229,228,0.4) !important; }
+
+/* ── Borders ── */
+[data-theme="light"] .border-stone-800    { border-color: #d6d3d1 !important; }
+[data-theme="light"] .border-stone-800\/80 { border-color: rgba(214,211,209,0.8) !important; }
+[data-theme="light"] .border-stone-800\/60 { border-color: rgba(214,211,209,0.6) !important; }
+[data-theme="light"] .border-stone-800\/50 { border-color: rgba(214,211,209,0.5) !important; }
+[data-theme="light"] .border-stone-800\/40 { border-color: rgba(214,211,209,0.4) !important; }
+[data-theme="light"] .border-stone-800\/20 { border-color: rgba(214,211,209,0.2) !important; }
+[data-theme="light"] .border-stone-900    { border-color: #e7e5e4 !important; }
+[data-theme="light"] .border-stone-700    { border-color: #d6d3d1 !important; }
+[data-theme="light"] .border-stone-700\/50 { border-color: rgba(214,211,209,0.5) !important; }
+
+/* ── Text ── */
+[data-theme="light"] .text-white      { color: #1c1917 !important; }
+[data-theme="light"] .text-stone-100  { color: #1c1917 !important; }
+[data-theme="light"] .text-stone-200  { color: #292524 !important; }
+[data-theme="light"] .text-stone-300  { color: #44403c !important; }
+[data-theme="light"] .text-stone-400  { color: #78716c !important; }
+[data-theme="light"] .text-stone-500  { color: #a8a29e !important; }
+[data-theme="light"] .text-stone-600  { color: #c4b5b0 !important; }
+
+/* Hover text — keep dark on light */
+[data-theme="light"] .hover\:text-stone-100:hover { color: #1c1917 !important; }
+[data-theme="light"] .hover\:text-stone-200:hover { color: #292524 !important; }
+
+/* ── Gradient text (app title) ── */
+[data-theme="light"] .from-stone-200 { --tw-gradient-from: #44403c !important; }
+
+/* ── Backdrop ── */
+[data-theme="light"] .backdrop-blur-md { background-color: rgba(245,245,244,0.92) !important; }
+
+/* ── Ring offsets (board highlight halos) ── */
+[data-theme="light"] .ring-offset-stone-950 { --tw-ring-offset-color: #fafaf9 !important; }
+
+/* ── Hover states ── */
+[data-theme="light"] .hover\:bg-stone-900:hover    { background-color: #ebe9e7 !important; }
+[data-theme="light"] .hover\:bg-stone-900\/40:hover { background-color: rgba(231,229,228,0.7) !important; }
+[data-theme="light"] .hover\:bg-stone-800:hover    { background-color: #e7e5e4 !important; }
+[data-theme="light"] .hover\:bg-stone-800\/40:hover { background-color: rgba(231,229,228,0.5) !important; }
+[data-theme="light"] .hover\:bg-stone-800\/30:hover { background-color: rgba(231,229,228,0.4) !important; }
+
+/* ── Shadcn semantic tokens (override the @theme dark defaults) ── */
+[data-theme="light"] {
+  --color-background: #fafaf9;
+  --color-foreground: #1c1917;
+  --color-card: #ffffff;
+  --color-card-foreground: #1c1917;
+  --color-secondary: #f5f5f4;
+  --color-secondary-foreground: #1c1917;
+  --color-muted: #e7e5e4;
+  --color-muted-foreground: #78716c;
+  --color-border: #d6d3d1;
+  --color-input: #d6d3d1;
+}
+
 [data-theme="neon"] {
   --theme-color: #84cc16; /* Lime/Neon */
   --theme-color-hover: #65a30d;
@@ -270,6 +407,25 @@
   animation: slide-out-up 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
  
+/* Settings tab transition animations */
+@keyframes slide-in-bottom {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slide-in-top {
+  from { opacity: 0; transform: translateY(-12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.animate-slide-in-bottom {
+  animation: slide-in-bottom 0.25s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.animate-slide-in-top {
+  animation: slide-in-top 0.25s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
 /* Disable looping animations for users who prefer reduced motion */
 @media (prefers-reduced-motion: reduce) {
   .animate-dash,
@@ -278,6 +434,8 @@
   .animate-bounce,
   .animate-toast-in,
   .animate-fade-in,
+  .animate-slide-in-bottom,
+  .animate-slide-in-top,
   .animate-preview-slide-right,
   .animate-preview-slide-left,
   .animate-preview-slide-down,

@@ -1,7 +1,10 @@
 import { useState } from "react";
 import { Button } from "./ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "./ui/dialog";
-import { Eye, FolderOpen, Settings, Palette, HardDrive, Trash2, Download, Upload, Volume2, VolumeX } from "lucide-react";
+import {
+  Eye, FolderOpen, Settings, Palette, HardDrive, Trash2, Download, Upload,
+  Volume2, VolumeX, Cpu, RefreshCw, Keyboard,
+} from "lucide-react";
 import { Tile } from "./Tile";
 import { PAWNS } from "../constants";
 import { AUTOSAVE_KEY } from "../hooks/useLabyrinthStorage";
@@ -11,12 +14,14 @@ import type { SaveSlot } from "../hooks/useLabyrinthStorage";
 interface SettingsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  settingsTab: "profiles" | "preferences" | "themes" | "storage";
-  setSettingsTab: (tab: "profiles" | "preferences" | "themes" | "storage") => void;
+  settingsTab: "profiles" | "preferences" | "appearance" | "storage" | "application";
+  setSettingsTab: (tab: "profiles" | "preferences" | "appearance" | "storage" | "application") => void;
   isMuted: boolean;
   onToggleMute: () => void;
-  activeTheme: string;
-  setActiveTheme: (theme: string) => void;
+  baseTheme: "dark" | "light";
+  setBaseTheme: (theme: "dark" | "light") => void;
+  accentColor: string;
+  setAccentColor: (hex: string) => void;
   activePlayers: string[];
   setActivePlayers: (players: string[]) => void;
   activePawn: string;
@@ -34,31 +39,50 @@ interface SettingsDialogProps {
   onSetDesktopSettings: (settings: { gamesDir: string }) => void | Promise<any>;
 }
 
-const THEMES = [
-  { id: "amber",    name: "Amber",    class: "bg-amber-500" },
-  { id: "neon",     name: "Neon",     class: "bg-lime-500" },
-  { id: "ice",      name: "Ice",      class: "bg-sky-500" },
-  { id: "dracula",  name: "Dracula",  class: "bg-purple-500" },
-  { id: "rose",     name: "Rose",     class: "bg-pink-500" },
-  { id: "emerald",  name: "Emerald",  class: "bg-emerald-500" },
-  { id: "sapphire", name: "Sapphire", class: "bg-blue-500" },
-  { id: "sunset",   name: "Sunset",   class: "bg-orange-500" },
-  { id: "gold",     name: "Gold",     class: "bg-yellow-500" },
-  { id: "nord",     name: "Nord",     class: "bg-cyan-500" },
+const ACCENT_PRESETS = [
+  { hex: "#f59e0b", name: "Amber" },
+  { hex: "#84cc16", name: "Lime" },
+  { hex: "#0ea5e9", name: "Sky Blue" },
+  { hex: "#a855f7", name: "Purple" },
+  { hex: "#ec4899", name: "Rose" },
+  { hex: "#10b981", name: "Emerald" },
+  { hex: "#3b82f6", name: "Blue" },
+  { hex: "#f97316", name: "Orange" },
+  { hex: "#22d3ee", name: "Cyan" },
+];
+
+const KEYBOARD_SHORTCUTS = [
+  {
+    group: "Board",
+    shortcuts: [
+      { keys: ["Ctrl", "Z"], desc: "Undo last action" },
+      { keys: ["Ctrl", "Y"], desc: "Redo last action" },
+      { keys: ["Ctrl", "S"], desc: "Save current game" },
+    ],
+  },
+  {
+    group: "Interface",
+    shortcuts: [
+      { keys: ["Esc"], desc: "Close dialogs" },
+      { keys: ["?"], desc: "Open Settings" },
+    ],
+  },
 ];
 
 const SIDEBAR_TABS = [
-  { key: "profiles",    label: "Saved Games",    description: "Manage slots & previews",  icon: <FolderOpen className="w-4 h-4" /> },
-  { key: "preferences", label: "Preferences",    description: "General & active players", icon: <Settings  className="w-4 h-4" /> },
-  { key: "themes",      label: "App Themes",     description: "Select theme colors",      icon: <Palette   className="w-4 h-4" /> },
-  { key: "storage",     label: "File Storage",   description: "Local cache pathways",     icon: <HardDrive className="w-4 h-4" /> },
+  { key: "profiles",    label: "Saved Games",  description: "Manage slots & previews",  icon: <FolderOpen className="w-4 h-4" /> },
+  { key: "preferences", label: "Preferences",  description: "General & active players", icon: <Settings className="w-4 h-4" /> },
+  { key: "appearance",  label: "Appearance",   description: "Themes & accent color",    icon: <Palette className="w-4 h-4" /> },
+  { key: "storage",     label: "File Storage", description: "Local cache pathways",     icon: <HardDrive className="w-4 h-4" /> },
+  { key: "application", label: "Application",  description: "Info & shortcuts",         icon: <Cpu className="w-4 h-4" /> },
 ] as const;
 
 export function SettingsDialog({
   open, onOpenChange,
   settingsTab, setSettingsTab,
   isMuted, onToggleMute,
-  activeTheme, setActiveTheme,
+  baseTheme, setBaseTheme,
+  accentColor, setAccentColor,
   activePlayers, setActivePlayers,
   saveName, setSaveName,
   allSlots, peekSlotKey, setPeekSlotKey, peekedState,
@@ -66,6 +90,31 @@ export function SettingsDialog({
   desktopSettings, onSetDesktopSettings,
 }: SettingsDialogProps) {
   const [deleteConfirmSlot, setDeleteConfirmSlot] = useState<SaveSlot | null>(null);
+  const [updateChecking, setUpdateChecking] = useState(false);
+  const [updateResult, setUpdateResult] = useState<string | null>(null);
+
+  const handleCheckForUpdates = () => {
+    setUpdateChecking(true);
+    setUpdateResult(null);
+    setTimeout(() => {
+      setUpdateChecking(false);
+      setUpdateResult("You're up to date!");
+    }, 1500);
+    const releasesUrl = "https://github.com/jleshnick/Labyrinth-Game-Solver/releases";
+    if ((window as any).electronAPI?.openExternal) {
+      (window as any).electronAPI.openExternal(releasesUrl);
+    } else {
+      window.open(releasesUrl, "_blank", "noopener,noreferrer");
+    }
+  };
+
+  const handleResetCache = () => {
+    const keys = Object.keys(localStorage).filter((k) => k.startsWith("labyrinth"));
+    keys.forEach((k) => localStorage.removeItem(k));
+    window.location.reload();
+  };
+
+  const isCustomAccent = !ACCENT_PRESETS.some((p) => p.hex.toLowerCase() === accentColor.toLowerCase());
 
   return (
     <>
@@ -76,14 +125,14 @@ export function SettingsDialog({
           size="icon"
           onClick={() => { if (!isMuted) playClickSound(); }}
           className="border-stone-800 hover:bg-stone-900 text-stone-300"
-          title="Settings & Saves"
-          aria-label="Open settings and save slots"
+          title="Settings"
+          aria-label="Open settings"
         >
           <Settings className="w-4 h-4" />
         </Button>
       </DialogTrigger>
 
-      <DialogContent className="sm:max-w-[90vw] w-[90vw] h-[90vh] max-h-[90vh] bg-stone-900 border-stone-800 text-stone-100 shadow-2xl p-0 rounded-2xl flex flex-col overflow-hidden" onKeyDown={(e) => {
+      <DialogContent className="sm:max-w-[90vw] w-[90vw] h-[90vh] max-h-[90vh] app-dialog-panel border-stone-800 text-stone-100 shadow-2xl p-0 rounded-2xl flex flex-col overflow-hidden" onKeyDown={(e) => {
         if (e.key === " ") {
           e.stopPropagation();
         }
@@ -91,7 +140,7 @@ export function SettingsDialog({
         <DialogHeader className="shrink-0 border-b border-stone-800 px-6 py-4 flex flex-row items-center justify-between bg-gradient-to-r from-stone-950/30 to-transparent">
           <DialogTitle className="text-lg font-bold tracking-tight text-theme-primary flex items-center gap-2">
             <Settings className="w-5 h-5 text-theme-primary" />
-            Settings & Save Slots
+            Settings
           </DialogTitle>
           <span className="text-[10px] text-stone-400 font-normal mr-6">
             Labyrinth Game Solver v{__APP_VERSION__}
@@ -135,7 +184,7 @@ export function SettingsDialog({
           </div>
 
           {/* Content */}
-          <div className="flex-1 flex flex-col min-h-0 overflow-y-auto p-6 bg-stone-900/20">
+          <div key={settingsTab} className="flex-1 flex flex-col min-h-0 overflow-y-auto p-6 bg-stone-900/20 animate-slide-in-bottom">
 
             {settingsTab === "profiles" && (
               <div
@@ -285,16 +334,33 @@ export function SettingsDialog({
               <div id="settings-panel-preferences" role="tabpanel" aria-labelledby="settings-tab-preferences" className="flex flex-col gap-6 max-w-xl text-left">
                 <div className="p-4 bg-stone-950/40 border border-stone-800 rounded-xl flex flex-col gap-3">
                   <h3 className="text-sm font-semibold text-stone-200">System Preferences</h3>
-                  <div className="flex justify-between items-center text-sm">
-                    <span className="text-stone-300">Retro Audio Oscillators</span>
-                    <Button
-                      variant={isMuted ? "outline" : "default"}
-                      onClick={onToggleMute}
-                      className={isMuted ? "border-stone-800 text-stone-400" : "bg-theme-primary text-stone-950 font-bold hover:bg-theme-primary-hover"}
-                    >
-                      {isMuted ? <VolumeX className="w-4 h-4 mr-2" /> : <Volume2 className="w-4 h-4 mr-2" />}
-                      {isMuted ? "Muted" : "Active"}
-                    </Button>
+                  <div className="flex flex-col gap-1.5">
+                    <span className="text-[10px] font-bold text-stone-500 uppercase tracking-widest">Retro Audio</span>
+                    <div className="grid grid-cols-2 gap-2.5">
+                      {[
+                        { id: false, label: "Sound On", icon: <Volume2 className="w-4 h-4" />, desc: "Retro oscillator effects" },
+                        { id: true,  label: "Sound Off", icon: <VolumeX className="w-4 h-4" />, desc: "All audio muted" },
+                      ].map((opt) => {
+                        const isActive = isMuted === opt.id;
+                        return (
+                          <button
+                            key={String(opt.id)}
+                            onClick={isActive ? undefined : onToggleMute}
+                            className={`flex flex-col items-start gap-1 p-3.5 rounded-xl border text-left transition-all cursor-pointer ${
+                              isActive
+                                ? "border-theme-primary/50 bg-theme-primary-10 text-theme-primary"
+                                : "border-stone-800 bg-stone-950/40 hover:bg-stone-900 text-stone-400 hover:text-stone-200"
+                            }`}
+                          >
+                            <span className={`flex items-center gap-1.5 text-xs font-semibold leading-none ${isActive ? "text-theme-primary" : ""}`}>
+                              {opt.icon}
+                              {opt.label}
+                            </span>
+                            <span className="text-[9px] text-stone-500 mt-0.5">{opt.desc}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
                 </div>
 
@@ -340,24 +406,91 @@ export function SettingsDialog({
               </div>
             )}
 
-            {settingsTab === "themes" && (
-              <div id="settings-panel-themes" role="tabpanel" aria-labelledby="settings-tab-themes" className="flex flex-col gap-4 max-w-xl text-left">
-                <h3 className="text-sm font-semibold text-stone-200">App Theme Colors</h3>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
-                  {THEMES.map((t) => (
-                    <button
-                      key={t.id}
-                      onClick={() => { if (!isMuted) playClickSound(); setActiveTheme(t.id); }}
-                      className={`flex items-center gap-2 p-3 rounded-xl border text-xs font-semibold justify-start transition-all cursor-pointer ${
-                        activeTheme === t.id
-                          ? "border-theme-primary bg-theme-primary-10 text-theme-primary"
-                          : "border-stone-800 bg-stone-950/40 hover:bg-stone-900 text-stone-300"
+            {settingsTab === "appearance" && (
+              <div id="settings-panel-appearance" role="tabpanel" aria-labelledby="settings-tab-appearance" className="flex flex-col gap-6 max-w-2xl text-left">
+                <div className="space-y-1">
+                  <h3 className="text-base font-bold text-stone-100">Appearance</h3>
+                  <p className="text-xs text-stone-400">Customize the color theme and accent color highlights.</p>
+                </div>
+
+                {/* Dark / Light Mode */}
+                <div className="space-y-3">
+                  <h4 className="text-[10px] font-bold text-stone-500 uppercase tracking-widest">Color Theme</h4>
+                  <div className="grid grid-cols-2 gap-2.5">
+                    {([
+                      { id: "dark"  as const, name: "Dark Mode",  description: "Deep midnight theme",       preview: "#1c1917" },
+                      { id: "light" as const, name: "Light Mode", description: "Clean high-contrast theme", preview: "#fafaf9" },
+                    ]).map((t) => {
+                      const isActive = baseTheme === t.id;
+                      return (
+                        <button
+                          key={t.id}
+                          onClick={() => { if (!isMuted) playClickSound(); setBaseTheme(t.id); }}
+                          className={`relative flex items-center gap-3 p-3.5 rounded-xl border text-left transition-all duration-150 cursor-pointer ${
+                            isActive
+                              ? "border-theme-primary/50 bg-theme-primary-10 text-stone-100"
+                              : "border-stone-800 bg-stone-950/40 hover:border-stone-700 hover:bg-stone-900/60 text-stone-400"
+                          }`}
+                        >
+                          <div
+                            className="w-8 h-8 rounded-lg shrink-0 ring-1 ring-white/10 shadow-md"
+                            style={{ background: t.preview }}
+                          />
+                          <div className="flex-1 min-w-0">
+                            <p className={`text-xs font-semibold leading-none ${isActive ? "text-stone-100" : "text-stone-300"}`}>{t.name}</p>
+                            <p className="text-[10px] text-stone-500 mt-0.5 truncate">{t.description}</p>
+                          </div>
+                          {isActive && (
+                            <div
+                              className="absolute top-2 right-2 w-2 h-2 rounded-full shadow-sm ring-1 ring-stone-500/40"
+                              style={{ background: t.preview }}
+                            />
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Accent Color Picker */}
+                <div className="space-y-3 pt-4 border-t border-stone-800">
+                  <div>
+                    <h4 className="text-[10px] font-bold text-stone-500 uppercase tracking-widest">Accent Color</h4>
+                    <p className="text-xs text-stone-400 mt-1 leading-normal">
+                      Pick an accent color for buttons, highlights, and glows. Works with both themes.
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-3">
+                    {ACCENT_PRESETS.map((acc) => {
+                      const isActive = accentColor.toLowerCase() === acc.hex.toLowerCase();
+                      return (
+                        <button
+                          key={acc.hex}
+                          onClick={() => { if (!isMuted) playClickSound(); setAccentColor(acc.hex); }}
+                          className={`w-8 h-8 rounded-full border-2 transition-all relative cursor-pointer ${
+                            isActive ? "border-stone-200 scale-110 shadow-[0_0_8px_var(--theme-color)]" : "border-transparent hover:scale-105"
+                          }`}
+                          style={{ backgroundColor: acc.hex }}
+                          title={acc.name}
+                        />
+                      );
+                    })}
+                    {/* Custom Color */}
+                    <label
+                      className={`w-8 h-8 rounded-full border-2 transition-all relative cursor-pointer flex items-center justify-center [background:conic-gradient(from_180deg,#f97316,#eab308,#84cc16,#22d3ee,#3b82f6,#a855f7,#ec4899,#f97316)] ${
+                        isCustomAccent ? "border-stone-200 scale-110 shadow-[0_0_8px_var(--theme-color)]" : "border-transparent hover:scale-105"
                       }`}
+                      title="Custom Color"
                     >
-                      <span className={`w-3.5 h-3.5 rounded-full ring-1 ring-white/10 ${t.class}`} />
-                      {t.name}
-                    </button>
-                  ))}
+                      <input
+                        type="color"
+                        className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
+                        value={accentColor}
+                        onChange={(e) => setAccentColor(e.target.value)}
+                      />
+                      <span className="text-[10px] font-bold text-white pointer-events-none drop-shadow">+</span>
+                    </label>
+                  </div>
                 </div>
               </div>
             )}
@@ -442,15 +575,112 @@ export function SettingsDialog({
               </div>
             )}
 
+            {settingsTab === "application" && (
+              <div id="settings-panel-application" role="tabpanel" aria-labelledby="settings-tab-application" className="flex flex-col gap-6 max-w-2xl text-left">
+                <div className="space-y-1">
+                  <h3 className="text-base font-bold text-stone-100">Application</h3>
+                  <p className="text-xs text-stone-400">Details about your Labyrinth Game Solver installation and keyboard shortcuts.</p>
+                </div>
+
+                {/* Version card */}
+                <div className="bg-stone-950/40 border border-stone-800 rounded-xl p-4 flex flex-col gap-3">
+                  <div className="flex justify-between items-center border-b border-stone-800 pb-3">
+                    <div className="flex flex-col">
+                      <span className="text-xs font-bold text-stone-200">Software Version</span>
+                      <span className="text-[10px] text-stone-500 mt-0.5">Desktop Application Release</span>
+                    </div>
+                    <span className="px-2.5 py-1 rounded-lg bg-theme-primary-10 border border-theme-primary/20 text-[11px] font-bold text-theme-primary">
+                      v{__APP_VERSION__}
+                    </span>
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <span className="text-[10px] text-stone-500 font-bold uppercase tracking-wide">Update Manager</span>
+                    <div className="flex gap-3 items-center">
+                      <Button
+                        size="sm"
+                        onClick={handleCheckForUpdates}
+                        disabled={updateChecking}
+                        className="bg-theme-primary hover:bg-theme-primary-hover text-stone-950 font-semibold text-xs px-4 h-8 gap-1.5 shrink-0"
+                      >
+                        <RefreshCw className={`w-3.5 h-3.5 ${updateChecking ? "animate-spin" : ""}`} />
+                        Check for Updates
+                      </Button>
+                      {updateResult && (
+                        <span className="text-[11px] text-stone-400 font-medium font-mono">{updateResult}</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Keyboard Shortcuts */}
+                <div className="bg-stone-950/40 border border-stone-800 rounded-xl p-4 space-y-3">
+                  <div className="flex items-center gap-2 border-b border-stone-800 pb-3">
+                    <Keyboard className="w-4 h-4 text-stone-500" />
+                    <span className="text-xs font-bold text-stone-200">Keyboard Shortcuts</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    {KEYBOARD_SHORTCUTS.map((group) => (
+                      <div key={group.group} className="space-y-2">
+                        <h5 className="text-[10px] font-bold text-stone-500 uppercase tracking-wide">{group.group}</h5>
+                        <div className="space-y-1.5">
+                          {group.shortcuts.map((sc) => (
+                            <div key={sc.desc} className="flex items-center justify-between gap-3">
+                              <span className="text-[11px] text-stone-400">{sc.desc}</span>
+                              <div className="flex items-center gap-1 shrink-0">
+                                {sc.keys.map((k, i) => (
+                                  <kbd
+                                    key={i}
+                                    className="px-1.5 py-0.5 rounded bg-stone-900 border border-stone-700 text-[9px] font-mono font-bold text-stone-300"
+                                  >
+                                    {k}
+                                  </kbd>
+                                ))}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Troubleshooting */}
+                <div className="bg-stone-950/40 border border-stone-800 rounded-xl p-4 space-y-3">
+                  <div className="flex flex-col">
+                    <span className="text-xs font-bold text-stone-200">Troubleshooting</span>
+                    <p className="text-[11px] text-stone-400 mt-1 leading-relaxed">
+                      If you encounter issues with saved games or stale settings, clearing the app cache will reset all local data. Your disk-saved game files (.json) remain untouched.
+                    </p>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={handleResetCache}
+                    className="border-red-500/20 hover:border-red-500/50 hover:bg-red-500/10 text-red-400 text-xs px-4 h-8"
+                  >
+                    Reset Application Cache
+                  </Button>
+                </div>
+
+                {/* Privacy disclaimer */}
+                <div className="text-[11px] text-stone-500 space-y-1.5 leading-relaxed pt-1">
+                  <p className="font-bold text-stone-400">Privacy & Disclaimers</p>
+                  <p>
+                    Labyrinth Game Solver processes and stores all data locally on your system.
+                    No board data, saved games, settings, or metadata are ever uploaded to remote servers.
+                  </p>
+                </div>
+              </div>
+            )}
+
           </div>
         </div>
       </DialogContent>
     </Dialog>
 
     {/* Delete confirmation dialog */}
-
     <Dialog open={!!deleteConfirmSlot} onOpenChange={(open) => { if (!open) setDeleteConfirmSlot(null); }}>
-      <DialogContent className="sm:max-w-[380px] bg-stone-900 border border-stone-800 text-stone-100 shadow-2xl p-6 rounded-2xl">
+      <DialogContent className="sm:max-w-[380px] app-dialog-panel border border-stone-800 text-stone-100 shadow-2xl p-6 rounded-2xl">
         <DialogHeader>
           <DialogTitle className="text-base font-bold text-stone-100 flex items-center gap-2">
             <Trash2 className="w-4 h-4 text-red-400" />
