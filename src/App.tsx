@@ -715,7 +715,10 @@ export default function App() {
           onDragEnd={handleDragEnd}
         >
           <div className="flex-1 md:flex-[1.4] lg:flex-[1.5] w-full flex min-w-0 min-h-0 items-center justify-center relative">
-            <div className="relative aspect-square w-full max-w-[min(100vw-1rem,calc(100svh-220px))] sm:max-w-[min(100vw-2rem,calc(100svh-280px))] md:max-w-[calc(100svh-180px)] md:w-auto md:h-full lg:max-w-none flex-shrink-0 mx-auto">
+            <div
+              className="relative aspect-square w-full max-w-[min(100vw-1rem,calc(100svh-220px))] sm:max-w-[min(100vw-2rem,calc(100svh-280px))] md:max-w-[calc(100svh-180px)] md:w-auto md:h-full lg:max-w-none flex-shrink-0 mx-auto"
+              style={{ boxShadow: "0 0 0 1px rgba(var(--theme-color-rgb), 0.15)", borderRadius: "1rem" }}
+            >
               {hoveredSolution &&
                 (hoveredSolution as { arrowId: string }[]).length > 0 && (
                   <div

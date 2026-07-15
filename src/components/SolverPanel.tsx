@@ -145,7 +145,7 @@ export function SolverPanel({
         </div>
       )}
 
-      <div className="p-4 bg-stone-950/60 border border-stone-800/80 rounded-xl flex items-center justify-between text-left">
+      <div className="p-4 app-surface flex items-center justify-between text-left">
         <div className="flex items-center gap-3">
           <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-stone-950 ${PAWNS.find((p) => p.id === activePawn)?.colorClass ?? "bg-stone-500"}`}>
             {activePawn[0].toUpperCase()}
@@ -225,8 +225,22 @@ export function SolverPanel({
                 key={index}
                 onMouseEnter={() => setHoveredSolution(sol)}
                 onMouseLeave={() => setHoveredSolution(null)}
-                className={`p-4 bg-stone-950/40 border border-stone-800/60 hover:border-theme-primary-40 rounded-xl transition-all flex items-start justify-between cursor-pointer group gap-3 ${isFallback ? "opacity-75 hover:opacity-100" : ""}`}
+                className={`relative p-4 pl-5 rounded-xl transition-all flex items-start justify-between cursor-pointer group gap-3 ${
+                  index === 0 && !isFallback
+                    ? "app-surface-accent hover:border-theme-primary"
+                    : "app-surface hover:border-theme-primary-40"
+                } ${isFallback ? "opacity-75 hover:opacity-100" : ""}`}
               >
+                {/* Rank chip */}
+                <span
+                  className={`absolute -left-2 -top-2 w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold shadow-sm ${
+                    index === 0 && !isFallback
+                      ? "bg-theme-primary text-stone-950"
+                      : "bg-theme-primary-10 text-theme-primary border border-theme-primary-20"
+                  }`}
+                >
+                  {index + 1}
+                </span>
                 <div className="flex-1 min-w-0">
                   <div className="text-xs font-semibold flex items-center gap-1.5">
                     {isFallback ? (
@@ -273,10 +287,10 @@ export function SolverPanel({
                       }
                     })()}
                   </div>
-                  <div className="text-xs font-medium text-stone-100 mt-1 font-mono leading-relaxed">
+                  <div className="text-xs md:text-[13px] font-medium text-stone-100 mt-1 font-mono leading-relaxed">
                     {sol.explanation?.slide}
                   </div>
-                  <div className="text-xs text-stone-400 mt-1 leading-relaxed">
+                  <div className="text-xs md:text-[13px] text-stone-400 mt-1 leading-relaxed">
                     {sol.explanation?.walk}
                   </div>
                   <div className="text-[10px] text-stone-500 mt-1">

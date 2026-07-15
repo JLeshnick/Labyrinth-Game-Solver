@@ -229,7 +229,10 @@ export function AppHeader({
 
   return (
     <>
-      <header className="relative z-40 px-3 sm:px-6 py-2 sm:py-3 flex items-center justify-between border-b border-stone-800 bg-stone-950/70 backdrop-blur-md gap-2 sm:gap-4">
+      <header
+        className="relative z-40 px-3 sm:px-6 py-2 sm:py-3 flex items-center justify-between border-b border-stone-800 bg-stone-950/70 backdrop-blur-md gap-2 sm:gap-4"
+        style={{ boxShadow: "inset 0 -1px 0 rgba(var(--theme-color-rgb), 0.25)" }}
+      >
         {/* Left — branding */}
         <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
           <div className="p-1.5 bg-theme-primary-10 border border-theme-primary-20 rounded-xl text-theme-primary">

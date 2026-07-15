@@ -48,7 +48,7 @@ export function SetupPanel({
   return (
     <div className="flex-1 flex flex-col min-h-0 gap-3 md:gap-4 p-2 md:p-3 lg:p-4">
       {/* Checklist */}
-      <div className="p-3 bg-stone-950/60 border border-stone-800 rounded-xl flex flex-col gap-2 text-xs md:text-sm text-left">
+      <div className="p-3 app-surface flex flex-col gap-2 text-xs md:text-sm text-left">
         <h3 className="font-bold text-stone-200 flex items-center gap-1.5 border-b border-stone-800 pb-1.5">
           <Sparkles className="w-3.5 h-3.5 text-theme-primary animate-pulse" />
           Setup Wizard & Checklist
@@ -130,7 +130,7 @@ export function SetupPanel({
                 </Button>
               ))}
             </div>
-            <div className="mt-4 p-4 border border-stone-800/80 bg-stone-950/40 rounded-xl text-xs text-stone-400 flex flex-col gap-2">
+            <div className="mt-4 p-4 app-surface text-xs text-stone-400 flex flex-col gap-2">
               <div className="font-semibold text-stone-200">Current Positions:</div>
               {Object.entries(pawnPositions)
                 .filter(([color]) => activePlayers.includes(color))
@@ -161,7 +161,7 @@ export function SetupPanel({
               </div>
             </div>
 
-            <div className="p-3 bg-stone-950/60 border border-stone-800/80 rounded-xl">
+            <div className="p-3 app-surface">
               <div className="text-xs text-stone-400">
                 Player <span className="capitalize text-theme-primary font-bold">{activePawn}</span>'s hand list (
                 {playerHands[activePawn]?.length ?? 0} cards):
