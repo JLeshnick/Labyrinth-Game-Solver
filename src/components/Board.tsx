@@ -197,7 +197,7 @@ export const Board: React.FC<BoardProps> = ({
       {/* CSS Grid Layout */}
       <div 
         className={cn(
-          "grid gap-1.5 w-full h-full justify-items-stretch items-stretch transition-transform duration-300 overflow-visible",
+          "grid gap-0.5 xs:gap-1 md:gap-1.5 w-full h-full justify-items-stretch items-stretch transition-transform duration-300 overflow-visible",
           isGameStarted ? "grid-cols-9 grid-rows-9" : "grid-cols-7 grid-rows-7"
         )}
         style={{ transform: `rotate(${boardRotation}deg)` }}

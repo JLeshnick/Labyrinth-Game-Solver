@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import {
   FIXED_TILES_PRESETS,
   SHIFT_ARROWS,
@@ -8,8 +8,20 @@ import {
   EMPTY_PLAYER_TARGETS,
   EMPTY_OBTAINED_TREASURES,
 } from "../constants";
-import type { TileData, Rotation, Shape, PlayerMap, PawnPositions, AppGameState } from "../types";
-import { toSolverBoard, toSolverSpare, fromSolverGrid, fromSolverSpare } from "../lib/solverAdapter";
+import type {
+  TileData,
+  Rotation,
+  Shape,
+  PlayerMap,
+  PawnPositions,
+  AppGameState,
+} from "../types";
+import {
+  toSolverBoard,
+  toSolverSpare,
+  fromSolverGrid,
+  fromSolverSpare,
+} from "../lib/solverAdapter";
 import { executeSlideInGrid, isOppositeArrow, getReachableCells } from "../solver";
 import {
   playClickSound,
@@ -19,45 +31,29 @@ import {
   playPawnMoveSound,
 } from "../utils/audio";
 import { useLabyrinthHistory } from "./useLabyrinthHistory";
-import { useLabyrinthStorage, AUTOSAVE_KEY } from "./useLabyrinthStorage";
-import type { SaveSlot } from "./useLabyrinthStorage";
+  import { useLabyrinthStorage } from "./useLabyrinthStorage";
 
-type PawnStat = { tilesMoved: number; shiftsUsed: number; treasuresFound: number; totalTargets: number };
+type PawnStat = {
+  tilesMoved: number;
+  shiftsUsed: number;
+  treasuresFound: number;
+  totalTargets: number;
+};
 
 export interface UseLabyrinthGameOptions {
   isMuted: boolean;
   onToast: (msg: string) => void;
-  onNavigateToGame: () => void;
-  onCloseSettings: () => void;
-  onSaved: (time: number) => void;
 }
 
 export function useLabyrinthGame({
   isMuted,
   onToast,
-  onNavigateToGame,
-  onCloseSettings,
-  onSaved,
 }: UseLabyrinthGameOptions) {
   // ── Internal sub-hooks ───────────────────────────────────────────────────────
-  const {
-    pushStateToHistory,
-    resetHistory,
-    undo,
-    redo,
-    canUndo,
-    canRedo,
-  } = useLabyrinthHistory(null);
+  const { pushStateToHistory, resetHistory, undo, redo, canUndo, canRedo } =
+    useLabyrinthHistory(null);
 
-  const {
-    slots,
-    saveAutosave,
-    loadAutosave,
-    saveSlot,
-    loadSlot,
-    deleteSlot,
-    refreshSlots,
-  } = useLabyrinthStorage();
+  const { saveAutosave, loadAutosave } = useLabyrinthStorage();
 
   // ── Tile ID counter ──────────────────────────────────────────────────────────
   const tileCounter = useRef(0);
@@ -65,7 +61,9 @@ export function useLabyrinthGame({
 
   // ── Core game state ──────────────────────────────────────────────────────────
   const [grid, setGrid] = useState<(TileData | null)[][]>(() =>
-    Array(7).fill(null).map(() => Array(7).fill(null))
+    Array(7)
+      .fill(null)
+      .map(() => Array(7).fill(null))
   );
   const [looseTiles, setLooseTiles] = useState<TileData[]>([]);
   const [spareTile, setSpareTile] = useState<TileData>({
@@ -78,18 +76,25 @@ export function useLabyrinthGame({
   const [gameStartState, setGameStartState] = useState<AppGameState | null>(null);
   const [activePawn, setActivePawn] = useState<string>("red");
   const [lastShiftArrowId, setLastShiftArrowId] = useState<string | null>(null);
-  const [pawnPositions, setPawnPositions] = useState<PawnPositions>(DEFAULT_PAWN_POSITIONS);
-  const [playerHands, setPlayerHands] = useState<PlayerMap<string[]>>(EMPTY_PLAYER_HANDS);
-  const [playerActiveTargets, setPlayerActiveTargets] = useState<PlayerMap<string | null>>(EMPTY_PLAYER_TARGETS);
-  const [obtainedTreasures, setObtainedTreasures] = useState<PlayerMap<string[]>>(EMPTY_OBTAINED_TREASURES);
+  const [pawnPositions, setPawnPositions] =
+    useState<PawnPositions>(DEFAULT_PAWN_POSITIONS);
+  const [playerHands, setPlayerHands] =
+    useState<PlayerMap<string[]>>(EMPTY_PLAYER_HANDS);
+  const [playerActiveTargets, setPlayerActiveTargets] =
+    useState<PlayerMap<string | null>>(EMPTY_PLAYER_TARGETS);
+  const [obtainedTreasures, setObtainedTreasures] =
+    useState<PlayerMap<string[]>>(EMPTY_OBTAINED_TREASURES);
   const [pawnStats, setPawnStats] = useState<Record<string, PawnStat>>({});
-  const [customTargetCoords, setCustomTargetCoords] = useState<{ r: number; c: number } | null>(null);
-  const [currentSlotName, setCurrentSlotName] = useState<string | null>(null);
+  const [customTargetCoords, setCustomTargetCoords] = useState<{
+    r: number;
+    c: number;
+  } | null>(null);
   const totalShiftsRef = useRef(0);
 
   // Setup panel state (used by handleTileClick / handleCellClick)
   const [setupTab, setSetupTab] = useState<"tiles" | "pawns" | "cards">("tiles");
-  const [activePawnPlacementColor, setActivePawnPlacementColor] = useState<string>("red");
+  const [activePawnPlacementColor, setActivePawnPlacementColor] =
+    useState<string>("red");
 
   // Active players — stored in localStorage as a preference
   const [activePlayers, setActivePlayers] = useState<string[]>(() => {
@@ -101,27 +106,15 @@ export function useLabyrinthGame({
     }
   });
 
-  // ── Derived ──────────────────────────────────────────────────────────────────
-  const allSlots = useMemo<SaveSlot[]>(() => {
-    const list = [...slots];
-    const hasAutosave = localStorage.getItem(AUTOSAVE_KEY);
-    if (hasAutosave && !list.some((s) => s.key === AUTOSAVE_KEY)) {
-      list.unshift({
-        name: "Auto-Save (Default Slot)",
-        key: AUTOSAVE_KEY,
-        timestamp: Date.now(),
-      });
-    }
-    return list;
-  }, [slots]);
-
   // ── Effects ──────────────────────────────────────────────────────────────────
 
   // Sync activePlayers to localStorage; ensure activePawn is in the list
   useEffect(() => {
     try {
       localStorage.setItem("labyrinth_active_players", JSON.stringify(activePlayers));
-    } catch { /* storage full/blocked */ }
+    } catch {
+      /* storage full/blocked */
+    }
     if (!activePlayers.includes(activePawn)) {
       setActivePawn(activePlayers[0] || "red");
     }
@@ -137,15 +130,26 @@ export function useLabyrinthGame({
       activePawn,
       playerHands,
       playerActiveTargets,
+      obtainedTreasures,
       lastShiftArrowId,
       isGameStarted,
       gameStartState: gameStartState ?? null,
       pawnPositions,
     });
-    onSaved(Date.now());
     // Intentionally only react to board/card/pawn state changes — not every callback
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [grid, looseTiles, spareTile, activePawn, playerHands, playerActiveTargets, lastShiftArrowId, isGameStarted, pawnPositions]);
+  }, [
+    grid,
+    looseTiles,
+    spareTile,
+    activePawn,
+    playerHands,
+    playerActiveTargets,
+    obtainedTreasures,
+    lastShiftArrowId,
+    isGameStarted,
+    pawnPositions,
+  ]);
 
   // ── Solver adapter helpers ───────────────────────────────────────────────────
   const getSolverFormattedBoard = useCallback(
@@ -154,20 +158,44 @@ export function useLabyrinthGame({
     []
   );
 
-  const getSolverFormattedSpare = useCallback((tile: TileData) => toSolverSpare(tile), []);
+  const getSolverFormattedSpare = useCallback(
+    (tile: TileData) => toSolverSpare(tile),
+    []
+  );
 
   // ── Stat trackers ────────────────────────────────────────────────────────────
   const trackPawnMove = useCallback((pawnColor: string, tilesMoved: number = 1) => {
     setPawnStats((prev) => {
-      const current = prev[pawnColor] ?? { tilesMoved: 0, shiftsUsed: 0, treasuresFound: 0, totalTargets: 0 };
-      return { ...prev, [pawnColor]: { ...current, tilesMoved: current.tilesMoved + tilesMoved } };
+      const current =
+        prev[pawnColor] ?? {
+          tilesMoved: 0,
+          shiftsUsed: 0,
+          treasuresFound: 0,
+          totalTargets: 0,
+        };
+      return {
+        ...prev,
+        [pawnColor]: { ...current, tilesMoved: current.tilesMoved + tilesMoved },
+      };
     });
   }, []);
 
   const trackPawnTreasure = useCallback((pawnColor: string) => {
     setPawnStats((prev) => {
-      const current = prev[pawnColor] ?? { tilesMoved: 0, shiftsUsed: 0, treasuresFound: 0, totalTargets: 0 };
-      return { ...prev, [pawnColor]: { ...current, treasuresFound: current.treasuresFound + 1 } };
+      const current =
+        prev[pawnColor] ?? {
+          tilesMoved: 0,
+          shiftsUsed: 0,
+          treasuresFound: 0,
+          totalTargets: 0,
+        };
+      return {
+        ...prev,
+        [pawnColor]: {
+          ...current,
+          treasuresFound: current.treasuresFound + 1,
+        },
+      };
     });
   }, []);
 
@@ -180,7 +208,9 @@ export function useLabyrinthGame({
 
   // ── Board initialization ─────────────────────────────────────────────────────
   const resetBoardToInitialPresets = useCallback(() => {
-    const initialGrid: (TileData | null)[][] = Array(7).fill(null).map(() => Array(7).fill(null));
+    const initialGrid: (TileData | null)[][] = Array(7)
+      .fill(null)
+      .map(() => Array(7).fill(null));
     Object.entries(FIXED_TILES_PRESETS).forEach(([coord, tilePartial]) => {
       const [x, y] = coord.split(",").map(Number);
       initialGrid[y][x] = {
@@ -200,10 +230,18 @@ export function useLabyrinthGame({
     setPlayerHands(EMPTY_PLAYER_HANDS);
     setPlayerActiveTargets(EMPTY_PLAYER_TARGETS);
     setObtainedTreasures(EMPTY_OBTAINED_TREASURES);
+    setCustomTargetCoords(null);
+    setPawnStats({});
+    totalShiftsRef.current = 0;
 
     resetHistory({
       board: initialGrid,
-      spareTile: { id: "spare_initial", shape: "straight" as Shape, rotation: 0 as Rotation, isFixed: false },
+      spareTile: {
+        id: "spare_initial",
+        shape: "straight" as Shape,
+        rotation: 0 as Rotation,
+        isFixed: false,
+      },
       activePawn: "red",
       playerHands: EMPTY_PLAYER_HANDS,
       playerActiveTargets: EMPTY_PLAYER_TARGETS,
@@ -214,176 +252,45 @@ export function useLabyrinthGame({
   }, [resetHistory]);
 
   // ── hydrate from autosave on mount ───────────────────────────────────────────
-  const hydrateFromSaved = useCallback((saved: Partial<AppGameState>, fallbackSpare: TileData) => {
-    setGrid(saved.board ?? []);
-    setLooseTiles(saved.looseTiles || []);
-    setSpareTile(saved.spareTile ?? fallbackSpare);
-    setActivePawn(saved.activePawn || "red");
-    setPlayerHands(saved.playerHands || EMPTY_PLAYER_HANDS);
-    setPlayerActiveTargets(saved.playerActiveTargets || EMPTY_PLAYER_TARGETS);
-    setObtainedTreasures(saved.obtainedTreasures || EMPTY_OBTAINED_TREASURES);
-    setLastShiftArrowId(saved.lastShiftArrowId || null);
-    setIsGameStarted(saved.isGameStarted || false);
-    setGameStartState(saved.gameStartState || null);
-    setPawnPositions(saved.pawnPositions || DEFAULT_PAWN_POSITIONS);
+  const hydrateFromSaved = useCallback(
+    (saved: Partial<AppGameState>, fallbackSpare: TileData) => {
+      setGrid(saved.board ?? []);
+      setLooseTiles(saved.looseTiles || []);
+      setSpareTile(saved.spareTile ?? fallbackSpare);
+      setActivePawn(saved.activePawn || "red");
+      setPlayerHands(saved.playerHands || EMPTY_PLAYER_HANDS);
+      setPlayerActiveTargets(saved.playerActiveTargets || EMPTY_PLAYER_TARGETS);
+      setObtainedTreasures(saved.obtainedTreasures || EMPTY_OBTAINED_TREASURES);
+      setLastShiftArrowId(saved.lastShiftArrowId || null);
+      setIsGameStarted(saved.isGameStarted || false);
+      setGameStartState(saved.gameStartState || null);
+      setPawnPositions(saved.pawnPositions || DEFAULT_PAWN_POSITIONS);
+      setCustomTargetCoords(null);
+      totalShiftsRef.current = 0;
 
-    resetHistory({
-      board: saved.board ?? [],
-      spareTile: saved.spareTile ?? fallbackSpare,
-      lastShiftArrowId: saved.lastShiftArrowId || null,
-      activePawn: saved.activePawn || "red",
-      playerHands: saved.playerHands || EMPTY_PLAYER_HANDS,
-      playerActiveTargets: saved.playerActiveTargets || EMPTY_PLAYER_TARGETS,
-      obtainedTreasures: saved.obtainedTreasures || EMPTY_OBTAINED_TREASURES,
-      pawnPositions: saved.pawnPositions,
-    });
-  }, [resetHistory]);
+      resetHistory({
+        board: saved.board ?? [],
+        spareTile: saved.spareTile ?? fallbackSpare,
+        lastShiftArrowId: saved.lastShiftArrowId || null,
+        activePawn: saved.activePawn || "red",
+        playerHands: saved.playerHands || EMPTY_PLAYER_HANDS,
+        playerActiveTargets: saved.playerActiveTargets || EMPTY_PLAYER_TARGETS,
+        obtainedTreasures: saved.obtainedTreasures || EMPTY_OBTAINED_TREASURES,
+        pawnPositions: saved.pawnPositions,
+      });
+    },
+    [resetHistory]
+  );
 
   // ── Game actions ─────────────────────────────────────────────────────────────
-
-  const handleNewGame = useCallback(async (name?: string) => {
-    if (!isMuted) playClickSound();
-    const finalName = (typeof name === "string" && name.trim()) ? name.trim() : `Game — ${new Date().toLocaleString()}`;
-
-    const initialGrid: (TileData | null)[][] = Array(7).fill(null).map(() => Array(7).fill(null));
-    Object.entries(FIXED_TILES_PRESETS).forEach(([coord, tilePartial]) => {
-      const [x, y] = coord.split(",").map(Number);
-      initialGrid[y][x] = {
-        id: `fixed_${x}_${y}`,
-        shape: tilePartial.shape!,
-        rotation: tilePartial.rotation!,
-        treasure: tilePartial.treasure,
-        isFixed: true,
-        color: tilePartial.color,
-      };
-    });
-    const pool = generateMovablePool();
-
-    setGrid(initialGrid);
-    setLooseTiles(pool);
-    setPawnPositions(DEFAULT_PAWN_POSITIONS);
-    setIsGameStarted(false);
-    setLastShiftArrowId(null);
-    setPlayerHands(EMPTY_PLAYER_HANDS);
-    setPlayerActiveTargets(EMPTY_PLAYER_TARGETS);
-
-    resetHistory({
-      board: initialGrid,
-      spareTile: { id: "spare_initial", shape: "straight" as Shape, rotation: 0 as Rotation, isFixed: false },
-      activePawn: "red",
-      playerHands: EMPTY_PLAYER_HANDS,
-      playerActiveTargets: EMPTY_PLAYER_TARGETS,
-      obtainedTreasures: EMPTY_OBTAINED_TREASURES,
-      lastShiftArrowId: null,
-      pawnPositions: DEFAULT_PAWN_POSITIONS,
-    });
-
-    setCurrentSlotName(finalName);
-    const success = await saveSlot(finalName, {
-      board: initialGrid,
-      spareTile: { id: "spare_initial", shape: "straight" as Shape, rotation: 0 as Rotation, isFixed: false },
-      looseTiles: pool,
-      activePawn: "red",
-      playerHands: EMPTY_PLAYER_HANDS,
-      playerActiveTargets: EMPTY_PLAYER_TARGETS,
-      obtainedTreasures: EMPTY_OBTAINED_TREASURES,
-      lastShiftArrowId: null,
-      isGameStarted: false,
-      gameStartState: null,
-      pawnPositions: DEFAULT_PAWN_POSITIONS,
-    });
-    onSaved(Date.now());
-    onToast(success ? `Created and saved "${finalName}"` : `Created "${finalName}" (autosaved)`);
-    onNavigateToGame();
-  }, [isMuted, saveSlot, resetHistory, onToast, onNavigateToGame, onSaved]);
-
-  const handleLoadSlot = useCallback(async (slotKey: string, name: string) => {
-    if (!isMuted) playClickSound();
-    const savedState = await loadSlot(slotKey);
-    if (!savedState) return;
-
-    setGrid(savedState.board ?? []);
-    setSpareTile(savedState.spareTile ?? spareTile);
-    setLooseTiles(savedState.looseTiles || []);
-    setActivePawn(savedState.activePawn || "red");
-    setPlayerHands(savedState.playerHands || EMPTY_PLAYER_HANDS);
-    setPlayerActiveTargets(savedState.playerActiveTargets || EMPTY_PLAYER_TARGETS);
-    setObtainedTreasures(savedState.obtainedTreasures || EMPTY_OBTAINED_TREASURES);
-    setLastShiftArrowId(savedState.lastShiftArrowId || null);
-    setIsGameStarted(savedState.isGameStarted || false);
-    setGameStartState(savedState.gameStartState || null);
-    setPawnPositions(savedState.pawnPositions || DEFAULT_PAWN_POSITIONS);
-
-    resetHistory({
-      board: savedState.board ?? [],
-      spareTile: savedState.spareTile ?? spareTile,
-      lastShiftArrowId: savedState.lastShiftArrowId || null,
-      activePawn: savedState.activePawn || "red",
-      playerHands: savedState.playerHands || EMPTY_PLAYER_HANDS,
-      playerActiveTargets: savedState.playerActiveTargets || EMPTY_PLAYER_TARGETS,
-      obtainedTreasures: savedState.obtainedTreasures || EMPTY_OBTAINED_TREASURES,
-      pawnPositions: savedState.pawnPositions,
-    });
-
-    setCurrentSlotName(name);
-    const slot = allSlots.find((s) => s.key === slotKey);
-    onSaved(slot?.timestamp ?? Date.now());
-    onNavigateToGame();
-    onCloseSettings();
-    onToast(`Loaded save slot: ${name}`);
-  }, [isMuted, loadSlot, allSlots, resetHistory, spareTile, onToast, onNavigateToGame, onCloseSettings, onSaved]);
-
-  const handleSaveActiveGame = useCallback(async () => {
-    if (!isMuted) playClickSound();
-    if (!currentSlotName) {
-      // No active slot — caller should open save dialog
-      return false;
-    }
-    const currentAppState: AppGameState = {
-      board: grid,
-      spareTile,
-      looseTiles,
-      activePawn,
-      playerHands,
-      playerActiveTargets,
-      obtainedTreasures,
-      lastShiftArrowId,
-      isGameStarted,
-      gameStartState,
-      pawnPositions,
-    };
-    // Find existing slot by name and overwrite, or create new
-    const existingSlot = slots.find((s) => s.name === currentSlotName);
-    if (existingSlot) {
-      try {
-        localStorage.setItem(existingSlot.key, JSON.stringify(currentAppState));
-        onSaved(Date.now());
-        onToast(`Saved "${currentSlotName}" successfully!`);
-        return true;
-      } catch {
-        onToast("Save failed — storage may be full.");
-        return false;
-      }
-    }
-    const success = await saveSlot(currentSlotName, currentAppState);
-    if (success) {
-      onSaved(Date.now());
-      onToast(`Saved "${currentSlotName}" successfully!`);
-      return true;
-    }
-    onToast("Save failed — storage may be full.");
-    return false;
-  }, [
-    isMuted, currentSlotName, grid, spareTile, looseTiles, activePawn,
-    playerHands, playerActiveTargets, obtainedTreasures, lastShiftArrowId,
-    isGameStarted, gameStartState, pawnPositions, slots, saveSlot, onToast, onSaved,
-  ]);
 
   const handleRandomizeBoard = useCallback(() => {
     if (isGameStarted) return;
     if (!isMuted) playClickSound();
 
-    const initialGrid: (TileData | null)[][] = Array(7).fill(null).map(() => Array(7).fill(null));
+    const initialGrid: (TileData | null)[][] = Array(7)
+      .fill(null)
+      .map(() => Array(7).fill(null));
     Object.entries(FIXED_TILES_PRESETS).forEach(([coord, tilePartial]) => {
       const [x, y] = coord.split(",").map(Number);
       initialGrid[y][x] = {
@@ -408,181 +315,382 @@ export function useLabyrinthGame({
         if (x % 2 === 0 && y % 2 === 0) continue;
         const tile = pool.pop();
         if (tile) {
-          initialGrid[y][x] = { ...tile, rotation: rotations[Math.floor(Math.random() * 4)] };
+          initialGrid[y][x] = {
+            ...tile,
+            rotation: rotations[Math.floor(Math.random() * 4)],
+          };
         }
       }
     }
 
     const remainingSpare = pool.pop();
     if (remainingSpare) {
-      const finalSpare = { ...remainingSpare, rotation: rotations[Math.floor(Math.random() * 4)] };
+      const finalSpare = {
+        ...remainingSpare,
+        rotation: rotations[Math.floor(Math.random() * 4)],
+      };
       setSpareTile(finalSpare);
       setLooseTiles([finalSpare]);
       setGrid(initialGrid);
-      pushStateToHistory(initialGrid, finalSpare, null, activePawn, playerHands, playerActiveTargets, obtainedTreasures, pawnPositions);
+      setCustomTargetCoords(null);
+      setLastShiftArrowId(null);
+      setGameStartState(null);
+      totalShiftsRef.current = 0;
+
+      pushStateToHistory(
+        initialGrid,
+        finalSpare,
+        null,
+        activePawn,
+        playerHands,
+        playerActiveTargets,
+        obtainedTreasures,
+        pawnPositions
+      );
+      saveAutosave({
+        board: initialGrid,
+        looseTiles: [finalSpare],
+        spareTile: finalSpare,
+        activePawn,
+        playerHands,
+        playerActiveTargets,
+        obtainedTreasures,
+        lastShiftArrowId: null,
+        isGameStarted: false,
+        gameStartState: null,
+        pawnPositions,
+      });
       onToast("Board Randomized Successfully!");
     }
-  }, [isGameStarted, isMuted, activePawn, playerHands, playerActiveTargets, obtainedTreasures, pawnPositions, pushStateToHistory, onToast]);
+  }, [
+    isGameStarted,
+    isMuted,
+    activePawn,
+    playerHands,
+    playerActiveTargets,
+    obtainedTreasures,
+    pawnPositions,
+    pushStateToHistory,
+    saveAutosave,
+    onToast,
+  ]);
 
-  const handleTileClick = useCallback((id: string) => {
-    if (id === spareTile.id) {
-      if (!isMuted) playRotateSound();
-      setSpareTile((prev) => ({ ...prev, rotation: ((prev.rotation + 90) % 360) as Rotation }));
-      return;
-    }
-    if (isGameStarted) return;
+  const handleTileClick = useCallback(
+    (id: string) => {
+      if (id === spareTile.id) {
+        if (!isMuted) playRotateSound();
+        setSpareTile((prev) => ({
+          ...prev,
+          rotation: ((prev.rotation + 90) % 360) as Rotation,
+        }));
+        return;
+      }
+      if (isGameStarted) return;
 
-    if (setupTab === "pawns") {
-      for (let r = 0; r < 7; r++) {
-        for (let c = 0; c < 7; c++) {
-          if (grid[r][c]?.id === id) {
-            if (!isMuted) playClickSound();
-            setPawnPositions((prev) => ({ ...prev, [activePawnPlacementColor]: { r, c } }));
-            return;
+      if (setupTab === "pawns") {
+        for (let r = 0; r < 7; r++) {
+          for (let c = 0; c < 7; c++) {
+            if (grid[r][c]?.id === id) {
+              if (!isMuted) playClickSound();
+              setPawnPositions((prev) => ({
+                ...prev,
+                [activePawnPlacementColor]: { r, c },
+              }));
+              return;
+            }
           }
         }
+        return;
       }
-      return;
-    }
 
-    if (!isMuted) playRotateSound();
-    setLooseTiles((prev) => prev.map((t) => t.id === id ? { ...t, rotation: ((t.rotation + 90) % 360) as Rotation } : t));
-    setGrid((prev) => prev.map((row) => row.map((tile) =>
-      tile && tile.id === id && !tile.isFixed ? { ...tile, rotation: ((tile.rotation + 90) % 360) as Rotation } : tile
-    )));
-  }, [spareTile.id, isGameStarted, setupTab, isMuted, grid, activePawnPlacementColor]);
+      if (!isMuted) playRotateSound();
+      setLooseTiles((prev) =>
+        prev.map((t) =>
+          t.id === id
+            ? { ...t, rotation: ((t.rotation + 90) % 360) as Rotation }
+            : t
+        )
+      );
+      setGrid((prev) =>
+        prev.map((row) =>
+          row.map((tile) =>
+            tile && tile.id === id && !tile.isFixed
+              ? { ...tile, rotation: ((tile.rotation + 90) % 360) as Rotation }
+              : tile
+          )
+        )
+      );
+    },
+    [spareTile.id, isGameStarted, setupTab, isMuted, grid, activePawnPlacementColor]
+  );
 
-  const handleCellClick = useCallback((r: number, c: number) => {
-    if (!isGameStarted) {
-      if (setupTab === "pawns") {
-        if (!isMuted) playClickSound();
-        setPawnPositions((prev) => ({ ...prev, [activePawnPlacementColor]: { r, c } }));
-        onToast(`Placed ${activePawnPlacementColor.toUpperCase()} pawn at (${r}, ${c})`);
+  const handleCellClick = useCallback(
+    (r: number, c: number) => {
+      if (!isGameStarted) {
+        if (setupTab === "pawns") {
+          if (!isMuted) playClickSound();
+          setPawnPositions((prev) => ({
+            ...prev,
+            [activePawnPlacementColor]: { r, c },
+          }));
+          onToast(`Placed ${activePawnPlacementColor.toUpperCase()} pawn at (${r}, ${c})`);
+        }
+        return;
       }
-      return;
-    }
 
-    const startCoord = pawnPositions[activePawn];
-    if (!startCoord || (startCoord.r === r && startCoord.c === c)) return;
+      const startCoord = pawnPositions[activePawn];
+      if (!startCoord || (startCoord.r === r && startCoord.c === c)) return;
 
-    const solverBoard = getSolverFormattedBoard(grid, pawnPositions);
-    const { cells } = getReachableCells(solverBoard, startCoord.r, startCoord.c);
-    const reachable = cells.some((cell: { r: number; c: number }) => cell.r === r && cell.c === c);
+      const solverBoard = getSolverFormattedBoard(grid, pawnPositions);
+      const { cells } = getReachableCells(solverBoard, startCoord.r, startCoord.c);
+      const reachable = cells.some(
+        (cell: { r: number; c: number }) => cell.r === r && cell.c === c
+      );
 
-    if (reachable) {
-      if (!isMuted) playPawnMoveSound();
-      const nextPositions = { ...pawnPositions, [activePawn]: { r, c } };
+      if (reachable) {
+        if (!isMuted) playPawnMoveSound();
+        const nextPositions = { ...pawnPositions, [activePawn]: { r, c } };
+        setPawnPositions(nextPositions);
+        trackPawnMove(activePawn, 1);
+
+        const activeTargetCard = playerActiveTargets[activePawn];
+        const landedTreasure = grid[r][c]?.treasure;
+        let nextPlayerHands = playerHands;
+        let nextPlayerActiveTargets = playerActiveTargets;
+        let nextObtainedTreasures = obtainedTreasures;
+
+        if (landedTreasure && landedTreasure.id === activeTargetCard) {
+          if (!isMuted) playSuccessSound();
+          const nextHand = playerHands[activePawn].filter(
+            (tid) => tid !== activeTargetCard
+          );
+          nextPlayerHands = { ...playerHands, [activePawn]: nextHand };
+          nextPlayerActiveTargets = {
+            ...playerActiveTargets,
+            [activePawn]: nextHand.length > 0 ? nextHand[0] : null,
+          };
+          nextObtainedTreasures = {
+            ...obtainedTreasures,
+            [activePawn]: [
+              ...(obtainedTreasures[activePawn] || []),
+              activeTargetCard,
+            ],
+          };
+          setPlayerHands(nextPlayerHands);
+          setPlayerActiveTargets(nextPlayerActiveTargets);
+          setObtainedTreasures(nextObtainedTreasures);
+          trackPawnTreasure(activePawn);
+          onToast(`Goal Achieved: Found ${landedTreasure.name}! 🏆`);
+        } else {
+          onToast(`Moved ${activePawn.toUpperCase()} pawn to (${r}, ${c})`);
+        }
+
+        pushStateToHistory(
+          grid,
+          spareTile,
+          lastShiftArrowId,
+          activePawn,
+          nextPlayerHands,
+          nextPlayerActiveTargets,
+          nextObtainedTreasures,
+          nextPositions
+        );
+        saveAutosave({
+          board: grid,
+          looseTiles: [],
+          spareTile,
+          activePawn,
+          playerHands: nextPlayerHands,
+          playerActiveTargets: nextPlayerActiveTargets,
+          obtainedTreasures: nextObtainedTreasures,
+          lastShiftArrowId,
+          isGameStarted,
+          gameStartState,
+          pawnPositions: nextPositions,
+        });
+
+        if (!landedTreasure || landedTreasure.id !== activeTargetCard) {
+          switchToNextPawn();
+        }
+      } else {
+        if (customTargetCoords && customTargetCoords.r === r && customTargetCoords.c === c) {
+          setCustomTargetCoords(null);
+          onToast("Cleared custom target");
+        } else {
+          setCustomTargetCoords({ r, c });
+          onToast(`Custom target set at (${r}, ${c}). Solving path...`);
+        }
+      }
+    },
+    [
+      isGameStarted,
+      setupTab,
+      isMuted,
+      activePawnPlacementColor,
+      pawnPositions,
+      activePawn,
+      grid,
+      playerHands,
+      playerActiveTargets,
+      obtainedTreasures,
+      spareTile,
+      lastShiftArrowId,
+      gameStartState,
+      customTargetCoords,
+      getSolverFormattedBoard,
+      trackPawnMove,
+      trackPawnTreasure,
+      pushStateToHistory,
+      saveAutosave,
+      switchToNextPawn,
+      onToast,
+    ]
+  );
+
+  const handleSlide = useCallback(
+    (arrowId: string) => {
+      if (lastShiftArrowId && isOppositeArrow(arrowId, lastShiftArrowId)) {
+        onToast("Can't reverse the shift action immediately!");
+        return;
+      }
+      if (!isMuted) playSlideSound();
+
+      const arrow = SHIFT_ARROWS.find((a) => a.id === arrowId);
+      if (!arrow) return;
+
+      const solverBoard = getSolverFormattedBoard(grid, pawnPositions);
+      const { newSpare } = executeSlideInGrid(
+        solverBoard,
+        getSolverFormattedSpare(spareTile),
+        arrow.type,
+        arrow.index,
+        arrow.dir
+      );
+
+      const nextGrid = fromSolverGrid(grid, solverBoard, nextTileId);
+      const nextSpare = fromSolverSpare(newSpare, String(Date.now()));
+      const nextPositions: PawnPositions = { ...pawnPositions };
+
+      Object.entries(pawnPositions).forEach(([color, pos]) => {
+        let nr = pos.r,
+          nc = pos.c;
+        if (arrow.type === "row" && arrow.index === pos.r) {
+          nc =
+            arrow.dir === "left"
+              ? pos.c === 6
+                ? 0
+                : pos.c + 1
+              : pos.c === 0
+              ? 6
+              : pos.c - 1;
+        } else if (arrow.type === "col" && arrow.index === pos.c) {
+          nr =
+            arrow.dir === "top"
+              ? pos.r === 6
+                ? 0
+                : pos.r + 1
+              : pos.r === 0
+              ? 6
+              : pos.r - 1;
+        }
+        nextPositions[color] = { r: nr, c: nc };
+      });
+
       setPawnPositions(nextPositions);
-      trackPawnMove(activePawn, 1);
+      setGrid(nextGrid);
+      setSpareTile(nextSpare);
+      setLastShiftArrowId(arrowId);
 
-      const activeTargetCard = playerActiveTargets[activePawn];
-      const landedTreasure = grid[r][c]?.treasure;
-      let nextPlayerHands = playerHands;
-      let nextPlayerActiveTargets = playerActiveTargets;
-      let nextObtainedTreasures = obtainedTreasures;
+      pushStateToHistory(
+        nextGrid,
+        nextSpare,
+        arrowId,
+        activePawn,
+        playerHands,
+        playerActiveTargets,
+        obtainedTreasures,
+        nextPositions
+      );
+      saveAutosave({
+        board: nextGrid,
+        looseTiles: [],
+        spareTile: nextSpare,
+        activePawn,
+        playerHands,
+        playerActiveTargets,
+        obtainedTreasures,
+        lastShiftArrowId: arrowId,
+        isGameStarted,
+        gameStartState,
+        pawnPositions: nextPositions,
+      });
+    },
+    [
+      lastShiftArrowId,
+      isMuted,
+      grid,
+      pawnPositions,
+      spareTile,
+      activePawn,
+      playerHands,
+      playerActiveTargets,
+      obtainedTreasures,
+      isGameStarted,
+      gameStartState,
+      getSolverFormattedBoard,
+      getSolverFormattedSpare,
+      nextTileId,
+      pushStateToHistory,
+      saveAutosave,
+      onToast,
+    ]
+  );
 
-      if (landedTreasure && landedTreasure.id === activeTargetCard) {
-        if (!isMuted) playSuccessSound();
-        const nextHand = playerHands[activePawn].filter((tid) => tid !== activeTargetCard);
-        nextPlayerHands = { ...playerHands, [activePawn]: nextHand };
-        nextPlayerActiveTargets = { ...playerActiveTargets, [activePawn]: nextHand.length > 0 ? nextHand[0] : null };
-        nextObtainedTreasures = { ...obtainedTreasures, [activePawn]: [...(obtainedTreasures[activePawn] || []), activeTargetCard] };
-        setPlayerHands(nextPlayerHands);
-        setPlayerActiveTargets(nextPlayerActiveTargets);
-        setObtainedTreasures(nextObtainedTreasures);
-        trackPawnTreasure(activePawn);
-        onToast(`Goal Achieved: Found ${landedTreasure.name}! 🏆`);
-      } else {
-        onToast(`Moved ${activePawn.toUpperCase()} pawn to (${r}, ${c})`);
+  const handleAddCard = useCallback(
+    (treasureId: string) => {
+      if (playerHands[activePawn].includes(treasureId)) return;
+      const nextHand = [...playerHands[activePawn], treasureId];
+      setPlayerHands((prev) => ({ ...prev, [activePawn]: nextHand }));
+      if (!playerActiveTargets[activePawn]) {
+        setPlayerActiveTargets((prev) => ({ ...prev, [activePawn]: treasureId }));
       }
+      setPawnStats((prev) => {
+        const current =
+          prev[activePawn] ?? {
+            tilesMoved: 0,
+            shiftsUsed: 0,
+            treasuresFound: 0,
+            totalTargets: 0,
+          };
+        return {
+          ...prev,
+          [activePawn]: { ...current, totalTargets: current.totalTargets + 1 },
+        };
+      });
+    },
+    [activePawn, playerHands, playerActiveTargets]
+  );
 
-      pushStateToHistory(grid, spareTile, lastShiftArrowId, activePawn, nextPlayerHands, nextPlayerActiveTargets, nextObtainedTreasures, nextPositions);
-      saveAutosave({ board: grid, looseTiles: [], spareTile, activePawn, playerHands: nextPlayerHands, playerActiveTargets: nextPlayerActiveTargets, obtainedTreasures: nextObtainedTreasures, lastShiftArrowId, isGameStarted, gameStartState, pawnPositions: nextPositions });
-      onSaved(Date.now());
+  const handleRemoveCard = useCallback(
+    (treasureId: string) => {
+      const nextHand = playerHands[activePawn].filter((id) => id !== treasureId);
+      setPlayerHands((prev) => ({ ...prev, [activePawn]: nextHand }));
+      setPlayerActiveTargets((prev) => ({
+        ...prev,
+        [activePawn]: nextHand.length > 0 ? nextHand[0] : null,
+      }));
+    },
+    [activePawn, playerHands]
+  );
 
-      if (!landedTreasure || landedTreasure.id !== activeTargetCard) switchToNextPawn();
-    } else {
-      if (customTargetCoords && customTargetCoords.r === r && customTargetCoords.c === c) {
-        setCustomTargetCoords(null);
-        onToast("Cleared custom target");
-      } else {
-        setCustomTargetCoords({ r, c });
-        onToast(`Custom target set at (${r}, ${c}). Solving path...`);
-      }
-    }
-  }, [
-    isGameStarted, setupTab, isMuted, activePawnPlacementColor, pawnPositions, activePawn,
-    grid, playerHands, playerActiveTargets, obtainedTreasures, spareTile, lastShiftArrowId,
-    gameStartState, customTargetCoords, getSolverFormattedBoard, trackPawnMove, trackPawnTreasure,
-    pushStateToHistory, saveAutosave, switchToNextPawn, onToast, onSaved,
-  ]);
-
-  const handleSlide = useCallback((arrowId: string) => {
-    if (lastShiftArrowId && isOppositeArrow(arrowId, lastShiftArrowId)) {
-      onToast("Can't reverse the shift action immediately!");
-      return;
-    }
-    if (!isMuted) playSlideSound();
-
-    const arrow = SHIFT_ARROWS.find((a) => a.id === arrowId);
-    if (!arrow) return;
-
-    const solverBoard = getSolverFormattedBoard(grid, pawnPositions);
-    const { newSpare } = executeSlideInGrid(solverBoard, getSolverFormattedSpare(spareTile), arrow.type, arrow.index, arrow.dir);
-
-    const nextGrid = fromSolverGrid(grid, solverBoard, nextTileId);
-    const nextSpare = fromSolverSpare(newSpare, String(Date.now()));
-    const nextPositions: PawnPositions = { ...pawnPositions };
-
-    Object.entries(pawnPositions).forEach(([color, pos]) => {
-      let nr = pos.r, nc = pos.c;
-      if (arrow.type === "row" && arrow.index === pos.r) {
-        nc = arrow.dir === "left" ? (pos.c === 6 ? 0 : pos.c + 1) : (pos.c === 0 ? 6 : pos.c - 1);
-      } else if (arrow.type === "col" && arrow.index === pos.c) {
-        nr = arrow.dir === "top" ? (pos.r === 6 ? 0 : pos.r + 1) : (pos.r === 0 ? 6 : pos.r - 1);
-      }
-      nextPositions[color] = { r: nr, c: nc };
-    });
-
-    setPawnPositions(nextPositions);
-    setGrid(nextGrid);
-    setSpareTile(nextSpare);
-    setLastShiftArrowId(arrowId);
-
-    pushStateToHistory(nextGrid, nextSpare, arrowId, activePawn, playerHands, playerActiveTargets, obtainedTreasures, nextPositions);
-    saveAutosave({ board: nextGrid, looseTiles: [], spareTile: nextSpare, activePawn, playerHands, playerActiveTargets, obtainedTreasures, lastShiftArrowId: arrowId, isGameStarted, gameStartState, pawnPositions: nextPositions });
-    onSaved(Date.now());
-  }, [
-    lastShiftArrowId, isMuted, grid, pawnPositions, spareTile, activePawn,
-    playerHands, playerActiveTargets, obtainedTreasures, isGameStarted, gameStartState,
-    getSolverFormattedBoard, getSolverFormattedSpare, nextTileId,
-    pushStateToHistory, saveAutosave, onToast, onSaved,
-  ]);
-
-  const handleAddCard = useCallback((treasureId: string) => {
-    if (playerHands[activePawn].includes(treasureId)) return;
-    const nextHand = [...playerHands[activePawn], treasureId];
-    setPlayerHands((prev) => ({ ...prev, [activePawn]: nextHand }));
-    if (!playerActiveTargets[activePawn]) {
-      setPlayerActiveTargets((prev) => ({ ...prev, [activePawn]: treasureId }));
-    }
-    setPawnStats((prev) => {
-      const current = prev[activePawn] ?? { tilesMoved: 0, shiftsUsed: 0, treasuresFound: 0, totalTargets: 0 };
-      return { ...prev, [activePawn]: { ...current, totalTargets: current.totalTargets + 1 } };
-    });
-  }, [activePawn, playerHands, playerActiveTargets]);
-
-  const handleRemoveCard = useCallback((treasureId: string) => {
-    const nextHand = playerHands[activePawn].filter((id) => id !== treasureId);
-    setPlayerHands((prev) => ({ ...prev, [activePawn]: nextHand }));
-    setPlayerActiveTargets((prev) => ({ ...prev, [activePawn]: nextHand.length > 0 ? nextHand[0] : null }));
-  }, [activePawn, playerHands]);
-
-  const handleSelectTargetTreasure = useCallback((pawnColor: string, treasureId: string | null) => {
-    setPlayerActiveTargets((prev) => ({ ...prev, [pawnColor]: treasureId }));
-    setPlayerHands((prev) => ({ ...prev, [pawnColor]: treasureId ? [treasureId] : [] }));
-    setCustomTargetCoords(null);
-  }, []);
+  const handleSelectTargetTreasure = useCallback(
+    (pawnColor: string, treasureId: string | null) => {
+      setPlayerActiveTargets((prev) => ({ ...prev, [pawnColor]: treasureId }));
+      setPlayerHands((prev) => ({ ...prev, [pawnColor]: treasureId ? [treasureId] : [] }));
+      setCustomTargetCoords(null);
+    },
+    []
+  );
 
   const handleStartGame = useCallback(() => {
     if (looseTiles.length !== 1) {
@@ -609,13 +717,44 @@ export function useLabyrinthGame({
     setLooseTiles([]);
     setIsGameStarted(true);
     setGameStartState(startState);
-    pushStateToHistory(grid, looseTiles[0], null, activePawn, playerHands, playerActiveTargets, obtainedTreasures);
-    saveAutosave({ board: grid, looseTiles: [], spareTile: looseTiles[0], activePawn, playerHands, playerActiveTargets, lastShiftArrowId: null, isGameStarted: true, gameStartState: startState, pawnPositions });
-    onSaved(Date.now());
+    setCustomTargetCoords(null);
+    totalShiftsRef.current = 0;
+
+    pushStateToHistory(
+      grid,
+      looseTiles[0],
+      null,
+      activePawn,
+      playerHands,
+      playerActiveTargets,
+      obtainedTreasures
+    );
+    saveAutosave({
+      board: grid,
+      looseTiles: [],
+      spareTile: looseTiles[0],
+      activePawn,
+      playerHands,
+      playerActiveTargets,
+      obtainedTreasures,
+      lastShiftArrowId: null,
+      isGameStarted: true,
+      gameStartState: startState,
+      pawnPositions,
+    });
     onToast("Game started! Slide the spare tile and move your pawn to targets.");
   }, [
-    looseTiles, isMuted, grid, activePawn, playerHands, playerActiveTargets,
-    obtainedTreasures, pawnPositions, pushStateToHistory, saveAutosave, onToast, onSaved,
+    looseTiles,
+    isMuted,
+    grid,
+    activePawn,
+    playerHands,
+    playerActiveTargets,
+    obtainedTreasures,
+    pawnPositions,
+    pushStateToHistory,
+    saveAutosave,
+    onToast,
   ]);
 
   const handleEndGame = useCallback(() => {
@@ -625,59 +764,146 @@ export function useLabyrinthGame({
     setLooseTiles([gameStartState.spareTile]);
     setIsGameStarted(false);
     setLastShiftArrowId(null);
-  }, [gameStartState, isMuted]);
+    setCustomTargetCoords(null);
+    totalShiftsRef.current = 0;
 
-  const handleExecuteSolution = useCallback((path: { arrowId: string; rotation: number; endPos: { r: number; c: number } }[]) => {
-    if (path.length === 0) return;
-    const turn1 = path[0];
-    const arrow = SHIFT_ARROWS.find((a) => a.id === turn1.arrowId);
-    if (!arrow) return;
-    if (!isMuted) playSlideSound();
-
-    const rotDegrees = ([0, 90, 180, 270] as Rotation[])[turn1.rotation];
-    const solverBoard = getSolverFormattedBoard(grid, pawnPositions);
-    const { newSpare } = executeSlideInGrid(solverBoard, getSolverFormattedSpare({ ...spareTile, rotation: rotDegrees }), arrow.type, arrow.index, arrow.dir);
-
-    const nextGrid = fromSolverGrid(grid, solverBoard, nextTileId);
-    const nextSpare = fromSolverSpare(newSpare, String(Date.now()));
-    const nextPositions = { ...pawnPositions, [activePawn]: { r: turn1.endPos.r, c: turn1.endPos.c } };
-
-    setGrid(nextGrid);
-    setSpareTile(nextSpare);
-    setPawnPositions(nextPositions);
-    setLastShiftArrowId(turn1.arrowId);
-    totalShiftsRef.current += 1;
-    trackPawnMove(activePawn, 1);
-
-    const activeTargetCard = playerActiveTargets[activePawn];
-    const landedTreasure = nextGrid[turn1.endPos.r][turn1.endPos.c]?.treasure;
-    let nextPlayerHands = playerHands;
-    let nextPlayerActiveTargets = playerActiveTargets;
-    let nextObtainedTreasures = obtainedTreasures;
-
-    if (landedTreasure && landedTreasure.id === activeTargetCard) {
-      if (!isMuted) playSuccessSound();
-      const nextHand = playerHands[activePawn].filter((tid) => tid !== activeTargetCard);
-      nextPlayerHands = { ...playerHands, [activePawn]: nextHand };
-      nextPlayerActiveTargets = { ...playerActiveTargets, [activePawn]: nextHand.length > 0 ? nextHand[0] : null };
-      nextObtainedTreasures = { ...obtainedTreasures, [activePawn]: [...(obtainedTreasures[activePawn] || []), activeTargetCard] };
-      setPlayerHands(nextPlayerHands);
-      setPlayerActiveTargets(nextPlayerActiveTargets);
-      setObtainedTreasures(nextObtainedTreasures);
-      trackPawnTreasure(activePawn);
-      onToast(`Goal Achieved: Found ${landedTreasure.name}! 🏆`);
-    }
-
-    pushStateToHistory(nextGrid, nextSpare, turn1.arrowId, activePawn, nextPlayerHands, nextPlayerActiveTargets, nextObtainedTreasures, nextPositions);
-    saveAutosave({ board: nextGrid, looseTiles: [], spareTile: nextSpare, activePawn, playerHands: nextPlayerHands, playerActiveTargets: nextPlayerActiveTargets, obtainedTreasures: nextObtainedTreasures, lastShiftArrowId: turn1.arrowId, isGameStarted, gameStartState, pawnPositions: nextPositions });
-    onSaved(Date.now());
-    switchToNextPawn();
+    saveAutosave({
+      board: gameStartState.board,
+      looseTiles: [gameStartState.spareTile],
+      spareTile: gameStartState.spareTile,
+      activePawn: gameStartState.activePawn ?? activePawn,
+      playerHands: gameStartState.playerHands ?? playerHands,
+      playerActiveTargets: gameStartState.playerActiveTargets ?? playerActiveTargets,
+      obtainedTreasures: gameStartState.obtainedTreasures ?? obtainedTreasures,
+      lastShiftArrowId: null,
+      isGameStarted: false,
+      gameStartState: null,
+      pawnPositions: gameStartState.pawnPositions ?? pawnPositions,
+    });
   }, [
-    isMuted, grid, pawnPositions, spareTile, activePawn, playerHands, playerActiveTargets,
-    obtainedTreasures, isGameStarted, gameStartState, getSolverFormattedBoard,
-    getSolverFormattedSpare, nextTileId, trackPawnMove, trackPawnTreasure,
-    pushStateToHistory, saveAutosave, switchToNextPawn, onToast, onSaved,
+    gameStartState,
+    isMuted,
+    activePawn,
+    playerHands,
+    playerActiveTargets,
+    obtainedTreasures,
+    pawnPositions,
+    saveAutosave,
   ]);
+
+  const handleExecuteSolution = useCallback(
+    (path: {
+      arrowId: string;
+      rotation: number;
+      endPos: { r: number; c: number };
+    }[]) => {
+      if (path.length === 0) return;
+      const turn1 = path[0];
+      const arrow = SHIFT_ARROWS.find((a) => a.id === turn1.arrowId);
+      if (!arrow) return;
+      if (!isMuted) playSlideSound();
+
+      const rotDegrees = ([0, 90, 180, 270] as Rotation[])[turn1.rotation];
+      const solverBoard = getSolverFormattedBoard(grid, pawnPositions);
+      const { newSpare } = executeSlideInGrid(
+        solverBoard,
+        getSolverFormattedSpare({ ...spareTile, rotation: rotDegrees }),
+        arrow.type,
+        arrow.index,
+        arrow.dir
+      );
+
+      const nextGrid = fromSolverGrid(grid, solverBoard, nextTileId);
+      const nextSpare = fromSolverSpare(newSpare, String(Date.now()));
+      const nextPositions = {
+        ...pawnPositions,
+        [activePawn]: { r: turn1.endPos.r, c: turn1.endPos.c },
+      };
+
+      setGrid(nextGrid);
+      setSpareTile(nextSpare);
+      setPawnPositions(nextPositions);
+      setLastShiftArrowId(turn1.arrowId);
+      totalShiftsRef.current += 1;
+      trackPawnMove(activePawn, 1);
+
+      const activeTargetCard = playerActiveTargets[activePawn];
+      const landedTreasure = nextGrid[turn1.endPos.r][turn1.endPos.c]?.treasure;
+      let nextPlayerHands = playerHands;
+      let nextPlayerActiveTargets = playerActiveTargets;
+      let nextObtainedTreasures = obtainedTreasures;
+
+      if (landedTreasure && landedTreasure.id === activeTargetCard) {
+        if (!isMuted) playSuccessSound();
+        const nextHand = playerHands[activePawn].filter(
+          (tid) => tid !== activeTargetCard
+        );
+        nextPlayerHands = { ...playerHands, [activePawn]: nextHand };
+        nextPlayerActiveTargets = {
+          ...playerActiveTargets,
+          [activePawn]: nextHand.length > 0 ? nextHand[0] : null,
+        };
+        nextObtainedTreasures = {
+          ...obtainedTreasures,
+          [activePawn]: [
+            ...(obtainedTreasures[activePawn] || []),
+            activeTargetCard,
+          ],
+        };
+        setPlayerHands(nextPlayerHands);
+        setPlayerActiveTargets(nextPlayerActiveTargets);
+        setObtainedTreasures(nextObtainedTreasures);
+        trackPawnTreasure(activePawn);
+        onToast(`Goal Achieved: Found ${landedTreasure.name}! 🏆`);
+      }
+
+      pushStateToHistory(
+        nextGrid,
+        nextSpare,
+        turn1.arrowId,
+        activePawn,
+        nextPlayerHands,
+        nextPlayerActiveTargets,
+        nextObtainedTreasures,
+        nextPositions
+      );
+      saveAutosave({
+        board: nextGrid,
+        looseTiles: [],
+        spareTile: nextSpare,
+        activePawn,
+        playerHands: nextPlayerHands,
+        playerActiveTargets: nextPlayerActiveTargets,
+        obtainedTreasures: nextObtainedTreasures,
+        lastShiftArrowId: turn1.arrowId,
+        isGameStarted,
+        gameStartState,
+        pawnPositions: nextPositions,
+      });
+      switchToNextPawn();
+    },
+    [
+      isMuted,
+      grid,
+      pawnPositions,
+      spareTile,
+      activePawn,
+      playerHands,
+      playerActiveTargets,
+      obtainedTreasures,
+      isGameStarted,
+      gameStartState,
+      getSolverFormattedBoard,
+      getSolverFormattedSpare,
+      nextTileId,
+      trackPawnMove,
+      trackPawnTreasure,
+      pushStateToHistory,
+      saveAutosave,
+      switchToNextPawn,
+      onToast,
+    ]
+  );
 
   // ── Undo / Redo (apply history back to internal state) ──────────────────────
   const handleUndo = useCallback(() => {
@@ -708,40 +934,47 @@ export function useLabyrinthGame({
 
   return {
     // Core game state
-    grid, setGrid,
-    looseTiles, setLooseTiles,
-    spareTile, setSpareTile,
+    grid,
+    setGrid,
+    looseTiles,
+    setLooseTiles,
+    spareTile,
+    setSpareTile,
     isGameStarted,
     gameStartState,
-    activePawn, setActivePawn,
-    activePlayers, setActivePlayers,
+    activePawn,
+    setActivePawn,
+    activePlayers,
+    setActivePlayers,
     lastShiftArrowId,
-    pawnPositions, setPawnPositions,
+    pawnPositions,
+    setPawnPositions,
     playerHands,
     playerActiveTargets,
     obtainedTreasures,
     pawnStats,
-    customTargetCoords, setCustomTargetCoords,
-    currentSlotName, setCurrentSlotName,
-    setupTab, setSetupTab,
-    activePawnPlacementColor, setActivePawnPlacementColor,
+    customTargetCoords,
+    setCustomTargetCoords,
+    setupTab,
+    setSetupTab,
+    activePawnPlacementColor,
+    setActivePawnPlacementColor,
     totalShiftsRef,
-    // Derived
-    allSlots,
     // History
-    canUndo, canRedo,
-    handleUndo, handleRedo,
-    // Storage (exposed for SettingsDialog / AppHeader save-slot callback)
-    slots,
-    saveSlot, loadSlot, deleteSlot, refreshSlots, saveAutosave, loadAutosave,
+    canUndo,
+    canRedo,
+    handleUndo,
+    handleRedo,
+    // Storage
+    saveAutosave,
+    loadAutosave,
     // Solver adapter helpers
-    getSolverFormattedBoard, getSolverFormattedSpare,
+    getSolverFormattedBoard,
+    getSolverFormattedSpare,
     // Initialisation
-    hydrateFromSaved, resetBoardToInitialPresets,
+    hydrateFromSaved,
+    resetBoardToInitialPresets,
     // Game handlers
-    handleNewGame,
-    handleLoadSlot,
-    handleSaveActiveGame,
     handleRandomizeBoard,
     handleTileClick,
     handleCellClick,
