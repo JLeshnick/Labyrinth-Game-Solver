@@ -225,7 +225,7 @@ export function SolverPanel({
                 key={index}
                 onMouseEnter={() => setHoveredSolution(sol)}
                 onMouseLeave={() => setHoveredSolution(null)}
-                className={`relative p-4 pl-5 rounded-xl transition-all flex items-start justify-between cursor-pointer group gap-3 ${
+                className={`relative p-4 pl-11 rounded-xl transition-all flex items-start justify-between cursor-pointer group gap-3 ${
                   index === 0 && !isFallback
                     ? "app-surface-accent hover:border-theme-primary"
                     : "app-surface hover:border-theme-primary-40"
@@ -233,7 +233,7 @@ export function SolverPanel({
               >
                 {/* Rank chip */}
                 <span
-                  className={`absolute -left-2 -top-2 w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold shadow-sm ${
+                  className={`absolute left-3 top-3 w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold shadow-sm ${
                     index === 0 && !isFallback
                       ? "bg-theme-primary text-stone-950"
                       : "bg-theme-primary-10 text-theme-primary border border-theme-primary-20"
