@@ -117,7 +117,7 @@ const BoardSpace: React.FC<BoardSpaceProps> = ({
             "absolute inset-0 w-full h-full",
             isOnHoveredPath && "border-theme-primary",
             isPathStart && "border-green-500 shadow-[0_0_15px_rgba(34,197,94,0.4)]",
-            isPathEnd && "border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.4)]"
+            isPathEnd && "border-2 border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.5)]"
           )}
         />
       ) : (
@@ -229,19 +229,6 @@ export const Board: React.FC<BoardProps> = ({
                 />
               );
             })}
-            {/* Destination marker: ring on final cell */}
-            {hoveredPath.length > 0 && (
-              <circle
-                key="dest"
-                cx={hoveredPath[hoveredPath.length - 1].c + 1.5}
-                cy={hoveredPath[hoveredPath.length - 1].r + 1.5}
-                r="0.35"
-                fill="none"
-                stroke="var(--theme-color)"
-                strokeWidth="0.12"
-                opacity="0.8"
-              />
-            )}
           </svg>
         )}
         {/* Render Shifting Arrows */}
