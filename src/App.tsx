@@ -721,7 +721,6 @@ export default function App() {
           <div className="flex-1 md:flex-[1.4] lg:flex-[1.5] w-full flex min-w-0 min-h-0 items-center justify-center relative">
             <div
               className="relative aspect-square w-full h-auto flex-shrink-0 mx-auto max-w-[min(100vw-1rem,calc(100svh-220px))] sm:max-w-[min(100vw-2rem,calc(100svh-280px))] md:max-w-[calc(100svh-180px)] lg:max-w-[calc(100svh-140px)]"
-              style={{ boxShadow: "0 0 0 1px rgba(var(--theme-color-rgb), 0.15)", borderRadius: "1rem" }}
             >
 
               <Board

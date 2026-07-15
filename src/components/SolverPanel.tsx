@@ -246,9 +246,7 @@ export function SolverPanel({
                     {isFallback ? (
                       <span className="text-amber-500 font-bold">Fallback Setup</span>
                     ) : (
-                      <span className="text-green-500 font-bold flex items-center gap-1">
-                        <Sparkles className="w-3.5 h-3.5" /> Direct Route
-                      </span>
+                      <span className="text-green-500 font-bold">Direct Route</span>
                     )}
                     <span className="text-[10px] text-stone-500">({sol.length} turn{sol.length > 1 ? "s" : ""})</span>
                   </div>
