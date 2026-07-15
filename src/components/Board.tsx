@@ -216,10 +216,10 @@ export const Board: React.FC<BoardProps> = ({
               return (
                 <line
                   key={`line-${idx}`}
-                  x1={parent.c + 0.5}
-                  y1={parent.r + 0.5}
-                  x2={cell.c + 0.5}
-                  y2={cell.r + 0.5}
+                  x1={parent.c + 1.5}
+                  y1={parent.r + 1.5}
+                  x2={cell.c + 1.5}
+                  y2={cell.r + 1.5}
                   stroke="var(--theme-color)"
                   strokeWidth="0.08"
                   strokeDasharray="0.12,0.12"
@@ -233,8 +233,8 @@ export const Board: React.FC<BoardProps> = ({
             {hoveredPath.length > 0 && (
               <circle
                 key="dest"
-                cx={hoveredPath[hoveredPath.length - 1].c + 0.5}
-                cy={hoveredPath[hoveredPath.length - 1].r + 0.5}
+                cx={hoveredPath[hoveredPath.length - 1].c + 1.5}
+                cy={hoveredPath[hoveredPath.length - 1].r + 1.5}
                 r="0.35"
                 fill="none"
                 stroke="var(--theme-color)"
