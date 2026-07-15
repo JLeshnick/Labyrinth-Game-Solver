@@ -8,6 +8,7 @@ import {
   useSensor,
   useSensors,
   PointerSensor,
+  TouchSensor,
 } from "@dnd-kit/core";
 import { SHIFT_ARROWS, TREASURES } from "./constants";
 import type { TileData, SolverSolution } from "./types";
@@ -38,6 +39,9 @@ import { cn } from "./lib/utils";
 
 export default function App() {
   const sensors = useSensors(
+    // Touch: press-and-hold to drag so the loose-tile tray can scroll freely
+    // without a stray drag; mouse/pen keep the responsive distance activation.
+    useSensor(TouchSensor, { activationConstraint: { delay: 180, tolerance: 8 } }),
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
   );
 
