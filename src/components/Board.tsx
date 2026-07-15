@@ -209,16 +209,17 @@ export const Board: React.FC<BoardProps> = ({
             className="absolute inset-0 w-full h-full pointer-events-none z-10"
             aria-hidden="true"
           >
+            {/* Path lines */}
             {hoveredPath.map((cell, idx) => {
               if (idx === 0) return null;
               const parent = hoveredPath[idx - 1];
               return (
                 <line
-                  key={idx}
-                  x1={parent.c + 1.5}
-                  y1={parent.r + 1.5}
-                  x2={cell.c + 1.5}
-                  y2={cell.r + 1.5}
+                  key={`line-${idx}`}
+                  x1={parent.c + 0.5}
+                  y1={parent.r + 0.5}
+                  x2={cell.c + 0.5}
+                  y2={cell.r + 0.5}
                   stroke="var(--theme-color)"
                   strokeWidth="0.08"
                   strokeDasharray="0.12,0.12"
@@ -228,6 +229,19 @@ export const Board: React.FC<BoardProps> = ({
                 />
               );
             })}
+            {/* Destination marker: ring on final cell */}
+            {hoveredPath.length > 0 && (
+              <circle
+                key="dest"
+                cx={hoveredPath[hoveredPath.length - 1].c + 0.5}
+                cy={hoveredPath[hoveredPath.length - 1].r + 0.5}
+                r="0.35"
+                fill="none"
+                stroke="var(--theme-color)"
+                strokeWidth="0.12"
+                opacity="0.8"
+              />
+            )}
           </svg>
         )}
         {/* Render Shifting Arrows */}
