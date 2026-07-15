@@ -229,7 +229,10 @@ export function AppHeader({
 
   return (
     <>
-      <header className="relative z-40 px-3 sm:px-6 py-2 sm:py-3 flex items-center justify-between border-b border-stone-800 bg-stone-950/70 backdrop-blur-md gap-2 sm:gap-4">
+      <header
+        className="relative z-40 px-3 sm:px-6 py-2 sm:py-3 flex items-center justify-between border-b border-stone-800 bg-stone-950/70 backdrop-blur-md gap-2 sm:gap-4"
+        style={{ boxShadow: "inset 0 -1px 0 rgba(var(--theme-color-rgb), 0.25)" }}
+      >
         {/* Left — branding */}
         <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
           <div className="p-1.5 bg-theme-primary-10 border border-theme-primary-20 rounded-xl text-theme-primary">
@@ -246,8 +249,8 @@ export function AppHeader({
 
         {/* Center — Step Nav */}
         <div className="flex-1 flex flex-col items-center justify-center min-w-0 gap-1">
-          <div className="w-full max-w-[280px] sm:max-w-none">
-            <div className="flex w-full sm:w-auto items-center app-step-nav rounded-full border border-stone-800 px-1 py-0.5 sm:p-1 gap-1">
+          <div className="w-auto">
+            <div className="flex w-auto items-center app-step-nav rounded-full border border-stone-800 px-1 py-0.5 sm:p-1 gap-1">
               {STEPS.map((s) => {
                 const isActive = s.id === currentStep;
                 const isDisabled = s.id === "game" && !isGameStarted && !canStartGame;
@@ -265,7 +268,7 @@ export function AppHeader({
                     }}
                     title={isDisabled ? "Place all 33 movable tiles first" : undefined}
                     className={cn(
-                      "flex-1 sm:flex-none flex items-center justify-center gap-1 sm:gap-2 px-3 sm:px-4 py-1.5 rounded-full text-[11px] sm:text-xs font-semibold transition-all min-w-[96px] sm:min-w-0",
+                      "flex items-center justify-center gap-1 sm:gap-2 px-3 sm:px-4 py-1.5 rounded-full text-[11px] sm:text-xs font-semibold transition-all",
                       isActive
                         ? "bg-theme-primary text-stone-950 shadow-sm"
                         : isDisabled

@@ -117,7 +117,7 @@ const BoardSpace: React.FC<BoardSpaceProps> = ({
             "absolute inset-0 w-full h-full",
             isOnHoveredPath && "border-theme-primary",
             isPathStart && "border-green-500 shadow-[0_0_15px_rgba(34,197,94,0.4)]",
-            isPathEnd && "border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.4)]"
+            isPathEnd && "border-2 border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.5)]"
           )}
         />
       ) : (
@@ -209,12 +209,13 @@ export const Board: React.FC<BoardProps> = ({
             className="absolute inset-0 w-full h-full pointer-events-none z-10"
             aria-hidden="true"
           >
+            {/* Path lines */}
             {hoveredPath.map((cell, idx) => {
               if (idx === 0) return null;
               const parent = hoveredPath[idx - 1];
               return (
                 <line
-                  key={idx}
+                  key={`line-${idx}`}
                   x1={parent.c + 1.5}
                   y1={parent.r + 1.5}
                   x2={cell.c + 1.5}

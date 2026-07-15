@@ -8,6 +8,7 @@ import {
   useSensor,
   useSensors,
   PointerSensor,
+  TouchSensor,
 } from "@dnd-kit/core";
 import { SHIFT_ARROWS, TREASURES } from "./constants";
 import type { TileData, SolverSolution } from "./types";
@@ -38,6 +39,9 @@ import { cn } from "./lib/utils";
 
 export default function App() {
   const sensors = useSensors(
+    // Touch: press-and-hold to drag so the loose-tile tray can scroll freely
+    // without a stray drag; mouse/pen keep the responsive distance activation.
+    useSensor(TouchSensor, { activationConstraint: { delay: 180, tolerance: 8 } }),
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
   );
 
@@ -707,34 +711,17 @@ export default function App() {
         obtainedTreasures={game.obtainedTreasures}
       />
 
-      <main className="flex-1 flex flex-col lg:flex-row relative z-10 w-full px-2 sm:px-3 pt-2 sm:pt-3 pb-[72px] lg:pb-3 gap-3 lg:gap-8 justify-center overflow-hidden min-h-0">
+      <main className="flex-1 flex flex-col md:flex-row relative z-10 w-full px-2 sm:px-3 md:px-4 lg:px-6 pt-2 sm:pt-3 pb-[72px] md:pb-3 gap-3 md:gap-4 lg:gap-8 justify-center overflow-hidden min-h-0">
         <DndContext
           sensors={sensors}
           collisionDetection={closestCenter}
           onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
         >
-          <div className="flex-1 lg:flex-[1.5] w-full flex min-w-0 min-h-0 items-center justify-center relative">
-            <div className="relative aspect-square w-full max-w-[min(100vw-1rem,calc(100svh-220px))] sm:max-w-[min(100vw-2rem,calc(100svh-280px))] lg:max-w-none lg:w-auto lg:h-full flex-shrink-0 mx-auto">
-              {hoveredSolution &&
-                (hoveredSolution as { arrowId: string }[]).length > 0 && (
-                  <div
-                    className="absolute animate-ping bg-theme-primary-20 border border-theme-primary-40 rounded-full pointer-events-none"
-                    style={(() => {
-                      const arrow = SHIFT_ARROWS.find(
-                        (a) => a.id === (hoveredSolution as { arrowId: string }[])[0].arrowId
-                      );
-                      if (!arrow) return { display: "none" };
-                      return {
-                        left: `${arrow.gridColumn * 11.1}%`,
-                        top: `${arrow.gridRow * 11.1}%`,
-                        width: "30px",
-                        height: "30px",
-                        transform: "translate(-50%, -50%)",
-                      };
-                    })()}
-                  />
-                )}
+          <div className="flex-1 md:flex-[1.4] lg:flex-[1.5] w-full flex min-w-0 min-h-0 items-center justify-center relative">
+            <div
+              className="relative aspect-square w-full h-auto flex-shrink-0 mx-auto max-w-[min(100vw-1rem,calc(100svh-220px))] sm:max-w-[min(100vw-2rem,calc(100svh-280px))] md:max-w-[calc(100svh-180px)] lg:max-w-[calc(100svh-140px)]"
+            >
 
               <Board
                 grid={effectivePreview ? effectivePreview.grid : game.grid}
@@ -776,8 +763,8 @@ export default function App() {
             </div>
           </div>
 
-          {/* Desktop side panel */}
-          <div className="hidden lg:flex w-full lg:w-[400px] xl:w-[440px] flex-col flex-shrink-0 min-h-0 lg:h-full gap-3">
+          {/* Tablet & desktop side panel (md+) */}
+          <div className="hidden md:flex w-full md:w-[320px] lg:w-[400px] xl:w-[440px] flex-col flex-shrink-0 min-h-0 md:h-full gap-3">
             {game.isGameStarted ? (
               <SolverPanel
                 solutions={solutions}
@@ -834,10 +821,10 @@ export default function App() {
             )}
           </div>
 
-          {/* Mobile bottom sheet panel */}
+          {/* Mobile bottom sheet panel (phones only, < md) */}
           <div
             className={cn(
-              "lg:hidden fixed inset-x-0 bottom-[56px] z-30 transition-transform duration-300 ease-out",
+              "md:hidden fixed inset-x-0 bottom-[56px] z-30 transition-transform duration-300 ease-out",
               mobileSheetOpen ? "translate-y-0" : "translate-y-full"
             )}
             style={{ maxHeight: "70svh" }}
@@ -957,7 +944,7 @@ export default function App() {
       </div>
       {toastText && (
         <div
-          className="fixed bottom-[72px] lg:bottom-6 left-1/2 -translate-x-1/2 px-4 sm:px-6 py-2.5 sm:py-3 bg-stone-900 border border-theme-primary-20 text-stone-100 font-semibold text-xs sm:text-sm rounded-full shadow-2xl shadow-black z-50 animate-toast-in flex items-center gap-2 whitespace-nowrap"
+          className="fixed bottom-[72px] md:bottom-6 left-1/2 -translate-x-1/2 px-4 sm:px-6 py-2.5 sm:py-3 bg-stone-900 border border-theme-primary-20 text-stone-100 font-semibold text-xs sm:text-sm rounded-full shadow-2xl shadow-black z-50 animate-toast-in flex items-center gap-2 whitespace-nowrap"
           aria-hidden="true"
         >
           <Sparkles className="w-4 h-4 text-theme-primary shrink-0" />
@@ -965,9 +952,9 @@ export default function App() {
         </div>
       )}
 
-      {/* Mobile Actions Bar */}
+      {/* Mobile Actions Bar (phones only, < md) */}
       <div
-        className="lg:hidden fixed bottom-0 left-0 right-0 app-mobile-nav px-2 flex items-center justify-around z-40"
+        className="md:hidden fixed bottom-0 left-0 right-0 app-mobile-nav px-2 flex items-center justify-around z-40"
         style={{
           paddingBottom: "calc(env(safe-area-inset-bottom) + 6px)",
           paddingTop: "6px",
