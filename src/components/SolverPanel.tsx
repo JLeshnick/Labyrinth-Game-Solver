@@ -1,3 +1,7 @@
+// Responsive model: this panel renders in two DOM sites — the phone bottom
+// sheet (< md) and the tablet/desktop side column (md+). Unprefixed classes
+// target the phone sheet; `md:` targets the tablet column; `lg:` targets the
+// wider desktop column. Interactive play controls get a 44px phone floor.
 import { Sparkles, ArrowRightCircle, MousePointer2, RotateCw } from "lucide-react";
 import { Button } from "./ui/button";
 import { Tile } from "./Tile";
@@ -60,15 +64,15 @@ export function SolverPanel({
   oneMoveTargets,
 }: SolverPanelProps) {
   return (
-    <div className="flex-1 flex flex-col min-h-0 gap-4 p-2">
+    <div className="flex-1 flex flex-col min-h-0 gap-3 md:gap-4 p-2 md:p-3 lg:p-4">
       {/* Turn phase banner */}
       {turnPhase === "move" ? (
-        <div className="px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 border bg-green-950/40 border-green-800/50 text-green-300">
+        <div className="px-3 py-2 rounded-xl text-xs md:text-sm font-semibold flex items-center gap-2 border bg-green-950/40 border-green-800/50 text-green-300">
           <MousePointer2 className="w-3.5 h-3.5 shrink-0" />
           <span>Click a highlighted green cell to move your pawn</span>
         </div>
       ) : stagedArrow ? (
-        <div className="px-3 py-2 rounded-xl text-xs font-semibold flex flex-col gap-1.5 border bg-theme-primary-10 border-theme-primary/30 text-stone-200">
+        <div className="px-3 py-2 rounded-xl text-xs md:text-sm font-semibold flex flex-col gap-1.5 border bg-theme-primary-10 border-theme-primary/30 text-stone-200">
           <div className="flex items-center gap-2">
             <ArrowRightCircle className="w-3.5 h-3.5 text-theme-primary shrink-0" />
             <span className="font-bold text-theme-primary">Arrow staged — preview locked in</span>
@@ -80,12 +84,12 @@ export function SolverPanel({
           </div>
         </div>
       ) : (
-        <div className="px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 border bg-blue-950/40 border-blue-800/50 text-blue-300">
+        <div className="px-3 py-2 rounded-xl text-xs md:text-sm font-semibold flex items-center gap-2 border bg-blue-950/40 border-blue-800/50 text-blue-300">
           <ArrowRightCircle className="w-3.5 h-3.5 shrink-0" />
           <span>Click any board arrow to preview and stage that slide</span>
         </div>
       )}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-2">
         <h2 className="text-lg font-bold text-theme-primary flex items-center gap-2">
           <Sparkles className="w-5 h-5 text-theme-primary" />
           Solver Suggestions
@@ -93,7 +97,7 @@ export function SolverPanel({
         <div className="flex items-center gap-2">
           <button
             onClick={onToggleOneMoveTargets}
-            className={`text-[10px] px-2 py-1 rounded-lg border transition-colors cursor-pointer font-semibold ${
+            className={`text-[10px] md:text-xs px-2 py-1 min-h-9 rounded-lg border transition-colors cursor-pointer font-semibold ${
               showOneMoveTargets
                 ? "bg-theme-primary-10 border-theme-primary/40 text-theme-primary"
                 : "border-stone-700 text-stone-500 hover:text-stone-300 hover:border-stone-600"
@@ -102,12 +106,12 @@ export function SolverPanel({
           >
             1-move targets
           </button>
-          <div className="text-xs px-2 py-1 bg-stone-800 rounded text-stone-400">
+          <div className="text-xs px-2 py-1 min-h-9 flex items-center bg-stone-800 rounded text-stone-400">
             Turns:
             <select
               value={maxTurns}
               onChange={(e) => setMaxTurns(parseInt(e.target.value))}
-              className="ml-1 bg-stone-900 border border-stone-700 text-stone-200 rounded text-xs focus:outline-none"
+              className="ml-1 bg-stone-900 border border-stone-700 text-stone-200 rounded text-xs focus:outline-none cursor-pointer py-1"
             >
               <option value={1}>1</option>
               <option value={2}>2</option>
@@ -171,7 +175,7 @@ export function SolverPanel({
           <Tile
             tile={{ ...spareTile, rotation: stagedArrow ? stagedRotation : spareTile.rotation }}
             disabled
-            className="w-20 h-20 border-theme-primary-40"
+            className="w-16 h-16 md:w-20 md:h-20 border-theme-primary-40"
           />
           {stagedArrow ? (
             <div className="flex flex-col items-center gap-1 mt-0.5">
@@ -194,13 +198,13 @@ export function SolverPanel({
         <div className="flex gap-2 shrink-0">
           <button
             onClick={onCommitSlide}
-            className="flex-1 py-1.5 rounded-xl bg-theme-primary text-stone-950 text-xs font-bold hover:bg-theme-primary-hover transition-colors cursor-pointer flex items-center justify-center gap-1.5"
+            className="flex-1 py-2.5 md:py-2 min-h-11 md:min-h-0 rounded-xl bg-theme-primary text-stone-950 text-sm md:text-xs font-bold hover:bg-theme-primary-hover active:scale-[0.98] transition-all cursor-pointer flex items-center justify-center gap-1.5"
           >
             <ArrowRightCircle className="w-3.5 h-3.5" /> Slide In
           </button>
           <button
             onClick={onCancelSlide}
-            className="px-3 py-1.5 rounded-xl border border-stone-700 text-stone-400 text-xs hover:text-stone-200 hover:border-stone-600 transition-colors cursor-pointer"
+            className="px-4 py-2.5 md:py-2 min-h-11 md:min-h-0 rounded-xl border border-stone-700 text-stone-400 text-sm md:text-xs hover:text-stone-200 hover:border-stone-600 active:scale-[0.98] transition-all cursor-pointer"
           >
             Cancel
           </button>
@@ -284,7 +288,7 @@ export function SolverPanel({
                 <Button
                   size="sm"
                   onClick={(e) => { e.stopPropagation(); onExecuteSolution(sol); }}
-                  className="bg-theme-primary-10 group-hover:bg-theme-primary text-theme-primary group-hover:text-stone-950 border border-theme-primary-20 group-hover:border-transparent font-medium text-xs px-2.5 py-1 rounded flex-shrink-0 self-center"
+                  className="bg-theme-primary-10 group-hover:bg-theme-primary text-theme-primary group-hover:text-stone-950 border border-theme-primary-20 group-hover:border-transparent font-semibold text-xs px-3 py-1.5 min-h-11 md:min-h-9 rounded-lg active:scale-[0.98] transition-all flex-shrink-0 self-center"
                 >
                   Execute
                 </Button>
@@ -300,13 +304,13 @@ export function SolverPanel({
 
       <div className="border-t border-stone-800 pt-4">
         <div className="text-xs text-stone-400 mb-2 font-medium">Select Player:</div>
-        <div className="grid grid-cols-4 gap-2">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
           {PAWNS.filter((p) => activePlayers.includes(p.id)).map((p) => (
             <Button
               key={p.id}
               variant={activePawn === p.id ? "default" : "outline"}
               onClick={() => { if (!isMuted) playClickSound(); setActivePawn(p.id); }}
-              className={`border-stone-800 ${activePawn === p.id ? p.colorClass + " text-stone-950 font-bold" : "hover:bg-stone-900 text-stone-200"}`}
+              className={`border-stone-800 h-11 md:h-9 active:scale-[0.98] transition-all ${activePawn === p.id ? p.colorClass + " text-stone-950 font-bold" : "hover:bg-stone-900 text-stone-200"}`}
             >
               {p.name}
             </Button>
