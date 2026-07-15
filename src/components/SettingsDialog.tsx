@@ -69,20 +69,7 @@ export function SettingsDialog({
   activePlayers,
   setActivePlayers,
   showToast,
-}: Omit<
-  SettingsDialogProps,
-  | "settingsTab"
-  | "setSettingsTab"
-  | "saveName"
-  | "setSaveName"
-  | "allSlots"
-  | "peekSlotKey"
-  | "setPeekSlotKey"
-  | "peekedState"
-  | "onSaveSlot"
-  | "onLoadSlot"
-  | "onDeleteSlot"
->) {
+}: SettingsDialogProps) {
   const [settingsTab, setSettingsTab] =
     useState<"preferences" | "appearance" | "application">("preferences");
   const [updateChecking, setUpdateChecking] = useState(false);
