@@ -2,10 +2,10 @@
 // sheet (< md) and the tablet/desktop side column (md+). Unprefixed classes
 // target the phone sheet; `md:` targets the tablet column; `lg:` targets the
 // wider desktop column. Interactive play controls get a 44px phone floor.
-import { Sparkles, ArrowRightCircle, MousePointer2, RotateCw } from "lucide-react";
+import { Sparkles, ArrowRightCircle, MousePointer2, RotateCw, Home, Gauge } from "lucide-react";
 import { Button } from "./ui/button";
 import { Tile } from "./Tile";
-import { PAWNS, TREASURES } from "../constants";
+import { PAWNS, TREASURES, DEFAULT_PAWN_POSITIONS } from "../constants";
 import { playClickSound } from "../utils/audio";
 import type { TileData, SolverSolution, SolverSolutionStep } from "../types";
 
@@ -35,6 +35,9 @@ interface SolverPanelProps {
   showOneMoveTargets: boolean;
   onToggleOneMoveTargets: () => void;
   oneMoveTargets: { id: string; name: string }[];
+  isActivePawnHome: boolean;
+  compact?: boolean;
+  onToggleStats?: () => void;
 }
  
 export function SolverPanel({
@@ -62,7 +65,51 @@ export function SolverPanel({
   showOneMoveTargets,
   onToggleOneMoveTargets,
   oneMoveTargets,
+  isActivePawnHome,
+  compact = false,
+  onToggleStats,
 }: SolverPanelProps) {
+  if (compact) {
+    const topSolution = solutions[0];
+    return (
+      <div className="flex flex-col gap-1.5 px-3 pb-2">
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-xs font-semibold text-stone-200 truncate">
+            {turnPhase === "move"
+              ? "Move your pawn"
+              : stagedArrow
+              ? "Arrow staged — tap Slide In"
+              : "Tap a board arrow to slide"}
+          </span>
+          <div className="flex items-center gap-1.5 shrink-0">
+            {!isActivePawnHome ? (
+              <button
+                onClick={() => setCustomTargetCoords(DEFAULT_PAWN_POSITIONS[activePawn])}
+                className="text-[10px] px-2 py-1 min-h-9 rounded-lg border border-stone-700 text-stone-400 flex items-center gap-1"
+              >
+                <Home className="w-3 h-3" /> Home
+              </button>
+            ) : null}
+            {onToggleStats && (
+              <button
+                onClick={onToggleStats}
+                aria-label="Toggle game statistics"
+                className="p-2 min-h-9 min-w-9 rounded-lg border border-stone-700 text-stone-400 flex items-center justify-center"
+              >
+                <Gauge className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+        </div>
+        {topSolution?.explanation?.slide && (
+          <div className="text-[11px] text-stone-400 truncate font-mono">
+            {topSolution.explanation.slide}
+          </div>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="flex-1 flex flex-col min-h-0 gap-3 md:gap-4 p-2 md:p-3 lg:p-4">
       {/* Turn phase banner */}
@@ -105,6 +152,19 @@ export function SolverPanel({
             title="Show all treasures reachable in exactly 1 turn"
           >
             1-move targets
+          </button>
+          <button
+            onClick={() => setCustomTargetCoords(DEFAULT_PAWN_POSITIONS[activePawn])}
+            disabled={isActivePawnHome}
+            className={`text-[10px] md:text-xs px-2 py-1 min-h-9 rounded-lg border transition-colors cursor-pointer font-semibold flex items-center gap-1 disabled:cursor-not-allowed ${
+              isActivePawnHome
+                ? "border-green-700/40 text-green-400 bg-green-950/30"
+                : "border-stone-700 text-stone-500 hover:text-stone-300 hover:border-stone-600"
+            }`}
+            title={isActivePawnHome ? "This pawn is already home" : "Solve the best route back to this pawn's home corner"}
+          >
+            <Home className="w-3 h-3" />
+            {isActivePawnHome ? "You're home" : "Go Home"}
           </button>
           <div className="text-xs px-2 py-1 min-h-9 flex items-center bg-stone-800 rounded text-stone-400">
             Turns:
@@ -156,7 +216,10 @@ export function SolverPanel({
               <span>Target:</span>
               {customTargetCoords ? (
                 <span className="text-theme-primary font-bold flex items-center gap-1 text-xs">
-                  Custom Target ({customTargetCoords.r}, {customTargetCoords.c})
+                  {customTargetCoords.r === DEFAULT_PAWN_POSITIONS[activePawn]?.r &&
+                  customTargetCoords.c === DEFAULT_PAWN_POSITIONS[activePawn]?.c
+                    ? "Home Corner"
+                    : `Custom Target (${customTargetCoords.r}, ${customTargetCoords.c})`}
                   <button onClick={() => setCustomTargetCoords(null)} className="text-stone-500 hover:text-stone-300 text-xs ml-1 underline cursor-pointer" title="Clear Custom Target">(clear)</button>
                 </span>
               ) : playerActiveTargets[activePawn] ? (

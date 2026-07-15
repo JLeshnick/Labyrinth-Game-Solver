@@ -20,6 +20,22 @@ It runs directly in any modern mobile or desktop web browser and is hosted for f
 
 ---
 
+## 🖼️ Screenshots
+
+| Setup | Solver |
+|---|---|
+| ![Setup panel with randomized board](docs/screenshots/desktop-setup.png) | ![Solver panel with suggested routes](docs/screenshots/desktop-solver.png) |
+
+| Welcome guide | Go Home |
+|---|---|
+| ![First-run welcome guide](docs/screenshots/welcome-guide.png) | ![Go Home routing a pawn back to its corner](docs/screenshots/go-home.png) |
+
+| Mobile — expanded panel | Mobile — collapsed panel |
+|---|---|
+| ![Mobile view with the setup panel expanded](docs/screenshots/mobile-expanded.png) | ![Mobile view with the setup panel collapsed to a peek strip, board fully visible](docs/screenshots/mobile-peek.png) |
+
+---
+
 ## 🎮 How to Play / Run Online
 
 Simply open the live URL on your desktop browser or mobile phone:

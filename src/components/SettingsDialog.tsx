@@ -10,7 +10,6 @@ import {
   RefreshCw,
   Keyboard,
 } from "lucide-react";
-import { PAWNS } from "../constants";
 import { playClickSound } from "../utils/audio";
 
 interface SettingsDialogProps {
@@ -22,9 +21,6 @@ interface SettingsDialogProps {
   setBaseTheme: (theme: "dark" | "light") => void;
   accentColor: string;
   setAccentColor: (hex: string) => void;
-  activePlayers: string[];
-  setActivePlayers: (players: string[]) => void;
-  showToast: (msg: string) => void;
 }
 
 const ACCENT_PRESETS = [
@@ -66,9 +62,6 @@ export function SettingsDialog({
   setBaseTheme,
   accentColor,
   setAccentColor,
-  activePlayers,
-  setActivePlayers,
-  showToast,
 }: SettingsDialogProps) {
   const [settingsTab, setSettingsTab] =
     useState<"preferences" | "appearance" | "application">("preferences");
@@ -273,53 +266,14 @@ export function SettingsDialog({
                     </div>
                   </div>
 
-                  <div className="p-4 bg-stone-950/40 border border-stone-800 rounded-xl flex flex-col gap-3">
+                  <div className="p-4 bg-stone-950/40 border border-stone-800 rounded-xl flex flex-col gap-2">
                     <h3 className="text-sm font-semibold text-stone-200">
                       Manage Active Players
                     </h3>
                     <p className="text-xs text-stone-400 leading-normal">
-                      Enable or disable players to tailor the setup checklist and turns list. If
-                      playing solo or only tracking your piece, keep only Red active.
+                      Active players are now managed from the Pawns tab of the Setup panel,
+                      alongside pawn placement.
                     </p>
-                    <div className="grid grid-cols-2 gap-2.5 mt-2">
-                      {PAWNS.map((p) => {
-                        const isActive = activePlayers.includes(p.id);
-                        return (
-                          <button
-                            key={p.id}
-                            onClick={() => {
-                              if (!isMuted) playClickSound();
-                              if (isActive) {
-                                if (activePlayers.length > 1) {
-                                  setActivePlayers(
-                                    activePlayers.filter((id) => id !== p.id)
-                                  );
-                                } else {
-                                  showToast("At least one player must be active!");
-                                }
-                              } else {
-                                setActivePlayers([...activePlayers, p.id]);
-                              }
-                            }}
-                            className={`flex items-center justify-between p-3 rounded-xl border text-xs font-semibold transition-all cursor-pointer ${
-                              isActive
-                                ? "border-theme-primary bg-theme-primary-10 text-theme-primary"
-                                : "border-stone-800 bg-stone-950/40 hover:bg-stone-900 text-stone-400 hover:text-stone-200"
-                            }`}
-                          >
-                            <div className="flex items-center gap-2">
-                              <span
-                                className={`w-3.5 h-3.5 rounded-full ring-1 ring-white/20 ${p.colorClass}`}
-                              />
-                              <span>{p.name}</span>
-                            </div>
-                            <span className="text-[10px] opacity-75">
-                              {isActive ? "Active" : "Off"}
-                            </span>
-                          </button>
-                        );
-                      })}
-                    </div>
                   </div>
                 </div>
               )}
