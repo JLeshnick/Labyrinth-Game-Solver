@@ -10,7 +10,7 @@ import {
   PointerSensor,
   TouchSensor,
 } from "@dnd-kit/core";
-import { SHIFT_ARROWS, TREASURES } from "./constants";
+import { SHIFT_ARROWS, TREASURES, DEFAULT_PAWN_POSITIONS } from "./constants";
 import type { TileData, SolverSolution } from "./types";
 import { Board } from "./components/Board";
 import { Tile } from "./components/Tile";
@@ -19,6 +19,7 @@ import { SolverPanel } from "./components/SolverPanel";
 import { SetupPanel } from "./components/SetupPanel";
 import { StatsPanel } from "./components/StatsPanel";
 import { AppHeader } from "./components/AppHeader";
+import { WelcomeGuide } from "./components/WelcomeGuide";
 import { Dialog, DialogContent } from "./components/ui/dialog";
 import { useLabyrinthGame } from "./hooks/useLabyrinthGame";
 import { playClickSound } from "./utils/audio";
@@ -64,8 +65,11 @@ export default function App() {
   const [stagedArrow, setStagedArrow] = useState<string | null>(null);
   const [stagedRotation, setStagedRotation] = useState<0 | 90 | 180 | 270>(0);
   const [showOneMoveTargets, setShowOneMoveTargets] = useState(false);
-  const [mobileSheetOpen, setMobileSheetOpen] = useState(true);
+  const [mobilePanelStop, setMobilePanelStop] = useState<"peek" | "expanded">("expanded");
   const [hasShownSetupHint, setHasShownSetupHint] = useState(false);
+  const [showWelcomeGuide, setShowWelcomeGuide] = useState(
+    () => localStorage.getItem("labyrinth_welcome_dismissed") !== "true"
+  );
 
   // ── Solver worker ─────────────────────────────────────────────────────────────
   const [solutions, setSolutions] = useState<SolverSolution[]>([]);
@@ -153,17 +157,19 @@ export default function App() {
     onToast: showToast,
   });
 
+  const canStartGame = game.looseTiles.length === 1 || game.looseTiles.length === 0;
+
   // ── Setup guidance for mobile users ───────────────────────────────────────────
   useEffect(() => {
     if (game.isGameStarted) {
       setHasShownSetupHint(false);
-      setMobileSheetOpen(false);
+      setMobilePanelStop("peek");
     }
   }, [game.isGameStarted]);
 
   useEffect(() => {
     if (!game.isGameStarted && game.looseTiles.length !== 1 && !hasShownSetupHint) {
-      setMobileSheetOpen(true);
+      setMobilePanelStop("expanded");
       showToast("Tap Randomize Board or place tiles to finish setup.");
       setHasShownSetupHint(true);
     }
@@ -630,6 +636,13 @@ export default function App() {
 
   const effectivePreview = previewState || stagedPreviewState;
 
+  const isActivePawnHome = useMemo(() => {
+    const pawnPos = game.pawnPositions[game.activePawn];
+    const home = DEFAULT_PAWN_POSITIONS[game.activePawn];
+    if (!pawnPos || !home) return false;
+    return pawnPos.r === home.r && pawnPos.c === home.c;
+  }, [game.pawnPositions, game.activePawn]);
+
   const oneMoveTargets = useMemo<{ id: string; name: string }[]>(() => {
     if (!game.isGameStarted || !showOneMoveTargets) return [];
     const pawnPos = game.pawnPositions[game.activePawn];
@@ -687,6 +700,7 @@ export default function App() {
         activePlayers={game.activePlayers}
         activePawn={game.activePawn}
         looseTiles={game.looseTiles}
+        canStartGame={canStartGame}
         accentColor={accentColor}
         setAccentColor={setAccentColor}
         isSettingsOpen={isSettingsOpen}
@@ -697,18 +711,17 @@ export default function App() {
         onCloseSettings={() => setIsSettingsOpen(false)}
         onUndo={() => game.handleUndo()}
         onRedo={() => game.handleRedo()}
-        onResetBoard={() => game.resetBoardToInitialPresets()}
         onRotateBoard={() => setBoardRotation((prev) => (prev + 90) % 360)}
         onToggleStats={() => setShowStats((prev) => !prev)}
         onStartGame={game.handleStartGame}
         onEndGame={game.handleEndGame}
         onToggleMute={handleToggleMute}
         onSetBaseTheme={setBaseTheme}
-        onSetActivePlayers={game.setActivePlayers}
         showToast={showToast}
         onRandomizeBoard={game.handleRandomizeBoard}
         playerHands={game.playerHands}
         obtainedTreasures={game.obtainedTreasures}
+        onOpenWelcomeGuide={() => setShowWelcomeGuide(true)}
       />
 
       <main className="flex-1 flex flex-col md:flex-row relative z-10 w-full px-2 sm:px-3 md:px-4 lg:px-6 pt-2 sm:pt-3 pb-[72px] md:pb-3 gap-3 md:gap-4 lg:gap-8 justify-center overflow-hidden min-h-0">
@@ -720,7 +733,12 @@ export default function App() {
         >
           <div className="flex-1 md:flex-[1.4] lg:flex-[1.5] w-full flex min-w-0 min-h-0 items-center justify-center relative">
             <div
-              className="relative aspect-square w-full h-auto flex-shrink-0 mx-auto max-w-[min(100vw-1rem,calc(100svh-220px))] sm:max-w-[min(100vw-2rem,calc(100svh-280px))] md:max-w-[calc(100svh-180px)] lg:max-w-[calc(100svh-140px)]"
+              className={cn(
+                "relative aspect-square w-full h-auto flex-shrink-0 mx-auto md:max-w-[calc(100svh-180px)] lg:max-w-[calc(100svh-140px)]",
+                mobilePanelStop === "peek"
+                  ? "max-w-[min(100vw-1rem,calc(100svh-324px))] sm:max-w-[min(100vw-2rem,calc(100svh-384px))]"
+                  : "max-w-[min(100vw-1rem,calc(58svh-220px))] sm:max-w-[min(100vw-2rem,calc(58svh-280px))]"
+              )}
             >
 
               <Board
@@ -799,11 +817,13 @@ export default function App() {
                 showOneMoveTargets={showOneMoveTargets}
                 onToggleOneMoveTargets={() => setShowOneMoveTargets((v) => !v)}
                 oneMoveTargets={oneMoveTargets}
+                isActivePawnHome={isActivePawnHome}
               />
             ) : (
               <SetupPanel
                 looseTiles={game.looseTiles}
                 activePlayers={game.activePlayers}
+                setActivePlayers={game.setActivePlayers}
                 activePawn={game.activePawn}
                 setActivePawn={game.setActivePawn}
                 isMuted={isMuted}
@@ -813,97 +833,111 @@ export default function App() {
                 playerHands={game.playerHands}
                 onTileClick={game.handleTileClick}
                 onRandomizeBoard={game.handleRandomizeBoard}
+                onResetBoard={() => game.resetBoardToInitialPresets()}
                 onAddCard={game.handleAddCard}
                 onRemoveCard={game.handleRemoveCard}
                 setupTab={game.setupTab}
                 setSetupTab={game.setSetupTab}
+                canStartGame={canStartGame}
+                onStartGame={game.handleStartGame}
+                showToast={showToast}
               />
             )}
           </div>
 
-          {/* Mobile bottom sheet panel (phones only, < md) */}
+          {/* Mobile split panel (phones only, < md) — persistent, non-modal, in-flow */}
           <div
             className={cn(
-              "md:hidden fixed inset-x-0 bottom-[56px] z-30 transition-transform duration-300 ease-out",
-              mobileSheetOpen ? "translate-y-0" : "translate-y-full"
+              "md:hidden flex flex-col shrink-0 w-full app-mobile-sheet rounded-t-2xl shadow-2xl transition-[height] duration-300 ease-out overflow-hidden",
+              mobilePanelStop === "peek" ? "h-[104px]" : "h-[42svh]"
             )}
-            style={{ maxHeight: "70svh" }}
           >
-            {/* Backdrop */}
-            {mobileSheetOpen && (
-              <div
-                className="fixed inset-0 bottom-[56px] bg-black/50 backdrop-blur-sm -z-10"
-                onClick={() => setMobileSheetOpen(false)}
-              />
-            )}
-            {/* Sheet */}
-            <div
-              className="app-mobile-sheet rounded-t-2xl shadow-2xl flex flex-col"
-              style={{ maxHeight: "70svh" }}
+            {/* Drag handle — tap to toggle between peek and expanded */}
+            <button
+              type="button"
+              onClick={() =>
+                setMobilePanelStop((prev) => (prev === "peek" ? "expanded" : "peek"))
+              }
+              className="flex items-center justify-center gap-1.5 pt-2 pb-1.5 min-h-8 shrink-0 cursor-pointer"
+              aria-label={mobilePanelStop === "peek" ? "Expand panel" : "Collapse panel"}
+              aria-expanded={mobilePanelStop === "expanded"}
             >
-              {/* Drag handle */}
-              <div
-                className="flex items-center justify-center pt-2 pb-1 cursor-pointer"
-                onClick={() => setMobileSheetOpen(false)}
-              >
-                <div className="w-10 h-1 rounded-full bg-stone-600" />
-              </div>
-              <div className="flex-1 overflow-y-auto overscroll-contain">
-                {game.isGameStarted ? (
-                  <SolverPanel
-                    solutions={solutions}
-                    isLoadingSolutions={isLoadingSolutions}
-                    hoveredSolution={hoveredSolution}
-                    setHoveredSolution={setHoveredSolution}
-                    maxTurns={maxTurns}
-                    setMaxTurns={setMaxTurns}
-                    activePawn={game.activePawn}
-                    setActivePawn={game.setActivePawn}
-                    activePlayers={game.activePlayers}
-                    isMuted={isMuted}
-                    spareTile={previewState ? previewState.spareTile : game.spareTile}
-                    customTargetCoords={game.customTargetCoords}
-                    setCustomTargetCoords={game.setCustomTargetCoords}
-                    onExecuteSolution={game.handleExecuteSolution}
-                    playerActiveTargets={game.playerActiveTargets}
-                    onSelectTargetTreasure={game.handleSelectTargetTreasure}
-                    stagedArrow={stagedArrow}
-                    stagedRotation={stagedRotation}
-                    onRotateStaged={() =>
-                      setStagedRotation(
-                        (prev) =>
-                          ([0, 90, 180, 270] as (0 | 90 | 180 | 270)[])[
-                            ([0, 90, 180, 270].indexOf(prev) + 1) % 4
-                          ]
-                      )
-                    }
-                    onCommitSlide={commitStagedSlide}
-                    onCancelSlide={cancelStagedSlide}
-                    turnPhase={turnPhase}
-                    showOneMoveTargets={showOneMoveTargets}
-                    onToggleOneMoveTargets={() => setShowOneMoveTargets((v) => !v)}
-                    oneMoveTargets={oneMoveTargets}
-                  />
-                ) : (
-                  <SetupPanel
-                    looseTiles={game.looseTiles}
-                    activePlayers={game.activePlayers}
-                    activePawn={game.activePawn}
-                    setActivePawn={game.setActivePawn}
-                    isMuted={isMuted}
-                    activePawnPlacementColor={game.activePawnPlacementColor}
-                    setActivePawnPlacementColor={game.setActivePawnPlacementColor}
-                    pawnPositions={game.pawnPositions}
-                    playerHands={game.playerHands}
-                    onTileClick={game.handleTileClick}
-                    onRandomizeBoard={game.handleRandomizeBoard}
-                    onAddCard={game.handleAddCard}
-                    onRemoveCard={game.handleRemoveCard}
-                    setupTab={game.setupTab}
-                    setSetupTab={game.setSetupTab}
-                  />
-                )}
-              </div>
+              <div className="w-10 h-1 rounded-full bg-stone-600" />
+              {mobilePanelStop === "peek" ? (
+                <ChevronUp className="w-3 h-3 text-stone-600" />
+              ) : (
+                <ChevronDownIcon className="w-3 h-3 text-stone-600" />
+              )}
+            </button>
+            <div
+              className={cn(
+                "flex-1 min-h-0",
+                mobilePanelStop === "expanded" ? "overflow-y-auto overscroll-contain" : "overflow-hidden"
+              )}
+            >
+              {game.isGameStarted ? (
+                <SolverPanel
+                  solutions={solutions}
+                  isLoadingSolutions={isLoadingSolutions}
+                  hoveredSolution={hoveredSolution}
+                  setHoveredSolution={setHoveredSolution}
+                  maxTurns={maxTurns}
+                  setMaxTurns={setMaxTurns}
+                  activePawn={game.activePawn}
+                  setActivePawn={game.setActivePawn}
+                  activePlayers={game.activePlayers}
+                  isMuted={isMuted}
+                  spareTile={previewState ? previewState.spareTile : game.spareTile}
+                  customTargetCoords={game.customTargetCoords}
+                  setCustomTargetCoords={game.setCustomTargetCoords}
+                  onExecuteSolution={game.handleExecuteSolution}
+                  playerActiveTargets={game.playerActiveTargets}
+                  onSelectTargetTreasure={game.handleSelectTargetTreasure}
+                  stagedArrow={stagedArrow}
+                  stagedRotation={stagedRotation}
+                  onRotateStaged={() =>
+                    setStagedRotation(
+                      (prev) =>
+                        ([0, 90, 180, 270] as (0 | 90 | 180 | 270)[])[
+                          ([0, 90, 180, 270].indexOf(prev) + 1) % 4
+                        ]
+                    )
+                  }
+                  onCommitSlide={commitStagedSlide}
+                  onCancelSlide={cancelStagedSlide}
+                  turnPhase={turnPhase}
+                  showOneMoveTargets={showOneMoveTargets}
+                  onToggleOneMoveTargets={() => setShowOneMoveTargets((v) => !v)}
+                  oneMoveTargets={oneMoveTargets}
+                  isActivePawnHome={isActivePawnHome}
+                  compact={mobilePanelStop === "peek"}
+                  onToggleStats={() => setShowStats((prev) => !prev)}
+                />
+              ) : (
+                <SetupPanel
+                  looseTiles={game.looseTiles}
+                  activePlayers={game.activePlayers}
+                  setActivePlayers={game.setActivePlayers}
+                  activePawn={game.activePawn}
+                  setActivePawn={game.setActivePawn}
+                  isMuted={isMuted}
+                  activePawnPlacementColor={game.activePawnPlacementColor}
+                  setActivePawnPlacementColor={game.setActivePawnPlacementColor}
+                  pawnPositions={game.pawnPositions}
+                  playerHands={game.playerHands}
+                  onTileClick={game.handleTileClick}
+                  onRandomizeBoard={game.handleRandomizeBoard}
+                  onResetBoard={() => game.resetBoardToInitialPresets()}
+                  onAddCard={game.handleAddCard}
+                  onRemoveCard={game.handleRemoveCard}
+                  setupTab={game.setupTab}
+                  setSetupTab={game.setSetupTab}
+                  canStartGame={canStartGame}
+                  onStartGame={game.handleStartGame}
+                  showToast={showToast}
+                  compact={mobilePanelStop === "peek"}
+                />
+              )}
             </div>
           </div>
 
@@ -920,6 +954,19 @@ export default function App() {
           </DragOverlay>
         </DndContext>
       </main>
+
+      {/* Welcome guide */}
+      <WelcomeGuide
+        open={showWelcomeGuide}
+        onOpenChange={setShowWelcomeGuide}
+        onDismiss={() => {
+          try {
+            localStorage.setItem("labyrinth_welcome_dismissed", "true");
+          } catch {
+            /* storage full */
+          }
+        }}
+      />
 
       {/* Stats dialog */}
       <Dialog open={showStats} onOpenChange={setShowStats}>
@@ -1002,17 +1049,19 @@ export default function App() {
           <span className="text-[9px] font-medium">Rotate</span>
         </Button>
 
-        {/* Panel toggle button — opens bottom sheet */}
+        {/* Panel toggle button — expands/collapses the persistent split panel */}
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => setMobileSheetOpen((v) => !v)}
+          onClick={() =>
+            setMobilePanelStop((prev) => (prev === "peek" ? "expanded" : "peek"))
+          }
           className={cn(
             "flex flex-col items-center gap-0.5 h-auto py-1 px-3 cursor-pointer relative",
-            mobileSheetOpen ? "text-theme-primary" : "text-stone-400 hover:text-stone-200"
+            mobilePanelStop === "expanded" ? "text-theme-primary" : "text-stone-400 hover:text-stone-200"
           )}
         >
-          {mobileSheetOpen ? (
+          {mobilePanelStop === "expanded" ? (
             <ChevronDownIcon className="w-4 h-4" />
           ) : (
             <ChevronUp className="w-4 h-4" />
@@ -1021,7 +1070,7 @@ export default function App() {
             {game.isGameStarted ? "Solver" : "Setup"}
           </span>
           {/* Badge for solver solutions */}
-          {game.isGameStarted && solutions.length > 0 && !mobileSheetOpen && (
+          {game.isGameStarted && solutions.length > 0 && mobilePanelStop === "peek" && (
             <span className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-theme-primary text-stone-950 text-[8px] font-bold flex items-center justify-center">
               {solutions.length}
             </span>

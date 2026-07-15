@@ -2,7 +2,7 @@
 // sheet (< md) and the tablet/desktop side column (md+). Unprefixed classes
 // target the phone sheet; `md:` targets the tablet column; `lg:` targets the
 // wider desktop column. Interactive controls get a 44px phone floor.
-import { Sparkles, Layers, User, Compass } from "lucide-react";
+import { Sparkles, Layers, User, Compass, Play, RotateCw } from "lucide-react";
 import { SidePanel } from "./SidePanel";
 import { Button } from "./ui/button";
 import { PAWNS, TREASURES } from "../constants";
@@ -12,6 +12,7 @@ import type { TileData } from "../types";
 interface SetupPanelProps {
   looseTiles: TileData[];
   activePlayers: string[];
+  setActivePlayers: (players: string[]) => void;
   activePawn: string;
   setActivePawn: (p: string) => void;
   isMuted: boolean;
@@ -21,15 +22,21 @@ interface SetupPanelProps {
   playerHands: Record<string, string[]>;
   onTileClick: (id: string) => void;
   onRandomizeBoard: () => void;
+  onResetBoard: () => void;
   onAddCard: (treasureId: string) => void;
   onRemoveCard: (treasureId: string) => void;
   setupTab: "tiles" | "pawns" | "cards";
   setSetupTab: (tab: "tiles" | "pawns" | "cards") => void;
+  canStartGame: boolean;
+  onStartGame: () => void;
+  showToast: (msg: string) => void;
+  compact?: boolean;
 }
 
 export function SetupPanel({
   looseTiles,
   activePlayers,
+  setActivePlayers,
   activePawn,
   setActivePawn,
   isMuted,
@@ -39,11 +46,41 @@ export function SetupPanel({
   playerHands,
   onTileClick,
   onRandomizeBoard,
+  onResetBoard,
   onAddCard,
   onRemoveCard,
   setupTab,
   setSetupTab,
+  canStartGame,
+  onStartGame,
+  showToast,
+  compact = false,
 }: SetupPanelProps) {
+
+  if (compact) {
+    const movableTilesRemaining = Math.max(0, looseTiles.length - 1);
+    return (
+      <div className="flex items-center gap-2 px-3 pb-2">
+        <span className="text-xs text-stone-400 truncate flex-1">
+          {looseTiles.length === 1
+            ? "Setup complete — ready to play"
+            : `${movableTilesRemaining} tile${movableTilesRemaining === 1 ? "" : "s"} left to place`}
+        </span>
+        <Button
+          onClick={() => {
+            if (!isMuted) playClickSound();
+            onStartGame();
+          }}
+          disabled={!canStartGame}
+          size="sm"
+          className="bg-theme-primary hover:bg-theme-primary-hover text-stone-950 font-bold min-h-9 rounded-lg flex items-center gap-1.5 shrink-0 disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          <Play className="w-3.5 h-3.5" />
+          Start
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div className="flex-1 flex flex-col min-h-0 gap-3 md:gap-4 p-2 md:p-3 lg:p-4">
@@ -72,6 +109,18 @@ export function SetupPanel({
             <span className="text-stone-300">Pawn Spawns Placed ✓</span>
           </div>
         </div>
+        <Button
+          onClick={() => {
+            if (!isMuted) playClickSound();
+            onStartGame();
+          }}
+          disabled={!canStartGame}
+          title={!canStartGame ? "Place all movable tiles first" : undefined}
+          className="w-full bg-theme-primary hover:bg-theme-primary-hover text-stone-950 font-bold py-2.5 px-4 min-h-11 rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-theme-glow cursor-pointer transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none mt-1"
+        >
+          <Play className="w-4 h-4" />
+          Start Game
+        </Button>
       </div>
 
       {/* Tab bar */}
@@ -100,13 +149,27 @@ export function SetupPanel({
       <div className="flex-1 overflow-hidden min-h-0">
         {setupTab === "tiles" && (
           <div className="flex flex-col gap-3 h-full overflow-hidden min-h-0">
-            <Button
-              onClick={onRandomizeBoard}
-              className="w-full bg-theme-primary hover:bg-theme-primary-hover text-stone-950 font-bold py-2.5 px-4 rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-theme-glow cursor-pointer transition-colors"
-            >
-              <Sparkles className="w-4 h-4" />
-              Randomize Board
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                onClick={onRandomizeBoard}
+                className="flex-1 bg-theme-primary hover:bg-theme-primary-hover text-stone-950 font-bold py-2.5 px-4 min-h-11 rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-theme-glow cursor-pointer transition-colors"
+              >
+                <Sparkles className="w-4 h-4" />
+                Randomize Board
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  if (!isMuted) playClickSound();
+                  onResetBoard();
+                }}
+                title="Reset Layout"
+                aria-label="Reset layout"
+                className="border-stone-800 text-stone-400 hover:text-stone-200 hover:bg-stone-900 min-h-11 w-11 shrink-0 px-0 cursor-pointer"
+              >
+                <RotateCw className="w-4 h-4" />
+              </Button>
+            </div>
             <div className="flex-1 overflow-hidden">
               <SidePanel tiles={looseTiles} onTileClick={onTileClick} />
             </div>
@@ -115,6 +178,45 @@ export function SetupPanel({
 
         {setupTab === "pawns" && (
           <div className="flex flex-col gap-4 h-full overflow-y-auto min-h-0">
+            <div className="p-3 app-surface flex flex-col gap-2">
+              <div className="text-xs font-semibold text-stone-200">Active Players</div>
+              <p className="text-[11px] text-stone-500 leading-normal">
+                Enable or disable players. Playing solo? Keep only one active.
+              </p>
+              <div className="grid grid-cols-2 gap-2 mt-1">
+                {PAWNS.map((p) => {
+                  const isActive = activePlayers.includes(p.id);
+                  return (
+                    <button
+                      key={p.id}
+                      onClick={() => {
+                        if (!isMuted) playClickSound();
+                        if (isActive) {
+                          if (activePlayers.length > 1) {
+                            setActivePlayers(activePlayers.filter((id) => id !== p.id));
+                          } else {
+                            showToast("At least one player must be active!");
+                          }
+                        } else {
+                          setActivePlayers([...activePlayers, p.id]);
+                        }
+                      }}
+                      className={`flex items-center justify-between p-2.5 min-h-11 rounded-xl border text-xs font-semibold transition-all cursor-pointer ${
+                        isActive
+                          ? "border-theme-primary bg-theme-primary-10 text-theme-primary"
+                          : "border-stone-800 bg-stone-950/40 hover:bg-stone-900 text-stone-400 hover:text-stone-200"
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className={`w-3 h-3 rounded-full ring-1 ring-white/20 ${p.colorClass}`} />
+                        <span>{p.name}</span>
+                      </div>
+                      <span className="text-[10px] opacity-75">{isActive ? "Active" : "Off"}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
             <div className="text-sm text-stone-400">
               Choose a pawn and click a cell on the board grid to jump and place that pawn.
             </div>

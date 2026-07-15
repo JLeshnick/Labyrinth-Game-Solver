@@ -19,7 +19,7 @@ import {
   Unlock,
   Menu,
   Settings2,
-  Sparkles,
+  HelpCircle,
 } from "lucide-react";
 
 export interface AppHeaderProps {
@@ -32,6 +32,7 @@ export interface AppHeaderProps {
   activePlayers: string[];
   activePawn: string;
   looseTiles: TileData[];
+  canStartGame: boolean;
   accentColor: string;
   setAccentColor: (hex: string) => void;
   isSettingsOpen: boolean;
@@ -41,16 +42,15 @@ export interface AppHeaderProps {
   onCloseSettings: () => void;
   onUndo: () => void;
   onRedo: () => void;
-  onResetBoard: () => void;
   onRotateBoard: () => void;
   onToggleStats: () => void;
   onStartGame: () => void;
   onEndGame: () => void;
   onToggleMute: () => void;
   onSetBaseTheme: (theme: "dark" | "light") => void;
-  onSetActivePlayers: (players: string[]) => void;
   showToast: (msg: string) => void;
   onRandomizeBoard?: () => void | Promise<void>;
+  onOpenWelcomeGuide: () => void;
 }
 
 const STEPS = [
@@ -88,6 +88,7 @@ export function AppHeader({
   activePlayers,
   activePawn,
   looseTiles,
+  canStartGame,
   accentColor,
   setAccentColor,
   isSettingsOpen,
@@ -95,18 +96,17 @@ export function AppHeader({
   onCloseSettings,
   onUndo,
   onRedo,
-  onResetBoard,
   onRotateBoard,
   onToggleStats,
   onStartGame,
   onEndGame,
   onToggleMute,
   onSetBaseTheme,
-  onSetActivePlayers,
   showToast,
   playerHands,
   obtainedTreasures,
   onRandomizeBoard,
+  onOpenWelcomeGuide,
 }: AppHeaderProps) {
   const [showGameMenu, setShowGameMenu] = useState(false);
   const [showEndGameConfirm, setShowEndGameConfirm] = useState(false);
@@ -114,7 +114,6 @@ export function AppHeader({
   const menuButtonRef = useRef<HTMLButtonElement | null>(null);
 
   const currentStep = isGameStarted ? "game" : "setup";
-  const canStartGame = looseTiles.length === 1 || looseTiles.length === 0;
 
   const menuItemClass =
     "flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-left text-xs text-stone-400 hover:bg-stone-900 hover:text-stone-200 cursor-pointer transition-colors";
@@ -161,34 +160,11 @@ export function AppHeader({
 
   const menuActions: MenuAction[] = [
     {
-      id: "start-game",
-      label: "Start Game",
-      icon: <Play className="w-3.5 h-3.5 text-theme-primary" />,
-      onSelect: onStartGame,
-      hidden: isGameStarted,
-      disabled: !canStartGame,
-      title: !canStartGame ? "Place all movable tiles first" : undefined,
-    },
-    {
       id: "end-game",
       label: "End Game",
       icon: <Unlock className="w-3.5 h-3.5 text-amber-400" />,
       onSelect: () => setShowEndGameConfirm(true),
       hidden: !isGameStarted,
-    },
-    {
-      id: "randomize",
-      label: "Randomize Layout",
-      icon: <Sparkles className="w-3.5 h-3.5 text-theme-primary" />,
-      onSelect: onRandomizeBoard,
-      hidden: isGameStarted || !onRandomizeBoard,
-    },
-    {
-      id: "reset",
-      label: "Reset Layout",
-      icon: <RotateCw className="w-3.5 h-3.5" />,
-      onSelect: onResetBoard,
-      hidden: isGameStarted,
     },
     {
       id: "stats",
@@ -536,6 +512,20 @@ export function AppHeader({
             </Button>
           </div>
 
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => {
+              if (!isMuted) playClickSound();
+              onOpenWelcomeGuide();
+            }}
+            className="border-stone-800 hover:bg-stone-900 w-8 h-8 shrink-0"
+            title="How to play"
+            aria-label="Open the how-to-play guide"
+          >
+            <HelpCircle className="w-3.5 h-3.5 text-stone-300" />
+          </Button>
+
           <SettingsDialog
             open={isSettingsOpen}
             onOpenChange={(open) => {
@@ -551,9 +541,6 @@ export function AppHeader({
             setBaseTheme={onSetBaseTheme}
             accentColor={accentColor}
             setAccentColor={setAccentColor}
-            activePlayers={activePlayers}
-            setActivePlayers={onSetActivePlayers}
-            showToast={showToast}
           />
         </div>
       </header>
