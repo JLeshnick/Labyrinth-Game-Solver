@@ -270,6 +270,41 @@
   background-color: rgba(231, 229, 228, 0.4) !important;
 }
 
+/* ── Status banners (turn-phase hints, 1-move target chips) ──────────
+   These use raw green-9xx/blue-9xx dark-mode colors (near-black bg + pale
+   text) with no light equivalent, so they need explicit light overrides
+   rather than the stone-scale rewrite above. */
+[data-theme="light"] .bg-green-950\/40 {
+  background-color: #dcfce7 !important;
+}
+[data-theme="light"] .border-green-800\/50 {
+  border-color: #86efac !important;
+}
+[data-theme="light"] .text-green-300 {
+  color: #15803d !important;
+}
+[data-theme="light"] .bg-blue-950\/40 {
+  background-color: #dbeafe !important;
+}
+[data-theme="light"] .border-blue-800\/50 {
+  border-color: #93c5fd !important;
+}
+[data-theme="light"] .text-blue-300 {
+  color: #1d4ed8 !important;
+}
+[data-theme="light"] .bg-green-950\/60 {
+  background-color: #dcfce7 !important;
+}
+[data-theme="light"] .border-green-700\/40 {
+  border-color: #86efac !important;
+}
+[data-theme="light"] .hover\:bg-green-900\/60:hover {
+  background-color: #bbf7d0 !important;
+}
+[data-theme="light"] .hover\:border-green-600\/60:hover {
+  border-color: #4ade80 !important;
+}
+
 /* ── Shadcn semantic tokens (override the @theme dark defaults) ── */
 [data-theme="light"] {
   --color-background: #fafaf9;
