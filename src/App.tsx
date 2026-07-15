@@ -723,25 +723,6 @@ export default function App() {
               className="relative aspect-square w-full h-auto flex-shrink-0 mx-auto max-w-[min(100vw-1rem,calc(100svh-220px))] sm:max-w-[min(100vw-2rem,calc(100svh-280px))] md:max-w-[calc(100svh-180px)] lg:max-w-[calc(100svh-140px)]"
               style={{ boxShadow: "0 0 0 1px rgba(var(--theme-color-rgb), 0.15)", borderRadius: "1rem" }}
             >
-              {hoveredSolution &&
-                (hoveredSolution as { arrowId: string }[]).length > 0 && (
-                  <div
-                    className="absolute animate-ping bg-theme-primary-20 border border-theme-primary-40 rounded-full pointer-events-none"
-                    style={(() => {
-                      const arrow = SHIFT_ARROWS.find(
-                        (a) => a.id === (hoveredSolution as { arrowId: string }[])[0].arrowId
-                      );
-                      if (!arrow) return { display: "none" };
-                      return {
-                        left: `${arrow.gridColumn * 11.1}%`,
-                        top: `${arrow.gridRow * 11.1}%`,
-                        width: "30px",
-                        height: "30px",
-                        transform: "translate(-50%, -50%)",
-                      };
-                    })()}
-                  />
-                )}
 
               <Board
                 grid={effectivePreview ? effectivePreview.grid : game.grid}
