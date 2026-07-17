@@ -49,15 +49,15 @@ export const Tile: React.FC<TileProps> = ({
     }
   };
 
-  const getCornerColor = () => {
-    if (!tile.color) return "";
-    const colors = {
-      blue: "bg-blue-500",
-      red: "bg-red-500",
-      green: "bg-green-500",
-      yellow: "bg-yellow-400",
+  const getCornerColorClasses = () => {
+    if (!tile.color) return { border: "", text: "", bg: "" };
+    const map: Record<string, { border: string; text: string; bg: string }> = {
+      blue:   { border: "border-blue-400",   text: "text-blue-300",   bg: "bg-blue-500/20" },
+      red:    { border: "border-red-400",    text: "text-red-300",    bg: "bg-red-500/20" },
+      green:  { border: "border-green-400",  text: "text-green-300",  bg: "bg-green-500/20" },
+      yellow: { border: "border-yellow-300", text: "text-yellow-200", bg: "bg-yellow-400/20" },
     };
-    return colors[tile.color];
+    return map[tile.color] ?? { border: "", text: "", bg: "" };
   };
 
   return (
@@ -82,16 +82,25 @@ export const Tile: React.FC<TileProps> = ({
         {getPathStyles()}
       </div>
 
-      {/* Starting Corner Colors — diamond shape distinguishes home base from round pawns */}
-      {tile.color && (
-        <div
-          className={cn(
-            "absolute w-5 h-5 sm:w-6 sm:h-6 rounded-sm border-2 border-white shadow-md z-10 transition-transform duration-300",
-            getCornerColor()
-          )}
-          style={{ transform: `rotate(${-boardRotation + 45}deg)` }}
-        />
-      )}
+      {/* Home corner marker — embedded flat into the tile corner, clearly distinct from pawns */}
+      {tile.color && (() => {
+        const { border, text, bg } = getCornerColorClasses();
+        const label = tile.color[0].toUpperCase();
+        return (
+          <div
+            className={cn(
+              "absolute bottom-1 right-1 w-5 h-5 sm:w-6 sm:h-6 rounded flex items-center justify-center",
+              "border-2 z-10 transition-transform duration-300",
+              bg, border
+            )}
+            style={{ transform: `rotate(${-boardRotation}deg)` }}
+          >
+            <span className={cn("text-[9px] sm:text-[10px] font-black leading-none select-none", text)}>
+              {label}
+            </span>
+          </div>
+        );
+      })()}
 
       {/* Fixed tile lock badge */}
       {tile.isFixed && (
