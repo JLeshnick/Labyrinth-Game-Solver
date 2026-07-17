@@ -104,7 +104,13 @@ const BoardSpace: React.FC<BoardSpaceProps> = ({
           tile={tile}
           onClick={isGameStarted
             ? (tile?.treasure && onTreasureClick
-                ? () => onTreasureClick(tile.treasure!.id, !!isObtainedTreasure)
+                ? () => {
+                    // Set the treasure as the named target AND set customTargetCoords
+                    // so the cell border ring also shows (same visual feedback as
+                    // clicking a non-treasure tile in slide phase).
+                    onTreasureClick(tile.treasure!.id, !!isObtainedTreasure);
+                    onCellClick(y, x);
+                  }
                 : () => onCellClick(y, x))
             : () => onTileClick(tile.id)
           }
