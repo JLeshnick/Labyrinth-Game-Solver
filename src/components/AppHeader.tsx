@@ -20,6 +20,8 @@ import {
   Menu,
   Settings2,
   HelpCircle,
+  Timer,
+  PauseCircle,
 } from "lucide-react";
 
 export interface AppHeaderProps {
@@ -51,6 +53,9 @@ export interface AppHeaderProps {
   showToast: (msg: string) => void;
   onRandomizeBoard?: () => void | Promise<void>;
   onOpenWelcomeGuide: () => void;
+  elapsedTime?: string;
+  isTimerPaused?: boolean;
+  onToggleTimer?: () => void;
 }
 
 const STEPS = [
@@ -107,6 +112,9 @@ export function AppHeader({
   obtainedTreasures,
   onRandomizeBoard,
   onOpenWelcomeGuide,
+  elapsedTime,
+  isTimerPaused = false,
+  onToggleTimer,
 }: AppHeaderProps) {
   const [showGameMenu, setShowGameMenu] = useState(false);
   const [showEndGameConfirm, setShowEndGameConfirm] = useState(false);
@@ -219,7 +227,21 @@ export function AppHeader({
               <span className="hidden sm:inline">Labyrinth Game Solver</span>
               <span className="sm:hidden">Labyrinth</span>
             </h1>
-            <p className="text-[10px] text-stone-400 hidden sm:block">{subtitle}</p>
+            <p
+              className={cn(
+                "text-[10px] text-stone-400 hidden sm:block",
+                isGameStarted && onToggleTimer ? "cursor-pointer select-none hover:text-stone-300 transition-colors" : ""
+              )}
+              onClick={isGameStarted && onToggleTimer ? onToggleTimer : undefined}
+              title={isGameStarted ? (isTimerPaused ? "Resume timer" : "Pause timer") : undefined}
+            >
+              {subtitle}
+              {isGameStarted && elapsedTime && (
+                <span className={cn("ml-1 font-mono", isTimerPaused ? "text-stone-600" : "text-theme-primary/80")}>
+                  • {isTimerPaused ? "⏸" : "⏱"} {elapsedTime}
+                </span>
+              )}
+            </p>
           </div>
         </div>
 
@@ -261,9 +283,26 @@ export function AppHeader({
               })}
             </div>
           </div>
-          <span className="sm:hidden text-[10px] text-stone-500 font-semibold uppercase tracking-wide">
-            {phaseLabel}
-          </span>
+          {isGameStarted && elapsedTime ? (
+            <button
+              onClick={onToggleTimer}
+              className={cn(
+                "sm:hidden flex items-center gap-1 text-[11px] font-mono font-semibold transition-colors cursor-pointer",
+                isTimerPaused ? "text-stone-500" : "text-theme-primary/80 hover:text-theme-primary"
+              )}
+              title={isTimerPaused ? "Resume timer" : "Pause timer"}
+              aria-label={isTimerPaused ? "Resume timer" : "Pause timer"}
+            >
+              {isTimerPaused
+                ? <><PauseCircle className="w-3 h-3" />{elapsedTime}</>
+                : <><Timer className="w-3 h-3" />{elapsedTime}</>
+              }
+            </button>
+          ) : (
+            <span className="sm:hidden text-[10px] text-stone-500 font-semibold uppercase tracking-wide">
+              {phaseLabel}
+            </span>
+          )}
         </div>
 
         {/* Right — compact toolbar */}

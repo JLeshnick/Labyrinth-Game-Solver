@@ -82,14 +82,14 @@ export const Tile: React.FC<TileProps> = ({
         {getPathStyles()}
       </div>
 
-      {/* Starting Corner Colors */}
+      {/* Starting Corner Colors — diamond shape distinguishes home base from round pawns */}
       {tile.color && (
         <div
           className={cn(
-            "absolute w-6 h-6 sm:w-8 sm:h-8 rounded-full border-2 border-white shadow-md z-10 transition-transform duration-300",
+            "absolute w-5 h-5 sm:w-6 sm:h-6 rounded-sm border-2 border-white shadow-md z-10 transition-transform duration-300",
             getCornerColor()
           )}
-          style={{ transform: `rotate(${-boardRotation}deg)` }}
+          style={{ transform: `rotate(${-boardRotation + 45}deg)` }}
         />
       )}
 

@@ -23,6 +23,7 @@ import { AppHeader } from "./components/AppHeader";
 import { WelcomeGuide } from "./components/WelcomeGuide";
 import { Dialog, DialogContent } from "./components/ui/dialog";
 import { useLabyrinthGame } from "./hooks/useLabyrinthGame";
+import { useStopwatch } from "./hooks/useStopwatch";
 import { playClickSound } from "./utils/audio";
 import { fromSolverGrid } from "./lib/solverAdapter";
 import { executeSlideInGrid, getReachableCells, quickSolveMinTurns } from "./solver";
@@ -178,6 +179,7 @@ export default function App() {
   });
 
   const canStartGame = game.looseTiles.length === 1 || game.looseTiles.length === 0;
+  const { elapsedTime, isPaused: isTimerPaused, togglePause: toggleTimer } = useStopwatch(game.isGameStarted);
 
   // ── Setup guidance for mobile users ───────────────────────────────────────────
   useEffect(() => {
@@ -751,6 +753,9 @@ export default function App() {
         playerHands={game.playerHands}
         obtainedTreasures={game.obtainedTreasures}
         onOpenWelcomeGuide={() => setShowWelcomeGuide(true)}
+        elapsedTime={game.isGameStarted ? elapsedTime : undefined}
+        isTimerPaused={isTimerPaused}
+        onToggleTimer={toggleTimer}
       />
 
       <main className="flex-1 flex flex-col md:flex-row relative z-10 w-full px-2 sm:px-3 md:px-4 lg:px-6 pt-2 sm:pt-3 pb-[72px] md:pb-3 gap-3 md:gap-4 lg:gap-8 justify-center overflow-hidden min-h-0">
