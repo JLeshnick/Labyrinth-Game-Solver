@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useState } from "react";
 import type { TileData, PlayerMap } from "../types";
 import { PAWNS, TREASURES } from "../constants";
 import { Button } from "./ui/button";
@@ -13,11 +13,9 @@ import {
   Volume2,
   VolumeX,
   RotateCw,
-  Gauge,
   Layers,
   Play,
   Unlock,
-  Menu,
   Settings2,
   HelpCircle,
   Timer,
@@ -75,22 +73,13 @@ const STEPS = [
   },
 ];
 
-type MenuAction = {
-  id: string;
-  label: string;
-  icon: ReactNode;
-  onSelect?: () => void | Promise<void>;
-  hidden?: boolean;
-  disabled?: boolean;
-  title?: string;
-};
 
 export function AppHeader({
   isGameStarted,
   canUndo,
   canRedo,
   isMuted,
-  showStats,
+  showStats: _showStats,
   baseTheme,
   activePlayers,
   activePawn,
@@ -105,12 +94,12 @@ export function AppHeader({
   onRedo,
   onOpenHistory,
   onRotateBoard,
-  onToggleStats,
+  onToggleStats: _onToggleStats,
   onStartGame,
   onEndGame,
   onToggleMute,
   onSetBaseTheme,
-  showToast,
+  showToast: _showToast,
   playerHands,
   obtainedTreasures,
   onRandomizeBoard,
@@ -119,15 +108,9 @@ export function AppHeader({
   isTimerPaused = false,
   onToggleTimer,
 }: AppHeaderProps) {
-  const [showGameMenu, setShowGameMenu] = useState(false);
   const [showEndGameConfirm, setShowEndGameConfirm] = useState(false);
-  const menuRef = useRef<HTMLDivElement | null>(null);
-  const menuButtonRef = useRef<HTMLButtonElement | null>(null);
 
   const currentStep = isGameStarted ? "game" : "setup";
-
-  const menuItemClass =
-    "flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-left text-xs text-stone-400 hover:bg-stone-900 hover:text-stone-200 cursor-pointer transition-colors";
 
   const editionLabel =
     typeof window !== "undefined" && !!(window as { electronAPI?: unknown }).electronAPI
@@ -143,76 +126,7 @@ export function AppHeader({
     : `${tilesPlaced}/33 tiles placed`;
   const subtitle = [editionLabel, phaseLabel].filter(Boolean).join(" • ");
 
-  useEffect(() => {
-    if (!showGameMenu) return;
 
-    const handleClick = (event: MouseEvent) => {
-      const target = event.target as Node;
-      if (menuRef.current?.contains(target)) return;
-      if (menuButtonRef.current?.contains(target)) return;
-      setShowGameMenu(false);
-    };
-
-    const handleKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setShowGameMenu(false);
-    };
-
-    document.addEventListener("mousedown", handleClick);
-    document.addEventListener("keydown", handleKey);
-    return () => {
-      document.removeEventListener("mousedown", handleClick);
-      document.removeEventListener("keydown", handleKey);
-    };
-  }, [showGameMenu]);
-
-  useEffect(() => {
-    if (isSettingsOpen) setShowGameMenu(false);
-  }, [isSettingsOpen]);
-
-  const menuActions: MenuAction[] = [
-    {
-      id: "end-game",
-      label: "End Game",
-      icon: <Unlock className="w-3.5 h-3.5 text-amber-400" />,
-      onSelect: () => setShowEndGameConfirm(true),
-      hidden: !isGameStarted,
-    },
-    {
-      id: "stats",
-      label: showStats ? "Hide Stats" : "Show Stats",
-      icon: <Gauge className="w-3.5 h-3.5" />,
-      onSelect: onToggleStats,
-      hidden: !isGameStarted,
-    },
-    {
-      id: "settings",
-      label: "Settings",
-      icon: <Settings2 className="w-3.5 h-3.5" />,
-      onSelect: onOpenSettings,
-    },
-    {
-      id: "mute",
-      label: isMuted ? "Unmute Sound" : "Mute Sound",
-      icon: isMuted ? (
-        <VolumeX className="w-3.5 h-3.5" />
-      ) : (
-        <Volume2 className="w-3.5 h-3.5 text-theme-primary" />
-      ),
-      onSelect: onToggleMute,
-    },
-  ].filter((action) => !action.hidden);
-
-  const handleMenuItemClick = async (action: MenuAction) => {
-    if (action.disabled || !action.onSelect) return;
-    setShowGameMenu(false);
-    if (!isMuted) playClickSound();
-    try {
-      await Promise.resolve(action.onSelect());
-    } catch (error) {
-      console.error(`Failed to run menu action "${action.id}"`, error);
-      showToast("Something went wrong while performing that action.");
-    }
-  };
 
   return (
     <>
@@ -310,52 +224,6 @@ export function AppHeader({
 
         {/* Right — compact toolbar */}
         <div className="flex items-center gap-2 shrink-0">
-          {/* Game menu trigger (desktop only) */}
-          <div className="relative hidden lg:block">
-            <Button
-              ref={menuButtonRef}
-              variant="outline"
-              size="icon"
-              onClick={() => {
-                if (!isMuted) playClickSound();
-                setShowGameMenu((prev) => !prev);
-              }}
-              id="app-game-menu-button"
-              aria-haspopup="menu"
-              aria-expanded={showGameMenu}
-              className="border-stone-800 hover:bg-stone-900 w-9 h-9"
-            >
-              <Menu className="w-3.5 h-3.5" />
-            </Button>
-            {showGameMenu && (
-              <div
-                ref={menuRef}
-                role="menu"
-                aria-labelledby="app-game-menu-button"
-                className="absolute right-0 mt-2 w-56 app-dropdown-panel border border-stone-800 rounded-xl shadow-2xl p-2 z-50 animate-fade-in"
-              >
-                <div className="flex flex-col gap-0.5">
-                  {menuActions.map((action) => (
-                    <button
-                      key={action.id}
-                      type="button"
-                      onClick={() => handleMenuItemClick(action)}
-                      disabled={action.disabled}
-                      title={action.title}
-                      className={cn(
-                        menuItemClass,
-                        action.disabled &&
-                          "opacity-50 cursor-not-allowed hover:bg-transparent hover:text-stone-400"
-                      )}
-                    >
-                      {action.icon}
-                      <span>{action.label}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
 
           {/* Randomize layout (desktop & tablets) */}
           {!isGameStarted && onRandomizeBoard && (
@@ -528,28 +396,6 @@ export function AppHeader({
               <RotateCw className="w-3.5 h-3.5" />
             </Button>
 
-            {isGameStarted && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  if (!isMuted) playClickSound();
-                  onToggleStats();
-                }}
-                className={cn(
-                  "border-stone-800 hover:bg-stone-900 gap-1.5 h-8",
-                  showStats
-                    ? "bg-theme-primary-20 border-theme-primary-40 text-theme-primary"
-                    : "text-stone-300"
-                )}
-                title="Toggle Stats"
-                aria-label="Toggle game statistics"
-              >
-                <Gauge className="w-3.5 h-3.5" />
-                <span className="text-xs">Stats</span>
-              </Button>
-            )}
-
             <div className="w-px h-4 bg-stone-800/60 mx-1" />
 
             <Button
@@ -569,6 +415,20 @@ export function AppHeader({
               )}
             </Button>
           </div>
+
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => {
+              if (!isMuted) playClickSound();
+              onOpenSettings();
+            }}
+            className="border-stone-800 hover:bg-stone-900 w-8 h-8 shrink-0"
+            title="Settings"
+            aria-label="Open settings"
+          >
+            <Settings2 className="w-3.5 h-3.5 text-stone-300" />
+          </Button>
 
           <Button
             variant="outline"

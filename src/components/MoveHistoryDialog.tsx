@@ -1,5 +1,5 @@
-import { useRef, useEffect } from "react";
-import { Clock } from "lucide-react";
+import { useRef, useEffect, useState } from "react";
+import { Clock, ZoomIn, X } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
 import { Button } from "./ui/button";
 import { MiniBoardSnapshot } from "./MiniBoardSnapshot";
@@ -16,8 +16,14 @@ interface Props {
   onJumpTo: (index: number) => void;
 }
 
+interface ZoomedSnapshot {
+  record: HistoryRecord;
+  label: string;
+}
+
 export function MoveHistoryDialog({ open, onClose, history, historyIndex, activePlayers, onJumpTo }: Props) {
   const activeRowRef = useRef<HTMLDivElement>(null);
+  const [zoomed, setZoomed] = useState<ZoomedSnapshot | null>(null);
 
   // Scroll active row into view when dialog opens
   useEffect(() => {
@@ -28,7 +34,7 @@ export function MoveHistoryDialog({ open, onClose, history, historyIndex, active
 
   if (history.length === 0) return null;
 
-  return (
+  const dialog = (
     <Dialog open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
       <DialogContent className="max-w-md bg-stone-900 border-stone-700 text-stone-100 p-0 flex flex-col max-h-[85svh]">
         <DialogHeader className="px-4 pt-4 pb-3 border-b border-stone-800 shrink-0">
@@ -67,14 +73,24 @@ export function MoveHistoryDialog({ open, onClose, history, historyIndex, active
                   {idx}
                 </span>
 
-                {/* Mini board thumbnail */}
-                <MiniBoardSnapshot
-                  board={record.board}
-                  pawnPositions={pawnPositions}
-                  activePlayers={activePlayers}
-                  movedPawn={record.movedPawn}
-                  pawnPath={record.pawnPath}
-                />
+                {/* Mini board thumbnail — click to zoom */}
+                <button
+                  onClick={() => setZoomed({ record, label })}
+                  className="shrink-0 rounded overflow-hidden hover:ring-2 hover:ring-theme-primary/60 transition-all relative group"
+                  title="Click to enlarge"
+                  aria-label="Enlarge board snapshot"
+                >
+                  <MiniBoardSnapshot
+                    board={record.board}
+                    pawnPositions={pawnPositions}
+                    activePlayers={activePlayers}
+                    movedPawn={record.movedPawn}
+                    pawnPath={record.pawnPath}
+                  />
+                  <span className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 bg-black/30 transition-opacity">
+                    <ZoomIn className="w-3 h-3 text-white" />
+                  </span>
+                </button>
 
                 {/* Label + actions */}
                 <div className="flex-1 min-w-0">
@@ -121,5 +137,41 @@ export function MoveHistoryDialog({ open, onClose, history, historyIndex, active
         </div>
       </DialogContent>
     </Dialog>
+  );
+
+  return (
+    <>
+      {dialog}
+      {/* Zoom overlay */}
+      {zoomed && (
+        <div
+          className="fixed inset-0 z-[60] bg-black/70 flex items-center justify-center p-4"
+          onClick={() => setZoomed(null)}
+        >
+          <div
+            className="bg-stone-900 border border-stone-700 rounded-2xl p-4 flex flex-col items-center gap-3 shadow-2xl max-w-xs w-full"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between w-full">
+              <span className="text-sm font-semibold text-stone-200">{zoomed.label}</span>
+              <button onClick={() => setZoomed(null)} className="text-stone-500 hover:text-stone-200 cursor-pointer">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div style={{ transform: "scale(3)", transformOrigin: "center", width: 70, height: 70 }}>
+              <MiniBoardSnapshot
+                board={zoomed.record.board}
+                pawnPositions={(zoomed.record.pawnPositions ?? DEFAULT_PAWN_POSITIONS) as PawnPositions}
+                activePlayers={activePlayers}
+                movedPawn={zoomed.record.movedPawn}
+                pawnPath={zoomed.record.pawnPath}
+              />
+            </div>
+            <div style={{ height: 140 }} />
+            <p className="text-[11px] text-stone-500 text-center">Tap outside to close</p>
+          </div>
+        </div>
+      )}
+    </>
   );
 }

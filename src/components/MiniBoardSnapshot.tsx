@@ -1,8 +1,8 @@
 import type { TileData, PawnPositions } from "../types";
 import { PAWNS } from "../constants";
 
-const CELL = 8; // px per cell
-const TOTAL = CELL * 7; // 56px
+const CELL = 10; // px per cell
+const TOTAL = CELL * 7; // 70px
 
 // Pawn color hex map for SVG fills
 const PAWN_COLORS: Record<string, string> = {

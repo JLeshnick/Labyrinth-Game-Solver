@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from "react";
-import { Camera, CheckCircle2, AlertTriangle, ChevronRight, Upload } from "lucide-react";
+import { Camera, CheckCircle2, AlertTriangle, ChevronRight, Upload, RotateCw } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
 import { Button } from "./ui/button";
 import { scanBoard, isFixedCell } from "../lib/boardScanner";
@@ -55,15 +55,29 @@ function MiniGrid({ results }: { results: BoardScanResult }) {
   );
 }
 
+// Corner order matches the app's board orientation (clockwise from top-left):
+//   [0] Yellow TL — yellow pawn's home corner (row 0, col 6 in app = top-right, but visually TL here)
+//   [1] Blue   TR
+//   [2] Green  BR
+//   [3] Red    BL
+// App layout (FIXED_TILES_PRESETS): Red=(0,0) TL, Blue=(6,6) BR, Green=(6,0) BL, Yellow=(0,6) TR
+// Clockwise from TL: Red → Yellow → Blue → Green
+// So handle order [TL, TR, BR, BL] = [Red, Yellow, Blue, Green]
+const CORNER_COLORS = ["bg-red-500", "bg-yellow-400", "bg-blue-500", "bg-green-500"];
+const CORNER_LABELS = ["Red\nTL", "Yellow\nTR", "Blue\nBR", "Green\nBL"];
+const CORNER_SHORT  = ["R", "Y", "B", "G"];
+
 // ── Corner drag handle ────────────────────────────────────────────────────────
 interface AlignStepProps {
   imgSrc: string;
+  photoRotation: number;
+  onRotatePhoto: () => void;
   corners: [CornerPoint, CornerPoint, CornerPoint, CornerPoint];
   onCornersChange: (c: [CornerPoint, CornerPoint, CornerPoint, CornerPoint]) => void;
   onScan: () => void;
 }
 
-function AlignStep({ imgSrc, corners, onCornersChange, onScan }: AlignStepProps) {
+function AlignStep({ imgSrc, photoRotation, onRotatePhoto, corners, onCornersChange, onScan }: AlignStepProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const dragging = useRef<number | null>(null);
 
@@ -93,21 +107,43 @@ function AlignStep({ imgSrc, corners, onCornersChange, onScan }: AlignStepProps)
 
   const onPointerUp = () => { dragging.current = null; };
 
-  const cornerColors = ["bg-red-500", "bg-blue-500", "bg-green-500", "bg-yellow-400"];
-  const cornerLabels = ["TL", "TR", "BR", "BL"];
-
   return (
     <div className="flex flex-col gap-3">
-      <p className="text-xs text-stone-400">
-        Drag the four corner handles to align the grid with your board photo. Position each handle at the inner corner of each home tile.
-      </p>
+      <div className="flex items-start justify-between gap-2">
+        <p className="text-xs text-stone-400 flex-1">
+          Drag the corner handles to match each pawn's home corner. Rotate the photo if needed.
+        </p>
+        <button
+          onClick={onRotatePhoto}
+          className="shrink-0 flex items-center gap-1 text-xs text-stone-400 hover:text-stone-200 border border-stone-700 hover:border-stone-500 rounded-lg px-2 py-1.5 transition-colors"
+          title="Rotate photo 90° clockwise"
+        >
+          <RotateCw className="w-3.5 h-3.5" />
+          Rotate
+        </button>
+      </div>
+      {/* Corner color legend */}
+      <div className="flex gap-2 flex-wrap text-[10px]">
+        {CORNER_LABELS.map((label, i) => (
+          <span key={i} className="flex items-center gap-1 text-stone-400">
+            <span className={`w-2.5 h-2.5 rounded-full inline-block ${CORNER_COLORS[i]}`} />
+            {label.replace("\n", " ")}
+          </span>
+        ))}
+      </div>
       <div
         ref={containerRef}
         className="relative w-full aspect-square overflow-hidden rounded-lg border border-stone-700 select-none touch-none cursor-crosshair"
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
       >
-        <img src={imgSrc} className="w-full h-full object-contain" alt="Board photo" draggable={false} />
+        <img
+          src={imgSrc}
+          className="w-full h-full object-contain transition-transform duration-200"
+          style={{ transform: `rotate(${photoRotation}deg)` }}
+          alt="Board photo"
+          draggable={false}
+        />
 
         {/* Grid overlay SVG */}
         <svg className="absolute inset-0 w-full h-full pointer-events-none" viewBox="0 0 100 100" preserveAspectRatio="none">
@@ -144,10 +180,10 @@ function AlignStep({ imgSrc, corners, onCornersChange, onScan }: AlignStepProps)
           <div
             key={i}
             onPointerDown={startDrag(i)}
-            className={`absolute w-6 h-6 rounded-full ${cornerColors[i]} border-2 border-white shadow-lg cursor-grab active:cursor-grabbing flex items-center justify-center pointer-events-auto`}
+            className={`absolute w-7 h-7 rounded-full ${CORNER_COLORS[i]} border-2 border-white shadow-lg cursor-grab active:cursor-grabbing flex items-center justify-center pointer-events-auto`}
             style={{ left: toPercent(c).x, top: toPercent(c).y, transform: "translate(-50%, -50%)" }}
           >
-            <span className="text-[9px] font-bold text-white">{cornerLabels[i]}</span>
+            <span className="text-[9px] font-bold text-white">{CORNER_SHORT[i]}</span>
           </div>
         ))}
       </div>
@@ -169,6 +205,7 @@ export function BoardScanModal({ open, onClose, onApply }: Props) {
   const [step, setStep] = useState<Step>("upload");
   const [imgSrc, setImgSrc] = useState<string | null>(null);
   const [imgEl, setImgEl] = useState<HTMLImageElement | null>(null);
+  const [photoRotation, setPhotoRotation] = useState(0); // 0, 90, 180, 270
   const [corners, setCorners] = useState<[CornerPoint, CornerPoint, CornerPoint, CornerPoint]>([
     { x: 0.05, y: 0.05 },
     { x: 0.95, y: 0.05 },
@@ -186,11 +223,23 @@ export function BoardScanModal({ open, onClose, onApply }: Props) {
       setStep("upload");
       setImgSrc(null);
       setImgEl(null);
+      setPhotoRotation(0);
       setResults([]);
       setError(null);
       setProgress(0);
     }
   }, [open]);
+
+  const handleRotatePhoto = () => {
+    setPhotoRotation((prev) => (prev + 90) % 360);
+    // Reset corners to defaults when rotating so they stay sensible
+    setCorners([
+      { x: 0.05, y: 0.05 },
+      { x: 0.95, y: 0.05 },
+      { x: 0.95, y: 0.95 },
+      { x: 0.05, y: 0.95 },
+    ]);
+  };
 
   const handleFile = (file: File) => {
     if (!file.type.startsWith("image/")) { setError("Please upload an image file."); return; }
@@ -214,13 +263,33 @@ export function BoardScanModal({ open, onClose, onApply }: Props) {
     setProgress(0);
     setError(null);
     try {
-      // Convert fractional corners to absolute pixel coords
+      // Build a rotated canvas if the user rotated the photo preview
+      let scanSource: HTMLImageElement | HTMLCanvasElement = imgEl;
+      let scanW = imgEl.naturalWidth;
+      let scanH = imgEl.naturalHeight;
+
+      if (photoRotation !== 0) {
+        const swapped = photoRotation === 90 || photoRotation === 270;
+        const cW = swapped ? imgEl.naturalHeight : imgEl.naturalWidth;
+        const cH = swapped ? imgEl.naturalWidth : imgEl.naturalHeight;
+        const c = document.createElement("canvas");
+        c.width = cW; c.height = cH;
+        const ctx = c.getContext("2d")!;
+        ctx.translate(cW / 2, cH / 2);
+        ctx.rotate((photoRotation * Math.PI) / 180);
+        ctx.drawImage(imgEl, -imgEl.naturalWidth / 2, -imgEl.naturalHeight / 2);
+        scanSource = c;
+        scanW = cW;
+        scanH = cH;
+      }
+
+      // Convert fractional corners to absolute pixel coords on the (possibly rotated) image
       const absCorners: [CornerPoint, CornerPoint, CornerPoint, CornerPoint] = corners.map((c) => ({
-        x: c.x * imgEl.naturalWidth,
-        y: c.y * imgEl.naturalHeight,
+        x: c.x * scanW,
+        y: c.y * scanH,
       })) as [CornerPoint, CornerPoint, CornerPoint, CornerPoint];
 
-      const scanResults = await scanBoard(imgEl, absCorners, ATLAS_URL, setProgress);
+      const scanResults = await scanBoard(scanSource, absCorners, ATLAS_URL, setProgress);
       setResults(scanResults);
       setStep("results");
     } catch (err) {
@@ -320,6 +389,8 @@ export function BoardScanModal({ open, onClose, onApply }: Props) {
         {step === "align" && imgSrc && (
           <AlignStep
             imgSrc={imgSrc}
+            photoRotation={photoRotation}
+            onRotatePhoto={handleRotatePhoto}
             corners={corners}
             onCornersChange={setCorners}
             onScan={handleScan}
