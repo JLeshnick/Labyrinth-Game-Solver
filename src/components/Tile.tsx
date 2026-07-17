@@ -52,10 +52,10 @@ export const Tile: React.FC<TileProps> = ({
   const getCornerColorClasses = () => {
     if (!tile.color) return { border: "", text: "", bg: "" };
     const map: Record<string, { border: string; text: string; bg: string }> = {
-      blue:   { border: "border-blue-400",   text: "text-blue-300",   bg: "bg-blue-500/20" },
-      red:    { border: "border-red-400",    text: "text-red-300",    bg: "bg-red-500/20" },
-      green:  { border: "border-green-400",  text: "text-green-300",  bg: "bg-green-500/20" },
-      yellow: { border: "border-yellow-300", text: "text-yellow-200", bg: "bg-yellow-400/20" },
+      blue:   { border: "border-blue-400",   text: "text-white",   bg: "bg-blue-600/70" },
+      red:    { border: "border-red-400",    text: "text-white",    bg: "bg-red-600/70" },
+      green:  { border: "border-green-400",  text: "text-white",  bg: "bg-green-600/70" },
+      yellow: { border: "border-yellow-300", text: "text-stone-950", bg: "bg-yellow-400/80" },
     };
     return map[tile.color] ?? { border: "", text: "", bg: "" };
   };
@@ -63,8 +63,10 @@ export const Tile: React.FC<TileProps> = ({
   return (
     <div
       onClick={(e) => {
-        e.stopPropagation();
-        onClick?.();
+        if (onClick) {
+          e.stopPropagation();
+          onClick();
+        }
       }}
       className={cn(
         "relative rounded-md shadow-sm border overflow-hidden flex items-center justify-center transition-opacity",
