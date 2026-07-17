@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import { createPortal } from "react-dom";
 import {
   DndContext,
   type DragEndEvent,
@@ -7,7 +8,7 @@ import {
   closestCenter,
   useSensor,
   useSensors,
-  PointerSensor,
+  MouseSensor,
   TouchSensor,
 } from "@dnd-kit/core";
 import { SHIFT_ARROWS, TREASURES, DEFAULT_PAWN_POSITIONS } from "./constants";
@@ -43,10 +44,24 @@ export default function App() {
     // Touch: press-and-hold to drag so the loose-tile tray can scroll freely
     // without a stray drag; mouse/pen keep the responsive distance activation.
     useSensor(TouchSensor, { activationConstraint: { delay: 180, tolerance: 8 } }),
-    useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
+    useSensor(MouseSensor, { activationConstraint: { distance: 8 } })
   );
 
   // ── UI-only state (stays in App) ─────────────────────────────────────────────
+  const [isMobile, setIsMobile] = useState(() => {
+    if (typeof window !== "undefined") {
+      return window.matchMedia("(max-width: 767px)").matches;
+    }
+    return false;
+  });
+
+  useEffect(() => {
+    const media = window.matchMedia("(max-width: 767px)");
+    const listener = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+    media.addEventListener("change", listener);
+    return () => media.removeEventListener("change", listener);
+  }, []);
+
   const [isMuted, setIsMuted] = useState(
     () => localStorage.getItem("labyrinth_audio_muted") === "true"
   );
@@ -791,99 +806,8 @@ export default function App() {
           </div>
 
           {/* Tablet & desktop side panel (md+) */}
-          <div className="hidden md:flex w-full md:w-[320px] lg:w-[400px] xl:w-[440px] flex-col flex-shrink-0 min-h-0 md:h-full gap-3">
-            {game.isGameStarted ? (
-              <SolverPanel
-                solutions={solutions}
-                isLoadingSolutions={isLoadingSolutions}
-                hoveredSolution={hoveredSolution}
-                setHoveredSolution={setHoveredSolution}
-                maxTurns={maxTurns}
-                setMaxTurns={setMaxTurns}
-                activePawn={game.activePawn}
-                setActivePawn={game.setActivePawn}
-                activePlayers={game.activePlayers}
-                isMuted={isMuted}
-                spareTile={previewState ? previewState.spareTile : game.spareTile}
-                customTargetCoords={game.customTargetCoords}
-                setCustomTargetCoords={game.setCustomTargetCoords}
-                onExecuteSolution={game.handleExecuteSolution}
-                playerActiveTargets={game.playerActiveTargets}
-                onSelectTargetTreasure={game.handleSelectTargetTreasure}
-                stagedArrow={stagedArrow}
-                stagedRotation={stagedRotation}
-                onRotateStaged={() =>
-                  setStagedRotation(
-                    (prev) =>
-                      ([0, 90, 180, 270] as (0 | 90 | 180 | 270)[])[
-                        ([0, 90, 180, 270].indexOf(prev) + 1) % 4
-                      ]
-                  )
-                }
-                onCommitSlide={commitStagedSlide}
-                onCancelSlide={cancelStagedSlide}
-                turnPhase={turnPhase}
-                showOneMoveTargets={showOneMoveTargets}
-                onToggleOneMoveTargets={() => setShowOneMoveTargets((v) => !v)}
-                oneMoveTargets={oneMoveTargets}
-                isActivePawnHome={isActivePawnHome}
-              />
-            ) : (
-              <SetupPanel
-                looseTiles={game.looseTiles}
-                activePlayers={game.activePlayers}
-                setActivePlayers={game.setActivePlayers}
-                activePawn={game.activePawn}
-                setActivePawn={game.setActivePawn}
-                isMuted={isMuted}
-                activePawnPlacementColor={game.activePawnPlacementColor}
-                setActivePawnPlacementColor={game.setActivePawnPlacementColor}
-                pawnPositions={game.pawnPositions}
-                playerHands={game.playerHands}
-                onTileClick={game.handleTileClick}
-                onRandomizeBoard={game.handleRandomizeBoard}
-                onResetBoard={() => game.resetBoardToInitialPresets()}
-                onAddCard={game.handleAddCard}
-                onRemoveCard={game.handleRemoveCard}
-                setupTab={game.setupTab}
-                setSetupTab={game.setSetupTab}
-                canStartGame={canStartGame}
-                onStartGame={game.handleStartGame}
-                showToast={showToast}
-              />
-            )}
-          </div>
-
-          {/* Mobile split panel (phones only, < md) — persistent, non-modal, in-flow */}
-          <div
-            className={cn(
-              "md:hidden flex flex-col shrink-0 w-full app-mobile-sheet rounded-t-2xl shadow-2xl transition-[height] duration-300 ease-out overflow-hidden",
-              mobilePanelStop === "peek" ? "h-[104px]" : "h-[42svh]"
-            )}
-          >
-            {/* Drag handle — tap to toggle between peek and expanded */}
-            <button
-              type="button"
-              onClick={() =>
-                setMobilePanelStop((prev) => (prev === "peek" ? "expanded" : "peek"))
-              }
-              className="flex items-center justify-center gap-1.5 pt-2 pb-1.5 min-h-8 shrink-0 cursor-pointer"
-              aria-label={mobilePanelStop === "peek" ? "Expand panel" : "Collapse panel"}
-              aria-expanded={mobilePanelStop === "expanded"}
-            >
-              <div className="w-10 h-1 rounded-full bg-stone-600" />
-              {mobilePanelStop === "peek" ? (
-                <ChevronUp className="w-3 h-3 text-stone-600" />
-              ) : (
-                <ChevronDownIcon className="w-3 h-3 text-stone-600" />
-              )}
-            </button>
-            <div
-              className={cn(
-                "flex-1 min-h-0",
-                mobilePanelStop === "expanded" ? "overflow-y-auto overscroll-contain" : "overflow-hidden"
-              )}
-            >
+          {!isMobile && (
+            <div className="flex w-full md:w-[320px] lg:w-[400px] xl:w-[440px] flex-col flex-shrink-0 min-h-0 md:h-full gap-3">
               {game.isGameStarted ? (
                 <SolverPanel
                   solutions={solutions}
@@ -919,8 +843,6 @@ export default function App() {
                   onToggleOneMoveTargets={() => setShowOneMoveTargets((v) => !v)}
                   oneMoveTargets={oneMoveTargets}
                   isActivePawnHome={isActivePawnHome}
-                  compact={mobilePanelStop === "peek"}
-                  onToggleStats={() => setShowStats((prev) => !prev)}
                 />
               ) : (
                 <SetupPanel
@@ -944,23 +866,123 @@ export default function App() {
                   canStartGame={canStartGame}
                   onStartGame={game.handleStartGame}
                   showToast={showToast}
-                  compact={mobilePanelStop === "peek"}
                 />
               )}
             </div>
-          </div>
+          )}
 
-          <DragOverlay dropAnimation={null}>
-            {activeId ? (
-              <Tile
-                tile={
-                  game.looseTiles.find((t) => t.id === activeId) ||
-                  game.grid.flat().find((t) => t?.id === activeId)!
+          {/* Mobile split panel (phones only, < md) — persistent, non-modal, in-flow */}
+          {isMobile && (
+            <div
+              className={cn(
+                "flex flex-col shrink-0 w-full app-mobile-sheet rounded-t-2xl shadow-2xl transition-[height] duration-300 ease-out overflow-hidden",
+                mobilePanelStop === "peek" ? "h-[104px]" : "h-[42svh]"
+              )}
+            >
+              {/* Drag handle — tap to toggle between peek and expanded */}
+              <button
+                type="button"
+                onClick={() =>
+                  setMobilePanelStop((prev) => (prev === "peek" ? "expanded" : "peek"))
                 }
-                className="w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 lg:w-24 lg:h-24 shadow-2xl shadow-black ring-4 ring-theme-primary/50"
-              />
-            ) : null}
-          </DragOverlay>
+                className="flex items-center justify-center gap-1.5 pt-2 pb-1.5 min-h-8 shrink-0 cursor-pointer"
+                aria-label={mobilePanelStop === "peek" ? "Expand panel" : "Collapse panel"}
+                aria-expanded={mobilePanelStop === "expanded"}
+              >
+                <div className="w-10 h-1 rounded-full bg-stone-600" />
+                {mobilePanelStop === "peek" ? (
+                  <ChevronUp className="w-3 h-3 text-stone-600" />
+                ) : (
+                  <ChevronDownIcon className="w-3 h-3 text-stone-600" />
+                )}
+              </button>
+              <div
+                className={cn(
+                  "flex-1 min-h-0",
+                  mobilePanelStop === "expanded" ? "overflow-y-auto overscroll-contain" : "overflow-hidden"
+                )}
+              >
+                {game.isGameStarted ? (
+                  <SolverPanel
+                    solutions={solutions}
+                    isLoadingSolutions={isLoadingSolutions}
+                    hoveredSolution={hoveredSolution}
+                    setHoveredSolution={setHoveredSolution}
+                    maxTurns={maxTurns}
+                    setMaxTurns={setMaxTurns}
+                    activePawn={game.activePawn}
+                    setActivePawn={game.setActivePawn}
+                    activePlayers={game.activePlayers}
+                    isMuted={isMuted}
+                    spareTile={previewState ? previewState.spareTile : game.spareTile}
+                    customTargetCoords={game.customTargetCoords}
+                    setCustomTargetCoords={game.setCustomTargetCoords}
+                    onExecuteSolution={game.handleExecuteSolution}
+                    playerActiveTargets={game.playerActiveTargets}
+                    onSelectTargetTreasure={game.handleSelectTargetTreasure}
+                    stagedArrow={stagedArrow}
+                    stagedRotation={stagedRotation}
+                    onRotateStaged={() =>
+                      setStagedRotation(
+                        (prev) =>
+                          ([0, 90, 180, 270] as (0 | 90 | 180 | 270)[])[
+                            ([0, 90, 180, 270].indexOf(prev) + 1) % 4
+                          ]
+                      )
+                    }
+                    onCommitSlide={commitStagedSlide}
+                    onCancelSlide={cancelStagedSlide}
+                    turnPhase={turnPhase}
+                    showOneMoveTargets={showOneMoveTargets}
+                    onToggleOneMoveTargets={() => setShowOneMoveTargets((v) => !v)}
+                    oneMoveTargets={oneMoveTargets}
+                    isActivePawnHome={isActivePawnHome}
+                    compact={mobilePanelStop === "peek"}
+                    onToggleStats={() => setShowStats((prev) => !prev)}
+                  />
+                ) : (
+                  <SetupPanel
+                    looseTiles={game.looseTiles}
+                    activePlayers={game.activePlayers}
+                    setActivePlayers={game.setActivePlayers}
+                    activePawn={game.activePawn}
+                    setActivePawn={game.setActivePawn}
+                    isMuted={isMuted}
+                    activePawnPlacementColor={game.activePawnPlacementColor}
+                    setActivePawnPlacementColor={game.setActivePawnPlacementColor}
+                    pawnPositions={game.pawnPositions}
+                    playerHands={game.playerHands}
+                    onTileClick={game.handleTileClick}
+                    onRandomizeBoard={game.handleRandomizeBoard}
+                    onResetBoard={() => game.resetBoardToInitialPresets()}
+                    onAddCard={game.handleAddCard}
+                    onRemoveCard={game.handleRemoveCard}
+                    setupTab={game.setupTab}
+                    setSetupTab={game.setSetupTab}
+                    canStartGame={canStartGame}
+                    onStartGame={game.handleStartGame}
+                    showToast={showToast}
+                    compact={mobilePanelStop === "peek"}
+                  />
+                )}
+              </div>
+            </div>
+          )}
+
+          {createPortal(
+            <DragOverlay dropAnimation={null}>
+              {activeId ? (
+                <Tile
+                  tile={
+                    game.looseTiles.find((t) => t.id === activeId) ||
+                    game.grid.flat().find((t) => t?.id === activeId)!
+                  }
+                  className="w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 lg:w-24 lg:h-24 shadow-2xl shadow-black ring-4 ring-theme-primary/50"
+                />
+              ) : null}
+            </DragOverlay>,
+            document.body
+          )}
         </DndContext>
       </main>
 

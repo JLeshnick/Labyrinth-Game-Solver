@@ -3,7 +3,7 @@ import { useDroppable } from "@dnd-kit/core";
 import type { TileData } from "../types";
 import { SHIFT_ARROWS, PAWNS } from "../constants";
 import { isOppositeArrow } from "../solver";
-import { Tile } from "./Tile";
+import { Tile, DraggableTile } from "./Tile";
 import { cn } from "../lib/utils";
 import { ChevronRight } from "lucide-react";
 
@@ -100,7 +100,7 @@ const BoardSpace: React.FC<BoardSpaceProps> = ({
         <div className="absolute top-1 right-1 w-2.5 h-2.5 rounded-full bg-theme-primary animate-ping pointer-events-none z-30" />
       )}
       {tile ? (
-        <Tile
+        <DraggableTile
           tile={tile}
           onClick={isGameStarted
             ? (tile?.treasure && onTreasureClick
@@ -394,7 +394,7 @@ export const Board: React.FC<BoardProps> = ({
               style={{ gridRow, gridColumn, zIndex: 30 }}
               className={cn("relative w-full h-full aspect-square rounded-lg overflow-hidden border-2 border-stone-600 pointer-events-none shadow-2xl", animClass)}
             >
-              <Tile tile={pushedTile} disabled boardRotation={boardRotation} disableRotationTransition={true} className="absolute inset-0 w-full h-full opacity-70" />
+              <Tile tile={pushedTile} boardRotation={boardRotation} disableRotationTransition={true} className="absolute inset-0 w-full h-full opacity-70" />
               <div className="absolute inset-0 bg-stone-950/20 rounded-lg pointer-events-none" />
               <div className="absolute inset-0 flex items-end justify-center pb-0.5 pointer-events-none">
                 <span className="text-[8px] font-bold text-stone-300 bg-stone-950/70 px-1 rounded leading-tight">pushed out</span>
