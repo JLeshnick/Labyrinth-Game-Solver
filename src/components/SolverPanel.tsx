@@ -139,17 +139,6 @@ export function SolverPanel({
         </h2>
         <div className="flex items-center gap-2">
           <button
-            onClick={onToggleOneMoveTargets}
-            className={`text-[10px] md:text-xs px-2 py-1 min-h-9 rounded-lg border transition-colors cursor-pointer font-semibold ${
-              showOneMoveTargets
-                ? "bg-theme-primary-10 border-theme-primary/40 text-theme-primary"
-                : "border-stone-700 text-stone-500 hover:text-stone-300 hover:border-stone-600"
-            }`}
-            title="Show all treasures reachable in exactly 1 turn"
-          >
-            1-move targets
-          </button>
-          <button
             onClick={() => setCustomTargetCoords(DEFAULT_PAWN_POSITIONS[activePawn])}
             disabled={isActivePawnHome}
             className={`text-[10px] md:text-xs px-2 py-1 min-h-9 rounded-lg border transition-colors cursor-pointer font-semibold flex items-center gap-1 disabled:cursor-not-allowed ${
@@ -161,6 +150,17 @@ export function SolverPanel({
           >
             <Home className="w-3 h-3" />
             {isActivePawnHome ? "You're home" : "Go Home"}
+          </button>
+          <button
+            onClick={onToggleOneMoveTargets}
+            className={`text-[10px] md:text-xs px-2 py-1 min-h-9 rounded-lg border transition-colors cursor-pointer font-semibold ${
+              showOneMoveTargets
+                ? "bg-theme-primary-10 border-theme-primary/40 text-theme-primary"
+                : "border-stone-700 text-stone-500 hover:text-stone-300 hover:border-stone-600"
+            }`}
+            title="Show all treasures reachable in exactly 1 turn"
+          >
+            1-move targets
           </button>
         </div>
       </div>
@@ -212,7 +212,7 @@ export function SolverPanel({
                   <button onClick={() => onSelectTargetTreasure(activePawn, null)} className="text-stone-500 hover:text-stone-300 text-xs ml-1 underline cursor-pointer" title="Clear target">(clear)</button>
                 </span>
               ) : (
-                <span className="text-stone-500 text-xs italic">Click a treasure on the board</span>
+                <span className="text-stone-500 text-xs italic">Click any tile on the board to set a target</span>
               )}
             </div>
           </div>

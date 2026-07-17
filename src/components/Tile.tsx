@@ -67,7 +67,10 @@ export const Tile: React.FC<TileProps> = ({
         onClick?.();
       }}
       className={cn(
-        "relative rounded-md shadow-sm border border-amber-900 overflow-hidden flex items-center justify-center transition-opacity",
+        "relative rounded-md shadow-sm border overflow-hidden flex items-center justify-center transition-opacity",
+        tile.color
+          ? getCornerColorClasses().border + " border-2"
+          : "border-amber-900",
         tile.isFixed ? "bg-amber-800" : "bg-amber-700",
         isObtainedTreasure && "after:absolute after:inset-0 after:bg-stone-950/30 after:rounded-md after:pointer-events-none",
         className
@@ -90,7 +93,7 @@ export const Tile: React.FC<TileProps> = ({
           <div
             className={cn(
               "absolute bottom-1 right-1 w-5 h-5 sm:w-6 sm:h-6 rounded flex items-center justify-center",
-              "border-2 z-10 transition-transform duration-300",
+              "border-2 z-10 transition-transform duration-300 pointer-events-none",
               bg, border
             )}
             style={{ transform: `rotate(${-boardRotation}deg)` }}
