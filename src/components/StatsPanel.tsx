@@ -1,6 +1,6 @@
 import React from "react";
 import { cn } from "../lib/utils";
-import { TREASURES } from "../constants";
+import { PAWNS, TREASURES } from "../constants";
 import { Card, CardHeader, CardTitle, CardContent } from "./ui/card";
 import {
   Trophy,
@@ -24,12 +24,6 @@ interface StatsPanelProps {
   obtainedTreasures: Record<string, string[]>;
 }
 
-const pawnConfig: Record<string, { label: string; color: string }> = {
-  red: { label: "Red", color: "bg-red-500" },
-  blue: { label: "Blue", color: "bg-blue-500" },
-  green: { label: "Green", color: "bg-emerald-500" },
-  yellow: { label: "Yellow", color: "bg-yellow-500" },
-};
 
 export const StatsPanel: React.FC<StatsPanelProps> = ({
   activePlayers,
@@ -86,7 +80,7 @@ export const StatsPanel: React.FC<StatsPanelProps> = ({
         {/* Per-player breakdown */}
         <div className="space-y-1.5">
           {activePlayers.map((color) => {
-            const config = pawnConfig[color];
+            const config = PAWNS.find((p) => p.id === color);
             const stats = pawnStats[color] || {
               tilesMoved: 0,
               shiftsUsed: 0,
@@ -105,9 +99,9 @@ export const StatsPanel: React.FC<StatsPanelProps> = ({
               >
                 <div className="flex items-center justify-between mb-1">
                   <div className="flex items-center gap-1.5">
-                    <div className={cn("w-2.5 h-2.5 rounded-full", config.color)} />
+                    <div className={cn("w-2.5 h-2.5 rounded-full", config?.colorClass)} />
                     <span className="text-xs font-semibold text-stone-200 uppercase">
-                      {config.label}
+                      {config?.name ?? color}
                     </span>
                   </div>
                   <div className="text-[10px] text-stone-500">

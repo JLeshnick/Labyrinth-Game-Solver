@@ -49,25 +49,30 @@ export const Tile: React.FC<TileProps> = ({
     }
   };
 
-  const getCornerColor = () => {
-    if (!tile.color) return "";
-    const colors = {
-      blue: "bg-blue-500",
-      red: "bg-red-500",
-      green: "bg-green-500",
-      yellow: "bg-yellow-400",
+  const getCornerColorClasses = () => {
+    if (!tile.color) return { border: "", text: "", bg: "" };
+    const map: Record<string, { border: string; text: string; bg: string }> = {
+      blue:   { border: "border-blue-400",   text: "text-white",   bg: "bg-blue-600/70" },
+      red:    { border: "border-red-400",    text: "text-white",    bg: "bg-red-600/70" },
+      green:  { border: "border-green-400",  text: "text-white",  bg: "bg-green-600/70" },
+      yellow: { border: "border-yellow-300", text: "text-stone-950", bg: "bg-yellow-400/80" },
     };
-    return colors[tile.color];
+    return map[tile.color] ?? { border: "", text: "", bg: "" };
   };
 
   return (
     <div
       onClick={(e) => {
-        e.stopPropagation();
-        onClick?.();
+        if (onClick) {
+          e.stopPropagation();
+          onClick();
+        }
       }}
       className={cn(
-        "relative rounded-md shadow-sm border border-amber-900 overflow-hidden flex items-center justify-center transition-opacity",
+        "relative rounded-md shadow-sm border overflow-hidden flex items-center justify-center transition-opacity",
+        tile.color
+          ? getCornerColorClasses().border + " border-2"
+          : "border-amber-900",
         tile.isFixed ? "bg-amber-800" : "bg-amber-700",
         isObtainedTreasure && "after:absolute after:inset-0 after:bg-stone-950/30 after:rounded-md after:pointer-events-none",
         className
@@ -82,16 +87,25 @@ export const Tile: React.FC<TileProps> = ({
         {getPathStyles()}
       </div>
 
-      {/* Starting Corner Colors */}
-      {tile.color && (
-        <div
-          className={cn(
-            "absolute w-6 h-6 sm:w-8 sm:h-8 rounded-full border-2 border-white shadow-md z-10 transition-transform duration-300",
-            getCornerColor()
-          )}
-          style={{ transform: `rotate(${-boardRotation}deg)` }}
-        />
-      )}
+      {/* Home corner marker — embedded flat into the tile corner, clearly distinct from pawns */}
+      {tile.color && (() => {
+        const { border, text, bg } = getCornerColorClasses();
+        const label = tile.color[0].toUpperCase();
+        return (
+          <div
+            className={cn(
+              "absolute bottom-1 right-1 w-5 h-5 sm:w-6 sm:h-6 rounded flex items-center justify-center",
+              "border-2 z-10 transition-transform duration-300 pointer-events-none",
+              bg, border
+            )}
+            style={{ transform: `rotate(${-boardRotation}deg)` }}
+          >
+            <span className={cn("text-[9px] sm:text-[10px] font-black leading-none select-none", text)}>
+              {label}
+            </span>
+          </div>
+        );
+      })()}
 
       {/* Fixed tile lock badge */}
       {tile.isFixed && (

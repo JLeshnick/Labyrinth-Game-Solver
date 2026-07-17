@@ -5,12 +5,13 @@ import {
   isOppositeArrow,
   executeSlideInGrid,
   getReachableCells,
+  solveAllHand,
 } from "./solver";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 function makeCell(shape: string, dir: number, r = 0, c = 0) {
-  return { r, c, shape, dir, treasure: null, isFixed: false, pawns: [] as string[] };
+  return { r, c, shape, dir, treasure: null as string | null, isFixed: false, pawns: [] as string[] };
 }
 
 /** Build a 7×7 board of all-straight (vertical) tiles. */
@@ -182,5 +183,62 @@ describe("solverAdapter round-trip", () => {
     const next = fromSolverGrid(grid, solverBoard, () => `new_${++counter}`);
     expect(next[3][3]?.shape).toBe("corner");
     expect(next[3][3]?.rotation).toBe(90);
+  });
+});
+
+// ── solveAllHand ranking (guards the SOLVER_MAX_TURNS removal) ────────────────
+// These lock in the "always best ranked" guarantee that the removed maxTurns
+// dropdown relied on: solveAllHand must always rank non-fallback before fallback
+// and shorter paths first, regardless of search depth.
+
+describe("solveAllHand ranking", () => {
+  function fullyConnectedBoard() {
+    return Array.from({ length: 7 }, (_, r) =>
+      Array.from({ length: 7 }, (_, c) => makeCell(c === 0 ? "T" : "I", 1, r, c))
+    );
+  }
+
+  it("surfaces a direct 1-turn solution before fallback suggestions", () => {
+    const board = fullyConnectedBoard();
+    board[0][3].treasure = "map";
+    const spare = { shape: "I", dir: 0, isFixed: false };
+    const results = solveAllHand(board, spare, { r: 0, c: 0 }, ["map"], null, 3);
+
+    expect(results.length).toBeGreaterThan(0);
+    expect(results[0].isFallback).toBeFalsy();
+    expect(results[0].length).toBe(1);
+
+    const firstFallbackIndex = results.findIndex((r) => r.isFallback);
+    if (firstFallbackIndex !== -1) {
+      expect(results.slice(0, firstFallbackIndex).every((r) => !r.isFallback)).toBe(true);
+    }
+  });
+
+  it("sorts fallback suggestions by ascending minDistance when no path is found", () => {
+    const board = Array.from({ length: 7 }, (_, r) =>
+      Array.from({ length: 7 }, (_, c) => makeCell("I", 0, r, c))
+    );
+    board[3][5].treasure = "map";
+    const spare = { shape: "I", dir: 0, isFixed: false };
+    const results = solveAllHand(board, spare, { r: 0, c: 0 }, ["map"], null, 1);
+
+    expect(results.length).toBeGreaterThan(0);
+    expect(results.every((r) => r.isFallback)).toBe(true);
+    const distances = results.map((r) => r[r.length - 1].minDistance);
+    const sorted = [...distances].sort((a, b) => a - b);
+    expect(distances).toEqual(sorted);
+  });
+
+  it("widening the search depth cannot degrade the best 1-turn solution", () => {
+    const board = fullyConnectedBoard();
+    board[0][3].treasure = "map";
+    const spare = { shape: "I", dir: 0, isFixed: false };
+
+    const shallow = solveAllHand(board, spare, { r: 0, c: 0 }, ["map"], null, 1);
+    const deep = solveAllHand(board, spare, { r: 0, c: 0 }, ["map"], null, 3);
+
+    expect(shallow[0].isFallback).toBeFalsy();
+    expect(deep[0].isFallback).toBeFalsy();
+    expect(deep[0].length).toBe(shallow[0].length);
   });
 });

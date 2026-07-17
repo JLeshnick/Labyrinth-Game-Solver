@@ -92,9 +92,7 @@ export function useLabyrinthGame({
   const totalShiftsRef = useRef(0);
 
   // Setup panel state (used by handleTileClick / handleCellClick)
-  const [setupTab, setSetupTab] = useState<"tiles" | "pawns" | "cards">("tiles");
-  const [activePawnPlacementColor, setActivePawnPlacementColor] =
-    useState<string>("red");
+  const [setupTab, setSetupTab] = useState<"tiles" | "players" | "cards">("tiles");
 
   // Active players — stored in localStorage as a preference
   const [activePlayers, setActivePlayers] = useState<string[]>(() => {
@@ -212,6 +210,7 @@ export function useLabyrinthGame({
     const currentIndex = activePlayers.indexOf(activePawn);
     const nextPawn = activePlayers[(currentIndex + 1) % activePlayers.length];
     if (nextPawn) setActivePawn(nextPawn);
+    setCustomTargetCoords(null);
   }, [activePawn, activePlayers]);
 
   // ── Board initialization ─────────────────────────────────────────────────────
@@ -395,22 +394,6 @@ export function useLabyrinthGame({
       }
       if (isGameStarted) return;
 
-      if (setupTab === "pawns") {
-        for (let r = 0; r < 7; r++) {
-          for (let c = 0; c < 7; c++) {
-            if (grid[r][c]?.id === id) {
-              if (!isMuted) playClickSound();
-              setPawnPositions((prev) => ({
-                ...prev,
-                [activePawnPlacementColor]: { r, c },
-              }));
-              return;
-            }
-          }
-        }
-        return;
-      }
-
       if (!isMuted) playRotateSound();
       setLooseTiles((prev) =>
         prev.map((t) =>
@@ -429,22 +412,12 @@ export function useLabyrinthGame({
         )
       );
     },
-    [spareTile.id, isGameStarted, setupTab, isMuted, grid, activePawnPlacementColor]
+    [spareTile.id, isGameStarted, isMuted]
   );
 
   const handleCellClick = useCallback(
     (r: number, c: number) => {
-      if (!isGameStarted) {
-        if (setupTab === "pawns") {
-          if (!isMuted) playClickSound();
-          setPawnPositions((prev) => ({
-            ...prev,
-            [activePawnPlacementColor]: { r, c },
-          }));
-          onToast(`Placed ${activePawnPlacementColor.toUpperCase()} pawn at (${r}, ${c})`);
-        }
-        return;
-      }
+      if (!isGameStarted) return;
 
       const startCoord = pawnPositions[activePawn];
       if (!startCoord || (startCoord.r === r && startCoord.c === c)) return;
@@ -532,9 +505,7 @@ export function useLabyrinthGame({
     },
     [
       isGameStarted,
-      setupTab,
       isMuted,
-      activePawnPlacementColor,
       pawnPositions,
       activePawn,
       grid,
@@ -965,8 +936,6 @@ export function useLabyrinthGame({
     setCustomTargetCoords,
     setupTab,
     setSetupTab,
-    activePawnPlacementColor,
-    setActivePawnPlacementColor,
     totalShiftsRef,
     // History
     canUndo,

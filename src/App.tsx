@@ -23,6 +23,7 @@ import { AppHeader } from "./components/AppHeader";
 import { WelcomeGuide } from "./components/WelcomeGuide";
 import { Dialog, DialogContent } from "./components/ui/dialog";
 import { useLabyrinthGame } from "./hooks/useLabyrinthGame";
+import { useStopwatch } from "./hooks/useStopwatch";
 import { playClickSound } from "./utils/audio";
 import { fromSolverGrid } from "./lib/solverAdapter";
 import { executeSlideInGrid, getReachableCells, quickSolveMinTurns } from "./solver";
@@ -38,6 +39,12 @@ import {
   ChevronDown as ChevronDownIcon,
 } from "lucide-react";
 import { cn } from "./lib/utils";
+
+// Search depth for the solver worker. Always searches this many turns ahead
+// rather than exposing it as a user-facing option — solveAllHand already
+// ranks shorter/safer paths first, so a wider search can only surface better
+// suggestions, never worse ones.
+const SOLVER_MAX_TURNS = 3;
 
 export default function App() {
   const sensors = useSensors(
@@ -90,7 +97,6 @@ export default function App() {
   const [solutions, setSolutions] = useState<SolverSolution[]>([]);
   const [hoveredSolution, setHoveredSolution] = useState<SolverSolution | null>(null);
   const [isLoadingSolutions, setIsLoadingSolutions] = useState(false);
-  const [maxTurns, setMaxTurns] = useState(2);
   const workerRef = useRef<Worker | null>(null);
 
   // ── Toast system ──────────────────────────────────────────────────────────────
@@ -173,6 +179,7 @@ export default function App() {
   });
 
   const canStartGame = game.looseTiles.length === 1 || game.looseTiles.length === 0;
+  const { elapsedTime, isPaused: isTimerPaused, togglePause: toggleTimer } = useStopwatch(game.isGameStarted);
 
   // ── Setup guidance for mobile users ───────────────────────────────────────────
   useEffect(() => {
@@ -292,6 +299,7 @@ export default function App() {
       setTurnPhase("slide");
       setStagedArrow(null);
       setStagedRotation(game.spareTile.rotation as 0 | 90 | 180 | 270);
+      setHoveredSolution(null);
     }
   }, [game.activePawn, game.isGameStarted, game.spareTile.rotation]);
 
@@ -401,7 +409,7 @@ export default function App() {
       pawnPos: currentPawnCoord,
       handCards,
       lastShiftArrowId: game.lastShiftArrowId,
-      maxTurns,
+      maxTurns: SOLVER_MAX_TURNS,
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
@@ -410,7 +418,6 @@ export default function App() {
     game.activePawn,
     game.playerHands,
     game.lastShiftArrowId,
-    maxTurns,
     game.isGameStarted,
     game.pawnPositions,
     game.getSolverFormattedBoard,
@@ -746,6 +753,9 @@ export default function App() {
         playerHands={game.playerHands}
         obtainedTreasures={game.obtainedTreasures}
         onOpenWelcomeGuide={() => setShowWelcomeGuide(true)}
+        elapsedTime={game.isGameStarted ? elapsedTime : undefined}
+        isTimerPaused={isTimerPaused}
+        onToggleTimer={toggleTimer}
       />
 
       <main className="flex-1 flex flex-col md:flex-row relative z-10 w-full px-2 sm:px-3 md:px-4 lg:px-6 pt-2 sm:pt-3 pb-[72px] md:pb-3 gap-3 md:gap-4 lg:gap-8 justify-center overflow-hidden min-h-0">
@@ -814,8 +824,6 @@ export default function App() {
                   isLoadingSolutions={isLoadingSolutions}
                   hoveredSolution={hoveredSolution}
                   setHoveredSolution={setHoveredSolution}
-                  maxTurns={maxTurns}
-                  setMaxTurns={setMaxTurns}
                   activePawn={game.activePawn}
                   setActivePawn={game.setActivePawn}
                   activePlayers={game.activePlayers}
@@ -852,9 +860,6 @@ export default function App() {
                   activePawn={game.activePawn}
                   setActivePawn={game.setActivePawn}
                   isMuted={isMuted}
-                  activePawnPlacementColor={game.activePawnPlacementColor}
-                  setActivePawnPlacementColor={game.setActivePawnPlacementColor}
-                  pawnPositions={game.pawnPositions}
                   playerHands={game.playerHands}
                   onTileClick={game.handleTileClick}
                   onRandomizeBoard={game.handleRandomizeBoard}
@@ -908,8 +913,6 @@ export default function App() {
                     isLoadingSolutions={isLoadingSolutions}
                     hoveredSolution={hoveredSolution}
                     setHoveredSolution={setHoveredSolution}
-                    maxTurns={maxTurns}
-                    setMaxTurns={setMaxTurns}
                     activePawn={game.activePawn}
                     setActivePawn={game.setActivePawn}
                     activePlayers={game.activePlayers}
@@ -948,9 +951,6 @@ export default function App() {
                     activePawn={game.activePawn}
                     setActivePawn={game.setActivePawn}
                     isMuted={isMuted}
-                    activePawnPlacementColor={game.activePawnPlacementColor}
-                    setActivePawnPlacementColor={game.setActivePawnPlacementColor}
-                    pawnPositions={game.pawnPositions}
                     playerHands={game.playerHands}
                     onTileClick={game.handleTileClick}
                     onRandomizeBoard={game.handleRandomizeBoard}

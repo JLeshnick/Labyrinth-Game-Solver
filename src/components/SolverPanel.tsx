@@ -14,8 +14,6 @@ interface SolverPanelProps {
   isLoadingSolutions: boolean;
   hoveredSolution: SolverSolution | null;
   setHoveredSolution: (sol: SolverSolution | null) => void;
-  maxTurns: number;
-  setMaxTurns: (n: number) => void;
   activePawn: string;
   setActivePawn: (p: string) => void;
   activePlayers: string[];
@@ -44,8 +42,6 @@ export function SolverPanel({
   solutions,
   isLoadingSolutions,
   setHoveredSolution,
-  maxTurns,
-  setMaxTurns,
   activePawn,
   setActivePawn,
   activePlayers,
@@ -143,17 +139,6 @@ export function SolverPanel({
         </h2>
         <div className="flex items-center gap-2">
           <button
-            onClick={onToggleOneMoveTargets}
-            className={`text-[10px] md:text-xs px-2 py-1 min-h-9 rounded-lg border transition-colors cursor-pointer font-semibold ${
-              showOneMoveTargets
-                ? "bg-theme-primary-10 border-theme-primary/40 text-theme-primary"
-                : "border-stone-700 text-stone-500 hover:text-stone-300 hover:border-stone-600"
-            }`}
-            title="Show all treasures reachable in exactly 1 turn"
-          >
-            1-move targets
-          </button>
-          <button
             onClick={() => setCustomTargetCoords(DEFAULT_PAWN_POSITIONS[activePawn])}
             disabled={isActivePawnHome}
             className={`text-[10px] md:text-xs px-2 py-1 min-h-9 rounded-lg border transition-colors cursor-pointer font-semibold flex items-center gap-1 disabled:cursor-not-allowed ${
@@ -166,18 +151,17 @@ export function SolverPanel({
             <Home className="w-3 h-3" />
             {isActivePawnHome ? "You're home" : "Go Home"}
           </button>
-          <div className="text-xs px-2 py-1 min-h-9 flex items-center bg-stone-800 rounded text-stone-400">
-            Turns:
-            <select
-              value={maxTurns}
-              onChange={(e) => setMaxTurns(parseInt(e.target.value))}
-              className="ml-1 bg-stone-900 border border-stone-700 text-stone-200 rounded text-xs focus:outline-none cursor-pointer py-1"
-            >
-              <option value={1}>1</option>
-              <option value={2}>2</option>
-              <option value={3}>3</option>
-            </select>
-          </div>
+          <button
+            onClick={onToggleOneMoveTargets}
+            className={`text-[10px] md:text-xs px-2 py-1 min-h-9 rounded-lg border transition-colors cursor-pointer font-semibold ${
+              showOneMoveTargets
+                ? "bg-theme-primary-10 border-theme-primary/40 text-theme-primary"
+                : "border-stone-700 text-stone-500 hover:text-stone-300 hover:border-stone-600"
+            }`}
+            title="Show all treasures reachable in exactly 1 turn"
+          >
+            1-move targets
+          </button>
         </div>
       </div>
 
@@ -228,7 +212,7 @@ export function SolverPanel({
                   <button onClick={() => onSelectTargetTreasure(activePawn, null)} className="text-stone-500 hover:text-stone-300 text-xs ml-1 underline cursor-pointer" title="Clear target">(clear)</button>
                 </span>
               ) : (
-                <span className="text-stone-500 text-xs italic">Click a treasure on the board</span>
+                <span className="text-stone-500 text-xs italic">Click any tile on the board to set a target</span>
               )}
             </div>
           </div>
@@ -371,7 +355,7 @@ export function SolverPanel({
           })
         ) : (
           <div className="flex-1 flex items-center justify-center text-stone-600 text-sm">
-            No paths found. Check targets or max turns.
+            No paths found. Check the selected target.
           </div>
         )}
       </div>
