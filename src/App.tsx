@@ -310,7 +310,16 @@ export default function App() {
 
     // Attempt load from autosave once on mount
     const saved = game.loadAutosave();
-    if (saved?.board) {
+    // A valid Labyrinth state always contains movable (non-fixed) tiles —
+    // either loose tiles left to place or movable tiles already on the board.
+    // A save with zero movable tiles is degenerate (e.g. an empty initial
+    // state captured before setup), so fall back to a fresh preset board.
+    const hasMovableTiles =
+      (saved?.looseTiles?.length ?? 0) > 0 ||
+      (saved?.board ?? []).some((row) =>
+        (row ?? []).some((tile) => tile && !tile.isFixed)
+      );
+    if (saved?.board && hasMovableTiles) {
       game.hydrateFromSaved(saved, game.spareTile);
     } else {
       game.resetBoardToInitialPresets();

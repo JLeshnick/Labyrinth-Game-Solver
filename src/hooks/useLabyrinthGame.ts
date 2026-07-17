@@ -120,8 +120,16 @@ export function useLabyrinthGame({
     }
   }, [activePlayers, activePawn]);
 
+  // Skip the very first autosave so the hook's mount-time empty state
+  // doesn't clobber a real autosave before App has a chance to hydrate from it.
+  const skipFirstAutosave = useRef(true);
+
   // Auto-save during setup (when game has not started)
   useEffect(() => {
+    if (skipFirstAutosave.current) {
+      skipFirstAutosave.current = false;
+      return;
+    }
     if (isGameStarted) return;
     saveAutosave({
       board: grid,
