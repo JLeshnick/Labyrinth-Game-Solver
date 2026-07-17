@@ -14,8 +14,6 @@ interface SolverPanelProps {
   isLoadingSolutions: boolean;
   hoveredSolution: SolverSolution | null;
   setHoveredSolution: (sol: SolverSolution | null) => void;
-  maxTurns: number;
-  setMaxTurns: (n: number) => void;
   activePawn: string;
   setActivePawn: (p: string) => void;
   activePlayers: string[];
@@ -44,8 +42,6 @@ export function SolverPanel({
   solutions,
   isLoadingSolutions,
   setHoveredSolution,
-  maxTurns,
-  setMaxTurns,
   activePawn,
   setActivePawn,
   activePlayers,
@@ -166,18 +162,6 @@ export function SolverPanel({
             <Home className="w-3 h-3" />
             {isActivePawnHome ? "You're home" : "Go Home"}
           </button>
-          <div className="text-xs px-2 py-1 min-h-9 flex items-center bg-stone-800 rounded text-stone-400">
-            Turns:
-            <select
-              value={maxTurns}
-              onChange={(e) => setMaxTurns(parseInt(e.target.value))}
-              className="ml-1 bg-stone-900 border border-stone-700 text-stone-200 rounded text-xs focus:outline-none cursor-pointer py-1"
-            >
-              <option value={1}>1</option>
-              <option value={2}>2</option>
-              <option value={3}>3</option>
-            </select>
-          </div>
         </div>
       </div>
 
@@ -371,7 +355,7 @@ export function SolverPanel({
           })
         ) : (
           <div className="flex-1 flex items-center justify-center text-stone-600 text-sm">
-            No paths found. Check targets or max turns.
+            No paths found. Check the selected target.
           </div>
         )}
       </div>

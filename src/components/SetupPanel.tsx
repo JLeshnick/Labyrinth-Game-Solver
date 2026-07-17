@@ -2,7 +2,7 @@
 // sheet (< md) and the tablet/desktop side column (md+). Unprefixed classes
 // target the phone sheet; `md:` targets the tablet column; `lg:` targets the
 // wider desktop column. Interactive controls get a 44px phone floor.
-import { Sparkles, Layers, User, Compass, Play, RotateCw } from "lucide-react";
+import { Sparkles, Layers, Users, Compass, Play, RotateCw } from "lucide-react";
 import { SidePanel } from "./SidePanel";
 import { Button } from "./ui/button";
 import { PAWNS, TREASURES } from "../constants";
@@ -16,17 +16,14 @@ interface SetupPanelProps {
   activePawn: string;
   setActivePawn: (p: string) => void;
   isMuted: boolean;
-  activePawnPlacementColor: string;
-  setActivePawnPlacementColor: (c: string) => void;
-  pawnPositions: Record<string, { r: number; c: number }>;
   playerHands: Record<string, string[]>;
   onTileClick: (id: string) => void;
   onRandomizeBoard: () => void;
   onResetBoard: () => void;
   onAddCard: (treasureId: string) => void;
   onRemoveCard: (treasureId: string) => void;
-  setupTab: "tiles" | "pawns" | "cards";
-  setSetupTab: (tab: "tiles" | "pawns" | "cards") => void;
+  setupTab: "tiles" | "players" | "cards";
+  setSetupTab: (tab: "tiles" | "players" | "cards") => void;
   canStartGame: boolean;
   onStartGame: () => void;
   showToast: (msg: string) => void;
@@ -40,9 +37,6 @@ export function SetupPanel({
   activePawn,
   setActivePawn,
   isMuted,
-  activePawnPlacementColor,
-  setActivePawnPlacementColor,
-  pawnPositions,
   playerHands,
   onTileClick,
   onRandomizeBoard,
@@ -104,10 +98,6 @@ export function SetupPanel({
               Active Players: {activePlayers.length} {activePlayers.length > 0 ? "✓" : "✗"}
             </span>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-green-500 shadow-sm shadow-green-500/50" />
-            <span className="text-stone-300">Pawn Spawns Placed ✓</span>
-          </div>
         </div>
         <Button
           onClick={() => {
@@ -127,7 +117,7 @@ export function SetupPanel({
       <div className="flex items-center bg-stone-950/60 rounded-full p-1 border border-stone-800 self-start">
         {([
           { id: "tiles", label: "Tiles", icon: <Layers className="w-3.5 h-3.5" /> },
-          { id: "pawns", label: "Pawns", icon: <User className="w-3.5 h-3.5" /> },
+          { id: "players", label: "Players", icon: <Users className="w-3.5 h-3.5" /> },
           { id: "cards", label: "Cards", icon: <Compass className="w-3.5 h-3.5" /> },
         ] as const).map((tab) => (
           <button
@@ -176,12 +166,12 @@ export function SetupPanel({
           </div>
         )}
 
-        {setupTab === "pawns" && (
+        {setupTab === "players" && (
           <div className="flex flex-col gap-4 h-full overflow-y-auto min-h-0">
             <div className="p-3 app-surface flex flex-col gap-2">
               <div className="text-xs font-semibold text-stone-200">Active Players</div>
               <p className="text-[11px] text-stone-500 leading-normal">
-                Enable or disable players. Playing solo? Keep only one active.
+                Enable or disable players. Playing solo? Keep only one active. Pawns always start at their home corners.
               </p>
               <div className="grid grid-cols-2 gap-2 mt-1">
                 {PAWNS.map((p) => {
@@ -216,32 +206,6 @@ export function SetupPanel({
                   );
                 })}
               </div>
-            </div>
-            <div className="text-sm text-stone-400">
-              Choose a pawn and click a cell on the board grid to jump and place that pawn.
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              {PAWNS.filter((p) => activePlayers.includes(p.id)).map((p) => (
-                <Button
-                  key={p.id}
-                  variant={activePawnPlacementColor === p.id ? "default" : "outline"}
-                  onClick={() => setActivePawnPlacementColor(p.id)}
-                  className={`border-stone-800 h-11 md:h-9 ${activePawnPlacementColor === p.id ? p.colorClass + " text-stone-950 font-bold" : "hover:bg-stone-900 text-stone-200"}`}
-                >
-                  {p.name}
-                </Button>
-              ))}
-            </div>
-            <div className="mt-4 p-4 app-surface text-xs text-stone-400 flex flex-col gap-2">
-              <div className="font-semibold text-stone-200">Current Positions:</div>
-              {Object.entries(pawnPositions)
-                .filter(([color]) => activePlayers.includes(color))
-                .map(([color, pos]) => (
-                  <div key={color} className="flex justify-between">
-                    <span className="capitalize">{color}:</span>
-                    <span>Row {pos.r}, Col {pos.c}</span>
-                  </div>
-                ))}
             </div>
           </div>
         )}
