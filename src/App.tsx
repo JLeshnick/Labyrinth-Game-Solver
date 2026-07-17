@@ -18,6 +18,7 @@ import { Tile } from "./components/Tile";
 import { Button } from "./components/ui/button";
 import { SolverPanel } from "./components/SolverPanel";
 import { SetupPanel } from "./components/SetupPanel";
+import { BoardScanModal } from "./components/BoardScanModal";
 import { StatsPanel } from "./components/StatsPanel";
 import { AppHeader } from "./components/AppHeader";
 import { WelcomeGuide } from "./components/WelcomeGuide";
@@ -78,6 +79,7 @@ export default function App() {
   });
   const [boardRotation, setBoardRotation] = useState(0);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isScanModalOpen, setIsScanModalOpen] = useState(false);
   const [accentColor, setAccentColorState] = useState(
     () => localStorage.getItem("labyrinth_accent_color") ?? ""
   );
@@ -179,6 +181,15 @@ export default function App() {
   });
 
   const canStartGame = game.looseTiles.length === 1 || game.looseTiles.length === 0;
+
+  const handleScanApply = useCallback(
+    (scannedGrid: (TileData | null)[][], looseTiles: TileData[]) => {
+      game.setGrid(scannedGrid);
+      game.setLooseTiles(looseTiles);
+      showToast("Board populated from photo scan!");
+    },
+    [game, showToast]
+  );
   const { elapsedTime, isPaused: isTimerPaused, togglePause: toggleTimer } = useStopwatch(game.isGameStarted);
 
   // ── Setup guidance for mobile users ───────────────────────────────────────────
@@ -871,6 +882,7 @@ export default function App() {
                   canStartGame={canStartGame}
                   onStartGame={game.handleStartGame}
                   showToast={showToast}
+                  onScanBoard={() => setIsScanModalOpen(true)}
                 />
               )}
             </div>
@@ -962,6 +974,7 @@ export default function App() {
                     canStartGame={canStartGame}
                     onStartGame={game.handleStartGame}
                     showToast={showToast}
+                    onScanBoard={() => setIsScanModalOpen(true)}
                     compact={mobilePanelStop === "peek"}
                   />
                 )}
@@ -985,6 +998,13 @@ export default function App() {
           )}
         </DndContext>
       </main>
+
+      {/* Board scan modal */}
+      <BoardScanModal
+        open={isScanModalOpen}
+        onClose={() => setIsScanModalOpen(false)}
+        onApply={handleScanApply}
+      />
 
       {/* Welcome guide */}
       <WelcomeGuide
