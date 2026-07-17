@@ -1,9 +1,9 @@
 import type { Shape, Rotation, BoardScanResult } from "../types";
-import { TREASURE_ATLAS_TILES } from "../data/atlasLayout";
+import { TILE_TEMPLATE_ENTRIES } from "../data/atlasLayout";
 
 const TEMPLATE_SIZE = 64;
-const ICON_SAMPLE_FRAC = 0.5; // center 50% of cell for treasure matching
-const SHAPE_THRESHOLD = 0.55; // corridor pixel lightness threshold (0-1)
+const ICON_CROP_FRAC = 0.60; // center 60% of each template/cell for icon matching
+const SHAPE_THRESHOLD = 0.55;
 const TREASURE_AUTO = 0.80;
 const TREASURE_FLAG = 0.55;
 
@@ -25,43 +25,60 @@ function loadImage(src: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const img = new Image();
     img.onload = () => resolve(img);
-    img.onerror = reject;
+    img.onerror = () => reject(new Error(`Failed to load image: ${src}`));
     img.src = src;
   });
 }
 
 function pixelLightness(r: number, g: number, b: number): number {
-  return (Math.max(r, g, b) + Math.min(r, g, b)) / 510; // 0..1
+  return (Math.max(r, g, b) + Math.min(r, g, b)) / 510;
 }
 
 // ── Template loading ──────────────────────────────────────────────────────────
+// Each treasure gets its own closeup photo. We load the center crop of each
+// photo as a 64×64 grayscale ImageData for NCC matching.
 
 export interface TileTemplate {
   treasureId: string;
+  shape: Shape;       // used to filter: only match corner templates against corner cells
   data: ImageData;
 }
 
+// Cache so we only load once per session
 let cachedTemplates: TileTemplate[] | null = null;
 
-export async function loadReferenceAtlas(atlasUrl: string): Promise<TileTemplate[]> {
+export function clearTemplateCache(): void {
+  cachedTemplates = null;
+}
+
+export async function loadTileTemplates(): Promise<TileTemplate[]> {
   if (cachedTemplates) return cachedTemplates;
-  const img = await loadImage(atlasUrl);
-  const src = createOffscreenCanvas(img.naturalWidth, img.naturalHeight);
-  const srcCtx = src.getContext("2d")!;
-  srcCtx.drawImage(img, 0, 0);
 
   const templates: TileTemplate[] = [];
-  for (const entry of TREASURE_ATLAS_TILES) {
-    const crop = createOffscreenCanvas(TEMPLATE_SIZE, TEMPLATE_SIZE);
-    const ctx = crop.getContext("2d")!;
-    // Sample the center icon area from the atlas tile
-    const margin = Math.round(entry.w * 0.25);
-    const iconX = entry.x + margin;
-    const iconY = entry.y + margin;
-    const iconW = entry.w - margin * 2;
-    const iconH = entry.h - margin * 2;
-    ctx.drawImage(src, iconX, iconY, iconW, iconH, 0, 0, TEMPLATE_SIZE, TEMPLATE_SIZE);
-    templates.push({ treasureId: entry.treasureId!, data: ctx.getImageData(0, 0, TEMPLATE_SIZE, TEMPLATE_SIZE) });
+  for (const entry of TILE_TEMPLATE_ENTRIES) {
+    try {
+      const img = await loadImage(entry.imageUrl);
+      const w = img.naturalWidth;
+      const h = img.naturalHeight;
+
+      // Crop the center ICON_CROP_FRAC of the image (trims tile border/walls)
+      const margin = Math.round(Math.min(w, h) * (1 - ICON_CROP_FRAC) / 2);
+      const cropX = margin;
+      const cropY = Math.round(h * (1 - ICON_CROP_FRAC) / 2);
+      const cropW = w - margin * 2;
+      const cropH = h - cropY * 2;
+
+      const canvas = createOffscreenCanvas(TEMPLATE_SIZE, TEMPLATE_SIZE);
+      const ctx = canvas.getContext("2d")!;
+      ctx.drawImage(img, cropX, cropY, cropW, cropH, 0, 0, TEMPLATE_SIZE, TEMPLATE_SIZE);
+      templates.push({
+        treasureId: entry.treasureId,
+        shape: entry.shape,
+        data: ctx.getImageData(0, 0, TEMPLATE_SIZE, TEMPLATE_SIZE),
+      });
+    } catch {
+      // Photo not uploaded yet — silently skip; that treasure just won't be matched
+    }
   }
 
   cachedTemplates = templates;
@@ -69,8 +86,6 @@ export async function loadReferenceAtlas(atlasUrl: string): Promise<TileTemplate
 }
 
 // ── Perspective warp ──────────────────────────────────────────────────────────
-// Bilinear perspective warp mapping a quad (4 corners) to a flat grid.
-// corners: [topLeft, topRight, bottomRight, bottomLeft]
 
 function lerp(a: number, b: number, t: number) { return a + (b - a) * t; }
 
@@ -82,14 +97,11 @@ export function warpBoardToCanvas(
   const out = createOffscreenCanvas(outputSize, outputSize);
   const outCtx = out.getContext("2d")!;
 
-  // Draw source image onto a temp canvas to get pixel data
-  const src = createOffscreenCanvas(
-    img instanceof HTMLImageElement ? img.naturalWidth : img.width,
-    img instanceof HTMLImageElement ? img.naturalHeight : img.height
-  );
-  const srcCtx = src.getContext("2d")!;
-  srcCtx.drawImage(img, 0, 0);
-  const srcData = srcCtx.getImageData(0, 0, src.width, src.height);
+  const srcW = img instanceof HTMLImageElement ? img.naturalWidth : img.width;
+  const srcH = img instanceof HTMLImageElement ? img.naturalHeight : img.height;
+  const src = createOffscreenCanvas(srcW, srcH);
+  src.getContext("2d")!.drawImage(img, 0, 0);
+  const srcData = src.getContext("2d")!.getImageData(0, 0, srcW, srcH);
   const outData = outCtx.createImageData(outputSize, outputSize);
 
   const [tl, tr, br, bl] = corners;
@@ -98,15 +110,14 @@ export function warpBoardToCanvas(
     const ty = py / outputSize;
     for (let px = 0; px < outputSize; px++) {
       const tx = px / outputSize;
-      // Bilinear interpolation across the quad
       const x = lerp(lerp(tl.x, tr.x, tx), lerp(bl.x, br.x, tx), ty);
       const y = lerp(lerp(tl.y, bl.y, ty), lerp(tr.y, br.y, ty), tx);
       const sx = Math.round(x);
       const sy = Math.round(y);
-      if (sx < 0 || sy < 0 || sx >= src.width || sy >= src.height) continue;
-      const si = (sy * src.width + sx) * 4;
+      if (sx < 0 || sy < 0 || sx >= srcW || sy >= srcH) continue;
+      const si = (sy * srcW + sx) * 4;
       const di = (py * outputSize + px) * 4;
-      outData.data[di] = srcData.data[si];
+      outData.data[di]     = srcData.data[si];
       outData.data[di + 1] = srcData.data[si + 1];
       outData.data[di + 2] = srcData.data[si + 2];
       outData.data[di + 3] = 255;
@@ -118,8 +129,6 @@ export function warpBoardToCanvas(
 }
 
 // ── Shape detection ───────────────────────────────────────────────────────────
-// Sample the 4 corridor zones of a cell canvas.
-// Each zone is a strip along one edge. If the average lightness > threshold → open.
 
 interface ShapeResult {
   shape: Shape;
@@ -130,23 +139,23 @@ interface ShapeResult {
 function sampleZoneLightness(data: ImageData, zone: "N" | "S" | "E" | "W"): number {
   const w = data.width;
   const h = data.height;
-  const stripFrac = 0.25; // corridor is middle 25% wide, extends 25% in from edge
+  const stripFrac = 0.25;
   const stripW = Math.round(w * stripFrac);
   const stripH = Math.round(h * stripFrac);
   const cx = Math.round(w * 0.375);
   const cy = Math.round(h * 0.375);
 
   let x1: number, y1: number, x2: number, y2: number;
-  if (zone === "N") { x1 = cx; y1 = 0;     x2 = cx + stripW; y2 = stripH; }
+  if (zone === "N") { x1 = cx; y1 = 0;          x2 = cx + stripW; y2 = stripH; }
   else if (zone === "S") { x1 = cx; y1 = h - stripH; x2 = cx + stripW; y2 = h; }
-  else if (zone === "W") { x1 = 0;     y1 = cy; x2 = stripW;     y2 = cy + stripH; }
-  else               { x1 = w - stripW; y1 = cy; x2 = w;          y2 = cy + stripH; }
+  else if (zone === "W") { x1 = 0;     y1 = cy;       x2 = stripW;     y2 = cy + stripH; }
+  else                   { x1 = w - stripW; y1 = cy;  x2 = w;          y2 = cy + stripH; }
 
   let sum = 0, count = 0;
   for (let y = y1; y < y2; y++) {
     for (let x = x1; x < x2; x++) {
       const i = (y * w + x) * 4;
-      sum += pixelLightness(data.data[i], data.data[i+1], data.data[i+2]);
+      sum += pixelLightness(data.data[i], data.data[i + 1], data.data[i + 2]);
       count++;
     }
   }
@@ -160,30 +169,27 @@ export function detectTileShape(cellData: ImageData): ShapeResult {
   const w = sampleZoneLightness(cellData, "W") > SHAPE_THRESHOLD;
   const openCount = [n, s, e, w].filter(Boolean).length;
 
-  // straight: exactly 2 opposite sides open
   if (openCount === 2) {
-    if (n && s) return { shape: "straight", rotation: 0, confidence: 0.9 };
-    if (e && w) return { shape: "straight", rotation: 90, confidence: 0.9 };
+    if (n && s) return { shape: "straight", rotation: 0,   confidence: 0.9 };
+    if (e && w) return { shape: "straight", rotation: 90,  confidence: 0.9 };
+    if (n && e) return { shape: "corner",   rotation: 0,   confidence: 0.85 };
+    if (s && e) return { shape: "corner",   rotation: 90,  confidence: 0.85 };
+    if (s && w) return { shape: "corner",   rotation: 180, confidence: 0.85 };
+    if (n && w) return { shape: "corner",   rotation: 270, confidence: 0.85 };
   }
-  // corner: exactly 2 adjacent sides open
-  if (openCount === 2) {
-    if (n && e) return { shape: "corner", rotation: 0, confidence: 0.85 };
-    if (s && e) return { shape: "corner", rotation: 90, confidence: 0.85 };
-    if (s && w) return { shape: "corner", rotation: 180, confidence: 0.85 };
-    if (n && w) return { shape: "corner", rotation: 270, confidence: 0.85 };
-  }
-  // t-junction: exactly 3 sides open
   if (openCount === 3) {
-    if (!s) return { shape: "t-junction", rotation: 0, confidence: 0.85 };
-    if (!w) return { shape: "t-junction", rotation: 90, confidence: 0.85 };
+    if (!s) return { shape: "t-junction", rotation: 0,   confidence: 0.85 };
+    if (!w) return { shape: "t-junction", rotation: 90,  confidence: 0.85 };
     if (!n) return { shape: "t-junction", rotation: 180, confidence: 0.85 };
     if (!e) return { shape: "t-junction", rotation: 270, confidence: 0.85 };
   }
-  // Ambiguous — fallback
   return { shape: "straight", rotation: 0, confidence: 0.3 };
 }
 
 // ── Treasure matching ─────────────────────────────────────────────────────────
+// Only compare templates whose shape matches the detected cell shape.
+// This prevents a corner-treasure icon from matching against a t-junction cell
+// (and vice versa), which was a major source of false positives before.
 
 interface TreasureResult {
   treasureId: string | null;
@@ -194,9 +200,8 @@ function normalizedCorrelation(a: ImageData, b: ImageData): number {
   const len = Math.min(a.data.length, b.data.length);
   let dot = 0, magA = 0, magB = 0;
   for (let i = 0; i < len; i += 4) {
-    // Grayscale
-    const ga = (a.data[i] + a.data[i+1] + a.data[i+2]) / 3;
-    const gb = (b.data[i] + b.data[i+1] + b.data[i+2]) / 3;
+    const ga = (a.data[i] + a.data[i + 1] + a.data[i + 2]) / 3;
+    const gb = (b.data[i] + b.data[i + 1] + b.data[i + 2]) / 3;
     dot += ga * gb;
     magA += ga * ga;
     magB += gb * gb;
@@ -220,13 +225,19 @@ function extractCenterCrop(cellData: ImageData, frac: number): ImageData {
   return ctx.getImageData(0, 0, TEMPLATE_SIZE, TEMPLATE_SIZE);
 }
 
-export function matchTreasure(cellData: ImageData, templates: TileTemplate[]): TreasureResult {
-  if (templates.length === 0) return { treasureId: null, confidence: 0 };
+export function matchTreasure(
+  cellData: ImageData,
+  detectedShape: Shape,
+  templates: TileTemplate[]
+): TreasureResult {
+  // Only consider templates whose shape matches the detected cell shape
+  const candidates = templates.filter((t) => t.shape === detectedShape);
+  if (candidates.length === 0) return { treasureId: null, confidence: 0 };
 
-  const crop = extractCenterCrop(cellData, ICON_SAMPLE_FRAC);
+  const crop = extractCenterCrop(cellData, ICON_CROP_FRAC);
   let best = 0, bestId: string | null = null;
 
-  for (const tmpl of templates) {
+  for (const tmpl of candidates) {
     const score = normalizedCorrelation(crop, tmpl.data);
     if (score > best) { best = score; bestId = tmpl.treasureId; }
   }
@@ -246,11 +257,11 @@ export function isFixedCell(row: number, col: number): boolean {
 export async function scanBoard(
   boardImageElement: HTMLImageElement | HTMLCanvasElement,
   corners: [CornerPoint, CornerPoint, CornerPoint, CornerPoint],
-  atlasUrl: string,
+  _atlasUrl: string,       // kept for API compatibility, no longer used
   onProgress?: (pct: number) => void
 ): Promise<BoardScanResult> {
-  const templates = await loadReferenceAtlas(atlasUrl);
-  const CELL_SIZE = 96; // pixels per cell in warped output (7×7 = 672px output)
+  const templates = await loadTileTemplates();
+  const CELL_SIZE = 96;
   const GRID_PX = CELL_SIZE * 7;
 
   const warpedBoard = warpBoardToCanvas(boardImageElement, corners, GRID_PX);
@@ -258,7 +269,7 @@ export async function scanBoard(
 
   const results: BoardScanResult = [];
   let processed = 0;
-  const movableCells = 33; // 7×7 minus 16 fixed
+  const movableCells = 33;
 
   for (let row = 0; row < 7; row++) {
     for (let col = 0; col < 7; col++) {
@@ -269,10 +280,19 @@ export async function scanBoard(
       const cellData = boardCtx.getImageData(px, py, CELL_SIZE, CELL_SIZE);
 
       const { shape, rotation, confidence: shapeConf } = detectTileShape(cellData);
-      const { treasureId, confidence: treasureConf } = matchTreasure(cellData, templates);
 
-      // Combined confidence: shape detection weighted 60%, treasure 40%
-      const combined = shapeConf * 0.6 + (treasureId !== null ? treasureConf * 0.4 : 0.4 * 0.5);
+      // Straight tiles never have treasures — skip matching entirely for them
+      let treasureId: string | null = null;
+      let treasureConf = 0;
+      if (shape !== "straight") {
+        const result = matchTreasure(cellData, shape, templates);
+        treasureId = result.treasureId;
+        treasureConf = result.confidence;
+      }
+
+      const combined = treasureId !== null
+        ? shapeConf * 0.5 + treasureConf * 0.5
+        : shapeConf * 0.8;
       const flagged = combined < TREASURE_AUTO;
 
       results.push({ row, col, shape, rotation, treasureId, confidence: combined, flagged });
@@ -280,7 +300,6 @@ export async function scanBoard(
       processed++;
       onProgress?.(Math.round((processed / movableCells) * 100));
 
-      // Yield to keep UI responsive
       if (processed % 5 === 0) await new Promise((r) => setTimeout(r, 0));
     }
   }

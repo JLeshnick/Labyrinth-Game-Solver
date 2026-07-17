@@ -1,263 +1,118 @@
 {
   "_instructions": [
-    "Edit this file to correct the treasure tile positions in Game_Board_Ref.png.",
-    "Each entry covers one tile position (row 0-5, col 0-6).",
+    "This file maps each movable treasure tile to a closeup photo you provide.",
+    "",
+    "HOW TO ADD YOUR TILE PHOTOS:",
+    "  1. Take a closeup photo of each treasure tile (any angle, any lighting).",
+    "  2. Name the file exactly as shown in the 'image' field below.",
+    "  3. Place all tile photos in the folder:  public/tile-templates/",
+    "     (create the folder if it doesn't exist)",
+    "  4. Save this file — the app picks up the changes on next reload.",
+    "",
+    "PHOTO TIPS:",
+    "  - Frame the tile so it fills most of the photo (no need to crop precisely).",
+    "  - The app automatically crops the center 60% of each photo for icon matching,",
+    "    so a bit of wall/border showing around the edges is fine.",
+    "  - One photo per treasure is enough. Rotation doesn't matter for matching.",
+    "  - Any common format works: JPG, PNG, HEIC, WEBP.",
     "",
     "FIELDS:",
-    "  row / col   : 0-indexed position in the image grid",
-    "  shape       : 'corner' | 'straight' | 't-junction'",
-    "  treasure_id : treasure ID from the list below, or null for blank tiles",
-    "  skip        : true = fixed home corner tile — never used for matching, leave as-is",
-    "  note        : free-text reminder, not used by the app",
+    "  treasure_id : must match exactly one of the valid IDs listed below",
+    "  image       : filename inside public/tile-templates/ (include extension)",
+    "  shape       : the tile's corridor shape — 'corner' | 't-junction'",
+    "                (straight tiles have no treasure in this game)",
+    "  note        : free-text reminder for yourself, not used by the app",
+    "  enabled     : set to false to skip this tile during matching (e.g. if photo is unclear)",
     "",
-    "TREASURE IDs (movable tiles only — the ones that appear on the game board):",
-    "  Corner-shaped treasures : lizard, moth, owl, scarab, rat, spider",
-    "  T-junction treasures    : bat, dragon, ghost_bottle, ghost_waving, lady_pig, sorceress",
-    "",
-    "FIXED-TILE TREASURES (shown in atlas for visual reference only, always pre-placed):",
-    "  book, coins, map, crown, keys, skull, ring, chest, emerald, sword, menorah, helmet",
-    "  → For tiles showing these icons, set treasure_id to null (they are just blank tiles).",
-    "",
-    "SPARE TILE:",
-    "  Listed separately at the bottom under 'spare'.",
-    "",
-    "IMAGE GEOMETRY (used to auto-calculate pixel bounds — edit if your image differs):",
-    "  tile_size : pixel width/height of each tile",
-    "  gap       : pixel gap between tiles",
-    "  margin_x  : left edge offset",
-    "  margin_y  : top edge offset"
+    "VALID TREASURE IDs:",
+    "  Corner-shaped tiles  : lizard, moth, owl, scarab, rat, spider",
+    "  T-junction tiles     : bat, dragon, ghost_bottle, ghost_waving, lady_pig, sorceress"
   ],
 
-  "image_info": {
-    "width": 1076,
-    "height": 1076,
-    "tile_size": 135,
-    "gap": 14,
-    "margin_x": 28,
-    "margin_y": 28
-  },
-
-  "tiles": [
+  "tile_templates": [
     {
-      "row": 0, "col": 0,
-      "skip": true,
-      "note": "Green home corner (fixed tile — do not use for matching)"
-    },
-    {
-      "row": 0, "col": 1,
-      "shape": "t-junction",
-      "treasure_id": "dragon",
-      "note": "Dragon — green creature with claws"
-    },
-    {
-      "row": 0, "col": 2,
-      "shape": "corner",
-      "treasure_id": null,
-      "note": "Shows ring icon (fixed treasure reference) — blank corner tile"
-    },
-    {
-      "row": 0, "col": 3,
-      "shape": "straight",
-      "treasure_id": null,
-      "note": "Blank straight tile"
-    },
-    {
-      "row": 0, "col": 4,
-      "shape": "straight",
-      "treasure_id": null,
-      "note": "Shows map/scroll icon (fixed treasure reference) — blank straight tile"
-    },
-    {
-      "row": 0, "col": 5,
-      "shape": "t-junction",
-      "treasure_id": "sorceress",
-      "note": "Sorceress — figure with hourglass or crystal"
-    },
-    {
-      "row": 0, "col": 6,
-      "skip": true,
-      "note": "Red home corner (fixed tile — do not use for matching)"
-    },
-
-    {
-      "row": 1, "col": 0,
-      "shape": "corner",
-      "treasure_id": null,
-      "note": "Shows helmet icon (fixed treasure reference) — blank corner tile"
-    },
-    {
-      "row": 1, "col": 1,
-      "shape": "t-junction",
-      "treasure_id": "lady_pig",
-      "note": "Lady Pig — upside-down jester/clown figure"
-    },
-    {
-      "row": 1, "col": 2,
-      "shape": "corner",
-      "treasure_id": null,
-      "note": "Blank corner tile"
-    },
-    {
-      "row": 1, "col": 3,
-      "shape": "straight",
-      "treasure_id": null,
-      "note": "Blank straight tile"
-    },
-    {
-      "row": 1, "col": 4,
-      "shape": "straight",
-      "treasure_id": null,
-      "note": "Blank straight tile"
-    },
-    {
-      "row": 1, "col": 5,
-      "shape": "corner",
-      "treasure_id": "moth",
-      "note": "Moth — large brown winged insect"
-    },
-
-    {
-      "row": 2, "col": 0,
-      "shape": "corner",
-      "treasure_id": null,
-      "note": "Shows menorah icon (fixed treasure reference) — blank corner tile"
-    },
-    {
-      "row": 2, "col": 1,
-      "shape": "t-junction",
-      "treasure_id": "bat",
-      "note": "Bat — brown bat with wings spread"
-    },
-    {
-      "row": 2, "col": 2,
-      "shape": "corner",
-      "treasure_id": null,
-      "note": "Shows book-with-clasp icon (fixed treasure reference) — blank corner tile"
-    },
-    {
-      "row": 2, "col": 3,
-      "shape": "straight",
-      "treasure_id": null,
-      "note": "Blank straight tile"
-    },
-    {
-      "row": 2, "col": 4,
-      "shape": "corner",
-      "treasure_id": null,
-      "note": "Shows chest/jewel icon (fixed treasure reference) — blank corner tile"
-    },
-    {
-      "row": 2, "col": 5,
-      "shape": "corner",
-      "treasure_id": "spider",
-      "note": "Spider — spider on web"
-    },
-
-    {
-      "row": 3, "col": 0,
-      "shape": "corner",
-      "treasure_id": null,
-      "note": "Blank corner tile"
-    },
-    {
-      "row": 3, "col": 1,
-      "shape": "t-junction",
-      "treasure_id": "ghost_waving",
-      "note": "Ghost (waving) — blue-gray ghost with ball and chain"
-    },
-    {
-      "row": 3, "col": 2,
-      "shape": "corner",
-      "treasure_id": null,
-      "note": "Blank corner tile"
-    },
-    {
-      "row": 3, "col": 4,
-      "shape": "corner",
-      "treasure_id": null,
-      "note": "Blank corner tile — VERIFY: may be empty in image"
-    },
-    {
-      "row": 3, "col": 5,
-      "shape": "corner",
-      "treasure_id": "owl",
-      "note": "Owl — large dark bird"
-    },
-
-    {
-      "row": 4, "col": 0,
-      "shape": "corner",
-      "treasure_id": null,
-      "note": "Blank corner tile"
-    },
-    {
-      "row": 4, "col": 1,
-      "shape": "t-junction",
-      "treasure_id": "ghost_bottle",
-      "note": "Ghost (in bottle) — floating ghost/spirit"
-    },
-    {
-      "row": 4, "col": 2,
-      "shape": "straight",
-      "treasure_id": null,
-      "note": "Shows emerald/gem icon (fixed treasure reference) — blank straight tile"
-    },
-    {
-      "row": 4, "col": 3,
-      "shape": "straight",
-      "treasure_id": null,
-      "note": "Blank straight tile"
-    },
-    {
-      "row": 4, "col": 4,
-      "shape": "straight",
-      "treasure_id": null,
-      "note": "Shows keys icon (fixed treasure reference) — blank straight tile"
-    },
-    {
-      "row": 4, "col": 5,
-      "shape": "corner",
-      "treasure_id": "rat",
-      "note": "Rat — small mouse/rat"
-    },
-    {
-      "row": 4, "col": 6,
-      "shape": "corner",
-      "treasure_id": "scarab",
-      "note": "Scarab — VERIFY: round reddish/orange beetle shape at far right of row 4"
-    },
-
-    {
-      "row": 5, "col": 0,
-      "shape": "straight",
-      "treasure_id": null,
-      "note": "Blank straight tile"
-    },
-    {
-      "row": 5, "col": 1,
-      "shape": "straight",
-      "treasure_id": null,
-      "note": "Blank straight tile"
-    },
-    {
-      "row": 5, "col": 3,
-      "shape": "t-junction",
-      "treasure_id": null,
-      "note": "Blank t-junction tile — VERIFY: middle-bottom area"
-    },
-    {
-      "row": 5, "col": 4,
-      "shape": "corner",
       "treasure_id": "lizard",
-      "note": "Lizard — green gecko/lizard"
+      "image": "lizard.jpg",
+      "shape": "corner",
+      "note": "Green gecko/lizard",
+      "enabled": true
+    },
+    {
+      "treasure_id": "moth",
+      "image": "moth.jpg",
+      "shape": "corner",
+      "note": "Large brown moth / winged insect",
+      "enabled": true
+    },
+    {
+      "treasure_id": "owl",
+      "image": "owl.jpg",
+      "shape": "corner",
+      "note": "Large dark owl / bird",
+      "enabled": true
+    },
+    {
+      "treasure_id": "scarab",
+      "image": "scarab.jpg",
+      "shape": "corner",
+      "note": "Round beetle / scarab",
+      "enabled": true
+    },
+    {
+      "treasure_id": "rat",
+      "image": "rat.jpg",
+      "shape": "corner",
+      "note": "Small rat / mouse",
+      "enabled": true
+    },
+    {
+      "treasure_id": "spider",
+      "image": "spider.jpg",
+      "shape": "corner",
+      "note": "Spider on a web",
+      "enabled": true
+    },
+    {
+      "treasure_id": "bat",
+      "image": "bat.jpg",
+      "shape": "t-junction",
+      "note": "Brown bat with wings spread",
+      "enabled": true
+    },
+    {
+      "treasure_id": "dragon",
+      "image": "dragon.jpg",
+      "shape": "t-junction",
+      "note": "Green dragon / serpentine creature",
+      "enabled": true
+    },
+    {
+      "treasure_id": "ghost_bottle",
+      "image": "ghost_bottle.jpg",
+      "shape": "t-junction",
+      "note": "Ghost (in bottle) — floating spirit",
+      "enabled": true
+    },
+    {
+      "treasure_id": "ghost_waving",
+      "image": "ghost_waving.jpg",
+      "shape": "t-junction",
+      "note": "Ghost (waving) — ghost with ball and chain",
+      "enabled": true
+    },
+    {
+      "treasure_id": "lady_pig",
+      "image": "lady_pig.jpg",
+      "shape": "t-junction",
+      "note": "Lady Pig — upside-down jester / clown figure",
+      "enabled": true
+    },
+    {
+      "treasure_id": "sorceress",
+      "image": "sorceress.jpg",
+      "shape": "t-junction",
+      "note": "Sorceress — robed figure",
+      "enabled": true
     }
-  ],
-
-  "spare": {
-    "shape": "t-junction",
-    "treasure_id": null,
-    "pixel_x": 463,
-    "pixel_y": 940,
-    "note": "Spare tile — isolated at the bottom center of the image"
-  }
+  ]
 }

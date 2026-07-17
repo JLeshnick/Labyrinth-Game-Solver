@@ -2,10 +2,11 @@ import { useState, useRef, useCallback, useEffect } from "react";
 import { Camera, CheckCircle2, AlertTriangle, ChevronRight, Upload, RotateCw } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
 import { Button } from "./ui/button";
-import { scanBoard, isFixedCell } from "../lib/boardScanner";
+import { scanBoard, isFixedCell, loadTileTemplates } from "../lib/boardScanner";
 import type { CornerPoint } from "../lib/boardScanner";
 import type { TileData, BoardScanResult } from "../types";
 import { generateMovablePool, FIXED_TILES_PRESETS } from "../constants";
+import { TILE_TEMPLATE_ENTRIES } from "../data/atlasLayout";
 
 type Step = "upload" | "align" | "scanning" | "results";
 
@@ -14,9 +15,6 @@ interface Props {
   onClose: () => void;
   onApply: (grid: (TileData | null)[][], looseTiles: TileData[]) => void;
 }
-
-// Atlas image path (bundled in public/)
-const ATLAS_URL = "./Game_Board_Ref.png";
 
 // ── Grid preview ──────────────────────────────────────────────────────────────
 function MiniGrid({ results }: { results: BoardScanResult }) {
@@ -66,6 +64,30 @@ function MiniGrid({ results }: { results: BoardScanResult }) {
 const CORNER_COLORS = ["bg-red-500", "bg-yellow-400", "bg-blue-500", "bg-green-500"];
 const CORNER_LABELS = ["Red\nTL", "Yellow\nTR", "Blue\nBR", "Green\nBL"];
 const CORNER_SHORT  = ["R", "Y", "B", "G"];
+
+// ── Template availability status ─────────────────────────────────────────────
+
+function TemplateStatus() {
+  const total = TILE_TEMPLATE_ENTRIES.length;
+  // We can't know at render-time which files actually exist, but we show the
+  // configured total so the user knows how many photos to add.
+  if (total === 0) {
+    return (
+      <div className="text-[11px] text-amber-400 bg-amber-950/30 border border-amber-800/40 rounded-lg px-3 py-2">
+        No tile templates configured. Add closeup photos to{" "}
+        <code className="font-mono text-amber-300">public/tile-templates/</code> and
+        update <code className="font-mono text-amber-300">src/data/atlas-config.json</code>.
+      </div>
+    );
+  }
+  return (
+    <div className="text-[11px] text-stone-400 bg-stone-900/50 border border-stone-800 rounded-lg px-3 py-2">
+      <span className="text-stone-300 font-semibold">{total} treasure templates configured.</span>{" "}
+      Shape detection works without photos. Treasure identification improves with each photo
+      you add to <code className="font-mono text-stone-400">public/tile-templates/</code>.
+    </div>
+  );
+}
 
 // ── Corner drag handle ────────────────────────────────────────────────────────
 interface AlignStepProps {
@@ -217,6 +239,11 @@ export function BoardScanModal({ open, onClose, onApply }: Props) {
   const [error, setError] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
+  // Preload templates when modal opens (no-op if already cached)
+  useEffect(() => {
+    if (open) loadTileTemplates().catch(() => {/* photos not present yet — ok */});
+  }, [open]);
+
   // Reset on close
   useEffect(() => {
     if (!open) {
@@ -289,7 +316,7 @@ export function BoardScanModal({ open, onClose, onApply }: Props) {
         y: c.y * scanH,
       })) as [CornerPoint, CornerPoint, CornerPoint, CornerPoint];
 
-      const scanResults = await scanBoard(scanSource, absCorners, ATLAS_URL, setProgress);
+      const scanResults = await scanBoard(scanSource, absCorners, "", setProgress);
       setResults(scanResults);
       setStep("results");
     } catch (err) {
@@ -368,8 +395,10 @@ export function BoardScanModal({ open, onClose, onApply }: Props) {
         {step === "upload" && (
           <div className="flex flex-col gap-4">
             <p className="text-xs text-stone-400">
-              Upload a photo of your assembled board. The app will detect each tile's shape and treasure using your device — no internet required.
+              Upload a photo of your assembled board. The app detects tile shapes and treasures on your device — no internet required.
             </p>
+            {/* Template availability summary */}
+            <TemplateStatus />
             {error && <p className="text-xs text-red-400">{error}</p>}
             <div
               className="border-2 border-dashed border-stone-600 hover:border-theme-primary rounded-xl p-8 flex flex-col items-center gap-3 cursor-pointer transition-colors"
