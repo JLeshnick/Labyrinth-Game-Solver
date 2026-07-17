@@ -809,6 +809,94 @@ function solveAllHand(board, spareTile, startPawnPos, handCards, lastShiftArrowI
   return uniquePaths;
 }
 
+// ── Multi-card sequence optimizer ─────────────────────────────────────────────
+
+function permutations(arr) {
+  if (arr.length <= 1) return [arr];
+  const result = [];
+  for (let i = 0; i < arr.length; i++) {
+    const rest = [...arr.slice(0, i), ...arr.slice(i + 1)];
+    for (const p of permutations(rest)) {
+      result.push([arr[i], ...p]);
+    }
+  }
+  return result;
+}
+
+function findTreasurePos(board, treasureId) {
+  for (let r = 0; r < 7; r++) {
+    for (let c = 0; c < 7; c++) {
+      if (board[r][c] && board[r][c].treasure === treasureId) return { r, c };
+    }
+  }
+  return null;
+}
+
+function manhattanMin(fromPos, board, targetId) {
+  const pos = findTreasurePos(board, targetId);
+  if (!pos) return 6; // treasure not on board (on spare), pessimistic
+  return Math.abs(fromPos.r - pos.r) + Math.abs(fromPos.c - pos.c);
+}
+
+/**
+ * Like solveAllHand but tries all orderings of handCards (capped at 4! = 24 permutations)
+ * and picks the ordering that minimises turn1Cost + heuristic(nextCard, landPos).
+ * Returns suggestions annotated with targetCard and sequenceOrder.
+ */
+function solveAllHandOrdered(board, spareTile, startPawnPos, handCards, lastShiftArrowId = null, maxTurns = 3) {
+  if (!handCards || handCards.length === 0) return [];
+  if (handCards.length === 1) return solveAllHand(board, spareTile, startPawnPos, handCards, lastShiftArrowId, maxTurns);
+
+  // Cap permutation search at first 4 cards to stay O(4!) = 24 at most
+  const searchCards = handCards.slice(0, 4);
+  const remainingCards = handCards.slice(4);
+  const perms = permutations(searchCards);
+
+  let bestScore = Infinity;
+  let bestPerm = searchCards;
+
+  for (const perm of perms) {
+    const card0 = perm[0];
+    const paths = solveLabyrinth(board, spareTile, startPawnPos, card0, lastShiftArrowId, 1);
+
+    let score;
+    if (paths.length > 0) {
+      // Found in 1 turn: turn1Cost=1, heuristic=dist to next card after landing
+      const landPos = paths[0][0].endPos;
+      const tempBoard = cloneBoard(board);
+      const tempSpare = { ...spareTile, dir: paths[0][0].rotation };
+      const { type, index, dir } = parseArrowId(paths[0][0].arrowId);
+      executeSlideInGrid(tempBoard, tempSpare, type, index, dir);
+      const nextDist = perm.length > 1 ? manhattanMin(landPos, tempBoard, perm[1]) : 0;
+      score = 1 + nextDist * 0.1;
+    } else {
+      // Not reachable in 1 turn — use fallback distance as turn1Cost estimate
+      const fallback = getFallbackSuggestions(board, spareTile, startPawnPos, card0, lastShiftArrowId);
+      const dist0 = fallback.length > 0 ? (fallback[0][0].minDistance ?? 6) : 6;
+      const nextDist = perm.length > 1 ? dist0 : 0;
+      score = 2 + dist0 * 0.1 + nextDist * 0.05;
+    }
+
+    if (score < bestScore) {
+      bestScore = score;
+      bestPerm = perm;
+    }
+  }
+
+  // Solve using best ordering — first card from bestPerm, rest appended after
+  const orderedHand = [...bestPerm, ...remainingCards];
+  const results = solveAllHand(board, spareTile, startPawnPos, orderedHand, lastShiftArrowId, maxTurns);
+
+  // Annotate each result with which card it targets and the recommended sequence
+  for (const path of results) {
+    if (!path.sequenceOrder) {
+      path.sequenceOrder = orderedHand;
+    }
+  }
+
+  return results;
+}
+
 /**
  * Quickly estimates the minimum number of turns needed to reach a given treasure.
  * Returns 1 if reachable in one turn, 2 if within 2 turns, or null if not found within maxTurns.
@@ -821,12 +909,13 @@ function quickSolveMinTurns(board, spareTile, startPawnPos, targetTreasure, last
   return null; // Not reachable within maxTurns
 }
 
-export { 
-  cloneBoard, 
-  parseArrowId, 
-  isOppositeArrow, 
+export {
+  cloneBoard,
+  parseArrowId,
+  isOppositeArrow,
   executeSlideInGrid,
   solveAllHand,
+  solveAllHandOrdered,
   quickSolveMinTurns,
   getReachableCells,
   areConnected,

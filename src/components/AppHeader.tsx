@@ -22,6 +22,7 @@ import {
   HelpCircle,
   Timer,
   PauseCircle,
+  Clock,
 } from "lucide-react";
 
 export interface AppHeaderProps {
@@ -44,6 +45,7 @@ export interface AppHeaderProps {
   onCloseSettings: () => void;
   onUndo: () => void;
   onRedo: () => void;
+  onOpenHistory?: () => void;
   onRotateBoard: () => void;
   onToggleStats: () => void;
   onStartGame: () => void;
@@ -101,6 +103,7 @@ export function AppHeader({
   onCloseSettings,
   onUndo,
   onRedo,
+  onOpenHistory,
   onRotateBoard,
   onToggleStats,
   onStartGame,
@@ -492,6 +495,22 @@ export function AppHeader({
             >
               <Redo2 className="w-3.5 h-3.5" />
             </Button>
+
+            {isGameStarted && onOpenHistory && (
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => {
+                  if (!isMuted) playClickSound();
+                  onOpenHistory();
+                }}
+                className="border-stone-800 hover:bg-stone-900 text-stone-300 w-8 h-8"
+                title="Move History"
+                aria-label="View move history"
+              >
+                <Clock className="w-3.5 h-3.5" />
+              </Button>
+            )}
 
             <div className="w-px h-4 bg-stone-800/60 mx-1" />
 

@@ -19,6 +19,7 @@ import { Button } from "./components/ui/button";
 import { SolverPanel } from "./components/SolverPanel";
 import { SetupPanel } from "./components/SetupPanel";
 import { BoardScanModal } from "./components/BoardScanModal";
+import { MoveHistoryDialog } from "./components/MoveHistoryDialog";
 import { StatsPanel } from "./components/StatsPanel";
 import { AppHeader } from "./components/AppHeader";
 import { WelcomeGuide } from "./components/WelcomeGuide";
@@ -38,6 +39,7 @@ import {
   VolumeX,
   ChevronUp,
   ChevronDown as ChevronDownIcon,
+  Clock,
 } from "lucide-react";
 import { cn } from "./lib/utils";
 
@@ -80,6 +82,7 @@ export default function App() {
   const [boardRotation, setBoardRotation] = useState(0);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isScanModalOpen, setIsScanModalOpen] = useState(false);
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [accentColor, setAccentColorState] = useState(
     () => localStorage.getItem("labyrinth_accent_color") ?? ""
   );
@@ -753,6 +756,7 @@ export default function App() {
         onCloseSettings={() => setIsSettingsOpen(false)}
         onUndo={() => game.handleUndo()}
         onRedo={() => game.handleRedo()}
+        onOpenHistory={() => setIsHistoryOpen(true)}
         onRotateBoard={() => setBoardRotation((prev) => (prev + 90) % 360)}
         onToggleStats={() => setShowStats((prev) => !prev)}
         onStartGame={game.handleStartGame}
@@ -822,6 +826,7 @@ export default function App() {
                 }}
                 allObtainedTreasures={Object.values(game.obtainedTreasures).flat()}
                 activeTargetTreasureId={game.playerActiveTargets[game.activePawn]}
+                activePlayers={game.activePlayers}
               />
             </div>
           </div>
@@ -999,6 +1004,16 @@ export default function App() {
         </DndContext>
       </main>
 
+      {/* Move history dialog */}
+      <MoveHistoryDialog
+        open={isHistoryOpen}
+        onClose={() => setIsHistoryOpen(false)}
+        history={game.history}
+        historyIndex={game.historyIndex}
+        activePlayers={game.activePlayers}
+        onJumpTo={game.handleJumpToHistory}
+      />
+
       {/* Board scan modal */}
       <BoardScanModal
         open={isScanModalOpen}
@@ -1086,6 +1101,21 @@ export default function App() {
           <Redo2 className="w-4 h-4" />
           <span className="text-[9px] font-medium">Redo</span>
         </Button>
+
+        {game.isGameStarted && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              if (!isMuted) playClickSound();
+              setIsHistoryOpen(true);
+            }}
+            className="flex flex-col items-center gap-0.5 text-stone-400 hover:text-stone-200 h-auto py-1 px-3 cursor-pointer"
+          >
+            <Clock className="w-4 h-4" />
+            <span className="text-[9px] font-medium">History</span>
+          </Button>
+        )}
 
         <Button
           variant="ghost"

@@ -225,14 +225,19 @@ export function SetupPanel({
 
         {setupTab === "cards" && (
           <div className="flex flex-col gap-4 h-full overflow-hidden min-h-0">
-            <div className="flex items-center gap-2">
-              <div className="text-sm text-stone-400">Select player active hand:</div>
-              <div className="flex gap-1 ml-auto">
+            {/* Optional cards info */}
+            <div className="text-[11px] text-stone-500 leading-relaxed bg-stone-900/50 border border-stone-800 rounded-lg px-3 py-2">
+              <span className="text-stone-300 font-semibold">Hand cards are optional.</span> During play you can tap any board tile to navigate there instead. Use this section if you know your full card set upfront — the solver will then optimize the order to reach all your treasures in the fewest moves.
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="text-sm text-stone-400 shrink-0">Select player:</div>
+              <div className="flex gap-1.5 flex-wrap">
                 {activePlayers.map((p) => (
                   <button
                     key={p}
                     onClick={() => { if (!isMuted) playClickSound(); setActivePawn(p); }}
-                    className={`w-11 h-11 text-sm md:w-8 md:h-8 md:text-xs rounded-full font-bold flex items-center justify-center transition-all ${PAWNS.find((pw) => pw.id === p)?.colorClass ?? "bg-stone-500"} ${activePawn === p ? "ring-2 ring-white" : "opacity-50"}`}
+                    className={`w-11 h-11 text-sm md:w-9 md:h-9 md:text-xs rounded-full shrink-0 font-bold flex items-center justify-center transition-all ${PAWNS.find((pw) => pw.id === p)?.colorClass ?? "bg-stone-500"} ${activePawn === p ? "ring-2 ring-white shadow-md" : "opacity-50"}`}
                   >
                     {p[0].toUpperCase()}
                   </button>
@@ -242,7 +247,7 @@ export function SetupPanel({
 
             <div className="p-3 app-surface">
               <div className="text-xs text-stone-400">
-                Player <span className="capitalize text-theme-primary font-bold">{activePawn}</span>'s hand list (
+                Player <span className="capitalize text-theme-primary font-bold">{activePawn}</span>'s hand (
                 {playerHands[activePawn]?.length ?? 0} cards):
               </div>
               <div className="flex flex-wrap gap-1 mt-2">
@@ -260,7 +265,7 @@ export function SetupPanel({
                   );
                 })}
                 {(!playerHands[activePawn] || playerHands[activePawn].length === 0) && (
-                  <span className="text-[10px] text-stone-600">No cards in hand. Click below to add.</span>
+                  <span className="text-[10px] text-stone-600 italic">No cards assigned — add below or leave empty.</span>
                 )}
               </div>
             </div>

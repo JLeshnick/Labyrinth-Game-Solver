@@ -50,7 +50,7 @@ export function useLabyrinthGame({
   onToast,
 }: UseLabyrinthGameOptions) {
   // ── Internal sub-hooks ───────────────────────────────────────────────────────
-  const { pushStateToHistory, resetHistory, undo, redo, canUndo, canRedo } =
+  const { history, historyIndex, pushStateToHistory, resetHistory, undo, redo, jumpToHistory, canUndo, canRedo } =
     useLabyrinthHistory(null);
 
   const { saveAutosave, loadAutosave } = useLabyrinthStorage();
@@ -352,7 +352,8 @@ export function useLabyrinthGame({
         playerHands,
         playerActiveTargets,
         obtainedTreasures,
-        pawnPositions
+        pawnPositions,
+        "Board randomized"
       );
       saveAutosave({
         board: initialGrid,
@@ -466,6 +467,9 @@ export function useLabyrinthGame({
           onToast(`Moved ${activePawn.toUpperCase()} pawn to (${r}, ${c})`);
         }
 
+        const moveLabel = landedTreasure && landedTreasure.id === activeTargetCard
+          ? `${activePawn[0].toUpperCase()}${activePawn.slice(1)} found ${landedTreasure.name}`
+          : `${activePawn[0].toUpperCase()}${activePawn.slice(1)} → (${r},${c})`;
         pushStateToHistory(
           grid,
           spareTile,
@@ -474,7 +478,10 @@ export function useLabyrinthGame({
           nextPlayerHands,
           nextPlayerActiveTargets,
           nextObtainedTreasures,
-          nextPositions
+          nextPositions,
+          moveLabel,
+          activePawn,
+          [startCoord, { r, c }]
         );
         saveAutosave({
           board: grid,
@@ -580,6 +587,7 @@ export function useLabyrinthGame({
       setSpareTile(nextSpare);
       setLastShiftArrowId(arrowId);
 
+      const slideLabel = arrow ? `Slide ${arrow.type === "row" ? `row ${arrow.index}` : `col ${arrow.index}`} ${arrow.dir}` : `Slide`;
       pushStateToHistory(
         nextGrid,
         nextSpare,
@@ -588,7 +596,8 @@ export function useLabyrinthGame({
         playerHands,
         playerActiveTargets,
         obtainedTreasures,
-        nextPositions
+        nextPositions,
+        slideLabel
       );
       saveAutosave({
         board: nextGrid,
@@ -706,7 +715,9 @@ export function useLabyrinthGame({
       activePawn,
       playerHands,
       playerActiveTargets,
-      obtainedTreasures
+      obtainedTreasures,
+      pawnPositions,
+      "Game started"
     );
     saveAutosave({
       board: grid,
@@ -739,34 +750,56 @@ export function useLabyrinthGame({
   const handleEndGame = useCallback(() => {
     if (!gameStartState) return;
     if (!isMuted) playClickSound();
+
+    const restoredPawnPositions = gameStartState.pawnPositions ?? DEFAULT_PAWN_POSITIONS;
+    const restoredHands = gameStartState.playerHands ?? EMPTY_PLAYER_HANDS;
+    const restoredTargets = gameStartState.playerActiveTargets ?? EMPTY_PLAYER_TARGETS;
+    const restoredObtained = gameStartState.obtainedTreasures ?? EMPTY_OBTAINED_TREASURES;
+    const restoredActivePawn = gameStartState.activePawn ?? "red";
+
     setGrid(gameStartState.board);
     setLooseTiles([gameStartState.spareTile]);
+    setSpareTile(gameStartState.spareTile);
+    setPawnPositions(restoredPawnPositions);
+    setPlayerHands(restoredHands);
+    setPlayerActiveTargets(restoredTargets);
+    setObtainedTreasures(restoredObtained);
+    setActivePawn(restoredActivePawn);
     setIsGameStarted(false);
     setLastShiftArrowId(null);
+    setGameStartState(null);
     setCustomTargetCoords(null);
+    setPawnStats({});
     totalShiftsRef.current = 0;
+
+    resetHistory({
+      board: gameStartState.board,
+      spareTile: gameStartState.spareTile,
+      lastShiftArrowId: null,
+      activePawn: restoredActivePawn,
+      playerHands: restoredHands,
+      playerActiveTargets: restoredTargets,
+      obtainedTreasures: restoredObtained,
+      pawnPositions: restoredPawnPositions,
+    });
 
     saveAutosave({
       board: gameStartState.board,
       looseTiles: [gameStartState.spareTile],
       spareTile: gameStartState.spareTile,
-      activePawn: gameStartState.activePawn ?? activePawn,
-      playerHands: gameStartState.playerHands ?? playerHands,
-      playerActiveTargets: gameStartState.playerActiveTargets ?? playerActiveTargets,
-      obtainedTreasures: gameStartState.obtainedTreasures ?? obtainedTreasures,
+      activePawn: restoredActivePawn,
+      playerHands: restoredHands,
+      playerActiveTargets: restoredTargets,
+      obtainedTreasures: restoredObtained,
       lastShiftArrowId: null,
       isGameStarted: false,
       gameStartState: null,
-      pawnPositions: gameStartState.pawnPositions ?? pawnPositions,
+      pawnPositions: restoredPawnPositions,
     });
   }, [
     gameStartState,
     isMuted,
-    activePawn,
-    playerHands,
-    playerActiveTargets,
-    obtainedTreasures,
-    pawnPositions,
+    resetHistory,
     saveAutosave,
   ]);
 
@@ -836,6 +869,10 @@ export function useLabyrinthGame({
         onToast(`Goal Achieved: Found ${landedTreasure.name}! 🏆`);
       }
 
+      const execLabel = landedTreasure && landedTreasure.id === activeTargetCard
+        ? `${activePawn[0].toUpperCase()}${activePawn.slice(1)} found ${landedTreasure.name}`
+        : `${activePawn[0].toUpperCase()}${activePawn.slice(1)} → (${turn1.endPos.r},${turn1.endPos.c})`;
+      const execPath = (turn1 as { pawnPath?: { r: number; c: number }[] }).pawnPath ?? [pawnPositions[activePawn], turn1.endPos];
       pushStateToHistory(
         nextGrid,
         nextSpare,
@@ -844,7 +881,10 @@ export function useLabyrinthGame({
         nextPlayerHands,
         nextPlayerActiveTargets,
         nextObtainedTreasures,
-        nextPositions
+        nextPositions,
+        execLabel,
+        activePawn,
+        execPath
       );
       saveAutosave({
         board: nextGrid,
@@ -911,6 +951,19 @@ export function useLabyrinthGame({
     });
   }, [redo]);
 
+  const handleJumpToHistory = useCallback((index: number) => {
+    jumpToHistory(index, (state) => {
+      setGrid(state.board);
+      setSpareTile(state.spareTile);
+      setLastShiftArrowId(state.lastShiftArrowId);
+      setActivePawn(state.activePawn);
+      setPlayerHands(state.playerHands);
+      setPlayerActiveTargets(state.playerActiveTargets);
+      setObtainedTreasures(state.obtainedTreasures || EMPTY_OBTAINED_TREASURES);
+      if (state.pawnPositions) setPawnPositions(state.pawnPositions);
+    });
+  }, [jumpToHistory]);
+
   return {
     // Core game state
     grid,
@@ -938,10 +991,13 @@ export function useLabyrinthGame({
     setSetupTab,
     totalShiftsRef,
     // History
+    history,
+    historyIndex,
     canUndo,
     canRedo,
     handleUndo,
     handleRedo,
+    handleJumpToHistory,
     // Storage
     saveAutosave,
     loadAutosave,
