@@ -42,7 +42,7 @@ export function WelcomeGuide({ open, onOpenChange, onDismiss }: WelcomeGuideProp
       }}
     >
       <DialogContent
-        className="sm:max-w-[440px] app-dialog-panel border border-stone-800 text-stone-100 shadow-2xl p-6 rounded-2xl"
+        className="sm:max-w-[440px] md:max-w-[560px] lg:max-w-[680px] xl:max-w-[760px] app-dialog-panel border border-stone-800 text-stone-100 shadow-2xl p-6 rounded-2xl"
         onKeyDown={(e) => {
           if (e.key === " ") e.stopPropagation();
         }}
@@ -56,7 +56,7 @@ export function WelcomeGuide({ open, onOpenChange, onDismiss }: WelcomeGuideProp
         <p className="text-sm text-stone-400 mt-1 leading-relaxed">
           Set up the board to match your real Labyrinth game, then let the solver guide every turn.
         </p>
-        <div className="flex flex-col gap-4 mt-4 max-h-[52vh] overflow-y-auto pr-1">
+        <div className="flex flex-col gap-4 mt-4 max-h-[60vh] overflow-y-auto pr-1">
           {STEPS.map((step) => (
             <div key={step.title} className="flex items-start gap-3">
               <div className="p-2 rounded-xl bg-theme-primary-10 border border-theme-primary-20 text-theme-primary shrink-0">
@@ -68,7 +68,7 @@ export function WelcomeGuide({ open, onOpenChange, onDismiss }: WelcomeGuideProp
                 <img
                   src={step.preview}
                   alt=""
-                  className="mt-2 w-full rounded-lg border border-stone-800 object-cover max-h-24"
+                  className="mt-2 w-full rounded-lg border border-stone-800 object-cover max-h-24 md:max-h-40"
                 />
               </div>
             </div>

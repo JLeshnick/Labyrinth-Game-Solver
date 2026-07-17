@@ -237,7 +237,6 @@ export function SolverPanel({
           <div className="text-[10px] text-stone-500">Spare Tile</div>
           <Tile
             tile={{ ...spareTile, rotation: stagedArrow ? stagedRotation : spareTile.rotation }}
-            disabled
             className="w-16 h-16 md:w-20 md:h-20 border-theme-primary-40"
           />
           {stagedArrow ? (

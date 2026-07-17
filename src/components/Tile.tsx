@@ -8,7 +8,6 @@ interface TileProps {
   tile: TileData;
   onClick?: () => void;
   className?: string;
-  disabled?: boolean;
   boardRotation?: number;
   disableRotationTransition?: boolean;
   isObtainedTreasure?: boolean;
@@ -19,35 +18,19 @@ export const Tile: React.FC<TileProps> = ({
   tile,
   onClick,
   className,
-  disabled,
   boardRotation = 0,
   disableRotationTransition = false,
   isObtainedTreasure = false,
   isCurrentTarget = false,
 }) => {
-  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
-    id: tile.id,
-    disabled: tile.isFixed || disabled,
-    data: tile,
-  });
-
-  const style = transform
-    ? {
-        transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
-        zIndex: 50,
-      }
-    : undefined;
-
   // Paths rendering logic
   const getPathStyles = () => {
     switch (tile.shape) {
       case "straight":
-        // 0 deg: Top to Bottom. A vertical strip in the middle.
         return (
           <div className="absolute inset-y-0 left-1/4 right-1/4 bg-amber-100 shadow-inner" />
         );
       case "corner":
-        // 0 deg: Up to Right.
         return (
           <>
             <div className="absolute top-0 bottom-1/4 left-1/4 right-1/4 bg-amber-100 shadow-inner" />
@@ -55,7 +38,6 @@ export const Tile: React.FC<TileProps> = ({
           </>
         );
       case "t-junction":
-        // 0 deg: Left, Up, Right.
         return (
           <>
             <div className="absolute top-1/4 bottom-1/4 left-0 right-0 bg-amber-100 shadow-inner" />
@@ -80,20 +62,13 @@ export const Tile: React.FC<TileProps> = ({
 
   return (
     <div
-      ref={setNodeRef}
-      style={style}
-      {...attributes}
-      {...listeners}
       onClick={(e) => {
         e.stopPropagation();
-        // Prevent drag events from triggering click
-        if (transform && (Math.abs(transform.x) > 5 || Math.abs(transform.y) > 5)) return;
         onClick?.();
       }}
       className={cn(
-        "relative w-full h-full rounded-md shadow-sm border border-amber-900 overflow-hidden flex items-center justify-center transition-opacity",
-        isDragging ? "opacity-50" : "opacity-100",
-        tile.isFixed ? "bg-amber-800" : "bg-amber-700 cursor-grab active:cursor-grabbing",
+        "relative rounded-md shadow-sm border border-amber-900 overflow-hidden flex items-center justify-center transition-opacity",
+        tile.isFixed ? "bg-amber-800" : "bg-amber-700",
         isObtainedTreasure && "after:absolute after:inset-0 after:bg-stone-950/30 after:rounded-md after:pointer-events-none",
         className
       )}
@@ -106,7 +81,7 @@ export const Tile: React.FC<TileProps> = ({
       >
         {getPathStyles()}
       </div>
- 
+
       {/* Starting Corner Colors */}
       {tile.color && (
         <div
@@ -117,7 +92,7 @@ export const Tile: React.FC<TileProps> = ({
           style={{ transform: `rotate(${-boardRotation}deg)` }}
         />
       )}
- 
+
       {/* Fixed tile lock badge */}
       {tile.isFixed && (
         <div
@@ -128,7 +103,7 @@ export const Tile: React.FC<TileProps> = ({
           <Lock className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
         </div>
       )}
- 
+
       {/* Treasure Text Badge (Centered) */}
       {tile.treasure && (
         <div
@@ -145,6 +120,43 @@ export const Tile: React.FC<TileProps> = ({
           {isObtainedTreasure ? `✓ ${tile.treasure.name}` : tile.treasure.name}
         </div>
       )}
+    </div>
+  );
+};
+
+interface DraggableTileProps extends TileProps {
+  disabled?: boolean;
+}
+
+export const DraggableTile: React.FC<DraggableTileProps> = ({
+  disabled,
+  onClick,
+  className,
+  ...props
+}) => {
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
+    id: props.tile.id,
+    disabled: props.tile.isFixed || disabled,
+    data: props.tile,
+  });
+
+  return (
+    <div
+      ref={setNodeRef}
+      {...attributes}
+      {...listeners}
+      onClick={(e) => {
+        e.stopPropagation();
+        onClick?.();
+      }}
+      className={cn(
+        "select-none",
+        isDragging ? "opacity-30" : "opacity-100",
+        props.tile.isFixed ? "" : "cursor-grab active:cursor-grabbing",
+        className
+      )}
+    >
+      <Tile {...props} className="w-full h-full" />
     </div>
   );
 };

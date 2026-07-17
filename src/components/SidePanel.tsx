@@ -1,7 +1,7 @@
 import React from "react";
 import { useDroppable } from "@dnd-kit/core";
 import type { TileData } from "../types";
-import { Tile } from "./Tile";
+import { DraggableTile } from "./Tile";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "./ui/card";
 import { cn } from "../lib/utils";
 
@@ -28,14 +28,13 @@ export const SidePanel: React.FC<SidePanelProps> = ({ tiles, onTileClick }) => {
           Drag tiles onto the board. Click placed tiles to rotate. Leave exactly 1 spare tile here.
         </CardDescription>
       </CardHeader>
-      <CardContent className="flex-1 min-h-0 relative px-4 pb-4">
-        <div
-          ref={setNodeRef}
-          className={cn(
-            "absolute inset-0 transition-colors rounded-md pointer-events-none",
-            isOver ? "bg-theme-primary/10 border border-dashed border-theme-primary/30" : ""
-          )}
-        />
+      <CardContent
+        ref={setNodeRef}
+        className={cn(
+          "flex-1 min-h-0 relative px-4 pb-4 transition-colors rounded-b-lg border border-transparent",
+          isOver ? "bg-theme-primary/5 border-dashed border-theme-primary/30" : ""
+        )}
+      >
         <div className="h-full w-full overflow-y-auto pr-1 flex flex-col gap-5">
           {corners.length > 0 && (
             <div>
@@ -46,7 +45,7 @@ export const SidePanel: React.FC<SidePanelProps> = ({ tiles, onTileClick }) => {
               <div className="grid grid-cols-4 gap-2">
                 {corners.map((tile) => (
                   <div key={tile.id} className="relative z-10 flex justify-center">
-                    <Tile
+                    <DraggableTile
                       tile={tile}
                       onClick={() => onTileClick(tile.id)}
                       className="w-12 h-12 sm:w-14 sm:h-14 lg:w-12 lg:h-12 xl:w-14 xl:h-14"
@@ -66,7 +65,7 @@ export const SidePanel: React.FC<SidePanelProps> = ({ tiles, onTileClick }) => {
               <div className="grid grid-cols-4 gap-2">
                 {straights.map((tile) => (
                   <div key={tile.id} className="relative z-10 flex justify-center">
-                    <Tile
+                    <DraggableTile
                       tile={tile}
                       onClick={() => onTileClick(tile.id)}
                       className="w-12 h-12 sm:w-14 sm:h-14 lg:w-12 lg:h-12 xl:w-14 xl:h-14"
@@ -86,7 +85,7 @@ export const SidePanel: React.FC<SidePanelProps> = ({ tiles, onTileClick }) => {
               <div className="grid grid-cols-4 gap-2">
                 {tJunctions.map((tile) => (
                   <div key={tile.id} className="relative z-10 flex justify-center">
-                    <Tile
+                    <DraggableTile
                       tile={tile}
                       onClick={() => onTileClick(tile.id)}
                       className="w-12 h-12 sm:w-14 sm:h-14 lg:w-12 lg:h-12 xl:w-14 xl:h-14"
