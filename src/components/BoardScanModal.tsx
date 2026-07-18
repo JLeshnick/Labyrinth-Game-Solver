@@ -68,23 +68,31 @@ const CORNER_SHORT  = ["R", "Y", "B", "G"];
 // ── Template availability status ─────────────────────────────────────────────
 
 function TemplateStatus() {
+  const treasureCount = TILE_TEMPLATE_ENTRIES.filter((t) => t.treasureId !== null).length;
+  const blankCount = TILE_TEMPLATE_ENTRIES.filter((t) => t.treasureId === null).length;
   const total = TILE_TEMPLATE_ENTRIES.length;
-  // We can't know at render-time which files actually exist, but we show the
-  // configured total so the user knows how many photos to add.
+
   if (total === 0) {
     return (
       <div className="text-[11px] text-amber-400 bg-amber-950/30 border border-amber-800/40 rounded-lg px-3 py-2">
-        No tile templates configured. Add closeup photos to{" "}
-        <code className="font-mono text-amber-300">public/tile-templates/</code> and
-        update <code className="font-mono text-amber-300">src/data/atlas-config.json</code>.
+        No tile photos added yet. Shape detection still works. Add closeup photos
+        to <code className="font-mono text-amber-300">public/tile-templates/</code> for
+        treasure identification.
       </div>
     );
   }
   return (
-    <div className="text-[11px] text-stone-400 bg-stone-900/50 border border-stone-800 rounded-lg px-3 py-2">
-      <span className="text-stone-300 font-semibold">{total} treasure templates configured.</span>{" "}
-      Shape detection works without photos. Treasure identification improves with each photo
-      you add to <code className="font-mono text-stone-400">public/tile-templates/</code>.
+    <div className="text-[11px] text-stone-400 bg-stone-900/50 border border-stone-800 rounded-lg px-3 py-2 flex flex-col gap-0.5">
+      <span>
+        <span className="text-stone-300 font-semibold">{treasureCount} treasure</span>
+        {blankCount > 0 && (
+          <span> + <span className="text-stone-300 font-semibold">{blankCount} blank</span></span>
+        )} tile photo{total !== 1 ? "s" : ""} configured.
+        {blankCount === 0 && (
+          <span className="text-amber-400"> Add blank tile photos for best accuracy.</span>
+        )}
+      </span>
+      <span>Photos go in <code className="font-mono text-stone-500">public/tile-templates/</code>.</span>
     </div>
   );
 }

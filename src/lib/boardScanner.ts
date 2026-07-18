@@ -39,8 +39,8 @@ function pixelLightness(r: number, g: number, b: number): number {
 // photo as a 64×64 grayscale ImageData for NCC matching.
 
 export interface TileTemplate {
-  treasureId: string;
-  shape: Shape;       // used to filter: only match corner templates against corner cells
+  treasureId: string | null; // null = blank tile reference
+  shape: Shape;
   data: ImageData;
 }
 
@@ -72,7 +72,7 @@ export async function loadTileTemplates(): Promise<TileTemplate[]> {
       const ctx = canvas.getContext("2d")!;
       ctx.drawImage(img, cropX, cropY, cropW, cropH, 0, 0, TEMPLATE_SIZE, TEMPLATE_SIZE);
       templates.push({
-        treasureId: entry.treasureId,
+        treasureId: entry.treasureId, // null for blank tiles
         shape: entry.shape,
         data: ctx.getImageData(0, 0, TEMPLATE_SIZE, TEMPLATE_SIZE),
       });
@@ -235,15 +235,20 @@ export function matchTreasure(
   if (candidates.length === 0) return { treasureId: null, confidence: 0 };
 
   const crop = extractCenterCrop(cellData, ICON_CROP_FRAC);
-  let best = 0, bestId: string | null = null;
+  let best = 0;
+  let bestTemplate: TileTemplate | null = null;
 
   for (const tmpl of candidates) {
     const score = normalizedCorrelation(crop, tmpl.data);
-    if (score > best) { best = score; bestId = tmpl.treasureId; }
+    if (score > best) { best = score; bestTemplate = tmpl; }
   }
 
-  if (best < TREASURE_FLAG) return { treasureId: null, confidence: best };
-  return { treasureId: bestId, confidence: best };
+  if (!bestTemplate || best < TREASURE_FLAG) return { treasureId: null, confidence: best };
+
+  // If the winning template is a blank reference, the cell has no treasure
+  if (bestTemplate.treasureId === null) return { treasureId: null, confidence: best };
+
+  return { treasureId: bestTemplate.treasureId, confidence: best };
 }
 
 // ── Fixed cell check ──────────────────────────────────────────────────────────
@@ -281,16 +286,14 @@ export async function scanBoard(
 
       const { shape, rotation, confidence: shapeConf } = detectTileShape(cellData);
 
-      // Straight tiles never have treasures — skip matching entirely for them
-      let treasureId: string | null = null;
-      let treasureConf = 0;
-      if (shape !== "straight") {
-        const result = matchTreasure(cellData, shape, templates);
-        treasureId = result.treasureId;
-        treasureConf = result.confidence;
-      }
+      // Match against all templates of the same shape (treasure + blank).
+      // If no templates are loaded for this shape, falls back gracefully.
+      const { treasureId, confidence: treasureConf } = matchTreasure(cellData, shape, templates);
 
-      const combined = treasureId !== null
+      // Weight shape and treasure confidence equally when templates exist,
+      // otherwise lean on shape detection alone.
+      const hasTemplates = templates.some((t) => t.shape === shape);
+      const combined = hasTemplates
         ? shapeConf * 0.5 + treasureConf * 0.5
         : shapeConf * 0.8;
       const flagged = combined < TREASURE_AUTO;

@@ -1,32 +1,35 @@
 {
   "_instructions": [
-    "This file maps each movable treasure tile to a closeup photo you provide.",
+    "This file maps every movable tile type to a closeup photo you provide.",
     "",
     "HOW TO ADD YOUR TILE PHOTOS:",
-    "  1. Take a closeup photo of each treasure tile (any angle, any lighting).",
+    "  1. Take a closeup photo of each tile (any angle, any lighting).",
     "  2. Name the file exactly as shown in the 'image' field below.",
-    "  3. Place all tile photos in the folder:  public/tile-templates/",
+    "  3. Place all photos in the folder:  public/tile-templates/",
     "     (create the folder if it doesn't exist)",
-    "  4. Save this file — the app picks up the changes on next reload.",
+    "  4. Save this file — the app picks up changes on next reload.",
     "",
     "PHOTO TIPS:",
     "  - Frame the tile so it fills most of the photo (no need to crop precisely).",
-    "  - The app automatically crops the center 60% of each photo for icon matching,",
-    "    so a bit of wall/border showing around the edges is fine.",
-    "  - One photo per treasure is enough. Rotation doesn't matter for matching.",
+    "  - The app crops the center 60% of each photo for matching, so a little",
+    "    wall/border around the edges is fine.",
+    "  - One photo per tile type is enough. Rotation doesn't matter.",
     "  - Any common format works: JPG, PNG, HEIC, WEBP.",
+    "  - Blank tile photos are just as important as treasure photos — they give",
+    "    the matcher a positive 'this is empty' reference rather than relying on",
+    "    'nothing matched well enough'. One blank photo per shape is sufficient.",
     "",
     "FIELDS:",
-    "  treasure_id : must match exactly one of the valid IDs listed below",
+    "  treasure_id : treasure ID string, or '__blank__' for a blank tile",
     "  image       : filename inside public/tile-templates/ (include extension)",
-    "  shape       : the tile's corridor shape — 'corner' | 't-junction'",
-    "                (straight tiles have no treasure in this game)",
-    "  note        : free-text reminder for yourself, not used by the app",
-    "  enabled     : set to false to skip this tile during matching (e.g. if photo is unclear)",
+    "  shape       : 'corner' | 'straight' | 't-junction'",
+    "  note        : free-text reminder, not used by the app",
+    "  enabled     : set to false to skip this tile during matching",
     "",
-    "VALID TREASURE IDs:",
-    "  Corner-shaped tiles  : lizard, moth, owl, scarab, rat, spider",
-    "  T-junction tiles     : bat, dragon, ghost_bottle, ghost_waving, lady_pig, sorceress"
+    "TREASURE IDs (movable tiles only):",
+    "  Corner-shaped  : lizard, moth, owl, scarab, rat, spider",
+    "  T-junction     : bat, dragon, ghost_bottle, ghost_waving, lady_pig, sorceress",
+    "  Blank          : use '__blank__' for shape corner, straight, or t-junction"
   ],
 
   "tile_templates": [
@@ -112,6 +115,28 @@
       "image": "sorceress.jpg",
       "shape": "t-junction",
       "note": "Sorceress — robed figure",
+      "enabled": true
+    },
+
+    {
+      "treasure_id": "__blank__",
+      "image": "blank_corner.jpg",
+      "shape": "corner",
+      "note": "A plain corner tile with no treasure icon",
+      "enabled": true
+    },
+    {
+      "treasure_id": "__blank__",
+      "image": "blank_straight.jpg",
+      "shape": "straight",
+      "note": "A plain straight corridor tile with no treasure icon",
+      "enabled": true
+    },
+    {
+      "treasure_id": "__blank__",
+      "image": "blank_tjunction.jpg",
+      "shape": "t-junction",
+      "note": "A plain T-junction tile with no treasure icon",
       "enabled": true
     }
   ]
