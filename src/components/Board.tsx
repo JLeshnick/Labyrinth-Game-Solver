@@ -158,6 +158,7 @@ interface BoardProps {
   grid: (TileData | null)[][];
   originalGrid?: (TileData | null)[][];
   pawnPositions: Record<string, { r: number; c: number }>;
+  activePlayers?: string[];
   onCellClick: (r: number, c: number) => void;
   onTileClick: (id: string) => void;
   isGameStarted: boolean;
@@ -180,6 +181,7 @@ export const Board: React.FC<BoardProps> = ({
   grid,
   originalGrid,
   pawnPositions,
+  activePlayers,
   onCellClick,
   onTileClick,
   isGameStarted,
@@ -302,7 +304,7 @@ export const Board: React.FC<BoardProps> = ({
         {grid.map((row, r) =>
           row.map((tile, c) => {
             const pawnsAtCell = Object.entries(pawnPositions)
-              .filter(([_, pos]) => pos.r === r && pos.c === c)
+              .filter(([color, pos]) => pos.r === r && pos.c === c && (!activePlayers || activePlayers.includes(color)))
               .map(([color]) => color);
 
             // Path overlays state

@@ -2,7 +2,7 @@
 // sheet (< md) and the tablet/desktop side column (md+). Unprefixed classes
 // target the phone sheet; `md:` targets the tablet column; `lg:` targets the
 // wider desktop column. Interactive controls get a 44px phone floor.
-import { Sparkles, Layers, Users, Compass, Play, RotateCw } from "lucide-react";
+import { Sparkles, Layers, Users, Compass, Play, RotateCw, Camera } from "lucide-react";
 import { SidePanel } from "./SidePanel";
 import { Button } from "./ui/button";
 import { PAWNS, TREASURES } from "../constants";
@@ -27,6 +27,7 @@ interface SetupPanelProps {
   canStartGame: boolean;
   onStartGame: () => void;
   showToast: (msg: string) => void;
+  onScanBoard?: () => void;
   compact?: boolean;
 }
 
@@ -48,6 +49,7 @@ export function SetupPanel({
   canStartGame,
   onStartGame,
   showToast,
+  onScanBoard,
   compact = false,
 }: SetupPanelProps) {
 
@@ -147,6 +149,17 @@ export function SetupPanel({
                 <Sparkles className="w-4 h-4" />
                 Randomize Board
               </Button>
+              {onScanBoard && (
+                <Button
+                  variant="outline"
+                  onClick={onScanBoard}
+                  title="Scan Board Photo"
+                  aria-label="Scan board photo"
+                  className="border-stone-800 text-stone-400 hover:text-stone-200 hover:bg-stone-900 min-h-11 w-11 shrink-0 px-0 cursor-pointer"
+                >
+                  <Camera className="w-4 h-4" />
+                </Button>
+              )}
               <Button
                 variant="outline"
                 onClick={() => {
@@ -212,14 +225,19 @@ export function SetupPanel({
 
         {setupTab === "cards" && (
           <div className="flex flex-col gap-4 h-full overflow-hidden min-h-0">
-            <div className="flex items-center gap-2">
-              <div className="text-sm text-stone-400">Select player active hand:</div>
-              <div className="flex gap-1 ml-auto">
+            {/* Optional cards info */}
+            <div className="text-[11px] text-stone-500 leading-relaxed bg-stone-900/50 border border-stone-800 rounded-lg px-3 py-2">
+              <span className="text-stone-300 font-semibold">Hand cards are optional.</span> During play you can tap any board tile to navigate there instead. Use this section if you know your full card set upfront — the solver will then optimize the order to reach all your treasures in the fewest moves.
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="text-sm text-stone-400 shrink-0">Select player:</div>
+              <div className="flex gap-1.5 flex-wrap">
                 {activePlayers.map((p) => (
                   <button
                     key={p}
                     onClick={() => { if (!isMuted) playClickSound(); setActivePawn(p); }}
-                    className={`w-11 h-11 text-sm md:w-8 md:h-8 md:text-xs rounded-full font-bold flex items-center justify-center transition-all ${PAWNS.find((pw) => pw.id === p)?.colorClass ?? "bg-stone-500"} ${activePawn === p ? "ring-2 ring-white" : "opacity-50"}`}
+                    className={`w-11 h-11 text-sm md:w-9 md:h-9 md:text-xs rounded-full shrink-0 font-bold flex items-center justify-center transition-all ${PAWNS.find((pw) => pw.id === p)?.colorClass ?? "bg-stone-500"} ${activePawn === p ? "ring-2 ring-white shadow-md" : "opacity-50"}`}
                   >
                     {p[0].toUpperCase()}
                   </button>
@@ -229,7 +247,7 @@ export function SetupPanel({
 
             <div className="p-3 app-surface">
               <div className="text-xs text-stone-400">
-                Player <span className="capitalize text-theme-primary font-bold">{activePawn}</span>'s hand list (
+                Player <span className="capitalize text-theme-primary font-bold">{activePawn}</span>'s hand (
                 {playerHands[activePawn]?.length ?? 0} cards):
               </div>
               <div className="flex flex-wrap gap-1 mt-2">
@@ -247,7 +265,7 @@ export function SetupPanel({
                   );
                 })}
                 {(!playerHands[activePawn] || playerHands[activePawn].length === 0) && (
-                  <span className="text-[10px] text-stone-600">No cards in hand. Click below to add.</span>
+                  <span className="text-[10px] text-stone-600 italic">No cards assigned — add below or leave empty.</span>
                 )}
               </div>
             </div>

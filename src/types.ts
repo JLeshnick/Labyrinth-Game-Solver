@@ -54,6 +54,18 @@ export interface SaveSlot {
   timestamp: number;
 }
 
+export interface BoardScanCell {
+  row: number;
+  col: number;
+  shape: Shape;
+  rotation: Rotation;
+  treasureId: string | null;
+  confidence: number;
+  flagged: boolean;
+}
+
+export type BoardScanResult = BoardScanCell[];
+
 export interface SolverSolutionStep {
   arrowId: string;
   rotation: number;

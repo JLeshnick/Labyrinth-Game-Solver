@@ -54,6 +54,6 @@ describe("SetupPanel — Pawns placement removed", () => {
 
   it("renders the Cards tab content when setupTab is 'cards'", () => {
     renderPanel({ setupTab: "cards" });
-    expect(screen.getByText(/select player active hand/i)).toBeTruthy();
+    expect(screen.getByText(/select player/i)).toBeTruthy();
   });
 });

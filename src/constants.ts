@@ -70,8 +70,8 @@ export const FIXED_TILES_PRESETS: Record<string, Partial<TileData>> = {
 export function generateMovablePool(): TileData[] {
   const pool: TileData[] = [];
 
-  // 13 Straights (Empty)
-  for (let i = 0; i < 13; i++) {
+  // 12 Straights (Empty)
+  for (let i = 0; i < 12; i++) {
     pool.push({
       id: `movable_straight_${i}`,
       shape: "straight",
@@ -90,6 +90,14 @@ export function generateMovablePool(): TileData[] {
     });
   }
 
+  // 1 T-Junction (Empty)
+  pool.push({
+    id: `movable_tjunction_0`,
+    shape: "t-junction",
+    isFixed: false,
+    rotation: 0
+  });
+
   // 6 Corner (Right-Angle Corridor) Treasures (lizard, moth, owl, scarab, rat, spider)
   const cornerTreasures = TREASURES.slice(12, 18);
   cornerTreasures.forEach((treasure, i) => {
@@ -102,12 +110,12 @@ export function generateMovablePool(): TileData[] {
     });
   });
 
-  // 6 Straight Corridor Treasures (bat, dragon, ghost_bottle, ghost_waving, lady_pig, sorceress)
-  const straightTreasures = TREASURES.slice(18, 24);
-  straightTreasures.forEach((treasure, i) => {
+  // 6 T-Junction Treasures (bat, dragon, ghost_bottle, ghost_waving, lady_pig, sorceress)
+  const tjunctionTreasures = TREASURES.slice(18, 24);
+  tjunctionTreasures.forEach((treasure, i) => {
     pool.push({
-      id: `movable_straight_t_${i}`,
-      shape: "straight",
+      id: `movable_tjunction_t_${i}`,
+      shape: "t-junction",
       treasure,
       isFixed: false,
       rotation: 0

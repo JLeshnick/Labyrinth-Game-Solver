@@ -6,7 +6,7 @@ function deepClone<T>(obj: T): T {
   return JSON.parse(JSON.stringify(obj));
 }
 
-interface HistoryRecord {
+export interface HistoryRecord {
   board: (TileData | null)[][];
   spareTile: TileData;
   lastShiftArrowId: string | null;
@@ -15,6 +15,9 @@ interface HistoryRecord {
   playerActiveTargets: PlayerMap<string | null>;
   obtainedTreasures: PlayerMap<string[]>;
   pawnPositions?: PawnPositions;
+  label?: string;
+  movedPawn?: string;
+  pawnPath?: { r: number; c: number }[];
 }
 
 export function useLabyrinthHistory(initialState: HistoryRecord | null) {
@@ -39,7 +42,10 @@ export function useLabyrinthHistory(initialState: HistoryRecord | null) {
       playerHands: PlayerMap<string[]>,
       playerActiveTargets: PlayerMap<string | null>,
       obtainedTreasures: PlayerMap<string[]>,
-      pawnPositions?: PawnPositions
+      pawnPositions?: PawnPositions,
+      label?: string,
+      movedPawn?: string,
+      pawnPath?: { r: number; c: number }[]
     ) => {
       const record: HistoryRecord = deepClone({
         board,
@@ -50,6 +56,9 @@ export function useLabyrinthHistory(initialState: HistoryRecord | null) {
         playerActiveTargets,
         obtainedTreasures,
         pawnPositions,
+        label,
+        movedPawn,
+        pawnPath,
       });
 
       setHistory((prev) => {
@@ -92,14 +101,26 @@ export function useLabyrinthHistory(initialState: HistoryRecord | null) {
     [history, historyIndex]
   );
 
+  const jumpToHistory = useCallback(
+    (index: number, applyStateCallback: (state: HistoryRecord) => void) => {
+      const clamped = Math.max(0, Math.min(index, history.length - 1));
+      applyStateCallback(history[clamped]);
+      setHistoryIndex(clamped);
+      historyIndexRef.current = clamped;
+    },
+    [history]
+  );
+
   const canUndo = historyIndex > 0;
   const canRedo = historyIndex < history.length - 1;
 
   return {
+    history,
     pushStateToHistory,
     resetHistory,
     undo,
     redo,
+    jumpToHistory,
     canUndo,
     canRedo,
     historyIndex,
