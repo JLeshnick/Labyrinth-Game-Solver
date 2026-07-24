@@ -50,7 +50,7 @@ Complex pathfinder searches run inside `solver.worker.js` (Web Worker).
 
 ### 2. State & History Synchronization
 - **`useLabyrinthHistory`**: Keeps deep cloned snapshots of `AppGameState` to manage custom undo/redo actions.
-- **`useLabyrinthStorage`**: Provides quick read/write tools to standard `localStorage` to save game slots and sync setup options.
+- **`useLabyrinthStorage`**: Autosaves board and game state to `localStorage` (`labyrinth_strategist_state`) and restores it on reload.
 
 ### 3. Native Web Audio Synth
 Audio feedback is synthesized dynamically using the Web Audio API in `src/utils/audio.ts` (minimizing app footprint by not packing static mp3/wav files).

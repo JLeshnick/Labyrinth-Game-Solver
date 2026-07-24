@@ -2,7 +2,7 @@
 // sheet (< md) and the tablet/desktop side column (md+). Unprefixed classes
 // target the phone sheet; `md:` targets the tablet column; `lg:` targets the
 // wider desktop column. Interactive controls get a 44px phone floor.
-import { Sparkles, Layers, Users, Compass, Play, RotateCw, Camera } from "lucide-react";
+import { Sparkles, Layers, Users, Compass, Play, RefreshCcw, Camera } from "lucide-react";
 import { SidePanel } from "./SidePanel";
 import { Button } from "../ui/button";
 import { PAWNS, TREASURES } from "../../constants";
@@ -128,7 +128,7 @@ export function SetupPanel({
             className={`flex items-center justify-center gap-1.5 px-3 md:px-4 py-2 md:py-1.5 min-h-11 md:min-h-0 rounded-lg text-xs md:text-sm font-bold transition-all cursor-pointer border-2 ${
               setupTab === tab.id
                 ? "bg-theme-primary text-stone-950 border-stone-950 shadow-[2px_2px_0_0_#000000]"
-                : "text-stone-500 hover:text-foreground hover:bg-stone-100 dark:hover:bg-stone-850 border-transparent"
+                : "text-stone-500 hover:text-foreground hover:bg-stone-800 border-transparent"
             }`}
           >
             {tab.icon}
@@ -170,7 +170,7 @@ export function SetupPanel({
                 aria-label="Reset layout"
                 className="border-stone-800 text-stone-400 hover:text-stone-200 hover:bg-stone-900 min-h-11 w-11 shrink-0 px-0 cursor-pointer"
               >
-                <RotateCw className="w-4 h-4" />
+                <RefreshCcw className="w-4 h-4" />
               </Button>
             </div>
             <div className="flex-1 overflow-hidden">
@@ -285,7 +285,7 @@ export function SetupPanel({
                       size="sm"
                       variant={alreadyInHand ? "secondary" : "outline"}
                       onClick={() => (alreadyInHand ? onRemoveCard(t.id) : onAddCard(t.id))}
-                      className={`text-[10px] md:text-xs py-1 justify-start h-11 md:h-9 lg:h-8 px-2 truncate neo-brutalism-button bg-card hover:bg-stone-100 dark:hover:bg-stone-850 text-foreground border-2 border-stone-950 shadow-[2px_2px_0_0_#000000] ${alreadyInHand ? "bg-theme-primary text-stone-950 shadow-[1px_1px_0_0_#000000] translate-x-[1px] translate-y-[1px]" : ""}`}
+                      className={`text-[10px] md:text-xs py-1 justify-start h-11 md:h-9 lg:h-8 px-2 truncate neo-brutalism-button bg-card hover:bg-stone-800 text-foreground border-2 border-stone-950 shadow-[2px_2px_0_0_#000000] ${alreadyInHand ? "bg-theme-primary text-stone-950 shadow-[1px_1px_0_0_#000000] translate-x-[1px] translate-y-[1px]" : ""}`}
                     >
                       {t.name}
                     </Button>

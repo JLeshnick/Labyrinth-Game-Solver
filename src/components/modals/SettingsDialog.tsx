@@ -24,6 +24,8 @@ interface SettingsDialogProps {
   setAccentColor: (hex: string) => void;
   is3D?: boolean;
   onToggle3D?: () => void;
+  solverDepth?: number;
+  onSetSolverDepth?: (depth: number) => void;
 }
 
 const ACCENT_PRESETS = [
@@ -44,7 +46,6 @@ const KEYBOARD_SHORTCUTS = [
     shortcuts: [
       { keys: ["Ctrl", "Z"], desc: "Undo last action" },
       { keys: ["Ctrl", "Y"], desc: "Redo last action" },
-      { keys: ["Ctrl", "S"], desc: "Show autosave reminder" },
     ],
   },
   {
@@ -67,6 +68,8 @@ export function SettingsDialog({
   setAccentColor,
   is3D = false,
   onToggle3D,
+  solverDepth = 3,
+  onSetSolverDepth,
 }: SettingsDialogProps) {
   const [settingsTab, setSettingsTab] =
     useState<"preferences" | "appearance" | "application">("preferences");
@@ -288,6 +291,34 @@ export function SettingsDialog({
                         {is3D ? "On" : "Off"}
                       </button>
                     </div>
+                    {onSetSolverDepth && (
+                      <div className="flex flex-col gap-2 pt-2 border-t border-stone-800">
+                        <div>
+                          <div className="text-xs font-semibold text-stone-200">Solver Search Depth</div>
+                          <div className="text-[11px] text-stone-500 mt-0.5">
+                            Turns looked ahead. Higher values find more creative solutions but take longer to compute.
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {[1, 2, 3, 4, 5].map((d) => (
+                            <button
+                              key={d}
+                              onClick={() => { if (!isMuted) playClickSound(); onSetSolverDepth(d); }}
+                              className={`neo-brutalism-button rounded-lg w-9 h-9 text-xs font-bold cursor-pointer transition-all ${
+                                solverDepth === d
+                                  ? "bg-theme-primary border-stone-950 text-stone-950 translate-x-[1px] translate-y-[1px] shadow-[1px_1px_0_0_#000000]"
+                                  : "bg-card border-stone-950 text-stone-400 hover:text-stone-200"
+                              }`}
+                            >
+                              {d}
+                            </button>
+                          ))}
+                          <span className="text-[10px] text-stone-600 ml-1">
+                            {solverDepth === 3 ? "(default)" : solverDepth > 3 ? "(slower)" : "(faster)"}
+                          </span>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
@@ -529,9 +560,8 @@ export function SettingsDialog({
                         Troubleshooting
                       </span>
                       <p className="text-[11px] text-stone-400 mt-1 leading-relaxed">
-                        If you encounter issues with saved games or stale settings, clearing the
-                        app cache will reset all local data. Your disk-saved game files (.json)
-                        remain untouched.
+                        If you encounter issues with stale settings or a corrupted board layout,
+                        clearing the app cache will reset your saved board and all preferences.
                       </p>
                     </div>
                     <Button
@@ -549,7 +579,7 @@ export function SettingsDialog({
                     <p className="font-bold text-stone-400">Privacy & Disclaimers</p>
                     <p>
                       Labyrinth Game Solver processes and stores all data locally on your
-                      system. No board data, saved games, settings, or metadata are ever uploaded
+                      system. No board data, settings, or metadata are ever uploaded
                       to remote servers.
                     </p>
                   </div>

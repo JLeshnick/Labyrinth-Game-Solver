@@ -1,4 +1,4 @@
-import { Compass, Layers, MapPin, Play, Sparkles } from "lucide-react";
+import { Compass, Layers, MapPin, Play, Sparkles, ArrowRightLeft } from "lucide-react";
 import { Button } from "../ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
 import guideStep1Tiles from "../../assets/guide-step1-tiles.png";
@@ -29,6 +29,12 @@ const STEPS = [
     title: "3. Play",
     body: "Slide a tile in, then move your pawn toward its target treasure. The panel beside (or below) the board always shows the solver's best slide-and-move combo to reach your current target in the fewest turns.",
     preview: guideStep3Solve,
+  },
+  {
+    icon: ArrowRightLeft,
+    title: "4. Each turn has two phases",
+    body: "First, slide: tap an arrow on the board edge to stage a shift, then confirm it. Second, move: tap any green-highlighted cell to walk your pawn there. Both phases must complete before the turn ends. To set a custom target, tap any tile on the board during your move phase.",
+    preview: null,
   },
 ];
 
@@ -65,11 +71,13 @@ export function WelcomeGuide({ open, onOpenChange, onDismiss }: WelcomeGuideProp
               <div className="flex-1 min-w-0">
                 <div className="text-sm font-semibold text-stone-100">{step.title}</div>
                 <p className="text-xs text-stone-400 mt-0.5 leading-relaxed">{step.body}</p>
-                <img
-                  src={step.preview}
-                  alt=""
-                  className="mt-2 w-full rounded-lg border border-stone-800 object-cover max-h-24 md:max-h-40"
-                />
+                {step.preview && (
+                  <img
+                    src={step.preview}
+                    alt=""
+                    className="mt-2 w-full rounded-lg border border-stone-800 object-cover max-h-24 md:max-h-40"
+                  />
+                )}
               </div>
             </div>
           ))}

@@ -299,9 +299,8 @@ export function SolverPanel({
                         {TREASURES.find((t) => t.id === (sol as { cardId?: string }).cardId)?.name ?? (sol as { cardId?: string }).cardId}
                       </span>
                       {(sol as { sequenceOrder?: string[] }).sequenceOrder && (sol as { sequenceOrder?: string[] }).sequenceOrder!.length > 1 && (
-                        <span className="text-stone-600 italic">
-                          → then {(sol as { sequenceOrder?: string[] }).sequenceOrder!.slice(1, 3).map((id) => TREASURES.find((t) => t.id === id)?.name ?? id).join(", ")}
-                          {(sol as { sequenceOrder?: string[] }).sequenceOrder!.length > 3 ? "…" : ""}
+                        <span className="text-stone-500 italic">
+                          → then {(sol as { sequenceOrder?: string[] }).sequenceOrder!.slice(1).map((id) => TREASURES.find((t) => t.id === id)?.name ?? id).join(" → ")}
                         </span>
                       )}
                     </div>
@@ -332,7 +331,7 @@ export function SolverPanel({
               key={p.id}
               variant={activePawn === p.id ? "default" : "outline"}
               onClick={() => { if (!isMuted) playClickSound(); setActivePawn(p.id); }}
-              className={`neo-brutalism-button bg-card hover:bg-stone-100 dark:hover:bg-stone-850 text-foreground border-stone-950 h-11 md:h-9 ${activePawn === p.id ? p.colorClass + " text-stone-950 font-extrabold translate-x-[1px] translate-y-[1px] shadow-[1px_1px_0_0_#000000]" : ""}`}
+              className={`neo-brutalism-button bg-card hover:bg-stone-100 hover:bg-stone-800 text-foreground border-stone-950 h-11 md:h-9 ${activePawn === p.id ? p.colorClass + " text-stone-950 font-extrabold translate-x-[1px] translate-y-[1px] shadow-[1px_1px_0_0_#000000]" : ""}`}
             >
               {p.name}
             </Button>

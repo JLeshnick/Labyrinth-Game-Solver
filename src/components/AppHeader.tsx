@@ -19,6 +19,7 @@ import {
   Settings2,
   HelpCircle,
   Clock,
+  BarChart2,
 } from "lucide-react";
 
 export interface AppHeaderProps {
@@ -56,6 +57,8 @@ export interface AppHeaderProps {
   onToggleTimer?: () => void;
   is3D?: boolean;
   onToggle3D: () => void;
+  solverDepth?: number;
+  onSetSolverDepth?: (depth: number) => void;
 }
 
 const iconBtnCls =
@@ -70,8 +73,8 @@ const STEPS = [
   },
   {
     id: "game" as const,
-    label: "Play Game",
-    shortLabel: "Play",
+    label: "Game",
+    shortLabel: "Game",
     icon: <Play className="w-3 h-3" />,
   },
 ];
@@ -81,7 +84,7 @@ export function AppHeader({
   canUndo,
   canRedo,
   isMuted,
-  showStats: _showStats,
+  showStats,
   baseTheme: _baseTheme,
   activePlayers,
   activePawn,
@@ -96,7 +99,7 @@ export function AppHeader({
   onRedo,
   onOpenHistory,
   onRotateBoard,
-  onToggleStats: _onToggleStats,
+  onToggleStats,
   onStartGame,
   onEndGame,
   onToggleMute,
@@ -111,6 +114,8 @@ export function AppHeader({
   onToggleTimer,
   is3D: _is3D,
   onToggle3D: _onToggle3D,
+  solverDepth,
+  onSetSolverDepth,
 }: AppHeaderProps) {
   const [showEndGameConfirm, setShowEndGameConfirm] = useState(false);
 
@@ -135,7 +140,7 @@ export function AppHeader({
           </span>
         </a>
 
-        {/* Center — Step Nav (timer baked into Play Game button) */}
+        {/* Center — Step Nav (timer integrated in Game button) */}
         <div className="flex-1 flex items-center justify-center min-w-0 gap-2">
           <div className="flex items-center bg-card neo-brutalism-card rounded-xl px-1 py-0.5 sm:p-1 gap-1">
             {STEPS.map((s) => {
@@ -272,8 +277,8 @@ export function AppHeader({
             </div>
           )}
 
-          {/* Desktop actions toolbar */}
-          <div className="hidden lg:flex items-center gap-1.5">
+          {/* Tablet/desktop actions toolbar — visible at md+ */}
+          <div className="hidden md:flex items-center gap-1.5">
             <Tooltip content="Undo (Ctrl+Z)" side="bottom">
               <Button
                 variant="outline" size="icon"
@@ -319,6 +324,21 @@ export function AppHeader({
                 <RotateCw className="w-3.5 h-3.5" />
               </Button>
             </Tooltip>
+            {isGameStarted && onToggleStats && (
+              <>
+                <div className="w-px h-4 bg-stone-800 mx-0.5" />
+                <Tooltip content={showStats ? "Hide stats" : "Game stats"} side="bottom">
+                  <Button
+                    variant="outline" size="icon"
+                    onClick={() => { if (!isMuted) playClickSound(); onToggleStats(); }}
+                    className={cn(iconBtnCls, showStats ? "bg-theme-primary-10 text-theme-primary border-theme-primary-20" : "")}
+                    aria-label="Toggle game statistics"
+                  >
+                    <BarChart2 className="w-3.5 h-3.5" />
+                  </Button>
+                </Tooltip>
+              </>
+            )}
             <div className="w-px h-4 bg-stone-800 mx-0.5" />
             <Tooltip content={isMuted ? "Unmute audio" : "Mute audio"} side="bottom">
               <Button
@@ -371,6 +391,8 @@ export function AppHeader({
             setAccentColor={setAccentColor}
             is3D={_is3D}
             onToggle3D={_onToggle3D}
+            solverDepth={solverDepth}
+            onSetSolverDepth={onSetSolverDepth}
           />
         </div>
       </header>
