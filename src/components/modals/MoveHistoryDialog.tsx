@@ -1,11 +1,11 @@
 import { useRef, useEffect, useState } from "react";
 import { Clock, ZoomIn, X } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
-import { Button } from "./ui/button";
-import { MiniBoardSnapshot } from "./MiniBoardSnapshot";
-import type { HistoryRecord } from "../hooks/useLabyrinthHistory";
-import type { PawnPositions } from "../types";
-import { DEFAULT_PAWN_POSITIONS } from "../constants";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
+import { Button } from "../ui/button";
+import { MiniBoardSnapshot } from "../board/MiniBoardSnapshot";
+import type { HistoryRecord } from "../../hooks/useLabyrinthHistory";
+import type { PawnPositions } from "../../types";
+import { DEFAULT_PAWN_POSITIONS } from "../../constants";
 
 interface Props {
   open: boolean;
@@ -36,7 +36,7 @@ export function MoveHistoryDialog({ open, onClose, history, historyIndex, active
 
   const dialog = (
     <Dialog open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
-      <DialogContent className="max-w-md bg-stone-900 border-stone-700 text-stone-100 p-0 flex flex-col max-h-[85svh]">
+      <DialogContent className="max-w-md text-stone-100 p-0 flex flex-col max-h-[85svh] rounded-xl">
         <DialogHeader className="px-4 pt-4 pb-3 border-b border-stone-800 shrink-0">
           <DialogTitle className="flex items-center gap-2 text-stone-100 text-base">
             <Clock className="w-4 h-4 text-theme-primary" />
@@ -127,10 +127,9 @@ export function MoveHistoryDialog({ open, onClose, history, historyIndex, active
 
         <div className="px-4 py-3 border-t border-stone-800 shrink-0 flex justify-end">
           <Button
-            variant="outline"
+            variant="brutalist"
             size="sm"
             onClick={onClose}
-            className="border-stone-700 text-stone-300 hover:bg-stone-800"
           >
             Close
           </Button>
@@ -149,7 +148,7 @@ export function MoveHistoryDialog({ open, onClose, history, historyIndex, active
           onClick={() => setZoomed(null)}
         >
           <div
-            className="bg-stone-900 border border-stone-700 rounded-2xl p-4 flex flex-col items-center gap-3 shadow-2xl max-w-xs w-full"
+            className="app-surface bg-card p-4 flex flex-col items-center gap-3 max-w-xs w-full rounded-xl"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between w-full">

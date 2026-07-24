@@ -3,11 +3,11 @@
 // target the phone sheet; `md:` targets the tablet column; `lg:` targets the
 // wider desktop column. Interactive play controls get a 44px phone floor.
 import { Sparkles, ArrowRightCircle, MousePointer2, RotateCw, Home, Gauge } from "lucide-react";
-import { Button } from "./ui/button";
-import { Tile } from "./Tile";
-import { PAWNS, TREASURES, DEFAULT_PAWN_POSITIONS } from "../constants";
-import { playClickSound } from "../utils/audio";
-import type { TileData, SolverSolution, SolverSolutionStep } from "../types";
+import { Button } from "../ui/button";
+import { Tile } from "../board/Tile";
+import { PAWNS, TREASURES, DEFAULT_PAWN_POSITIONS } from "../../constants";
+import { playClickSound } from "../../utils/audio";
+import type { TileData, SolverSolution } from "../../types";
 
 interface SolverPanelProps {
   solutions: SolverSolution[];
@@ -81,7 +81,7 @@ export function SolverPanel({
             {!isActivePawnHome ? (
               <button
                 onClick={() => setCustomTargetCoords(DEFAULT_PAWN_POSITIONS[activePawn])}
-                className="text-[10px] px-2 py-1 min-h-9 rounded-lg border border-stone-700 text-stone-400 flex items-center gap-1"
+                className="text-[10px] px-2 py-1 min-h-9 neo-brutalism-button rounded-lg border-stone-950 bg-card text-stone-400 flex items-center gap-1"
               >
                 <Home className="w-3 h-3" /> Home
               </button>
@@ -107,56 +107,44 @@ export function SolverPanel({
   }
 
   return (
-    <div className="flex-1 flex flex-col min-h-0 gap-3 md:gap-4 p-2 md:p-3 lg:p-4">
-      {/* Turn phase banner */}
+    <div className="flex-1 flex flex-col min-h-0 gap-2 md:gap-3 p-2 md:p-3 lg:p-4">
+      {/* Turn phase status — only shown for move phase or when an arrow is staged */}
       {turnPhase === "move" ? (
-        <div className="px-3 py-2 rounded-xl text-xs md:text-sm font-semibold flex items-center gap-2 border bg-green-950/40 border-green-800/50 text-green-300">
-          <MousePointer2 className="w-3.5 h-3.5 shrink-0" />
-          <span>Click a highlighted green cell to move your pawn</span>
+        <div className="px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-2 app-surface text-green-300">
+          <MousePointer2 className="w-3 h-3 shrink-0" />
+          <span>Click a green cell to move your pawn</span>
         </div>
       ) : stagedArrow ? (
-        <div className="px-3 py-2 rounded-xl text-xs md:text-sm font-semibold flex flex-col gap-1.5 border bg-theme-primary-10 border-theme-primary/30 text-stone-200">
-          <div className="flex items-center gap-2">
-            <ArrowRightCircle className="w-3.5 h-3.5 text-theme-primary shrink-0" />
-            <span className="font-bold text-theme-primary">Arrow staged — preview locked in</span>
-          </div>
-          <div className="flex flex-col gap-0.5 pl-5 text-[10px] text-stone-400 font-normal">
-            <span>• Click the <span className="text-stone-200 font-semibold">same arrow</span> again to rotate the tile</span>
-            <span>• Click a <span className="text-stone-200 font-semibold">different arrow</span> to move the stage</span>
-            <span>• Press <span className="text-theme-primary font-semibold">Slide In</span> below to commit</span>
-          </div>
+        <div className="px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-2 app-surface text-theme-primary">
+          <ArrowRightCircle className="w-3 h-3 shrink-0" />
+          <span>Arrow staged — <span className="text-stone-300 font-normal">rotate or press Slide In</span></span>
         </div>
-      ) : (
-        <div className="px-3 py-2 rounded-xl text-xs md:text-sm font-semibold flex items-center gap-2 border bg-blue-950/40 border-blue-800/50 text-blue-300">
-          <ArrowRightCircle className="w-3.5 h-3.5 shrink-0" />
-          <span>Click any board arrow to preview and stage that slide</span>
-        </div>
-      )}
+      ) : null}
       <div className="flex items-center justify-between flex-wrap gap-2">
-        <h2 className="text-lg font-bold text-theme-primary flex items-center gap-2">
-          <Sparkles className="w-5 h-5 text-theme-primary" />
+        <h2 className="text-sm font-bold text-theme-primary flex items-center gap-1.5">
+          <Sparkles className="w-4 h-4" />
           Solver Suggestions
         </h2>
         <div className="flex items-center gap-2">
           <button
             onClick={() => setCustomTargetCoords(DEFAULT_PAWN_POSITIONS[activePawn])}
             disabled={isActivePawnHome}
-            className={`text-[10px] md:text-xs px-2 py-1 min-h-9 rounded-lg border transition-colors cursor-pointer font-semibold flex items-center gap-1 disabled:cursor-not-allowed ${
+            className={`text-[10px] md:text-xs px-2 py-1 min-h-9 neo-brutalism-button rounded-lg font-semibold flex items-center gap-1 ${
               isActivePawnHome
-                ? "border-green-700/40 text-green-400 bg-green-950/30"
-                : "border-stone-700 text-stone-500 hover:text-stone-300 hover:border-stone-600"
+                ? "border-stone-950 text-stone-500 bg-card opacity-40 cursor-not-allowed translate-x-[1px] translate-y-[1px] shadow-[1px_1px_0_0_#000000]"
+                : "border-stone-950 bg-card text-stone-400 hover:text-stone-200 cursor-pointer"
             }`}
-            title={isActivePawnHome ? "This pawn is already home" : "Solve the best route back to this pawn's home corner"}
+            title={isActivePawnHome ? "Already at home corner" : "Solve route back to home corner"}
           >
             <Home className="w-3 h-3" />
-            {isActivePawnHome ? "You're home" : "Go Home"}
+            Go Home
           </button>
           <button
             onClick={onToggleOneMoveTargets}
-            className={`text-[10px] md:text-xs px-2 py-1 min-h-9 rounded-lg border transition-colors cursor-pointer font-semibold ${
+            className={`text-[10px] md:text-xs px-2 py-1 min-h-9 neo-brutalism-button rounded-lg cursor-pointer font-semibold ${
               showOneMoveTargets
-                ? "bg-theme-primary-10 border-theme-primary/40 text-theme-primary"
-                : "border-stone-700 text-stone-500 hover:text-stone-300 hover:border-stone-600"
+                ? "bg-theme-primary-10 border-theme-primary text-theme-primary translate-x-[1px] translate-y-[1px] shadow-[1px_1px_0_0_#000000]"
+                : "border-stone-950 bg-card text-stone-400 hover:text-stone-200"
             }`}
             title="Show all treasures reachable in exactly 1 turn"
           >
@@ -178,7 +166,7 @@ export function SolverPanel({
                 <button
                   key={t.id}
                   onClick={() => onSelectTargetTreasure(activePawn, t.id)}
-                  className="text-[10px] px-2 py-0.5 rounded-full bg-green-950/60 border border-green-700/40 text-green-300 hover:bg-green-900/60 hover:border-green-600/60 cursor-pointer transition-colors font-medium"
+                  className="text-[10px] px-2 py-1 neo-brutalism-button rounded-lg border-stone-950 bg-green-950/40 text-green-300 cursor-pointer font-medium"
                   title={`Set ${t.name} as target`}
                 >
                   {t.name}
@@ -244,13 +232,13 @@ export function SolverPanel({
         <div className="flex gap-2 shrink-0">
           <button
             onClick={onCommitSlide}
-            className="flex-1 py-2.5 md:py-2 min-h-11 md:min-h-0 rounded-xl bg-theme-primary text-stone-950 text-sm md:text-xs font-bold hover:bg-theme-primary-hover active:scale-[0.98] transition-all cursor-pointer flex items-center justify-center gap-1.5"
+            className="flex-1 py-2.5 md:py-2 min-h-11 md:min-h-0 neo-brutalism-button rounded-xl bg-theme-primary border-stone-950 text-stone-950 text-sm md:text-xs font-bold cursor-pointer flex items-center justify-center gap-1.5"
           >
             <ArrowRightCircle className="w-3.5 h-3.5" /> Slide In
           </button>
           <button
             onClick={onCancelSlide}
-            className="px-4 py-2.5 md:py-2 min-h-11 md:min-h-0 rounded-xl border border-stone-700 text-stone-400 text-sm md:text-xs hover:text-stone-200 hover:border-stone-600 active:scale-[0.98] transition-all cursor-pointer"
+            className="px-4 py-2.5 md:py-2 min-h-11 md:min-h-0 neo-brutalism-button rounded-xl border-stone-950 bg-card text-stone-400 text-sm md:text-xs hover:text-stone-200 cursor-pointer"
           >
             Cancel
           </button>
@@ -260,7 +248,7 @@ export function SolverPanel({
       <div className="flex-1 overflow-y-auto min-h-0 pr-2 flex flex-col gap-2">
         {isLoadingSolutions ? (
           <div className="flex-1 flex flex-col items-center justify-center text-stone-500 gap-2">
-            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-theme-primary" />
+            <div className="animate-spin h-5 w-5 border-2 border-stone-950 border-t-theme-primary rounded-sm" />
             Computing paths...
           </div>
         ) : solutions.length > 0 ? (
@@ -271,7 +259,7 @@ export function SolverPanel({
                 key={index}
                 onMouseEnter={() => setHoveredSolution(sol)}
                 onMouseLeave={() => setHoveredSolution(null)}
-                className={`relative p-4 pl-11 rounded-xl transition-all flex items-start justify-between cursor-pointer group gap-3 ${
+                className={`relative p-2.5 pl-9 rounded-xl transition-all flex items-start justify-between cursor-pointer group gap-2 ${
                   index === 0 && !isFallback
                     ? "app-surface-accent hover:border-theme-primary"
                     : "app-surface hover:border-theme-primary-40"
@@ -279,7 +267,7 @@ export function SolverPanel({
               >
                 {/* Rank chip */}
                 <span
-                  className={`absolute left-3 top-3 w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold shadow-sm ${
+                  className={`absolute left-2 top-2.5 w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${
                     index === 0 && !isFallback
                       ? "bg-theme-primary text-stone-950"
                       : "bg-theme-primary-10 text-theme-primary border border-theme-primary-20"
@@ -291,56 +279,18 @@ export function SolverPanel({
                   <div className="text-xs font-semibold flex items-center gap-1.5">
                     {isFallback ? (
                       <span className="text-amber-500 font-bold">Fallback Setup</span>
-                    ) : (
+                    ) : sol.length === 1 ? (
                       <span className="text-green-500 font-bold">Direct Route</span>
+                    ) : (
+                      <span className="text-blue-400 font-bold">Multi-Turn Route</span>
                     )}
                     <span className="text-[10px] text-stone-500">({sol.length} turn{sol.length > 1 ? "s" : ""})</span>
                   </div>
-                  <div className="text-xs font-semibold mt-1.5">
-                    {(() => {
-                      const firstStep = sol[0];
-                      if (!firstStep?.pawnPath) return null;
-                      const firstStepMoves = firstStep.pawnPath.length - 1;
-                      
-                      const firstStepText = firstStepMoves > 0 ? (
-                        <span className="text-blue-400/80">
-                          Pawn moves <span className="text-blue-300 font-bold">{firstStepMoves}</span> tile{firstStepMoves !== 1 ? 's' : ''} on execution
-                        </span>
-                      ) : (
-                        <span className="text-amber-400/80">
-                          Pawn stays stationary on execution
-                        </span>
-                      );
-
-                      if (sol.length === 1) {
-                        return firstStepText;
-                      } else {
-                        // Calculate total correct sum of moves across the whole multi-turn path
-                        const totalMoves = sol.reduce((sum: number, step: SolverSolutionStep) => {
-                          const stepMoves = step.pawnPath ? step.pawnPath.length - 1 : 0;
-                          return sum + Math.max(0, stepMoves);
-                        }, 0);
-                        return (
-                          <div className="flex flex-col gap-0.5">
-                            {firstStepText}
-                            <div className="text-purple-400/80 text-[10px]">
-                              Total route moves: <span className="text-purple-300 font-bold">{totalMoves}</span> tile{totalMoves !== 1 ? 's' : ''} across {sol.length} turns
-                            </div>
-                          </div>
-                        );
-                      }
-                    })()}
-                  </div>
-                  <div className="text-xs md:text-[13px] font-medium text-stone-100 mt-1 font-mono leading-relaxed">
+                  <div className="text-xs font-medium text-stone-100 mt-1 font-mono leading-relaxed">
                     {sol.explanation?.slide}
                   </div>
-                  <div className="text-xs md:text-[13px] text-stone-400 mt-1 leading-relaxed">
+                  <div className="text-xs text-stone-400 leading-relaxed">
                     {sol.explanation?.walk}
-                  </div>
-                  <div className="text-[10px] text-stone-500 mt-1">
-                    Safety: <span className={sol.safetyScore >= 75 ? "text-green-400 font-medium" : sol.safetyScore >= 45 ? "text-amber-400 font-medium" : "text-red-400 font-medium"}>
-                      {sol.explanation?.safety}
-                    </span>
                   </div>
                   {(sol as { cardId?: string; sequenceOrder?: string[] }).cardId && (
                     <div className="text-[10px] mt-1.5 flex items-center gap-1 flex-wrap">
@@ -360,7 +310,7 @@ export function SolverPanel({
                 <Button
                   size="sm"
                   onClick={(e) => { e.stopPropagation(); onExecuteSolution(sol); }}
-                  className="bg-theme-primary-10 group-hover:bg-theme-primary text-theme-primary group-hover:text-stone-950 border border-theme-primary-20 group-hover:border-transparent font-semibold text-xs px-3 py-1.5 min-h-11 md:min-h-9 rounded-lg active:scale-[0.98] transition-all flex-shrink-0 self-center"
+                  className="neo-brutalism-button bg-card hover:bg-theme-primary hover:text-stone-950 text-foreground border-stone-950 font-black text-xs px-3 py-1.5 min-h-11 md:min-h-9 rounded-lg flex-shrink-0 self-center cursor-pointer"
                 >
                   Execute
                 </Button>
@@ -382,7 +332,7 @@ export function SolverPanel({
               key={p.id}
               variant={activePawn === p.id ? "default" : "outline"}
               onClick={() => { if (!isMuted) playClickSound(); setActivePawn(p.id); }}
-              className={`border-stone-800 h-11 md:h-9 active:scale-[0.98] transition-all ${activePawn === p.id ? p.colorClass + " text-stone-950 font-bold" : "hover:bg-stone-900 text-stone-200"}`}
+              className={`neo-brutalism-button bg-card hover:bg-stone-100 dark:hover:bg-stone-850 text-foreground border-stone-950 h-11 md:h-9 ${activePawn === p.id ? p.colorClass + " text-stone-950 font-extrabold translate-x-[1px] translate-y-[1px] shadow-[1px_1px_0_0_#000000]" : ""}`}
             >
               {p.name}
             </Button>

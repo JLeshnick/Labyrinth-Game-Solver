@@ -1,9 +1,9 @@
 import React from "react";
 import { useDroppable } from "@dnd-kit/core";
-import type { TileData } from "../types";
-import { DraggableTile } from "./Tile";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "./ui/card";
-import { cn } from "../lib/utils";
+import type { TileData } from "../../types";
+import { DraggableTile } from "../board/Tile";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../ui/card";
+import { cn } from "../../lib/utils";
 
 interface SidePanelProps {
   tiles: TileData[];
@@ -21,7 +21,7 @@ export const SidePanel: React.FC<SidePanelProps> = ({ tiles, onTileClick }) => {
   const tJunctions = tiles.filter((t) => t.shape === "t-junction");
 
   return (
-    <Card className="w-full flex flex-col h-full border-stone-800/80 bg-stone-950/40 backdrop-blur-xl shadow-none">
+    <Card className="w-full flex flex-col h-full">
       <CardHeader className="pb-3">
         <CardTitle className="text-xl text-stone-200">Loose Tiles</CardTitle>
         <CardDescription className="text-stone-400 text-xs">
@@ -32,7 +32,7 @@ export const SidePanel: React.FC<SidePanelProps> = ({ tiles, onTileClick }) => {
         ref={setNodeRef}
         className={cn(
           "flex-1 min-h-0 relative px-4 pb-4 transition-colors rounded-b-lg border border-transparent",
-          isOver ? "bg-theme-primary/5 border-dashed border-theme-primary/30" : ""
+          isOver ? "ring-2 ring-theme-primary ring-inset bg-theme-primary-10" : ""
         )}
       >
         <div className="h-full w-full overflow-y-auto pr-1 flex flex-col gap-5">

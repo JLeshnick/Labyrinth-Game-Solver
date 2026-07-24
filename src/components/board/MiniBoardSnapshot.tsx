@@ -1,16 +1,8 @@
-import type { TileData, PawnPositions } from "../types";
-import { PAWNS } from "../constants";
+import type { TileData, PawnPositions } from "../../types";
+import { PAWNS, PAWN_COLOR_HEX } from "../../constants";
 
 const CELL = 10; // px per cell
 const TOTAL = CELL * 7; // 70px
-
-// Pawn color hex map for SVG fills
-const PAWN_COLORS: Record<string, string> = {
-  red: "#ef4444",
-  blue: "#3b82f6",
-  green: "#22c55e",
-  yellow: "#facc15",
-};
 
 // Tile corridor geometry: which edges are open for each shape+rotation combo
 // Returns { n, s, e, w } booleans
@@ -81,7 +73,7 @@ export function MiniBoardSnapshot({ board, pawnPositions, activePlayers, movedPa
   const pathPoints = pawnPath && pawnPath.length > 1
     ? pawnPath.map((p) => `${p.c * CELL + CELL / 2},${p.r * CELL + CELL / 2}`).join(" ")
     : null;
-  const pathColor = movedPawn ? (PAWN_COLORS[movedPawn] ?? "#f59e0b") : "#f59e0b";
+  const pathColor = movedPawn ? (PAWN_COLOR_HEX[movedPawn] ?? "#f59e0b") : "#f59e0b";
 
   return (
     <svg
@@ -123,7 +115,7 @@ export function MiniBoardSnapshot({ board, pawnPositions, activePlayers, movedPa
               cx={cx}
               cy={cy}
               r={isActive ? 2.5 : 2}
-              fill={PAWN_COLORS[p.id] ?? "#888"}
+              fill={PAWN_COLOR_HEX[p.id] ?? "#888"}
               stroke="white"
               strokeWidth="0.5"
             />

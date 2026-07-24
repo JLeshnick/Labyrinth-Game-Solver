@@ -4,30 +4,36 @@
   /* Custom xs breakpoint for 480px devices (between default mobile and sm) */
   --breakpoint-xs: 480px;
 
-  /* shadcn/ui semantic color tokens — these make Button, Card, Dialog render correctly */
-  --color-background: #0c0a09;
-  --color-foreground: #f5f5f4;
-  --color-card: #1c1917;
-  --color-card-foreground: #f5f5f4;
+  /* Fonts */
+  --font-sans: "Inter", system-ui, -apple-system, sans-serif;
+  --font-display: "Outfit", system-ui, -apple-system, sans-serif;
+
+  /* shadcn/ui semantic color tokens mapped to dynamic variables */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
   --color-primary: var(--theme-color);
-  --color-primary-foreground: #0c0a09;
-  --color-secondary: #292524;
-  --color-secondary-foreground: #e7e5e4;
-  --color-muted: #292524;
-  --color-muted-foreground: #a8a29e;
-  --color-accent: #292524;
-  --color-accent-foreground: #e7e5e4;
+  --color-primary-foreground: var(--background);
+  --color-secondary: var(--border);
+  --color-secondary-foreground: var(--foreground);
+  --color-muted: var(--border);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--border);
+  --color-accent-foreground: var(--foreground);
   --color-destructive: #ef4444;
   --color-destructive-foreground: #fafaf9;
-  --color-border: #292524;
-  --color-input: #292524;
+  --color-border: var(--border);
+  --color-input: var(--input);
   --color-ring: var(--theme-color);
-  --radius: 0.5rem;
+  --radius: 0.75rem;
 }
 
 @layer base {
   body {
-    @apply bg-stone-950 text-stone-50 overflow-hidden select-none;
+    background-color: var(--background);
+    color: var(--foreground);
+    @apply font-sans overflow-hidden select-none transition-colors duration-300;
     /* Smooth scrolling for bottom sheets */
     -webkit-overflow-scrolling: touch;
   }
@@ -43,9 +49,20 @@
   --theme-color-hover: #d97706;
   --theme-color-rgb: 245, 158, 11;
   --theme-glow: rgba(245, 158, 11, 0.15);
+  
+  /* Dark variables (default) */
+  --background: #0c0a09;
+  --foreground: #f5f5f4;
+  --card: #1b1917;
+  --card-foreground: #f5f5f4;
+  --border: #292524;
+  --input: #292524;
+  --muted-foreground: #a8a29e;
+
   --surface-glass-soft: rgba(12, 10, 9, 0.82);
   --surface-glass-strong: rgba(12, 10, 9, 0.94);
   --surface-border-strong: rgba(68, 64, 60, 0.6);
+  --tile-3d-shadow: 0 6px 0 #1c1917, 0 10px 16px rgba(0, 0, 0, 0.45);
 }
 
 /* Dark mode — explicit alias of :root defaults */
@@ -62,9 +79,20 @@
   --theme-color-hover: #d97706;
   --theme-color-rgb: 245, 158, 11;
   --theme-glow: rgba(245, 158, 11, 0.15);
+  
+  /* Light variables */
+  --background: #fafaf9;
+  --foreground: #1c1917;
+  --card: #ffffff;
+  --card-foreground: #1c1917;
+  --border: #e7e5e4;
+  --input: #e7e5e4;
+  --muted-foreground: #78716c;
+
   --surface-glass-soft: rgba(250, 250, 249, 0.9);
   --surface-glass-strong: rgba(250, 250, 249, 0.96);
   --surface-border-strong: rgba(214, 211, 209, 0.7);
+  --tile-3d-shadow: 0 6px 0 #d6d3d1, 0 10px 16px rgba(0, 0, 0, 0.18);
 }
 
 /* ── Semantic utility classes (theme-aware) ────────────────────────── */
@@ -369,24 +397,29 @@
    ad-hoc bg-stone-950/60 border border-stone-800/80 clusters so every card
    picks up light/dark and the accent border consistently. */
 .app-surface {
-  background-color: var(--surface-glass-soft);
-  border: 1px solid var(--surface-border-strong);
+  background-color: var(--card);
+  border: 2px solid #000000;
   border-radius: 0.75rem; /* rounded-xl */
+  box-shadow: 3px 3px 0px 0px #000000;
 }
 .app-surface-raised {
-  background-color: var(--surface-glass-strong);
-  border: 1px solid var(--surface-border-strong);
+  background-color: var(--card);
+  border: 3px solid #000000;
   border-radius: 0.75rem;
-  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.35);
+  box-shadow: 5px 5px 0px 0px #000000;
 }
 [data-theme="light"] .app-surface-raised {
-  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+  box-shadow: 5px 5px 0px 0px #000000;
+}
+[data-theme="light"] .app-surface {
+  background-color: #ffffff;
 }
 /* Accent-tinted surface for the hero (top) solver suggestion */
 .app-surface-accent {
-  background-color: rgba(var(--theme-color-rgb), 0.06);
-  border: 1px solid rgba(var(--theme-color-rgb), 0.28);
+  background-color: rgba(var(--theme-color-rgb), 0.08);
+  border: 3px solid #000000;
   border-radius: 0.75rem;
+  box-shadow: 5px 5px 0px 0px var(--theme-color);
 }
 
 @media (max-width: 767px) {
@@ -402,14 +435,14 @@
   }
 }
 
-@keyframes dash-crawl {
-  to {
-    stroke-dashoffset: -0.24;
-  }
+
+/* Solver path crawl — animates strokeDashoffset so dashes march along the route */
+@keyframes path-crawl {
+  to { stroke-dashoffset: -0.6; }
 }
 
-.animate-dash {
-  animation: dash-crawl 1s linear infinite;
+.animate-path-crawl {
+  animation: path-crawl 0.9s linear infinite;
 }
 
 @keyframes fade-in {
@@ -427,21 +460,6 @@
   animation: fade-in 0.2s ease-out both;
 }
 
-/* Pulsating border animation for active target treasure */
-@keyframes pulse-border {
-  0%,
-  100% {
-    box-shadow: 0 0 10px rgba(251, 191, 36, 0.3), 0 0 20px rgba(251, 191, 36, 0.1);
-    border-color: rgba(251, 191, 36, 0.5);
-  }
-  50% {
-    box-shadow: 0 0 20px rgba(251, 191, 36, 0.6), 0 0 40px rgba(251, 191, 36, 0.3);
-    border-color: rgba(251, 191, 36, 1);
-  }
-}
-.animate-pulse-border {
-  animation: pulse-border 1.5s ease-in-out infinite;
-}
 
 /* Color Theme Helper Classes */
 .text-theme-primary {
@@ -484,9 +502,6 @@
   --tw-ring-color: var(--theme-color) !important;
 }
 
-.shadow-theme-glow {
-  box-shadow: 0 10px 15px -3px var(--theme-glow), 0 4px 6px -4px var(--theme-glow) !important;
-}
 
 /* Toast slide-in animation (replaces aggressive bounce) */
 @keyframes toast-in {
@@ -630,7 +645,7 @@
 
 /* Disable looping animations for users who prefer reduced motion */
 @media (prefers-reduced-motion: reduce) {
-  .animate-dash,
+  .animate-path-crawl,
   .animate-pulse,
   .animate-ping,
   .animate-bounce,
@@ -648,4 +663,52 @@
   .animate-preview-slide-out-up {
     animation: none !important;
   }
+}
+
+/* ── 3D Isometric View & Billboarding Support ─────────────────────── */
+.tile-3d {
+  transform: translateZ(8px);
+  transform-style: preserve-3d;
+  box-shadow: 
+    0 6px 0 0 #000000, 
+    0 8px 16px rgba(0, 0, 0, 0.35);
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.tile-3d:hover {
+  transform: translateZ(14px);
+  box-shadow: 
+    0 12px 0 0 #000000, 
+    0 14px 20px rgba(0, 0, 0, 0.45);
+}
+
+/* Tile corridor SVG fill — responds to data-theme instead of Tailwind dark: prefix */
+.tile-corridor-fill {
+  fill: #f5f5f4; /* stone-100 — light mode */
+}
+[data-theme="dark"] .tile-corridor-fill {
+  fill: #e7e5e4; /* stone-200 — slightly warm white, clearly visible on dark card bg */
+}
+
+/* ── Neo-Brutalism Theme Utility Classes ──────────────────────────── */
+.neo-brutalism-card {
+  border: 3px solid #000000;
+  box-shadow: 6px 6px 0px 0px #000000;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.neo-brutalism-button {
+  border: 2px solid #000000;
+  box-shadow: 3px 3px 0px 0px #000000;
+  transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.neo-brutalism-button:hover:not(:disabled) {
+  transform: translate(-1px, -1px);
+  box-shadow: 4px 4px 0px 0px #000000;
+}
+
+.neo-brutalism-button:active:not(:disabled) {
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0px 0px #000000;
 }

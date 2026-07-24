@@ -1,10 +1,10 @@
 import React from "react";
 import { useDroppable } from "@dnd-kit/core";
-import type { TileData } from "../types";
-import { SHIFT_ARROWS, PAWNS } from "../constants";
-import { isOppositeArrow } from "../solver";
+import type { TileData } from "../../types";
+import { SHIFT_ARROWS } from "../../constants";
+import { isOppositeArrow } from "../../solver";
 import { Tile, DraggableTile } from "./Tile";
-import { cn } from "../lib/utils";
+import { cn } from "../../lib/utils";
 import { ChevronRight } from "lucide-react";
 
 interface BoardSpaceProps {
@@ -26,6 +26,7 @@ interface BoardSpaceProps {
   onTreasureClick?: (treasureId: string, alreadyObtained: boolean) => void;
   isObtainedTreasure?: boolean;
   isCurrentTarget?: boolean;
+  is3D?: boolean;
 }
 
 const BoardSpace: React.FC<BoardSpaceProps> = ({
@@ -47,6 +48,7 @@ const BoardSpace: React.FC<BoardSpaceProps> = ({
   onTreasureClick,
   isObtainedTreasure,
   isCurrentTarget,
+  is3D = false,
 }) => {
   const isFixedSpace = x % 2 === 0 && y % 2 === 0;
   const id = `board_${x}_${y}`;
@@ -82,23 +84,18 @@ const BoardSpace: React.FC<BoardSpaceProps> = ({
       style={{
         gridRow: isGameStarted ? y + 2 : y + 1,
         gridColumn: isGameStarted ? x + 2 : x + 1,
+        transformStyle: is3D ? "preserve-3d" : "flat",
       }}
       className={cn(
         "relative w-full h-full aspect-square rounded-lg flex items-center justify-center transition-all cursor-pointer",
         isFixedSpace
           ? "bg-stone-900/40 border border-stone-800/20"
           : "border border-dashed border-stone-800/40 bg-stone-950/30 hover:bg-stone-900/10 shadow-inner",
-        isOver && !tile ? "ring-2 ring-theme-primary ring-inset bg-theme-primary-10" : "",
-        isOnHoveredPath ? "ring-2 ring-theme-primary ring-offset-2 ring-offset-stone-950 shadow-[0_0_12px_rgba(var(--theme-color-rgb),0.3)]" : "",
-        isCustomTarget ? "ring-2 ring-theme-primary ring-offset-2 ring-offset-stone-950 shadow-[0_0_15px_rgba(var(--theme-color-rgb),0.55)] z-10" : "",
+        isOver && !tile ? "bg-theme-primary-10" : "",
         previewSlideClass,
-        isActiveTarget ? "ring-4 ring-white shadow-[0_0_0_2px_rgba(251,191,36,0.9),0_0_20px_rgba(251,191,36,0.5)]" : "",
-        isReachable ? "ring-2 ring-green-400/60 bg-green-900/20 hover:ring-green-400 hover:bg-green-900/30 cursor-pointer" : "",
+        isReachable ? "bg-green-900/20 hover:bg-green-900/30 cursor-pointer" : "",
       )}
     >
-      {isCustomTarget && (
-        <div className="absolute top-1 right-1 w-2.5 h-2.5 rounded-full bg-theme-primary animate-ping pointer-events-none z-30" />
-      )}
       {tile ? (
         <DraggableTile
           tile={tile}
@@ -119,33 +116,55 @@ const BoardSpace: React.FC<BoardSpaceProps> = ({
           disableRotationTransition={true}
           isObtainedTreasure={isObtainedTreasure}
           isCurrentTarget={isCurrentTarget}
-          className={cn(
-            "absolute inset-0 w-full h-full",
-            isOnHoveredPath && "border-theme-primary",
-            isPathStart && "border-green-500 shadow-[0_0_15px_rgba(34,197,94,0.4)]",
-            isPathEnd && "border-2 border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.5)]"
-          )}
+          is3D={is3D}
+          className="w-full h-full absolute inset-0"
         />
       ) : (
         <span className="sr-only">{y},{x}</span>
       )}
 
+      {/* Highlight border overlay — rendered above the tile's box-shadow */}
+      {(isOnHoveredPath || isCustomTarget || isActiveTarget || (isOver && !tile)) && (
+        <div
+          className={cn(
+            "absolute inset-0 rounded-2xl pointer-events-none z-40",
+            isPathStart  ? "border-[3px] border-green-400" :
+            isPathEnd    ? "border-[3px] border-theme-primary" :
+            isCustomTarget ? "border-[3px] border-theme-primary" :
+            isActiveTarget ? "border-[3px] border-amber-400" :
+            isOnHoveredPath ? "border-2 border-theme-primary/60" :
+            "border-2 border-theme-primary"
+          )}
+          aria-hidden="true"
+        />
+      )}
+
       {/* Render Pawns inside BoardSpace */}
       <div 
-        className="absolute inset-0 pointer-events-none flex flex-wrap items-center justify-center gap-1 p-1 z-20 transition-transform duration-300"
-        style={{ transform: `rotate(${-boardRotation}deg)` }}
+        className="absolute inset-0 pointer-events-none flex flex-wrap items-center justify-center gap-1 p-1 z-20 transition-all duration-300"
+        style={
+          is3D
+            ? { transform: `rotateZ(${30 - boardRotation}deg) rotateX(-45deg) translateZ(14px)` }
+            : { transform: `rotate(${-boardRotation}deg)` }
+        }
       >
         {pawns.map((color) => {
-          const pawn = PAWNS.find((p) => p.id === color);
+          const pegColors: Record<string, string> = {
+            red: "bg-red-500 text-white",
+            blue: "bg-blue-500 text-white",
+            green: "bg-emerald-500 text-white",
+            yellow: "bg-amber-400 text-stone-950",
+          };
+          const styleClass = pegColors[color] || "bg-stone-500 text-white";
           return (
             <div
               key={color}
               className={cn(
-                "w-4 h-4 sm:w-5 sm:h-5 rounded-full ring-2 ring-white shadow-lg flex items-center justify-center text-[8px] sm:text-[9px] font-bold capitalize",
-                pawn?.tokenClass ?? "bg-stone-500 ring-stone-300 text-white"
+                "w-5.5 h-5.5 sm:w-6.5 sm:h-6.5 rounded-full border-2 border-stone-950 dark:border-stone-950 shadow-[2px_2px_0_0_#000000] flex items-center justify-center text-[9px] sm:text-[10px] font-extrabold capitalize relative",
+                styleClass
               )}
             >
-              {color[0]}
+              <span className="relative z-10">{color[0].toUpperCase()}</span>
             </div>
           );
         })}
@@ -175,6 +194,7 @@ interface BoardProps {
   onTreasureClick?: (treasureId: string, alreadyObtained: boolean) => void;
   allObtainedTreasures?: string[];
   activeTargetTreasureId?: string | null;
+  is3D?: boolean;
 }
 
 export const Board: React.FC<BoardProps> = ({
@@ -198,47 +218,41 @@ export const Board: React.FC<BoardProps> = ({
   onTreasureClick,
   allObtainedTreasures,
   activeTargetTreasureId,
+  is3D = false,
 }) => {
 
   return (
     <div className="relative w-full h-full flex items-center justify-center overflow-visible">
-      {/* CSS Grid Layout */}
-      <div 
+      {/* 3D Tray Platform Wrapper */}
+      <div
         className={cn(
-          "grid gap-0.5 xs:gap-1 md:gap-1.5 w-full h-full justify-items-stretch items-stretch transition-transform duration-300 overflow-visible",
-          isGameStarted ? "grid-cols-9 grid-rows-9" : "grid-cols-7 grid-rows-7"
+          "relative transition-all duration-500 overflow-visible flex items-center justify-center w-full h-full aspect-square",
+          is3D
+            ? "p-4 sm:p-6 md:p-8 rounded-3xl bg-stone-150 dark:bg-stone-900 border-3 sm:border-4 border-stone-950 shadow-[8px_8px_0_0_#000000]"
+            : ""
         )}
-        style={{ transform: `rotate(${boardRotation}deg)` }}
+        style={
+          is3D
+            ? {
+                transform: `perspective(1200px) rotateX(45deg) rotateZ(${-30 + boardRotation}deg) scale(0.92)`,
+                transformStyle: "preserve-3d",
+              }
+            : {
+                transform: `rotate(${boardRotation}deg)`,
+              }
+        }
       >
-        {/* SVG Solved Path Overlay */}
-        {isGameStarted && hoveredPath && hoveredPath.length > 0 && (
-          <svg
-            viewBox="0 0 9 9"
-            className="absolute inset-0 w-full h-full pointer-events-none z-10"
-            aria-hidden="true"
-          >
-            {/* Path lines */}
-            {hoveredPath.map((cell, idx) => {
-              if (idx === 0) return null;
-              const parent = hoveredPath[idx - 1];
-              return (
-                <line
-                  key={`line-${idx}`}
-                  x1={parent.c + 1.5}
-                  y1={parent.r + 1.5}
-                  x2={cell.c + 1.5}
-                  y2={cell.r + 1.5}
-                  stroke="var(--theme-color)"
-                  strokeWidth="0.08"
-                  strokeDasharray="0.12,0.12"
-                  className="animate-dash"
-                  strokeLinecap="round"
-                  opacity="0.9"
-                />
-              );
-            })}
-          </svg>
-        )}
+        {/* CSS Grid Layout */}
+        <div
+          className={cn(
+            "grid gap-px xs:gap-0.5 md:gap-1 justify-items-stretch items-stretch transition-all duration-500 overflow-visible aspect-square",
+            isGameStarted ? "grid-cols-9 grid-rows-9" : "grid-cols-7 grid-rows-7",
+            is3D
+              ? "w-[92%] h-[92%]"
+              : "w-full h-full"
+          )}
+          style={{ transformStyle: is3D ? "preserve-3d" : "flat" }}
+        >
         {/* Render Shifting Arrows */}
         {isGameStarted &&
           SHIFT_ARROWS.map((arrow) => {
@@ -256,16 +270,16 @@ export const Board: React.FC<BoardProps> = ({
                   gridColumn: arrow.gridColumn,
                 }}
                 className={cn(
-                  "w-full h-full max-w-[85%] max-h-[85%] mx-auto p-1 rounded-lg border transition-all focus:outline-none flex items-center justify-center",
+                  "w-full h-full max-w-[70%] max-h-[70%] mx-auto p-0.5 rounded-lg transition-all focus:outline-none flex items-center justify-center",
                   isForbidden
-                    ? "opacity-20 cursor-not-allowed border-red-950/40 text-red-700 bg-stone-950"
+                    ? "opacity-20 cursor-not-allowed border border-stone-850 text-stone-600 bg-stone-950/60"
                     : turnPhase === "move"
-                    ? "opacity-25 cursor-not-allowed border-stone-800 bg-stone-950 text-theme-primary"
+                    ? "opacity-25 cursor-not-allowed border border-stone-850 text-stone-600 bg-stone-950/60"
                     : isStaged
-                    ? "border-theme-primary bg-theme-primary text-stone-950 scale-110 shadow-lg shadow-theme-glow cursor-pointer"
+                    ? "neo-brutalism-button border-stone-950 bg-theme-primary text-stone-950 scale-105 translate-x-[1px] translate-y-[1px] shadow-[1px_1px_0_0_#000000] cursor-pointer"
                     : isHighlighted
-                    ? "animate-pulse ring-2 ring-theme-primary bg-theme-primary-20 border-theme-primary text-theme-primary scale-110 cursor-pointer"
-                    : "border-stone-800 bg-stone-950 text-theme-primary hover:text-theme-primary-200 hover:bg-stone-900 hover:scale-105 active:scale-95 cursor-pointer",
+                    ? "neo-brutalism-button border-stone-950 bg-theme-primary-20 text-theme-primary scale-105 cursor-pointer"
+                    : "neo-brutalism-button border-stone-950 bg-card text-foreground hover:bg-theme-primary hover:text-stone-950 cursor-pointer",
                 )}
                 title={
                   isForbidden
@@ -309,8 +323,8 @@ export const Board: React.FC<BoardProps> = ({
 
             // Path overlays state
             const isOnHoveredPath = hoveredPath ? hoveredPath.some((cell: { r: number; c: number }) => cell.r === r && cell.c === c) : false;
-            const isPathStart = hoveredPath && hoveredPath.length > 0 ? (hoveredPath[0].r === r && hoveredPath[0].c === c) : false;
-            const isPathEnd = hoveredPath && hoveredPath.length > 0 ? (hoveredPath[hoveredPath.length - 1].r === r && hoveredPath[hoveredPath.length - 1].c === c) : false;
+            const isPathStart = !!(hoveredPath && hoveredPath.length > 0 && hoveredPath[0].r === r && hoveredPath[0].c === c);
+            const isPathEnd = !!(hoveredPath && hoveredPath.length > 1 && hoveredPath[hoveredPath.length - 1].r === r && hoveredPath[hoveredPath.length - 1].c === c);
  
             const isCustomTarget = !!(customTargetCoords && customTargetCoords.r === r && customTargetCoords.c === c);
             const isActiveTarget = !!(activeTargetCoords && activeTargetCoords.r === r && activeTargetCoords.c === c && !isCustomTarget);
@@ -351,65 +365,61 @@ export const Board: React.FC<BoardProps> = ({
                 isObtainedTreasure={isObtainedTreasure}
                 isCurrentTarget={isCurrentTarget}
                 isReachable={isReachable}
+                is3D={is3D}
               />
             );
           })
         )}
  
-      {/* Render Pushed-Out Tile Preview */}
+        {/* Pushed-Out Tile Preview — grid-placed, same 1fr cell size as tiles */}
         {isGameStarted && hoveredSolutionArrow && (() => {
           const arrow = SHIFT_ARROWS.find((a) => a.id === hoveredSolutionArrow);
           if (!arrow) return null;
-          
           const sourceGrid = originalGrid || grid;
           let pushedTile: TileData | null = null;
           let gridRow = 0;
           let gridColumn = 0;
           let animClass = "";
-  
           if (arrow.type === "row") {
             const r = arrow.index;
-            if (arrow.dir === "left") {
-              pushedTile = sourceGrid[r][6];
-              gridRow = r + 2;
-              gridColumn = 9;
-              animClass = "animate-preview-slide-right";
-            } else {
-              pushedTile = sourceGrid[r][0];
-              gridRow = r + 2;
-              gridColumn = 1;
-              animClass = "animate-preview-slide-left";
-            }
+            if (arrow.dir === "left") { pushedTile = sourceGrid[r][6]; gridRow = r + 2; gridColumn = 9; animClass = "animate-preview-slide-right"; }
+            else                      { pushedTile = sourceGrid[r][0]; gridRow = r + 2; gridColumn = 1; animClass = "animate-preview-slide-left"; }
           } else {
             const c = arrow.index;
-            if (arrow.dir === "top") {
-              pushedTile = sourceGrid[6][c];
-              gridRow = 9;
-              gridColumn = c + 2;
-              animClass = "animate-preview-slide-down";
-            } else {
-              pushedTile = sourceGrid[0][c];
-              gridRow = 1;
-              gridColumn = c + 2;
-              animClass = "animate-preview-slide-up";
-            }
+            if (arrow.dir === "top") { pushedTile = sourceGrid[6][c]; gridRow = 9; gridColumn = c + 2; animClass = "animate-preview-slide-down"; }
+            else                     { pushedTile = sourceGrid[0][c]; gridRow = 1; gridColumn = c + 2; animClass = "animate-preview-slide-up"; }
           }
-  
           if (!pushedTile) return null;
-  
           return (
             <div
               style={{ gridRow, gridColumn, zIndex: 30 }}
-              className={cn("relative w-full h-full aspect-square rounded-lg overflow-hidden border-2 border-stone-600 pointer-events-none shadow-2xl", animClass)}
+              className={cn("relative w-full h-full aspect-square rounded-xl overflow-hidden border-2 border-stone-950 pointer-events-none shadow-[4px_4px_0_0_#000000]", animClass)}
             >
-              <Tile tile={pushedTile} boardRotation={boardRotation} disableRotationTransition={true} className="absolute inset-0 w-full h-full opacity-70" />
-              <div className="absolute inset-0 bg-stone-950/20 rounded-lg pointer-events-none" />
-              <div className="absolute inset-0 flex items-end justify-center pb-0.5 pointer-events-none">
-                <span className="text-[8px] font-bold text-stone-300 bg-stone-950/70 px-1 rounded leading-tight">pushed out</span>
-              </div>
+              <Tile tile={pushedTile} boardRotation={boardRotation} disableRotationTransition={true} is3D={is3D} className="absolute inset-0 w-full h-full" />
             </div>
           );
         })()}
+
+        {/* SVG Path Overlay — absolute over the 9×9 grid, viewBox 0 0 9 9, tile center = c+1.5 */}
+        {isGameStarted && hoveredPath && hoveredPath.length > 0 && (() => {
+          const tc = (i: number) => i + 1.5;
+          const pts = hoveredPath.map(p => `${tc(p.c)},${tc(p.r)}`).join(" ");
+          const s = hoveredPath[0];
+          const e = hoveredPath[hoveredPath.length - 1];
+          return (
+            <svg viewBox="0 0 9 9" className="absolute inset-0 w-full h-full pointer-events-none z-30" aria-hidden="true">
+              <polyline points={pts} fill="none" stroke="#000000" strokeWidth="0.10" strokeDasharray="0.18,0.12" strokeLinecap="round" strokeLinejoin="round" opacity="0.45" className="animate-path-crawl" />
+              <polyline points={pts} fill="none" stroke="var(--theme-color)" strokeWidth="0.06" strokeDasharray="0.18,0.12" strokeLinecap="round" strokeLinejoin="round" opacity="0.7" className="animate-path-crawl" />
+              <rect x={tc(s.c) - 0.13} y={tc(s.r) - 0.13} width="0.26" height="0.26" fill="#000000" />
+              <rect x={tc(s.c) - 0.08} y={tc(s.r) - 0.08} width="0.16" height="0.16" fill="var(--theme-color)" />
+              {hoveredPath.length > 1 && <>
+                <circle cx={tc(e.c)} cy={tc(e.r)} r="0.13" fill="#000000" />
+                <circle cx={tc(e.c)} cy={tc(e.r)} r="0.08" fill="var(--theme-color)" />
+              </>}
+            </svg>
+          );
+        })()}
+      </div>
       </div>
     </div>
   );

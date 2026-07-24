@@ -4,10 +4,10 @@
 // wider desktop column. Interactive controls get a 44px phone floor.
 import { Sparkles, Layers, Users, Compass, Play, RotateCw, Camera } from "lucide-react";
 import { SidePanel } from "./SidePanel";
-import { Button } from "./ui/button";
-import { PAWNS, TREASURES } from "../constants";
-import { playClickSound } from "../utils/audio";
-import type { TileData } from "../types";
+import { Button } from "../ui/button";
+import { PAWNS, TREASURES } from "../../constants";
+import { playClickSound } from "../../utils/audio";
+import type { TileData } from "../../types";
 
 interface SetupPanelProps {
   looseTiles: TileData[];
@@ -69,7 +69,7 @@ export function SetupPanel({
           }}
           disabled={!canStartGame}
           size="sm"
-          className="bg-theme-primary hover:bg-theme-primary-hover text-stone-950 font-bold min-h-9 rounded-lg flex items-center gap-1.5 shrink-0 disabled:opacity-40 disabled:cursor-not-allowed"
+          className="neo-brutalism-button bg-theme-primary border-stone-950 hover:bg-theme-primary-hover text-stone-950 font-bold min-h-9 rounded-lg flex items-center gap-1.5 shrink-0 disabled:opacity-40 disabled:cursor-not-allowed disabled:translate-x-0 disabled:translate-y-0 disabled:shadow-[2px_2px_0_0_#000000]"
         >
           <Play className="w-3.5 h-3.5" />
           Start
@@ -83,19 +83,19 @@ export function SetupPanel({
       {/* Checklist */}
       <div className="p-3 app-surface flex flex-col gap-2 text-xs md:text-sm text-left">
         <h3 className="font-bold text-stone-200 flex items-center gap-1.5 border-b border-stone-800 pb-1.5">
-          <Sparkles className="w-3.5 h-3.5 text-theme-primary animate-pulse" />
+          <Sparkles className="w-3.5 h-3.5 text-theme-primary" />
           Setup Wizard & Checklist
         </h3>
         <div className="flex flex-col gap-1.5 mt-0.5">
           <div className="flex items-center gap-2">
-            <span className={`w-2 h-2 rounded-full ${looseTiles.length === 1 ? "bg-green-500 shadow-sm shadow-green-500/50" : "bg-theme-primary animate-pulse"}`} />
+            <span className={`w-2 h-2 rounded-full border border-stone-950 ${looseTiles.length === 1 ? "bg-green-500" : "bg-theme-primary"}`} />
             <span className="text-stone-300">
               Movable Tiles Placed: {34 - looseTiles.length}/33{" "}
               {looseTiles.length === 1 ? "✓" : `(needs ${looseTiles.length - 1} more)`}
             </span>
           </div>
           <div className="flex items-center gap-2">
-            <span className={`w-2 h-2 rounded-full ${activePlayers.length > 0 ? "bg-green-500 shadow-sm shadow-green-500/50" : "bg-red-500 animate-pulse"}`} />
+            <span className={`w-2 h-2 rounded-full border border-stone-950 ${activePlayers.length > 0 ? "bg-green-500" : "bg-red-500"}`} />
             <span className="text-stone-300">
               Active Players: {activePlayers.length} {activePlayers.length > 0 ? "✓" : "✗"}
             </span>
@@ -108,7 +108,7 @@ export function SetupPanel({
           }}
           disabled={!canStartGame}
           title={!canStartGame ? "Place all movable tiles first" : undefined}
-          className="w-full bg-theme-primary hover:bg-theme-primary-hover text-stone-950 font-bold py-2.5 px-4 min-h-11 rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-theme-glow cursor-pointer transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none mt-1"
+          className="w-full neo-brutalism-button bg-theme-primary border-stone-950 hover:bg-theme-primary-hover text-stone-950 font-bold py-2.5 px-4 min-h-11 rounded-xl flex items-center justify-center gap-2 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed disabled:translate-x-0 disabled:translate-y-0 disabled:shadow-[2px_2px_0_0_#000000] mt-1"
         >
           <Play className="w-4 h-4" />
           Start Game
@@ -116,7 +116,7 @@ export function SetupPanel({
       </div>
 
       {/* Tab bar */}
-      <div className="flex items-center bg-stone-950/60 rounded-full p-1 border border-stone-800 self-start">
+      <div className="flex items-center bg-card rounded-xl p-1 border-2 border-stone-950 self-start shadow-[3px_3px_0_0_#000000]">
         {([
           { id: "tiles", label: "Tiles", icon: <Layers className="w-3.5 h-3.5" /> },
           { id: "players", label: "Players", icon: <Users className="w-3.5 h-3.5" /> },
@@ -125,10 +125,10 @@ export function SetupPanel({
           <button
             key={tab.id}
             onClick={() => setSetupTab(tab.id)}
-            className={`flex items-center justify-center gap-1.5 px-3 md:px-4 py-2 md:py-1.5 min-h-11 md:min-h-0 rounded-full text-xs md:text-sm font-medium transition-all cursor-pointer ${
+            className={`flex items-center justify-center gap-1.5 px-3 md:px-4 py-2 md:py-1.5 min-h-11 md:min-h-0 rounded-lg text-xs md:text-sm font-bold transition-all cursor-pointer border-2 ${
               setupTab === tab.id
-                ? "bg-theme-primary text-stone-950 font-semibold shadow-sm"
-                : "text-stone-400 hover:text-stone-200 hover:bg-stone-900/40"
+                ? "bg-theme-primary text-stone-950 border-stone-950 shadow-[2px_2px_0_0_#000000]"
+                : "text-stone-500 hover:text-foreground hover:bg-stone-100 dark:hover:bg-stone-850 border-transparent"
             }`}
           >
             {tab.icon}
@@ -144,7 +144,7 @@ export function SetupPanel({
             <div className="flex gap-2">
               <Button
                 onClick={onRandomizeBoard}
-                className="flex-1 bg-theme-primary hover:bg-theme-primary-hover text-stone-950 font-bold py-2.5 px-4 min-h-11 rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-theme-glow cursor-pointer transition-colors"
+                className="flex-1 neo-brutalism-button bg-theme-primary border-stone-950 hover:bg-theme-primary-hover text-stone-950 font-bold py-2.5 px-4 min-h-11 rounded-xl flex items-center justify-center gap-2 cursor-pointer"
               >
                 <Sparkles className="w-4 h-4" />
                 Randomize Board
@@ -155,7 +155,7 @@ export function SetupPanel({
                   onClick={onScanBoard}
                   title="Scan Board Photo"
                   aria-label="Scan board photo"
-                  className="border-stone-800 text-stone-400 hover:text-stone-200 hover:bg-stone-900 min-h-11 w-11 shrink-0 px-0 cursor-pointer"
+                  className="neo-brutalism-button border-stone-950 bg-card text-stone-400 hover:text-stone-200 min-h-11 w-11 shrink-0 px-0 cursor-pointer"
                 >
                   <Camera className="w-4 h-4" />
                 </Button>
@@ -204,10 +204,10 @@ export function SetupPanel({
                           setActivePlayers([...activePlayers, p.id]);
                         }
                       }}
-                      className={`flex items-center justify-between p-2.5 min-h-11 rounded-xl border text-xs font-semibold transition-all cursor-pointer ${
+                      className={`flex items-center justify-between p-2.5 min-h-11 rounded-xl text-xs font-semibold neo-brutalism-button cursor-pointer border-stone-950 ${
                         isActive
-                          ? "border-theme-primary bg-theme-primary-10 text-theme-primary"
-                          : "border-stone-800 bg-stone-950/40 hover:bg-stone-900 text-stone-400 hover:text-stone-200"
+                          ? "bg-theme-primary text-stone-950 translate-x-[1px] translate-y-[1px] shadow-[1px_1px_0_0_#000000]"
+                          : "bg-card text-foreground"
                       }`}
                     >
                       <div className="flex items-center gap-2">
@@ -226,7 +226,7 @@ export function SetupPanel({
         {setupTab === "cards" && (
           <div className="flex flex-col gap-4 h-full overflow-hidden min-h-0">
             {/* Optional cards info */}
-            <div className="text-[11px] text-stone-500 leading-relaxed bg-stone-900/50 border border-stone-800 rounded-lg px-3 py-2">
+            <div className="text-[11px] text-stone-500 leading-relaxed app-surface px-3 py-2 rounded-lg">
               <span className="text-stone-300 font-semibold">Hand cards are optional.</span> During play you can tap any board tile to navigate there instead. Use this section if you know your full card set upfront — the solver will then optimize the order to reach all your treasures in the fewest moves.
             </div>
 
@@ -237,7 +237,7 @@ export function SetupPanel({
                   <button
                     key={p}
                     onClick={() => { if (!isMuted) playClickSound(); setActivePawn(p); }}
-                    className={`w-11 h-11 text-sm md:w-9 md:h-9 md:text-xs rounded-full shrink-0 font-bold flex items-center justify-center transition-all ${PAWNS.find((pw) => pw.id === p)?.colorClass ?? "bg-stone-500"} ${activePawn === p ? "ring-2 ring-white shadow-md" : "opacity-50"}`}
+                    className={`w-11 h-11 text-sm md:w-9 md:h-9 md:text-xs rounded-full shrink-0 font-bold flex items-center justify-center neo-brutalism-button border-stone-950 ${PAWNS.find((pw) => pw.id === p)?.colorClass ?? "bg-stone-500"} ${activePawn === p ? "translate-x-[1px] translate-y-[1px] shadow-[1px_1px_0_0_#000000]" : "opacity-60"} text-stone-950`}
                   >
                     {p[0].toUpperCase()}
                   </button>
@@ -254,12 +254,12 @@ export function SetupPanel({
                 {(playerHands[activePawn] ?? []).map((cardId) => {
                   const name = TREASURES.find((t) => t.id === cardId)?.name ?? cardId;
                   return (
-                    <div key={cardId} className="text-[10px] bg-theme-primary-10 border border-theme-primary-20 text-theme-primary font-semibold px-2 py-0.5 rounded flex items-center gap-1">
+                    <div key={cardId} className="text-[10px] bg-theme-primary border-2 border-stone-950 text-stone-950 font-black px-2.5 py-1 rounded-lg flex items-center gap-1 shadow-[2px_2px_0_0_#000000]">
                       {name}
                       <button
                         onClick={() => onRemoveCard(cardId)}
                         aria-label={`Remove ${name}`}
-                        className="text-stone-400 hover:text-stone-200 inline-flex items-center justify-center min-w-6 min-h-6 -my-1 -mr-1 rounded cursor-pointer"
+                        className="text-stone-950 hover:opacity-75 inline-flex items-center justify-center min-w-4 min-h-4 ml-1 rounded font-black cursor-pointer"
                       >×</button>
                     </div>
                   );
@@ -285,7 +285,7 @@ export function SetupPanel({
                       size="sm"
                       variant={alreadyInHand ? "secondary" : "outline"}
                       onClick={() => (alreadyInHand ? onRemoveCard(t.id) : onAddCard(t.id))}
-                      className={`text-[10px] md:text-xs py-1 border-stone-800 justify-start h-11 md:h-9 lg:h-8 px-2 truncate ${alreadyInHand ? "bg-theme-primary-20 border-theme-primary-40 text-theme-primary" : "hover:bg-stone-900 text-stone-300"}`}
+                      className={`text-[10px] md:text-xs py-1 justify-start h-11 md:h-9 lg:h-8 px-2 truncate neo-brutalism-button bg-card hover:bg-stone-100 dark:hover:bg-stone-850 text-foreground border-2 border-stone-950 shadow-[2px_2px_0_0_#000000] ${alreadyInHand ? "bg-theme-primary text-stone-950 shadow-[1px_1px_0_0_#000000] translate-x-[1px] translate-y-[1px]" : ""}`}
                     >
                       {t.name}
                     </Button>

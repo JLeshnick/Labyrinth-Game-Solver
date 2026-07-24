@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { Button } from "./ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "./ui/dialog";
+import { Button } from "../ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
 import {
   Settings,
   Palette,
@@ -9,8 +9,9 @@ import {
   Cpu,
   RefreshCw,
   Keyboard,
+  FlaskConical,
 } from "lucide-react";
-import { playClickSound } from "../utils/audio";
+import { playClickSound } from "../../utils/audio";
 
 interface SettingsDialogProps {
   open: boolean;
@@ -21,6 +22,8 @@ interface SettingsDialogProps {
   setBaseTheme: (theme: "dark" | "light") => void;
   accentColor: string;
   setAccentColor: (hex: string) => void;
+  is3D?: boolean;
+  onToggle3D?: () => void;
 }
 
 const ACCENT_PRESETS = [
@@ -62,6 +65,8 @@ export function SettingsDialog({
   setBaseTheme,
   accentColor,
   setAccentColor,
+  is3D = false,
+  onToggle3D,
 }: SettingsDialogProps) {
   const [settingsTab, setSettingsTab] =
     useState<"preferences" | "appearance" | "application">("preferences");
@@ -114,23 +119,8 @@ export function SettingsDialog({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogTrigger asChild>
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => {
-              if (!isMuted) playClickSound();
-            }}
-            className="border-stone-800 hover:bg-stone-900 text-stone-300"
-            title="Settings"
-            aria-label="Open settings"
-          >
-            <Settings className="w-4 h-4" />
-          </Button>
-        </DialogTrigger>
-
         <DialogContent
-          className="sm:max-w-[90vw] w-[95vw] sm:w-[90vw] h-[90vh] max-h-[90vh] app-dialog-panel border-stone-800 text-stone-100 shadow-2xl p-0 rounded-2xl flex flex-col overflow-hidden"
+          className="sm:max-w-[90vw] w-[95vw] sm:w-[90vw] h-[90vh] max-h-[90vh] text-stone-100 p-0 rounded-xl flex flex-col overflow-hidden"
           onKeyDown={(e) => {
             if (e.key === " ") {
               e.stopPropagation();
@@ -166,10 +156,10 @@ export function SettingsDialog({
                       if (!isMuted) playClickSound();
                       setSettingsTab(tab.key);
                     }}
-                    className={`flex items-center gap-1.5 sm:gap-3 px-3 py-1.5 md:py-2.5 rounded-xl text-left transition-all duration-150 group cursor-pointer border ${
+                    className={`flex items-center gap-1.5 sm:gap-3 px-3 py-1.5 md:py-2.5 rounded-lg text-left transition-all duration-150 group cursor-pointer neo-brutalism-button ${
                       settingsTab === tab.key
-                        ? "bg-theme-primary-10 border-theme-primary/30 text-theme-primary"
-                        : "text-stone-400 hover:text-stone-200 hover:bg-stone-900/40 border-transparent"
+                        ? "bg-theme-primary-10 border-theme-primary text-theme-primary translate-x-[1px] translate-y-[1px] shadow-[1px_1px_0_0_#000000]"
+                        : "text-stone-400 hover:text-stone-200 bg-card border-stone-950"
                     }`}
                   >
                     <span
@@ -214,7 +204,7 @@ export function SettingsDialog({
                   aria-labelledby="settings-tab-preferences"
                   className="flex flex-col gap-6 max-w-xl text-left"
                 >
-                  <div className="p-4 bg-stone-950/40 border border-stone-800 rounded-xl flex flex-col gap-3">
+                  <div className="p-4 app-surface flex flex-col gap-3">
                     <h3 className="text-sm font-semibold text-stone-200">
                       System Preferences
                     </h3>
@@ -242,10 +232,10 @@ export function SettingsDialog({
                             <button
                               key={String(opt.id)}
                               onClick={isActive ? undefined : onToggleMute}
-                              className={`flex flex-col items-start gap-1 p-3.5 rounded-xl border text-left transition-all cursor-pointer ${
+                              className={`flex flex-col items-start gap-1 p-3.5 rounded-xl text-left transition-all cursor-pointer neo-brutalism-button ${
                                 isActive
-                                  ? "border-theme-primary/50 bg-theme-primary-10 text-theme-primary"
-                                  : "border-stone-800 bg-stone-950/40 hover:bg-stone-900 text-stone-400 hover:text-stone-200"
+                                  ? "border-theme-primary bg-theme-primary-10 text-theme-primary translate-x-[1px] translate-y-[1px] shadow-[1px_1px_0_0_#000000]"
+                                  : "border-stone-950 bg-card text-stone-400 hover:text-stone-200"
                               }`}
                             >
                               <span
@@ -266,7 +256,7 @@ export function SettingsDialog({
                     </div>
                   </div>
 
-                  <div className="p-4 bg-stone-950/40 border border-stone-800 rounded-xl flex flex-col gap-2">
+                  <div className="p-4 app-surface flex flex-col gap-2">
                     <h3 className="text-sm font-semibold text-stone-200">
                       Manage Active Players
                     </h3>
@@ -274,6 +264,30 @@ export function SettingsDialog({
                       Active players are now managed from the Pawns tab of the Setup panel,
                       alongside pawn placement.
                     </p>
+                  </div>
+
+                  {/* Experimental */}
+                  <div className="p-4 app-surface flex flex-col gap-3">
+                    <h3 className="text-sm font-semibold text-stone-200 flex items-center gap-2">
+                      <FlaskConical className="w-4 h-4 text-theme-primary" />
+                      Experimental
+                    </h3>
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <div className="text-xs font-semibold text-stone-200">3D Isometric View</div>
+                        <div className="text-[11px] text-stone-500 mt-0.5">Renders the board in a 3D perspective. May affect performance on some devices.</div>
+                      </div>
+                      <button
+                        onClick={onToggle3D}
+                        className={`neo-brutalism-button rounded-lg px-3 py-1.5 text-xs font-bold cursor-pointer shrink-0 ${
+                          is3D
+                            ? "bg-theme-primary border-stone-950 text-stone-950 translate-x-[1px] translate-y-[1px] shadow-[1px_1px_0_0_#000000]"
+                            : "bg-card border-stone-950 text-stone-400"
+                        }`}
+                      >
+                        {is3D ? "On" : "Off"}
+                      </button>
+                    </div>
                   </div>
                 </div>
               )}
@@ -322,10 +336,10 @@ export function SettingsDialog({
                               if (!isMuted) playClickSound();
                               setBaseTheme(t.id);
                             }}
-                            className={`relative flex items-center gap-3 p-3.5 rounded-xl border text-left transition-all duration-150 cursor-pointer ${
+                            className={`relative flex items-center gap-3 p-3.5 rounded-xl text-left transition-all duration-150 cursor-pointer neo-brutalism-button ${
                               isActive
-                                ? "border-theme-primary/50 bg-theme-primary-10 text-stone-100"
-                                : "border-stone-800 bg-stone-950/40 hover:border-stone-700 hover:bg-stone-900/60 text-stone-400"
+                                ? "border-theme-primary bg-theme-primary-10 text-stone-100 translate-x-[1px] translate-y-[1px] shadow-[1px_1px_0_0_#000000]"
+                                : "border-stone-950 bg-card text-stone-400 hover:text-stone-200"
                             }`}
                           >
                             <div

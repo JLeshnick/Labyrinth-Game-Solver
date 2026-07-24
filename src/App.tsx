@@ -13,16 +13,16 @@ import {
 } from "@dnd-kit/core";
 import { SHIFT_ARROWS, TREASURES, DEFAULT_PAWN_POSITIONS } from "./constants";
 import type { TileData, SolverSolution } from "./types";
-import { Board } from "./components/Board";
-import { Tile } from "./components/Tile";
+import { Board } from "./components/board/Board";
+import { Tile } from "./components/board/Tile";
 import { Button } from "./components/ui/button";
-import { SolverPanel } from "./components/SolverPanel";
-import { SetupPanel } from "./components/SetupPanel";
-import { BoardScanModal } from "./components/BoardScanModal";
-import { MoveHistoryDialog } from "./components/MoveHistoryDialog";
-import { StatsPanel } from "./components/StatsPanel";
+import { SolverPanel } from "./components/panels/SolverPanel";
+import { SetupPanel } from "./components/panels/SetupPanel";
+import { BoardScanModal } from "./components/modals/BoardScanModal";
+import { MoveHistoryDialog } from "./components/modals/MoveHistoryDialog";
+import { StatsPanel } from "./components/panels/StatsPanel";
 import { AppHeader } from "./components/AppHeader";
-import { WelcomeGuide } from "./components/WelcomeGuide";
+import { WelcomeGuide } from "./components/modals/WelcomeGuide";
 import { Dialog, DialogContent } from "./components/ui/dialog";
 import { useLabyrinthGame } from "./hooks/useLabyrinthGame";
 import { useStopwatch } from "./hooks/useStopwatch";
@@ -97,6 +97,24 @@ export default function App() {
   const [showWelcomeGuide, setShowWelcomeGuide] = useState(
     () => localStorage.getItem("labyrinth_welcome_dismissed") !== "true"
   );
+
+  const [is3D, setIs3D] = useState(() => {
+    try {
+      return localStorage.getItem("labyrinth_3d") === "true";
+    } catch {
+      return false;
+    }
+  });
+
+  const toggle3D = useCallback(() => {
+    setIs3D((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem("labyrinth_3d", String(next));
+      } catch {}
+      return next;
+    });
+  }, []);
 
   // ── Solver worker ─────────────────────────────────────────────────────────────
   const [solutions, setSolutions] = useState<SolverSolution[]>([]);
@@ -731,9 +749,7 @@ export default function App() {
 
   // ── Render ────────────────────────────────────────────────────────────────────
   return (
-    <div className="h-screen bg-stone-950 text-stone-100 flex flex-col font-sans select-none relative overflow-hidden">
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(120,119,198,0.15),rgba(255,255,255,0))]" />
-      <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-theme-primary-10 blur-[120px] rounded-full pointer-events-none" />
+    <div className="h-screen bg-background text-foreground flex flex-col font-sans select-none relative overflow-hidden transition-colors duration-300">
 
       <AppHeader
         isGameStarted={game.isGameStarted}
@@ -771,6 +787,8 @@ export default function App() {
         elapsedTime={game.isGameStarted ? elapsedTime : undefined}
         isTimerPaused={isTimerPaused}
         onToggleTimer={toggleTimer}
+        is3D={is3D}
+        onToggle3D={toggle3D}
       />
 
       <main className="flex-1 flex flex-col md:flex-row relative z-10 w-full px-2 sm:px-3 md:px-4 lg:px-6 pt-2 sm:pt-3 pb-[72px] md:pb-3 gap-3 md:gap-4 lg:gap-8 justify-center overflow-hidden min-h-0">
@@ -780,13 +798,15 @@ export default function App() {
           onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
         >
-          <div className="flex-1 md:flex-[1.4] lg:flex-[1.5] w-full flex min-w-0 min-h-0 items-center justify-center relative">
+          <div className="flex-1 md:flex-[1.6] lg:flex-[1.8] w-full flex min-w-0 min-h-0 items-center justify-center relative">
             <div
               className={cn(
-                "relative aspect-square w-full h-auto flex-shrink-0 mx-auto md:max-w-[calc(100svh-180px)] lg:max-w-[calc(100svh-140px)]",
-                mobilePanelStop === "peek"
-                  ? "max-w-[min(100vw-1rem,calc(100svh-324px))] sm:max-w-[min(100vw-2rem,calc(100svh-384px))]"
-                  : "max-w-[min(100vw-1rem,calc(58svh-220px))] sm:max-w-[min(100vw-2rem,calc(58svh-280px))]"
+                "relative aspect-square w-full h-auto flex-shrink-0 mx-auto",
+                isMobile
+                  ? mobilePanelStop === "peek"
+                    ? "max-w-[min(100vw-1.5rem,calc(100svh-200px))]"
+                    : "max-w-[min(100vw-1.5rem,calc(56svh-90px))]"
+                  : "max-w-[min(100vw-2rem,calc(100svh-120px))]"
               )}
             >
 
@@ -827,13 +847,14 @@ export default function App() {
                 allObtainedTreasures={Object.values(game.obtainedTreasures).flat()}
                 activeTargetTreasureId={game.playerActiveTargets[game.activePawn]}
                 activePlayers={game.activePlayers}
+                is3D={is3D}
               />
             </div>
           </div>
 
           {/* Tablet & desktop side panel (md+) */}
           {!isMobile && (
-            <div className="flex w-full md:w-[320px] lg:w-[400px] xl:w-[440px] flex-col flex-shrink-0 min-h-0 md:h-full gap-3">
+            <div className="flex w-full md:w-[320px] lg:w-[400px] xl:w-[440px] flex-col flex-shrink-0 min-h-0 md:h-full gap-3 bg-card neo-brutalism-card rounded-3xl p-2 overflow-hidden">
               {game.isGameStarted ? (
                 <SolverPanel
                   solutions={solutions}
@@ -897,7 +918,7 @@ export default function App() {
           {isMobile && (
             <div
               className={cn(
-                "flex flex-col shrink-0 w-full app-mobile-sheet rounded-t-2xl shadow-2xl transition-[height] duration-300 ease-out overflow-hidden",
+                "flex flex-col shrink-0 w-full app-mobile-sheet rounded-t-2xl shadow-2xl transition-[height] duration-300 ease-out overflow-hidden bg-card border-t border-border",
                 mobilePanelStop === "peek" ? "h-[104px]" : "h-[42svh]"
               )}
             >
@@ -995,7 +1016,7 @@ export default function App() {
                     game.looseTiles.find((t) => t.id === activeId) ||
                     game.grid.flat().find((t) => t?.id === activeId)!
                   }
-                  className="w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 lg:w-24 lg:h-24 shadow-2xl shadow-black ring-4 ring-theme-primary/50"
+                  className="w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 lg:w-24 lg:h-24 shadow-[6px_6px_0_0_#000000] rotate-3"
                 />
               ) : null}
             </DragOverlay>,
@@ -1037,7 +1058,7 @@ export default function App() {
       {/* Stats dialog */}
       <Dialog open={showStats} onOpenChange={setShowStats}>
         <DialogContent
-          className="sm:max-w-[500px] app-dialog-panel border border-stone-800 text-stone-100 shadow-2xl p-0 rounded-2xl overflow-hidden"
+          className="sm:max-w-[500px] text-stone-100 p-0 rounded-xl overflow-hidden"
           onKeyDown={(e) => {
             if (e.key === " ") e.stopPropagation();
           }}
@@ -1057,7 +1078,7 @@ export default function App() {
       </div>
       {toastText && (
         <div
-          className="fixed bottom-[72px] md:bottom-6 left-1/2 -translate-x-1/2 px-4 sm:px-6 py-2.5 sm:py-3 bg-stone-900 border border-theme-primary-20 text-stone-100 font-semibold text-xs sm:text-sm rounded-full shadow-2xl shadow-black z-50 animate-toast-in flex items-center gap-2 whitespace-nowrap"
+          className="fixed bottom-[72px] md:bottom-6 left-1/2 -translate-x-1/2 px-4 sm:px-6 py-2.5 sm:py-3 app-dialog-panel neo-brutalism-card text-stone-100 font-semibold text-xs sm:text-sm rounded-lg z-50 animate-toast-in flex items-center gap-2 whitespace-nowrap"
           aria-hidden="true"
         >
           <Sparkles className="w-4 h-4 text-theme-primary shrink-0" />
