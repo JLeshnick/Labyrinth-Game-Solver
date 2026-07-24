@@ -116,7 +116,7 @@ export function SetupPanel({
       </div>
 
       {/* Tab bar */}
-      <div className="flex items-center bg-stone-950/60 rounded-full p-1 border border-stone-800 self-start">
+      <div className="flex items-center bg-card rounded-xl p-1 border-2 border-stone-950 self-start shadow-[3px_3px_0_0_#000000]">
         {([
           { id: "tiles", label: "Tiles", icon: <Layers className="w-3.5 h-3.5" /> },
           { id: "players", label: "Players", icon: <Users className="w-3.5 h-3.5" /> },
@@ -125,10 +125,10 @@ export function SetupPanel({
           <button
             key={tab.id}
             onClick={() => setSetupTab(tab.id)}
-            className={`flex items-center justify-center gap-1.5 px-3 md:px-4 py-2 md:py-1.5 min-h-11 md:min-h-0 rounded-full text-xs md:text-sm font-medium transition-all cursor-pointer ${
+            className={`flex items-center justify-center gap-1.5 px-3 md:px-4 py-2 md:py-1.5 min-h-11 md:min-h-0 rounded-lg text-xs md:text-sm font-bold transition-all cursor-pointer border-2 ${
               setupTab === tab.id
-                ? "bg-theme-primary text-stone-950 font-semibold shadow-sm"
-                : "text-stone-400 hover:text-stone-200 hover:bg-stone-900/40"
+                ? "bg-theme-primary text-stone-950 border-stone-950 shadow-[2px_2px_0_0_#000000]"
+                : "text-stone-500 hover:text-foreground hover:bg-stone-100 dark:hover:bg-stone-850 border-transparent"
             }`}
           >
             {tab.icon}
@@ -204,10 +204,10 @@ export function SetupPanel({
                           setActivePlayers([...activePlayers, p.id]);
                         }
                       }}
-                      className={`flex items-center justify-between p-2.5 min-h-11 rounded-xl border text-xs font-semibold transition-all cursor-pointer ${
+                      className={`flex items-center justify-between p-2.5 min-h-11 rounded-xl border-2 text-xs font-semibold transition-all cursor-pointer border-stone-950 shadow-[2px_2px_0_0_#000000] hover:translate-x-[-1px] hover:translate-y-[-1px] hover:shadow-[3px_3px_0_0_#000000] active:translate-x-[1px] active:translate-y-[1px] active:shadow-[1px_1px_0_0_#000000] ${
                         isActive
-                          ? "border-theme-primary bg-theme-primary-10 text-theme-primary"
-                          : "border-stone-800 bg-stone-950/40 hover:bg-stone-900 text-stone-400 hover:text-stone-200"
+                          ? "bg-theme-primary text-stone-950"
+                          : "bg-card hover:bg-stone-100 dark:hover:bg-stone-850 text-foreground"
                       }`}
                     >
                       <div className="flex items-center gap-2">
@@ -254,12 +254,12 @@ export function SetupPanel({
                 {(playerHands[activePawn] ?? []).map((cardId) => {
                   const name = TREASURES.find((t) => t.id === cardId)?.name ?? cardId;
                   return (
-                    <div key={cardId} className="text-[10px] bg-theme-primary-10 border border-theme-primary-20 text-theme-primary font-semibold px-2 py-0.5 rounded flex items-center gap-1">
+                    <div key={cardId} className="text-[10px] bg-theme-primary border-2 border-stone-950 text-stone-950 font-black px-2.5 py-1 rounded-lg flex items-center gap-1 shadow-[2px_2px_0_0_#000000]">
                       {name}
                       <button
                         onClick={() => onRemoveCard(cardId)}
                         aria-label={`Remove ${name}`}
-                        className="text-stone-400 hover:text-stone-200 inline-flex items-center justify-center min-w-6 min-h-6 -my-1 -mr-1 rounded cursor-pointer"
+                        className="text-stone-950 hover:opacity-75 inline-flex items-center justify-center min-w-4 min-h-4 ml-1 rounded font-black cursor-pointer"
                       >×</button>
                     </div>
                   );
@@ -285,7 +285,7 @@ export function SetupPanel({
                       size="sm"
                       variant={alreadyInHand ? "secondary" : "outline"}
                       onClick={() => (alreadyInHand ? onRemoveCard(t.id) : onAddCard(t.id))}
-                      className={`text-[10px] md:text-xs py-1 border-stone-800 justify-start h-11 md:h-9 lg:h-8 px-2 truncate ${alreadyInHand ? "bg-theme-primary-20 border-theme-primary-40 text-theme-primary" : "hover:bg-stone-900 text-stone-300"}`}
+                      className={`text-[10px] md:text-xs py-1 justify-start h-11 md:h-9 lg:h-8 px-2 truncate neo-brutalism-button bg-card hover:bg-stone-100 dark:hover:bg-stone-850 text-foreground border-2 border-stone-950 shadow-[2px_2px_0_0_#000000] ${alreadyInHand ? "bg-theme-primary text-stone-950 shadow-[1px_1px_0_0_#000000] translate-x-[1px] translate-y-[1px]" : ""}`}
                     >
                       {t.name}
                     </Button>

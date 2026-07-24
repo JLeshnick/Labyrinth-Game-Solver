@@ -397,24 +397,26 @@
    ad-hoc bg-stone-950/60 border border-stone-800/80 clusters so every card
    picks up light/dark and the accent border consistently. */
 .app-surface {
-  background-color: var(--surface-glass-soft);
-  border: 1px solid var(--surface-border-strong);
+  background-color: var(--card);
+  border: 2px solid #000000;
   border-radius: 0.75rem; /* rounded-xl */
+  box-shadow: 3px 3px 0px 0px #000000;
 }
 .app-surface-raised {
-  background-color: var(--surface-glass-strong);
-  border: 1px solid var(--surface-border-strong);
+  background-color: var(--card);
+  border: 3px solid #000000;
   border-radius: 0.75rem;
-  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.35);
+  box-shadow: 5px 5px 0px 0px #000000;
 }
 [data-theme="light"] .app-surface-raised {
-  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+  box-shadow: 5px 5px 0px 0px #000000;
 }
 /* Accent-tinted surface for the hero (top) solver suggestion */
 .app-surface-accent {
-  background-color: rgba(var(--theme-color-rgb), 0.06);
-  border: 1px solid rgba(var(--theme-color-rgb), 0.28);
+  background-color: rgba(var(--theme-color-rgb), 0.08);
+  border: 3px solid #000000;
   border-radius: 0.75rem;
+  box-shadow: 5px 5px 0px 0px var(--theme-color);
 }
 
 @media (max-width: 767px) {

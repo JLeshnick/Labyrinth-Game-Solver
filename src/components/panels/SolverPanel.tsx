@@ -360,7 +360,7 @@ export function SolverPanel({
                 <Button
                   size="sm"
                   onClick={(e) => { e.stopPropagation(); onExecuteSolution(sol); }}
-                  className="bg-theme-primary-10 group-hover:bg-theme-primary text-theme-primary group-hover:text-stone-950 border border-theme-primary-20 group-hover:border-transparent font-semibold text-xs px-3 py-1.5 min-h-11 md:min-h-9 rounded-lg active:scale-[0.98] transition-all flex-shrink-0 self-center"
+                  className="bg-card hover:bg-theme-primary hover:text-stone-950 text-foreground border-2 border-stone-950 font-black text-xs px-3 py-1.5 min-h-11 md:min-h-9 rounded-lg shadow-[2px_2px_0_0_#000000] active:translate-x-[1px] active:translate-y-[1px] active:shadow-[1px_1px_0_0_#000000] transition-all flex-shrink-0 self-center cursor-pointer"
                 >
                   Execute
                 </Button>
@@ -382,7 +382,7 @@ export function SolverPanel({
               key={p.id}
               variant={activePawn === p.id ? "default" : "outline"}
               onClick={() => { if (!isMuted) playClickSound(); setActivePawn(p.id); }}
-              className={`border-stone-800 h-11 md:h-9 active:scale-[0.98] transition-all ${activePawn === p.id ? p.colorClass + " text-stone-950 font-bold" : "hover:bg-stone-900 text-stone-200"}`}
+              className={`neo-brutalism-button bg-card hover:bg-stone-100 dark:hover:bg-stone-850 text-foreground border-2 border-stone-950 shadow-[2px_2px_0_0_#000000] h-11 md:h-9 ${activePawn === p.id ? p.colorClass + " text-stone-950 font-extrabold shadow-[1px_1px_0_0_#000000] translate-x-[1px] translate-y-[1px]" : ""}`}
             >
               {p.name}
             </Button>

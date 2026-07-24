@@ -177,22 +177,27 @@ export const Tile: React.FC<TileProps> = ({
         }
       }}
       className={cn(
-        "relative rounded-2xl border-2 overflow-hidden flex items-center justify-center transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]",
+        "relative rounded-2xl border-2 transition-all duration-150 flex items-center justify-center select-none",
         bgClass,
         borderClass,
         isObtainedTreasure && "after:absolute after:inset-0 after:bg-stone-950/30 after:rounded-2xl after:pointer-events-none",
-        is3D ? "tile-3d" : "shadow-neumorphic",
+        is3D 
+          ? "tile-3d" 
+          : "shadow-[4px_4px_0_0_#000000] dark:shadow-[4px_4px_0_0_#000000] hover:translate-x-[-1.5px] hover:translate-y-[-1.5px] hover:shadow-[5.5px_5.5px_0_0_#000000] active:translate-x-[1px] active:translate-y-[1px] active:shadow-[2px_2px_0_0_#000000]",
         className
       )}
       style={is3D ? { ...shadowStyle, transformStyle: "preserve-3d" } : undefined}
       title={tile.isFixed ? "This preset tile is permanently glued to the board. It cannot be moved, slid, or rotated." : undefined}
     >
-      {/* Rotation wrapper */}
-      <div
-        className={cn("absolute inset-0", !disableRotationTransition && "transition-transform duration-200")}
-        style={{ transform: `rotate(${tile.rotation}deg)`, transformStyle: is3D ? "preserve-3d" : "flat" }}
-      >
-        {getPathSVG()}
+      {/* Inner container with overflow-hidden to cleanly clip the SVG paths */}
+      <div className="absolute inset-0 rounded-[14px] overflow-hidden" style={{ transformStyle: is3D ? "preserve-3d" : "flat" }}>
+        {/* Rotation wrapper */}
+        <div
+          className={cn("absolute inset-0", !disableRotationTransition && "transition-transform duration-200")}
+          style={{ transform: `rotate(${tile.rotation}deg)`, transformStyle: is3D ? "preserve-3d" : "flat" }}
+        >
+          {getPathSVG()}
+        </div>
       </div>
 
       {/* Home corner marker — embedded flat into the tile corner, clearly distinct from pawns */}

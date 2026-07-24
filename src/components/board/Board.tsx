@@ -124,7 +124,7 @@ const BoardSpace: React.FC<BoardSpaceProps> = ({
           isCurrentTarget={isCurrentTarget}
           is3D={is3D}
           className={cn(
-            "absolute inset-0 w-full h-full",
+            "w-[90%] h-[90%] m-auto absolute inset-0",
             isOnHoveredPath && "border-3 border-theme-primary",
             isPathStart && "border-3 border-green-500 shadow-[4px_4px_0_0_#22c55e]",
             isPathEnd && "border-3 border-red-500 shadow-[4px_4px_0_0_#ef4444]"
