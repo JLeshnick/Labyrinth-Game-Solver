@@ -247,7 +247,7 @@ export const Board: React.FC<BoardProps> = ({
               className="absolute inset-0 w-full h-full pointer-events-none z-30"
               aria-hidden="true"
             >
-              {/* Black underline — static, for contrast */}
+              {/* Black underline — semi-transparent so labels beneath stay readable */}
               <polyline
                 points={pts}
                 fill="none"
@@ -256,6 +256,8 @@ export const Board: React.FC<BoardProps> = ({
                 strokeDasharray="0.18,0.12"
                 strokeLinecap="round"
                 strokeLinejoin="round"
+                opacity="0.45"
+                className="animate-path-crawl"
               />
               {/* Animated theme-color line on top */}
               <polyline
@@ -266,7 +268,7 @@ export const Board: React.FC<BoardProps> = ({
                 strokeDasharray="0.18,0.12"
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                opacity="0.95"
+                opacity="0.7"
                 className="animate-path-crawl"
               />
               {/* Start marker: small square */}

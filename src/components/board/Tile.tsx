@@ -146,7 +146,7 @@ export const Tile: React.FC<TileProps> = ({
       }
     } else {
       // 2. All standard playable tiles are a uniform, clean warm stone gray block
-      bgClass = "bg-stone-200 dark:bg-stone-800";
+      bgClass = "bg-stone-200 dark:bg-stone-900";
     }
 
     if (is3D) {
@@ -196,7 +196,7 @@ export const Tile: React.FC<TileProps> = ({
       {/* Fixed tile lock badge */}
       {tile.isFixed && (
         <div
-          className="absolute top-1 right-1 p-1 bg-stone-900/90 border border-stone-700/60 rounded-full text-amber-400 shadow-md z-20 pointer-events-auto cursor-help transition-all duration-300"
+          className="absolute top-1 right-1 p-0.5 bg-stone-950 border-2 border-stone-950 rounded-md text-amber-400 shadow-[2px_2px_0_0_#000000] z-20 pointer-events-auto cursor-help"
           style={
             is3D
               ? { transform: `rotateZ(${30 - boardRotation}deg) rotateX(-45deg) translateZ(8px)` }
