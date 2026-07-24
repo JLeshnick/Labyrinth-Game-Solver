@@ -200,46 +200,73 @@ export function SolverPanel({
         </div>
       )}
 
-      <div className="p-4 app-surface flex items-center justify-between text-left">
-        <div className="flex items-center gap-3">
-          <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-stone-950 ${PAWNS.find((p) => p.id === activePawn)?.colorClass ?? "bg-stone-500"}`}>
-            {activePawn[0].toUpperCase()}
+      <div className="p-4 app-surface flex items-center justify-between text-left gap-4">
+        {/* Left Side: Turn & Target info */}
+        <div className="flex-1 min-w-0 flex flex-col gap-2.5">
+          <div className="flex items-center gap-2.5">
+            {/* Brutalist Pawn Theme (matching game board style) */}
+            <div className={`w-8 h-8 rounded-full border-2 border-stone-950 shadow-[2px_2px_0_0_#000000] flex items-center justify-center text-xs font-black capitalize relative shrink-0 ${
+              activePawn === "red"
+                ? "bg-red-500 text-white"
+                : activePawn === "blue"
+                ? "bg-blue-500 text-white"
+                : activePawn === "green"
+                ? "bg-emerald-500 text-white"
+                : activePawn === "yellow"
+                ? "bg-amber-400 text-stone-950"
+                : "bg-stone-500 text-white"
+            }`}>
+              <span className="relative z-10">{activePawn[0].toUpperCase()}</span>
+            </div>
+            <div>
+              <div className="text-[10px] font-bold text-stone-500 uppercase tracking-wider leading-none">Turn</div>
+              <div className="text-xs font-black text-stone-100 capitalize mt-1 leading-none">{activePawn} Player</div>
+            </div>
           </div>
+
+          <div className="border-t border-stone-800/80 my-0.5"></div>
+
           <div>
-            <div className="text-xs text-stone-400">Active Pawn's Turn</div>
-            <div className="font-semibold text-stone-100 flex items-center gap-1.5 flex-wrap mt-0.5">
-              <span>Target:</span>
+            <div className="text-[10px] font-bold text-stone-500 uppercase tracking-wider leading-none">Target Goal</div>
+            <div className="mt-1.5 flex items-center flex-wrap gap-1 leading-none">
               {customTargetCoords ? (
-                <span className="text-theme-primary font-bold flex items-center gap-1 text-xs">
-                  {customTargetCoords.r === DEFAULT_PAWN_POSITIONS[activePawn]?.r &&
+                <span className="text-theme-primary font-bold text-xs flex items-center gap-1">
+                  🎯 {customTargetCoords.r === DEFAULT_PAWN_POSITIONS[activePawn]?.r &&
                   customTargetCoords.c === DEFAULT_PAWN_POSITIONS[activePawn]?.c
                     ? "Home Corner"
                     : `Custom Target (${customTargetCoords.r}, ${customTargetCoords.c})`}
-                  <button onClick={() => setCustomTargetCoords(null)} className="text-stone-500 hover:text-stone-300 text-xs ml-1 underline cursor-pointer" title="Clear Custom Target">(clear)</button>
+                  <button onClick={() => setCustomTargetCoords(null)} className="text-stone-500 hover:text-stone-300 text-[10px] ml-1 underline cursor-pointer" title="Clear Custom Target">(clear)</button>
                 </span>
               ) : playerActiveTargets[activePawn] ? (
                 <span className="text-theme-primary font-bold text-xs flex items-center gap-1">
-                  {TREASURES.find(t => t.id === playerActiveTargets[activePawn])?.name ?? playerActiveTargets[activePawn]}
-                  <button onClick={() => onSelectTargetTreasure(activePawn, null)} className="text-stone-500 hover:text-stone-300 text-xs ml-1 underline cursor-pointer" title="Clear target">(clear)</button>
+                  🏆 {TREASURES.find(t => t.id === playerActiveTargets[activePawn])?.name ?? playerActiveTargets[activePawn]}
+                  <button onClick={() => onSelectTargetTreasure(activePawn, null)} className="text-stone-500 hover:text-stone-300 text-[10px] ml-1 underline cursor-pointer" title="Clear target">(clear)</button>
                 </span>
               ) : gameMode === "coop" ? (
                 <span className="text-theme-primary font-bold text-xs">
-                  {remainingCoopTreasures && remainingCoopTreasures.length > 0
-                    ? "Closest Treasure Target (Auto)"
+                  ✨ {remainingCoopTreasures && remainingCoopTreasures.length > 0
+                    ? "Closest Treasure (Auto)"
                     : "Home Corner (Auto)"}
                 </span>
               ) : (
-                <span className="text-stone-500 text-xs italic">Click any tile on the board to set a target</span>
+                <span className="text-stone-550 text-xs italic">Click any board tile to select target</span>
               )}
             </div>
           </div>
         </div>
-        <div className="flex flex-col items-center gap-1">
-          <div className="text-[10px] text-stone-500">Spare Tile</div>
-          <Tile
-            tile={{ ...spareTile, rotation: stagedArrow ? stagedRotation : spareTile.rotation }}
-            className="w-16 h-16 md:w-20 md:h-20 border-theme-primary-40"
-          />
+
+        {/* Vertical Divider */}
+        <div className="w-[1px] self-stretch bg-stone-850/60 shrink-0 my-0.5"></div>
+
+        {/* Right Side: Spare Tile */}
+        <div className="flex flex-col items-center gap-1.5 shrink-0">
+          <div className="text-[10px] font-bold text-stone-500 uppercase tracking-wider leading-none">Spare Tile</div>
+          <div className="mt-1">
+            <Tile
+              tile={{ ...spareTile, rotation: stagedArrow ? stagedRotation : spareTile.rotation }}
+              className="w-14 h-14 md:w-16 md:h-16 border-theme-primary-40"
+            />
+          </div>
           {stagedArrow ? (
             <div className="flex flex-col items-center gap-1 mt-0.5">
               <button
