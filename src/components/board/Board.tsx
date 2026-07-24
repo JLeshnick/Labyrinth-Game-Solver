@@ -246,22 +246,12 @@ export const Board: React.FC<BoardProps> = ({
         <div
           className={cn(
             "grid gap-px xs:gap-0.5 md:gap-1 justify-items-stretch items-stretch transition-all duration-500 overflow-visible aspect-square",
+            isGameStarted ? "grid-cols-9 grid-rows-9" : "grid-cols-7 grid-rows-7",
             is3D
               ? "w-[92%] h-[92%]"
               : "w-full h-full"
           )}
-          style={{
-            transformStyle: is3D ? "preserve-3d" : "flat",
-            ...(isGameStarted
-              ? {
-                  gridTemplateColumns: "0.4fr repeat(7, 1fr) 0.4fr",
-                  gridTemplateRows: "0.4fr repeat(7, 1fr) 0.4fr",
-                }
-              : {
-                  gridTemplateColumns: "repeat(7, 1fr)",
-                  gridTemplateRows: "repeat(7, 1fr)",
-                }),
-          }}
+          style={{ transformStyle: is3D ? "preserve-3d" : "flat" }}
         >
         {/* Render Shifting Arrows */}
         {isGameStarted &&
@@ -280,7 +270,7 @@ export const Board: React.FC<BoardProps> = ({
                   gridColumn: arrow.gridColumn,
                 }}
                 className={cn(
-                  "w-full h-full max-w-[85%] max-h-[85%] mx-auto p-1 rounded-xl transition-all focus:outline-none flex items-center justify-center",
+                  "w-full h-full max-w-[70%] max-h-[70%] mx-auto p-0.5 rounded-lg transition-all focus:outline-none flex items-center justify-center",
                   isForbidden
                     ? "opacity-20 cursor-not-allowed border border-stone-850 text-stone-600 bg-stone-950/60"
                     : turnPhase === "move"
@@ -381,100 +371,55 @@ export const Board: React.FC<BoardProps> = ({
           })
         )}
  
-      {/* Render Pushed-Out Tile Preview */}
+        {/* Pushed-Out Tile Preview — grid-placed, same 1fr cell size as tiles */}
         {isGameStarted && hoveredSolutionArrow && (() => {
           const arrow = SHIFT_ARROWS.find((a) => a.id === hoveredSolutionArrow);
           if (!arrow) return null;
-          
           const sourceGrid = originalGrid || grid;
           let pushedTile: TileData | null = null;
+          let gridRow = 0;
+          let gridColumn = 0;
           let animClass = "";
-  
           if (arrow.type === "row") {
             const r = arrow.index;
-            if (arrow.dir === "left") {
-              pushedTile = sourceGrid[r][6];
-              animClass = "animate-preview-slide-right";
-            } else {
-              pushedTile = sourceGrid[r][0];
-              animClass = "animate-preview-slide-left";
-            }
+            if (arrow.dir === "left") { pushedTile = sourceGrid[r][6]; gridRow = r + 2; gridColumn = 9; animClass = "animate-preview-slide-right"; }
+            else                      { pushedTile = sourceGrid[r][0]; gridRow = r + 2; gridColumn = 1; animClass = "animate-preview-slide-left"; }
           } else {
             const c = arrow.index;
-            if (arrow.dir === "top") {
-              pushedTile = sourceGrid[6][c];
-              animClass = "animate-preview-slide-down";
-            } else {
-              pushedTile = sourceGrid[0][c];
-              animClass = "animate-preview-slide-up";
-            }
+            if (arrow.dir === "top") { pushedTile = sourceGrid[6][c]; gridRow = 9; gridColumn = c + 2; animClass = "animate-preview-slide-down"; }
+            else                     { pushedTile = sourceGrid[0][c]; gridRow = 1; gridColumn = c + 2; animClass = "animate-preview-slide-up"; }
           }
-  
           if (!pushedTile) return null;
-
-          // Compute absolute position for the pushed tile in the tray's coordinate space.
-          // Tile cell size = 1/7.8 of the tray. Arrow cells are 0.4fr.
-          // For a row push: the tile appears outside the board — left or right edge.
-          // For a col push: the tile appears outside — top or bottom edge.
-          const tilePct = (1 / 7.8 * 100).toFixed(2) + "%";
-          const edgeOf = (i: number) => ((0.4 + i) / 7.8 * 100).toFixed(2) + "%";
-          // r/c of the affected row/col
-          const tileR = arrow.type === "row" ? arrow.index : (arrow.dir === "top" ? -1 : 7);
-          const tileC = arrow.type === "col" ? arrow.index : (arrow.dir === "left" ? -1 : 7);
-          const posStyle: React.CSSProperties = {
-            position: "absolute",
-            width: tilePct,
-            height: tilePct,
-            zIndex: 30,
-            top: arrow.type === "col"
-              ? (arrow.dir === "top" ? `calc(-${tilePct})` : "100%")
-              : edgeOf(tileR),
-            left: arrow.type === "row"
-              ? (arrow.dir === "left" ? `calc(-${tilePct})` : "100%")
-              : edgeOf(tileC),
-          };
-
           return (
             <div
-              style={posStyle}
-              className={cn("rounded-xl overflow-hidden border-2 border-stone-950 pointer-events-none shadow-[4px_4px_0_0_#000000]", animClass)}
+              style={{ gridRow, gridColumn, zIndex: 30 }}
+              className={cn("relative w-full h-full aspect-square rounded-xl overflow-hidden border-2 border-stone-950 pointer-events-none shadow-[4px_4px_0_0_#000000]", animClass)}
             >
-              <Tile tile={pushedTile} boardRotation={boardRotation} disableRotationTransition={true} is3D={is3D} className="w-full h-full" />
+              <Tile tile={pushedTile} boardRotation={boardRotation} disableRotationTransition={true} is3D={is3D} className="absolute inset-0 w-full h-full" />
             </div>
           );
         })()}
-      </div>
 
-      {/* SVG Solved Path Overlay — c+0.9 coords in 7.8×7.8 viewBox match tile centers */}
-      {isGameStarted && hoveredPath && hoveredPath.length > 0 && (() => {
-        const tc = (i: number) => i + 0.9;
-        const pts = hoveredPath.map(p => `${tc(p.c)},${tc(p.r)}`).join(" ");
-        const s = hoveredPath[0];
-        const e = hoveredPath[hoveredPath.length - 1];
-        return (
-          <svg
-            viewBox="0 0 7.8 7.8"
-            preserveAspectRatio="xMidYMid meet"
-            className="absolute inset-0 w-full h-full pointer-events-none z-30"
-            aria-hidden="true"
-          >
-            <polyline points={pts} fill="none" stroke="#000000"
-              strokeWidth="0.10" strokeDasharray="0.18,0.12"
-              strokeLinecap="round" strokeLinejoin="round"
-              opacity="0.45" className="animate-path-crawl" />
-            <polyline points={pts} fill="none" stroke="var(--theme-color)"
-              strokeWidth="0.06" strokeDasharray="0.18,0.12"
-              strokeLinecap="round" strokeLinejoin="round"
-              opacity="0.7" className="animate-path-crawl" />
-            <rect x={tc(s.c) - 0.13} y={tc(s.r) - 0.13} width="0.26" height="0.26" fill="#000000" />
-            <rect x={tc(s.c) - 0.08} y={tc(s.r) - 0.08} width="0.16" height="0.16" fill="var(--theme-color)" />
-            {hoveredPath.length > 1 && <>
-              <circle cx={tc(e.c)} cy={tc(e.r)} r="0.13" fill="#000000" />
-              <circle cx={tc(e.c)} cy={tc(e.r)} r="0.08" fill="var(--theme-color)" />
-            </>}
-          </svg>
-        );
-      })()}
+        {/* SVG Path Overlay — absolute over the 9×9 grid, viewBox 0 0 9 9, tile center = c+1.5 */}
+        {isGameStarted && hoveredPath && hoveredPath.length > 0 && (() => {
+          const tc = (i: number) => i + 1.5;
+          const pts = hoveredPath.map(p => `${tc(p.c)},${tc(p.r)}`).join(" ");
+          const s = hoveredPath[0];
+          const e = hoveredPath[hoveredPath.length - 1];
+          return (
+            <svg viewBox="0 0 9 9" className="absolute inset-0 w-full h-full pointer-events-none z-30" aria-hidden="true">
+              <polyline points={pts} fill="none" stroke="#000000" strokeWidth="0.10" strokeDasharray="0.18,0.12" strokeLinecap="round" strokeLinejoin="round" opacity="0.45" className="animate-path-crawl" />
+              <polyline points={pts} fill="none" stroke="var(--theme-color)" strokeWidth="0.06" strokeDasharray="0.18,0.12" strokeLinecap="round" strokeLinejoin="round" opacity="0.7" className="animate-path-crawl" />
+              <rect x={tc(s.c) - 0.13} y={tc(s.r) - 0.13} width="0.26" height="0.26" fill="#000000" />
+              <rect x={tc(s.c) - 0.08} y={tc(s.r) - 0.08} width="0.16" height="0.16" fill="var(--theme-color)" />
+              {hoveredPath.length > 1 && <>
+                <circle cx={tc(e.c)} cy={tc(e.r)} r="0.13" fill="#000000" />
+                <circle cx={tc(e.c)} cy={tc(e.r)} r="0.08" fill="var(--theme-color)" />
+              </>}
+            </svg>
+          );
+        })()}
+      </div>
       </div>
     </div>
   );
