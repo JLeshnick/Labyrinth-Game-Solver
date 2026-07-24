@@ -25,23 +25,24 @@ export const Tile: React.FC<TileProps> = ({
 }) => {
   // Paths rendering logic
   const getPathStyles = () => {
+    const pathClass = "bg-amber-100/90 dark:bg-stone-800/90 shadow-inner dark:shadow-[inset_0_0_8px_rgba(0,0,0,0.6)]";
     switch (tile.shape) {
       case "straight":
         return (
-          <div className="absolute inset-y-0 left-1/4 right-1/4 bg-amber-100 shadow-inner" />
+          <div className={cn("absolute inset-y-0 left-1/4 right-1/4", pathClass)} />
         );
       case "corner":
         return (
           <>
-            <div className="absolute top-0 bottom-1/4 left-1/4 right-1/4 bg-amber-100 shadow-inner" />
-            <div className="absolute top-1/4 bottom-1/4 left-1/4 right-0 bg-amber-100 shadow-inner" />
+            <div className={cn("absolute top-0 bottom-1/4 left-1/4 right-1/4", pathClass)} />
+            <div className={cn("absolute top-1/4 bottom-1/4 left-1/4 right-0", pathClass)} />
           </>
         );
       case "t-junction":
         return (
           <>
-            <div className="absolute top-1/4 bottom-1/4 left-0 right-0 bg-amber-100 shadow-inner" />
-            <div className="absolute top-0 bottom-1/4 left-1/4 right-1/4 bg-amber-100 shadow-inner" />
+            <div className={cn("absolute top-1/4 bottom-1/4 left-0 right-0", pathClass)} />
+            <div className={cn("absolute top-0 bottom-1/4 left-1/4 right-1/4", pathClass)} />
           </>
         );
       default:
@@ -69,11 +70,11 @@ export const Tile: React.FC<TileProps> = ({
         }
       }}
       className={cn(
-        "relative rounded-md shadow-sm border overflow-hidden flex items-center justify-center transition-opacity",
+        "relative rounded-md shadow-sm border overflow-hidden flex items-center justify-center transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]",
         tile.color
           ? getCornerColorClasses().border + " border-2"
-          : "border-amber-900",
-        tile.isFixed ? "bg-amber-800" : "bg-amber-700",
+          : "border-amber-900/60 dark:border-stone-800/80",
+        tile.isFixed ? "bg-amber-800 dark:bg-stone-900" : "bg-amber-700 dark:bg-stone-950/70",
         isObtainedTreasure && "after:absolute after:inset-0 after:bg-stone-950/30 after:rounded-md after:pointer-events-none",
         className
       )}
