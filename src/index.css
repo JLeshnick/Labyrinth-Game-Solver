@@ -411,6 +411,9 @@
 [data-theme="light"] .app-surface-raised {
   box-shadow: 5px 5px 0px 0px #000000;
 }
+[data-theme="light"] .app-surface {
+  background-color: #ffffff;
+}
 /* Accent-tinted surface for the hero (top) solver suggestion */
 .app-surface-accent {
   background-color: rgba(var(--theme-color-rgb), 0.08);
@@ -432,14 +435,14 @@
   }
 }
 
-@keyframes dash-crawl {
-  to {
-    stroke-dashoffset: -0.24;
-  }
+
+/* Solver path crawl — animates strokeDashoffset so dashes march along the route */
+@keyframes path-crawl {
+  to { stroke-dashoffset: -0.6; }
 }
 
-.animate-dash {
-  animation: dash-crawl 1s linear infinite;
+.animate-path-crawl {
+  animation: path-crawl 0.6s linear infinite;
 }
 
 @keyframes fade-in {
@@ -457,21 +460,6 @@
   animation: fade-in 0.2s ease-out both;
 }
 
-/* Pulsating border animation for active target treasure */
-@keyframes pulse-border {
-  0%,
-  100% {
-    box-shadow: 0 0 10px rgba(251, 191, 36, 0.3), 0 0 20px rgba(251, 191, 36, 0.1);
-    border-color: rgba(251, 191, 36, 0.5);
-  }
-  50% {
-    box-shadow: 0 0 20px rgba(251, 191, 36, 0.6), 0 0 40px rgba(251, 191, 36, 0.3);
-    border-color: rgba(251, 191, 36, 1);
-  }
-}
-.animate-pulse-border {
-  animation: pulse-border 1.5s ease-in-out infinite;
-}
 
 /* Color Theme Helper Classes */
 .text-theme-primary {
@@ -514,9 +502,6 @@
   --tw-ring-color: var(--theme-color) !important;
 }
 
-.shadow-theme-glow {
-  box-shadow: 0 10px 15px -3px var(--theme-glow), 0 4px 6px -4px var(--theme-glow) !important;
-}
 
 /* Toast slide-in animation (replaces aggressive bounce) */
 @keyframes toast-in {
@@ -660,7 +645,7 @@
 
 /* Disable looping animations for users who prefer reduced motion */
 @media (prefers-reduced-motion: reduce) {
-  .animate-dash,
+  .animate-path-crawl,
   .animate-pulse,
   .animate-ping,
   .animate-bounce,
@@ -697,35 +682,11 @@
     0 14px 20px rgba(0, 0, 0, 0.45);
 }
 
-/* Neumorphic and Brutalist variables */
-[data-theme="dark"] {
-  --tile-shadow: #070605;
-  --neumorphic-dark: #070605;
-  --neumorphic-light: #2c2925;
-}
-[data-theme="light"] {
-  --tile-shadow: #d6d3d1;
-  --neumorphic-dark: #cbd5e1;
-  --neumorphic-light: #ffffff;
-}
-
-.shadow-neumorphic {
-  box-shadow: 6px 6px 12px var(--neumorphic-dark), -6px -6px 12px var(--neumorphic-light);
-}
-
-.shadow-neumorphic-inset {
-  box-shadow: inset 4px 4px 8px var(--neumorphic-dark), inset -4px -4px 8px var(--neumorphic-light);
-}
-
 /* ── Neo-Brutalism Theme Utility Classes ──────────────────────────── */
 .neo-brutalism-card {
   border: 3px solid #000000;
   box-shadow: 6px 6px 0px 0px #000000;
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-}
-[data-theme="dark"] .neo-brutalism-card {
-  border: 3px solid #000000;
-  box-shadow: 6px 6px 0px 0px #000000;
 }
 
 .neo-brutalism-button {

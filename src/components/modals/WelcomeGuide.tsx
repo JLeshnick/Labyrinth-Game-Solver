@@ -42,7 +42,7 @@ export function WelcomeGuide({ open, onOpenChange, onDismiss }: WelcomeGuideProp
       }}
     >
       <DialogContent
-        className="sm:max-w-[440px] md:max-w-[560px] lg:max-w-[680px] xl:max-w-[760px] app-dialog-panel border border-stone-800 text-stone-100 shadow-2xl p-6 rounded-2xl"
+        className="sm:max-w-[440px] md:max-w-[560px] lg:max-w-[680px] xl:max-w-[760px] text-stone-100 p-6 rounded-xl"
         onKeyDown={(e) => {
           if (e.key === " ") e.stopPropagation();
         }}
@@ -80,11 +80,12 @@ export function WelcomeGuide({ open, onOpenChange, onDismiss }: WelcomeGuideProp
         </div>
         <div className="flex justify-end mt-6">
           <Button
+            variant="brutalist"
             onClick={() => {
               onDismiss();
               onOpenChange(false);
             }}
-            className="rounded-xl"
+            className="rounded-lg"
           >
             Got it, let's play
           </Button>

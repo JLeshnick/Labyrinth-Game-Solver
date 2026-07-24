@@ -145,7 +145,7 @@ function AlignStep({ imgSrc, photoRotation, onRotatePhoto, corners, onCornersCha
         </p>
         <button
           onClick={onRotatePhoto}
-          className="shrink-0 flex items-center gap-1 text-xs text-stone-400 hover:text-stone-200 border border-stone-700 hover:border-stone-500 rounded-lg px-2 py-1.5 transition-colors"
+          className="shrink-0 flex items-center gap-1 text-xs text-stone-300 neo-brutalism-button rounded-lg px-2 py-1.5"
           title="Rotate photo 90° clockwise"
         >
           <RotateCw className="w-3.5 h-3.5" />
@@ -391,7 +391,7 @@ export function BoardScanModal({ open, onClose, onApply }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
-      <DialogContent className="max-w-md bg-stone-900 border-stone-700 text-stone-100">
+      <DialogContent className="max-w-md text-stone-100 rounded-xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-stone-100">
             <Camera className="w-5 h-5 text-theme-primary" />
@@ -409,7 +409,7 @@ export function BoardScanModal({ open, onClose, onApply }: Props) {
             <TemplateStatus />
             {error && <p className="text-xs text-red-400">{error}</p>}
             <div
-              className="border-2 border-dashed border-stone-600 hover:border-theme-primary rounded-xl p-8 flex flex-col items-center gap-3 cursor-pointer transition-colors"
+              className="neo-brutalism-button border-dashed border-stone-700 hover:border-theme-primary rounded-xl p-8 flex flex-col items-center gap-3 cursor-pointer transition-colors"
               onClick={() => fileRef.current?.click()}
               onDrop={handleDrop}
               onDragOver={(e) => e.preventDefault()}
@@ -439,9 +439,9 @@ export function BoardScanModal({ open, onClose, onApply }: Props) {
           <div className="flex flex-col items-center gap-4 py-6">
             <Camera className="w-10 h-10 text-theme-primary animate-pulse" />
             <p className="text-sm text-stone-300">Analyzing board…</p>
-            <div className="w-full bg-stone-800 rounded-full h-2">
+            <div className="w-full bg-stone-900 border-2 border-stone-950 rounded h-3">
               <div
-                className="h-2 rounded-full bg-theme-primary transition-all duration-200"
+                className="h-full rounded-sm bg-theme-primary transition-all duration-200"
                 style={{ width: `${progress}%` }}
               />
             </div>
@@ -483,9 +483,9 @@ export function BoardScanModal({ open, onClose, onApply }: Props) {
 
             <div className="flex gap-2">
               <Button
-                variant="outline"
+                variant="brutalist"
                 onClick={() => setStep("align")}
-                className="flex-1 border-stone-700 text-stone-300 hover:bg-stone-800"
+                className="flex-1"
               >
                 Re-scan
               </Button>

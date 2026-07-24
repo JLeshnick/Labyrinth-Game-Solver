@@ -47,7 +47,7 @@ export const StatsPanel: React.FC<StatsPanelProps> = ({
   };
 
   return (
-    <Card className="bg-stone-900/90 border-stone-800 shadow-xl flex flex-col">
+    <Card className="flex flex-col">
       <CardHeader className="pb-2 pt-3 px-4">
         <CardTitle className="text-sm font-bold text-stone-200 flex items-center gap-2">
           <Gauge className="w-4 h-4 text-theme-primary" />
@@ -57,19 +57,19 @@ export const StatsPanel: React.FC<StatsPanelProps> = ({
       <CardContent className="px-4 pb-3 pt-1 space-y-3 flex-1 overflow-y-auto">
         {/* Global summary */}
         <div className="grid grid-cols-3 gap-2">
-          <div className="bg-stone-800/60 rounded-lg p-2 text-center">
+          <div className="app-surface p-2 text-center rounded-lg">
             <div className="text-lg font-bold text-stone-100">{totalShifts}</div>
             <div className="text-[10px] text-stone-400 flex items-center justify-center gap-1">
               <ArrowLeftRight className="w-3 h-3" /> Shifts
             </div>
           </div>
-          <div className="bg-stone-800/60 rounded-lg p-2 text-center">
+          <div className="app-surface p-2 text-center rounded-lg">
             <div className="text-lg font-bold text-stone-100">{totalTilesMoved}</div>
             <div className="text-[10px] text-stone-400 flex items-center justify-center gap-1">
               <Footprints className="w-3 h-3" /> Moves
             </div>
           </div>
-          <div className="bg-stone-800/60 rounded-lg p-2 text-center">
+          <div className="app-surface p-2 text-center rounded-lg">
             <div className="text-lg font-bold text-amber-400">{totalTreasuresFound}</div>
             <div className="text-[10px] text-stone-400 flex items-center justify-center gap-1">
               <Trophy className="w-3 h-3" /> Found
@@ -95,7 +95,7 @@ export const StatsPanel: React.FC<StatsPanelProps> = ({
             return (
               <div
                 key={color}
-                className="bg-stone-800/40 border border-stone-700/50 rounded-lg p-2"
+                className="app-surface p-2 rounded-lg"
               >
                 <div className="flex items-center justify-between mb-1">
                   <div className="flex items-center gap-1.5">

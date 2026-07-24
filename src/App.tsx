@@ -750,8 +750,6 @@ export default function App() {
   // ── Render ────────────────────────────────────────────────────────────────────
   return (
     <div className="h-screen bg-background text-foreground flex flex-col font-sans select-none relative overflow-hidden transition-colors duration-300">
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(120,119,198,0.15),rgba(255,255,255,0))]" />
-      <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-theme-primary-10 blur-[120px] rounded-full pointer-events-none" />
 
       <AppHeader
         isGameStarted={game.isGameStarted}
@@ -1018,7 +1016,7 @@ export default function App() {
                     game.looseTiles.find((t) => t.id === activeId) ||
                     game.grid.flat().find((t) => t?.id === activeId)!
                   }
-                  className="w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 lg:w-24 lg:h-24 shadow-2xl shadow-black ring-4 ring-theme-primary/50"
+                  className="w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 lg:w-24 lg:h-24 shadow-[6px_6px_0_0_#000000] rotate-3"
                 />
               ) : null}
             </DragOverlay>,
@@ -1060,7 +1058,7 @@ export default function App() {
       {/* Stats dialog */}
       <Dialog open={showStats} onOpenChange={setShowStats}>
         <DialogContent
-          className="sm:max-w-[500px] app-dialog-panel border border-stone-800 text-stone-100 shadow-2xl p-0 rounded-2xl overflow-hidden"
+          className="sm:max-w-[500px] text-stone-100 p-0 rounded-xl overflow-hidden"
           onKeyDown={(e) => {
             if (e.key === " ") e.stopPropagation();
           }}
@@ -1080,7 +1078,7 @@ export default function App() {
       </div>
       {toastText && (
         <div
-          className="fixed bottom-[72px] md:bottom-6 left-1/2 -translate-x-1/2 px-4 sm:px-6 py-2.5 sm:py-3 bg-stone-900 border border-theme-primary-20 text-stone-100 font-semibold text-xs sm:text-sm rounded-full shadow-2xl shadow-black z-50 animate-toast-in flex items-center gap-2 whitespace-nowrap"
+          className="fixed bottom-[72px] md:bottom-6 left-1/2 -translate-x-1/2 px-4 sm:px-6 py-2.5 sm:py-3 app-dialog-panel neo-brutalism-card text-stone-100 font-semibold text-xs sm:text-sm rounded-lg z-50 animate-toast-in flex items-center gap-2 whitespace-nowrap"
           aria-hidden="true"
         >
           <Sparkles className="w-4 h-4 text-theme-primary shrink-0" />

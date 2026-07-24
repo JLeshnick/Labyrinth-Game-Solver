@@ -3,6 +3,7 @@ import { useDraggable } from "@dnd-kit/core";
 import type { TileData } from "../../types";
 import { cn } from "../../lib/utils";
 import { Lock } from "lucide-react";
+import { TREASURE_SHORT_NAMES } from "../../constants";
 
 interface TileProps {
   tile: TileData;
@@ -66,18 +67,18 @@ export const Tile: React.FC<TileProps> = ({
         return (
           <svg viewBox="0 0 100 100" className="absolute inset-0 w-full h-full pointer-events-none overflow-visible">
             <path
-              d="M 32 -5 H 68 A 32 32 0 0 1 105 32 V 68 A 68 68 0 0 0 32 -5 Z"
+              d="M 32 -5 H 68 A 32 32 0 0 0 105 32 V 68 A 68 68 0 0 1 32 -5 Z"
               className={fillClass}
             />
             <path
-              d="M 32 -5 A 68 68 0 0 1 105 68"
+              d="M 32 -5 A 68 68 0 0 0 105 68"
               fill="none"
               className={strokeClass}
               strokeWidth={strokeWidth}
               strokeLinecap="round"
             />
             <path
-              d="M 68 -5 A 32 32 0 0 1 105 32"
+              d="M 68 -5 A 32 32 0 0 0 105 32"
               fill="none"
               className={strokeClass}
               strokeWidth={strokeWidth}
@@ -125,7 +126,9 @@ export const Tile: React.FC<TileProps> = ({
       default:
         return null;
     }
-  };  const getTileStyles = () => {
+  };
+
+  const getTileStyles = () => {
     let bgClass = "bg-stone-200 dark:bg-stone-850";
     let borderClass = "border-2 border-stone-950 dark:border-stone-950";
     let shadowStyle: React.CSSProperties = {};
@@ -135,7 +138,7 @@ export const Tile: React.FC<TileProps> = ({
       if (tile.color === "blue") {
         bgClass = "bg-blue-600 dark:bg-blue-700 text-white";
       } else if (tile.color === "red") {
-        bgClass = "bg-red-650 dark:bg-red-750 text-white";
+        bgClass = "bg-red-600 dark:bg-red-700 text-white";
       } else if (tile.color === "green") {
         bgClass = "bg-emerald-600 dark:bg-emerald-700 text-white";
       } else if (tile.color === "yellow") {
@@ -153,17 +156,6 @@ export const Tile: React.FC<TileProps> = ({
     }
 
     return { bgClass, borderClass, shadowStyle };
-  };
-
-  const getCornerColorClasses = () => {
-    if (!tile.color) return { border: "", text: "", bg: "" };
-    const map: Record<string, { border: string; text: string; bg: string }> = {
-      blue:   { border: "border-stone-950",   text: "text-white",   bg: "bg-blue-600" },
-      red:    { border: "border-stone-950",    text: "text-white",    bg: "bg-red-600" },
-      green:  { border: "border-stone-950",  text: "text-white",  bg: "bg-emerald-600" },
-      yellow: { border: "border-stone-950", text: "text-stone-950", bg: "bg-yellow-400" },
-    };
-    return map[tile.color] ?? { border: "", text: "", bg: "" };
   };
 
   const { bgClass, borderClass, shadowStyle } = getTileStyles();
@@ -200,29 +192,6 @@ export const Tile: React.FC<TileProps> = ({
         </div>
       </div>
 
-      {/* Home corner marker — embedded flat into the tile corner, clearly distinct from pawns */}
-      {tile.color && (() => {
-        const { border, text, bg } = getCornerColorClasses();
-        const label = tile.color[0].toUpperCase();
-        return (
-          <div
-            className={cn(
-              "absolute bottom-1 right-1 w-6 h-6 sm:w-7 sm:h-7 rounded-full flex items-center justify-center",
-              "border-2 z-10 shadow-md transition-all duration-300 pointer-events-none font-bold",
-              bg, border
-            )}
-            style={
-              is3D
-                ? { transform: `rotateZ(${30 - boardRotation}deg) rotateX(-45deg) translateZ(6px)` }
-                : { transform: `rotate(${-boardRotation}deg)` }
-            }
-          >
-            <span className={cn("text-[9px] sm:text-[10px] font-black leading-none select-none", text)}>
-              {label}
-            </span>
-          </div>
-        );
-      })()}
 
       {/* Fixed tile lock badge */}
       {tile.isFixed && (
@@ -239,26 +208,30 @@ export const Tile: React.FC<TileProps> = ({
         </div>
       )}
 
-      {/* Treasure Gold Coin Medallion (Centered) */}
+      {/* Treasure name banner — sits across the bottom of the tile */}
       {tile.treasure && (
         <div
           className={cn(
-            "absolute z-10 w-9 h-9 sm:w-11 sm:h-11 rounded-full flex items-center justify-center border-2 border-amber-200 shadow-md font-bold text-center select-none uppercase tracking-wide transition-all duration-300 pointer-events-none",
+            "absolute bottom-0 inset-x-0 z-10 flex items-center justify-center px-1 py-0.5 border-t-2 border-stone-950 transition-all duration-300 pointer-events-none rounded-b-2xl",
             isObtainedTreasure
-              ? "opacity-40 bg-stone-700 text-stone-400 border-stone-500 line-through"
+              ? "bg-stone-600 opacity-50"
               : isCurrentTarget
-              ? "bg-gradient-to-b from-amber-200 via-amber-400 to-amber-500 text-stone-950 font-black scale-110 ring-2 ring-white/50"
-              : "bg-gradient-to-b from-yellow-300 to-amber-500 text-amber-950"
+              ? "bg-amber-400"
+              : "bg-amber-300"
           )}
           style={
             is3D
               ? { transform: `rotateZ(${30 - boardRotation}deg) rotateX(-45deg) translateZ(10px)` }
               : { transform: `rotate(${-boardRotation}deg)` }
           }
+          title={tile.treasure.name}
         >
-          <div className="w-full text-center px-1 font-extrabold leading-[1] truncate overflow-hidden text-[6px] sm:text-[7.5px] uppercase">
-            {tile.treasure.name}
-          </div>
+          <span className={cn(
+            "text-[9px] sm:text-[10px] font-black text-stone-950 leading-tight text-center select-none uppercase tracking-tight",
+            isObtainedTreasure && "line-through opacity-70"
+          )}>
+            {TREASURE_SHORT_NAMES[tile.treasure.id] ?? tile.treasure.name}
+          </span>
         </div>
       )}
     </div>

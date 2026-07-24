@@ -61,6 +61,8 @@ export interface AppHeaderProps {
   onToggle3D: () => void;
 }
 
+const iconBtnCls = "neo-brutalism-button bg-card hover:bg-stone-100 dark:hover:bg-stone-850 w-8 h-8 flex items-center justify-center rounded-lg cursor-pointer transition-all";
+
 const STEPS = [
   {
     id: "setup" as const,
@@ -141,11 +143,11 @@ export function AppHeader({
       >
         {/* Left — branding */}
         <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
-          <div className="p-1.5 bg-theme-primary-10 border border-theme-primary-20 rounded-xl text-theme-primary">
-            <Compass className="w-4 h-4 animate-pulse" />
+          <div className="p-1.5 neo-brutalism-button bg-theme-primary-10 border-stone-950 rounded-lg text-theme-primary">
+            <Compass className="w-4 h-4" />
           </div>
           <div>
-            <h1 className="text-sm sm:text-lg md:text-xl font-bold tracking-tight bg-gradient-to-r from-foreground to-theme-primary bg-clip-text text-transparent flex items-center">
+            <h1 className="text-sm sm:text-lg md:text-xl font-bold tracking-tight text-foreground flex items-center">
               <span className="hidden sm:inline">Labyrinth Game Solver</span>
               <span className="sm:hidden">Labyrinth</span>
             </h1>
@@ -170,7 +172,7 @@ export function AppHeader({
         {/* Center — Step Nav */}
         <div className="flex-1 flex flex-col items-center justify-center min-w-0 gap-1">
           <div className="w-auto">
-            <div className="flex w-auto items-center app-step-nav rounded-full border border-border px-1 py-0.5 sm:p-1 gap-1">
+            <div className="flex w-auto items-center bg-card neo-brutalism-card rounded-xl px-1 py-0.5 sm:p-1 gap-1">
               {STEPS.map((s) => {
                 const isActive = s.id === currentStep;
                 const isDisabled = s.id === "game" && !isGameStarted && !canStartGame;
@@ -188,12 +190,12 @@ export function AppHeader({
                     }}
                     title={isDisabled ? "Place all 33 movable tiles first" : undefined}
                     className={cn(
-                      "flex items-center justify-center gap-1 sm:gap-2 px-3 sm:px-4 py-1.5 rounded-full text-[11px] sm:text-xs font-semibold transition-all",
+                      "flex items-center justify-center gap-1 sm:gap-2 px-3 sm:px-4 py-1.5 rounded-lg text-[11px] sm:text-xs font-bold transition-all border-2",
                       isActive
-                        ? "bg-theme-primary text-stone-950 shadow-sm"
+                        ? "bg-theme-primary text-stone-950 border-stone-950 shadow-[2px_2px_0_0_#000000]"
                         : isDisabled
-                        ? "text-stone-600 cursor-not-allowed"
-                        : "text-stone-400 hover:text-stone-200 hover:bg-stone-900/40 cursor-pointer"
+                        ? "text-stone-600 border-transparent cursor-not-allowed"
+                        : "text-stone-400 border-transparent hover:text-stone-200 hover:bg-stone-900/40 cursor-pointer"
                     )}
                   >
                     {s.icon}
@@ -295,7 +297,7 @@ export function AppHeader({
                       </span>
                     </div>
                     {/* Hover tooltip */}
-                    <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-52 rounded-xl border border-stone-700 bg-stone-950 shadow-2xl p-3 z-50 invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-all duration-150 flex flex-col gap-1 pointer-events-none">
+                    <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-52 rounded-xl app-dialog-panel neo-brutalism-card p-3 z-50 invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-all duration-150 flex flex-col gap-1 pointer-events-none">
                       <div className="text-[10px] font-bold text-stone-200 capitalize border-b border-stone-800 pb-1.5 mb-0.5 flex items-center gap-1.5">
                         <div
                           className={`w-3 h-3 rounded-full ${
@@ -365,7 +367,7 @@ export function AppHeader({
                 if (!isMuted) playClickSound();
                 onUndo();
               }}
-              className="neo-brutalism-button bg-card hover:bg-stone-100 dark:hover:bg-stone-850 disabled:opacity-30 w-8 h-8 flex items-center justify-center rounded-lg cursor-pointer transition-all disabled:pointer-events-none"
+              className={cn(iconBtnCls, "disabled:opacity-30 disabled:pointer-events-none")}
               title="Undo (Ctrl+Z)"
               aria-label="Undo"
             >
@@ -380,7 +382,7 @@ export function AppHeader({
                 if (!isMuted) playClickSound();
                 onRedo();
               }}
-              className="neo-brutalism-button bg-card hover:bg-stone-100 dark:hover:bg-stone-850 disabled:opacity-30 w-8 h-8 flex items-center justify-center rounded-lg cursor-pointer transition-all disabled:pointer-events-none"
+              className={cn(iconBtnCls, "disabled:opacity-30 disabled:pointer-events-none")}
               title="Redo (Ctrl+Y)"
               aria-label="Redo"
             >
@@ -395,7 +397,7 @@ export function AppHeader({
                   if (!isMuted) playClickSound();
                   onOpenHistory();
                 }}
-                className="neo-brutalism-button bg-card hover:bg-stone-100 dark:hover:bg-stone-850 w-8 h-8 flex items-center justify-center rounded-lg cursor-pointer transition-all"
+                className={iconBtnCls}
                 title="Move History"
                 aria-label="View move history"
               >
@@ -412,7 +414,7 @@ export function AppHeader({
                 if (!isMuted) playClickSound();
                 onRotateBoard();
               }}
-              className="neo-brutalism-button bg-card hover:bg-stone-100 dark:hover:bg-stone-850 w-8 h-8 flex items-center justify-center rounded-lg cursor-pointer transition-all"
+              className={iconBtnCls}
               title="Rotate Board Perspective (90° Clockwise)"
               aria-label="Rotate board perspective 90 degrees clockwise"
             >
@@ -428,7 +430,7 @@ export function AppHeader({
                 if (!isMuted) playClickSound();
                 onToggleMute();
               }}
-              className="neo-brutalism-button bg-card hover:bg-stone-100 dark:hover:bg-stone-850 w-8 h-8 flex items-center justify-center rounded-lg cursor-pointer transition-all"
+              className={iconBtnCls}
               aria-label={isMuted ? "Unmute audio" : "Mute audio"}
             >
               {isMuted ? (
@@ -446,7 +448,7 @@ export function AppHeader({
               if (!isMuted) playClickSound();
               onOpenSettings();
             }}
-            className="neo-brutalism-button bg-card hover:bg-stone-100 dark:hover:bg-stone-850 w-8 h-8 shrink-0 flex items-center justify-center rounded-lg cursor-pointer transition-all"
+            className={cn(iconBtnCls, "shrink-0")}
             title="Settings"
             aria-label="Open settings"
           >
@@ -460,7 +462,7 @@ export function AppHeader({
               if (!isMuted) playClickSound();
               onOpenWelcomeGuide();
             }}
-            className="neo-brutalism-button bg-card hover:bg-stone-100 dark:hover:bg-stone-850 w-8 h-8 shrink-0 flex items-center justify-center rounded-lg cursor-pointer transition-all"
+            className={cn(iconBtnCls, "shrink-0")}
             title="How to play"
             aria-label="Open the how-to-play guide"
           >
@@ -494,7 +496,7 @@ export function AppHeader({
         }}
       >
         <DialogContent
-          className="sm:max-w-[360px] app-dialog-panel border border-stone-800 text-stone-100 shadow-2xl p-6 rounded-2xl"
+          className="sm:max-w-[360px] text-stone-100 p-6 rounded-xl"
           onKeyDown={(e) => {
             if (e.key === " ") e.stopPropagation();
           }}
@@ -511,9 +513,9 @@ export function AppHeader({
           </p>
           <div className="flex justify-end gap-3 mt-6">
             <Button
-              variant="outline"
+              variant="brutalist"
               onClick={() => setShowEndGameConfirm(false)}
-              className="border-stone-800 hover:bg-stone-800 text-stone-300 rounded-xl"
+              className="rounded-lg"
             >
               Cancel
             </Button>
@@ -524,7 +526,7 @@ export function AppHeader({
                 setShowEndGameConfirm(false);
                 onEndGame();
               }}
-              className="rounded-xl"
+              className="rounded-lg neo-brutalism-button"
             >
               End Game
             </Button>

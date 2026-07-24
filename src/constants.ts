@@ -39,6 +39,42 @@ export const PAWNS = [
   { id: "yellow", name: "Yellow", colorClass: "bg-yellow-400", borderClass: "border-yellow-400", tokenClass: "bg-yellow-400 ring-yellow-200 shadow-yellow-500/50 text-stone-950" },
 ];
 
+/** Short display name for each treasure — shown on tiles as a compact text badge. */
+export const TREASURE_SHORT_NAMES: Record<string, string> = {
+  book:         "Book",
+  coins:        "Coins",
+  map:          "Map",
+  crown:        "Crown",
+  keys:         "Keys",
+  skull:        "Skull",
+  ring:         "Ring",
+  chest:        "Chest",
+  emerald:      "Jewel",
+  sword:        "Sword",
+  menorah:      "Menorah",
+  helmet:       "Helmet",
+  lizard:       "Lizard",
+  moth:         "Moth",
+  owl:          "Owl",
+  scarab:       "Scarab",
+  rat:          "Rat",
+  spider:       "Spider",
+  bat:          "Bat",
+  dragon:       "Dragon",
+  ghost_bottle: "Ghost",
+  ghost_waving: "Ghost",
+  lady_pig:     "Lady Pig",
+  sorceress:    "Witch",
+};
+
+/** Single source of truth for pawn fill colors as hex (used in SVG / canvas contexts). */
+export const PAWN_COLOR_HEX: Record<string, string> = {
+  red:    "#ef4444",
+  blue:   "#3b82f6",
+  green:  "#22c55e",
+  yellow: "#facc15",
+};
+
 // Fixed tiles on the board game (16 total).
 // Swapped Red and Yellow starting spots, and Green and Blue starting spots
 // so Blue/Red are across from each other, and Green/Yellow are across from each other.

@@ -14,8 +14,6 @@ interface BoardSpaceProps {
   pawns: string[];
   isGameStarted: boolean;
   isOnHoveredPath: boolean;
-  isPathStart: boolean;
-  isPathEnd: boolean;
   onCellClick: (r: number, c: number) => void;
   onTileClick: (id: string) => void;
   boardRotation: number;
@@ -36,8 +34,6 @@ const BoardSpace: React.FC<BoardSpaceProps> = ({
   pawns,
   isGameStarted,
   isOnHoveredPath,
-  isPathStart,
-  isPathEnd,
   onCellClick,
   onTileClick,
   boardRotation,
@@ -92,16 +88,13 @@ const BoardSpace: React.FC<BoardSpaceProps> = ({
           ? "bg-stone-900/40 border border-stone-800/20"
           : "border border-dashed border-stone-800/40 bg-stone-950/30 hover:bg-stone-900/10 shadow-inner",
         isOver && !tile ? "ring-2 ring-theme-primary ring-inset bg-theme-primary-10" : "",
-        isOnHoveredPath ? "ring-2 ring-theme-primary ring-offset-2 ring-offset-stone-950 shadow-[0_0_12px_rgba(var(--theme-color-rgb),0.3)]" : "",
-        isCustomTarget ? "ring-2 ring-theme-primary ring-offset-2 ring-offset-stone-950 shadow-[0_0_15px_rgba(var(--theme-color-rgb),0.55)] z-10" : "",
+        isOnHoveredPath ? "ring-2 ring-theme-primary ring-inset" : "",
+        isCustomTarget ? "ring-[3px] ring-theme-primary ring-inset z-10" : "",
         previewSlideClass,
-        isActiveTarget ? "ring-4 ring-white shadow-[0_0_0_2px_rgba(251,191,36,0.9),0_0_20px_rgba(251,191,36,0.5)]" : "",
-        isReachable ? "ring-2 ring-green-400/60 bg-green-900/20 hover:ring-green-400 hover:bg-green-900/30 cursor-pointer" : "",
+        isActiveTarget ? "ring-[3px] ring-amber-400 ring-inset" : "",
+        isReachable ? "ring-2 ring-green-400 ring-inset bg-green-900/20 hover:bg-green-900/30 cursor-pointer" : "",
       )}
     >
-      {isCustomTarget && (
-        <div className="absolute top-1 right-1 w-2.5 h-2.5 rounded-full bg-theme-primary animate-ping pointer-events-none z-30" />
-      )}
       {tile ? (
         <DraggableTile
           tile={tile}
@@ -123,12 +116,7 @@ const BoardSpace: React.FC<BoardSpaceProps> = ({
           isObtainedTreasure={isObtainedTreasure}
           isCurrentTarget={isCurrentTarget}
           is3D={is3D}
-          className={cn(
-            "w-[90%] h-[90%] m-auto absolute inset-0",
-            isOnHoveredPath && "border-3 border-theme-primary",
-            isPathStart && "border-3 border-green-500 shadow-[4px_4px_0_0_#22c55e]",
-            isPathEnd && "border-3 border-red-500 shadow-[4px_4px_0_0_#ef4444]"
-          )}
+          className="w-[90%] h-[90%] m-auto absolute inset-0"
         />
       ) : (
         <span className="sr-only">{y},{x}</span>
@@ -248,35 +236,50 @@ export const Board: React.FC<BoardProps> = ({
           )}
           style={{ transformStyle: is3D ? "preserve-3d" : "flat" }}
         >
-        {/* SVG Solved Path Overlay */}
-        {isGameStarted && hoveredPath && hoveredPath.length > 0 && (
-          <svg
-            viewBox="0 0 9 9"
-            className="absolute inset-0 w-full h-full pointer-events-none z-10"
-            aria-hidden="true"
-          >
-            {/* Path lines */}
-            {hoveredPath.map((cell, idx) => {
-              if (idx === 0) return null;
-              const parent = hoveredPath[idx - 1];
-              return (
-                <line
-                  key={`line-${idx}`}
-                  x1={parent.c + 1.5}
-                  y1={parent.r + 1.5}
-                  x2={cell.c + 1.5}
-                  y2={cell.r + 1.5}
-                  stroke="var(--theme-color)"
-                  strokeWidth="0.08"
-                  strokeDasharray="0.12,0.12"
-                  className="animate-dash"
-                  strokeLinecap="round"
-                  opacity="0.9"
-                />
-              );
-            })}
-          </svg>
-        )}
+        {/* SVG Solved Path Overlay — animated marching dashes */}
+        {isGameStarted && hoveredPath && hoveredPath.length > 0 && (() => {
+          const pts = hoveredPath.map(c => `${c.c + 1.5},${c.r + 1.5}`).join(" ");
+          const s = hoveredPath[0];
+          const e = hoveredPath[hoveredPath.length - 1];
+          return (
+            <svg
+              viewBox="0 0 9 9"
+              className="absolute inset-0 w-full h-full pointer-events-none z-30"
+              aria-hidden="true"
+            >
+              {/* Black underline — static, for contrast */}
+              <polyline
+                points={pts}
+                fill="none"
+                stroke="#000000"
+                strokeWidth="0.10"
+                strokeDasharray="0.18,0.12"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+              {/* Animated theme-color line on top */}
+              <polyline
+                points={pts}
+                fill="none"
+                stroke="var(--theme-color)"
+                strokeWidth="0.06"
+                strokeDasharray="0.18,0.12"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                opacity="0.95"
+                className="animate-path-crawl"
+              />
+              {/* Start marker: small square */}
+              <rect x={s.c + 1.5 - 0.13} y={s.r + 1.5 - 0.13} width="0.26" height="0.26" fill="#000000" />
+              <rect x={s.c + 1.5 - 0.08} y={s.r + 1.5 - 0.08} width="0.16" height="0.16" fill="var(--theme-color)" />
+              {/* End marker: small circle */}
+              {hoveredPath.length > 1 && <>
+                <circle cx={e.c + 1.5} cy={e.r + 1.5} r="0.13" fill="#000000" />
+                <circle cx={e.c + 1.5} cy={e.r + 1.5} r="0.08" fill="var(--theme-color)" />
+              </>}
+            </svg>
+          );
+        })()}
         {/* Render Shifting Arrows */}
         {isGameStarted &&
           SHIFT_ARROWS.map((arrow) => {
@@ -300,10 +303,10 @@ export const Board: React.FC<BoardProps> = ({
                     : turnPhase === "move"
                     ? "opacity-25 cursor-not-allowed border border-stone-850 text-stone-600 bg-stone-950/60"
                     : isStaged
-                    ? "border-2 border-stone-950 bg-theme-primary text-stone-950 scale-105 shadow-[2px_2px_0_0_#000000] cursor-pointer"
+                    ? "neo-brutalism-button border-stone-950 bg-theme-primary text-stone-950 scale-105 translate-x-[1px] translate-y-[1px] shadow-[1px_1px_0_0_#000000] cursor-pointer"
                     : isHighlighted
-                    ? "animate-pulse border-2 border-stone-950 bg-theme-primary-20 text-theme-primary scale-105 shadow-[3px_3px_0_0_#000000] cursor-pointer"
-                    : "border-2 border-stone-950 bg-card text-foreground hover:bg-theme-primary hover:text-stone-950 shadow-[2px_2px_0_0_#000000] active:translate-x-[1px] active:translate-y-[1px] active:shadow-[1px_1px_0_0_#000000] cursor-pointer",
+                    ? "neo-brutalism-button border-stone-950 bg-theme-primary-20 text-theme-primary scale-105 cursor-pointer"
+                    : "neo-brutalism-button border-stone-950 bg-card text-foreground hover:bg-theme-primary hover:text-stone-950 cursor-pointer",
                 )}
                 title={
                   isForbidden
@@ -347,8 +350,6 @@ export const Board: React.FC<BoardProps> = ({
 
             // Path overlays state
             const isOnHoveredPath = hoveredPath ? hoveredPath.some((cell: { r: number; c: number }) => cell.r === r && cell.c === c) : false;
-            const isPathStart = hoveredPath && hoveredPath.length > 0 ? (hoveredPath[0].r === r && hoveredPath[0].c === c) : false;
-            const isPathEnd = hoveredPath && hoveredPath.length > 0 ? (hoveredPath[hoveredPath.length - 1].r === r && hoveredPath[hoveredPath.length - 1].c === c) : false;
  
             const isCustomTarget = !!(customTargetCoords && customTargetCoords.r === r && customTargetCoords.c === c);
             const isActiveTarget = !!(activeTargetCoords && activeTargetCoords.r === r && activeTargetCoords.c === c && !isCustomTarget);
@@ -377,8 +378,7 @@ export const Board: React.FC<BoardProps> = ({
                 pawns={pawnsAtCell}
                 isGameStarted={isGameStarted}
                 isOnHoveredPath={isOnHoveredPath}
-                isPathStart={isPathStart}
-                isPathEnd={isPathEnd}
+
                 onCellClick={onCellClick}
                 onTileClick={onTileClick}
                 boardRotation={boardRotation}
@@ -439,13 +439,9 @@ export const Board: React.FC<BoardProps> = ({
           return (
             <div
               style={{ gridRow, gridColumn, zIndex: 30 }}
-              className={cn("relative w-full h-full aspect-square rounded-lg overflow-hidden border-2 border-stone-600 pointer-events-none shadow-2xl", animClass)}
+              className={cn("relative w-full h-full aspect-square rounded-xl overflow-hidden border-2 border-stone-950 pointer-events-none shadow-[4px_4px_0_0_#000000]", animClass)}
             >
-              <Tile tile={pushedTile} boardRotation={boardRotation} disableRotationTransition={true} is3D={is3D} className="absolute inset-0 w-full h-full opacity-70" />
-              <div className="absolute inset-0 bg-stone-950/20 rounded-lg pointer-events-none" />
-              <div className="absolute inset-0 flex items-end justify-center pb-0.5 pointer-events-none">
-                <span className="text-[8px] font-bold text-stone-300 bg-stone-950/70 px-1 rounded leading-tight">pushed out</span>
-              </div>
+              <Tile tile={pushedTile} boardRotation={boardRotation} disableRotationTransition={true} is3D={is3D} className="absolute inset-0 w-full h-full" />
             </div>
           );
         })()}
