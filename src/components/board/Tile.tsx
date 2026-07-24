@@ -28,8 +28,8 @@ export const Tile: React.FC<TileProps> = ({
 }) => {
   // Paths rendering logic — styled as a unified, continuous corridor with a thick Brutalist outline
   const getPathSVG = () => {
-    const fillClass = "fill-stone-50 dark:fill-stone-100";
-    const strokeClass = "stroke-stone-950 dark:stroke-stone-950";
+    const fillClass = "tile-corridor-fill";
+    const strokeClass = "stroke-stone-950";
     const strokeWidth = 5.5;
 
     switch (tile.shape) {
@@ -129,24 +129,24 @@ export const Tile: React.FC<TileProps> = ({
   };
 
   const getTileStyles = () => {
-    let bgClass = "bg-stone-200 dark:bg-stone-850";
-    let borderClass = "border-2 border-stone-950 dark:border-stone-950";
+    let bgClass = "bg-card";
+    let borderClass = "border-2 border-stone-950";
     let shadowStyle: React.CSSProperties = {};
 
     // 1. Pawn start corner presets keep their team color background
     if (tile.color) {
       if (tile.color === "blue") {
-        bgClass = "bg-blue-600 dark:bg-blue-700 text-white";
+        bgClass = "bg-blue-600 text-white";
       } else if (tile.color === "red") {
-        bgClass = "bg-red-600 dark:bg-red-700 text-white";
+        bgClass = "bg-red-600 text-white";
       } else if (tile.color === "green") {
-        bgClass = "bg-emerald-600 dark:bg-emerald-700 text-white";
+        bgClass = "bg-emerald-600 text-white";
       } else if (tile.color === "yellow") {
-        bgClass = "bg-amber-400 dark:bg-amber-500 text-stone-950";
+        bgClass = "bg-amber-400 text-stone-950";
       }
     } else {
-      // 2. All standard playable tiles are a uniform, clean warm stone gray block
-      bgClass = "bg-stone-200 dark:bg-stone-900";
+      // 2. Standard tiles: bg-card uses --card CSS variable (dark: #1b1917, light: #ffffff)
+      bgClass = "bg-card";
     }
 
     if (is3D) {

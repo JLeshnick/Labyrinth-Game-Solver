@@ -116,7 +116,7 @@ const BoardSpace: React.FC<BoardSpaceProps> = ({
           isObtainedTreasure={isObtainedTreasure}
           isCurrentTarget={isCurrentTarget}
           is3D={is3D}
-          className="w-[90%] h-[90%] m-auto absolute inset-0"
+          className="w-full h-full absolute inset-0"
         />
       ) : (
         <span className="sr-only">{y},{x}</span>
@@ -228,7 +228,7 @@ export const Board: React.FC<BoardProps> = ({
         {/* CSS Grid Layout */}
         <div 
           className={cn(
-            "grid gap-0.5 xs:gap-1 md:gap-1.5 justify-items-stretch items-stretch transition-all duration-500 overflow-visible aspect-square",
+            "grid gap-px xs:gap-0.5 md:gap-1 justify-items-stretch items-stretch transition-all duration-500 overflow-visible aspect-square",
             isGameStarted ? "grid-cols-9 grid-rows-9" : "grid-cols-7 grid-rows-7",
             is3D 
               ? "w-[92%] h-[92%]" 
