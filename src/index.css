@@ -653,3 +653,28 @@
     animation: none !important;
   }
 }
+
+/* ── 3D Isometric View & Billboarding Support ─────────────────────── */
+.tile-3d {
+  transform: translateZ(8px);
+  transform-style: preserve-3d;
+  box-shadow: 
+    0 6px 0 var(--tile-shadow), 
+    0 10px 16px rgba(0, 0, 0, 0.45);
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.tile-3d:hover {
+  transform: translateZ(14px);
+  box-shadow: 
+    0 10px 0 var(--tile-shadow), 
+    0 16px 24px rgba(0, 0, 0, 0.55);
+}
+
+[data-theme="dark"] {
+  --tile-shadow: #1c1917; /* stone-900 shadow base */
+}
+[data-theme="light"] {
+  --tile-shadow: #d6d3d1; /* stone-300 shadow base */
+}
+

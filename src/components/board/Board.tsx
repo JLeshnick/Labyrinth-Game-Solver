@@ -26,6 +26,7 @@ interface BoardSpaceProps {
   onTreasureClick?: (treasureId: string, alreadyObtained: boolean) => void;
   isObtainedTreasure?: boolean;
   isCurrentTarget?: boolean;
+  is3D?: boolean;
 }
 
 const BoardSpace: React.FC<BoardSpaceProps> = ({
@@ -47,6 +48,7 @@ const BoardSpace: React.FC<BoardSpaceProps> = ({
   onTreasureClick,
   isObtainedTreasure,
   isCurrentTarget,
+  is3D = false,
 }) => {
   const isFixedSpace = x % 2 === 0 && y % 2 === 0;
   const id = `board_${x}_${y}`;
@@ -82,6 +84,7 @@ const BoardSpace: React.FC<BoardSpaceProps> = ({
       style={{
         gridRow: isGameStarted ? y + 2 : y + 1,
         gridColumn: isGameStarted ? x + 2 : x + 1,
+        transformStyle: is3D ? "preserve-3d" : "flat",
       }}
       className={cn(
         "relative w-full h-full aspect-square rounded-lg flex items-center justify-center transition-all cursor-pointer",
@@ -119,6 +122,7 @@ const BoardSpace: React.FC<BoardSpaceProps> = ({
           disableRotationTransition={true}
           isObtainedTreasure={isObtainedTreasure}
           isCurrentTarget={isCurrentTarget}
+          is3D={is3D}
           className={cn(
             "absolute inset-0 w-full h-full",
             isOnHoveredPath && "border-theme-primary",
@@ -132,8 +136,12 @@ const BoardSpace: React.FC<BoardSpaceProps> = ({
 
       {/* Render Pawns inside BoardSpace */}
       <div 
-        className="absolute inset-0 pointer-events-none flex flex-wrap items-center justify-center gap-1 p-1 z-20 transition-transform duration-300"
-        style={{ transform: `rotate(${-boardRotation}deg)` }}
+        className="absolute inset-0 pointer-events-none flex flex-wrap items-center justify-center gap-1 p-1 z-20 transition-all duration-300"
+        style={
+          is3D
+            ? { transform: `rotateZ(${45 - boardRotation}deg) rotateX(-55deg) translateZ(12px)` }
+            : { transform: `rotate(${-boardRotation}deg)` }
+        }
       >
         {pawns.map((color) => {
           const pawn = PAWNS.find((p) => p.id === color);
@@ -175,6 +183,7 @@ interface BoardProps {
   onTreasureClick?: (treasureId: string, alreadyObtained: boolean) => void;
   allObtainedTreasures?: string[];
   activeTargetTreasureId?: string | null;
+  is3D?: boolean;
 }
 
 export const Board: React.FC<BoardProps> = ({
@@ -198,6 +207,7 @@ export const Board: React.FC<BoardProps> = ({
   onTreasureClick,
   allObtainedTreasures,
   activeTargetTreasureId,
+  is3D = false,
 }) => {
 
   return (
@@ -205,10 +215,19 @@ export const Board: React.FC<BoardProps> = ({
       {/* CSS Grid Layout */}
       <div 
         className={cn(
-          "grid gap-0.5 xs:gap-1 md:gap-1.5 w-full h-full justify-items-stretch items-stretch transition-transform duration-300 overflow-visible",
+          "grid gap-0.5 xs:gap-1 md:gap-1.5 w-full h-full justify-items-stretch items-stretch transition-all duration-500 overflow-visible",
           isGameStarted ? "grid-cols-9 grid-rows-9" : "grid-cols-7 grid-rows-7"
         )}
-        style={{ transform: `rotate(${boardRotation}deg)` }}
+        style={
+          is3D
+            ? {
+                transform: `perspective(1200px) rotateX(55deg) rotateZ(${-45 + boardRotation}deg) scale(0.85)`,
+                transformStyle: "preserve-3d",
+              }
+            : {
+                transform: `rotate(${boardRotation}deg)`,
+              }
+        }
       >
         {/* SVG Solved Path Overlay */}
         {isGameStarted && hoveredPath && hoveredPath.length > 0 && (
@@ -351,6 +370,7 @@ export const Board: React.FC<BoardProps> = ({
                 isObtainedTreasure={isObtainedTreasure}
                 isCurrentTarget={isCurrentTarget}
                 isReachable={isReachable}
+                is3D={is3D}
               />
             );
           })
@@ -402,7 +422,7 @@ export const Board: React.FC<BoardProps> = ({
               style={{ gridRow, gridColumn, zIndex: 30 }}
               className={cn("relative w-full h-full aspect-square rounded-lg overflow-hidden border-2 border-stone-600 pointer-events-none shadow-2xl", animClass)}
             >
-              <Tile tile={pushedTile} boardRotation={boardRotation} disableRotationTransition={true} className="absolute inset-0 w-full h-full opacity-70" />
+              <Tile tile={pushedTile} boardRotation={boardRotation} disableRotationTransition={true} is3D={is3D} className="absolute inset-0 w-full h-full opacity-70" />
               <div className="absolute inset-0 bg-stone-950/20 rounded-lg pointer-events-none" />
               <div className="absolute inset-0 flex items-end justify-center pb-0.5 pointer-events-none">
                 <span className="text-[8px] font-bold text-stone-300 bg-stone-950/70 px-1 rounded leading-tight">pushed out</span>

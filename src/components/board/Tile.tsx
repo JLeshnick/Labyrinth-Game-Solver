@@ -12,6 +12,7 @@ interface TileProps {
   disableRotationTransition?: boolean;
   isObtainedTreasure?: boolean;
   isCurrentTarget?: boolean;
+  is3D?: boolean;
 }
 
 export const Tile: React.FC<TileProps> = ({
@@ -22,6 +23,7 @@ export const Tile: React.FC<TileProps> = ({
   disableRotationTransition = false,
   isObtainedTreasure = false,
   isCurrentTarget = false,
+  is3D = false,
 }) => {
   // Paths rendering logic
   const getPathStyles = () => {
@@ -76,6 +78,7 @@ export const Tile: React.FC<TileProps> = ({
           : "border-amber-900/60 dark:border-stone-800/80",
         tile.isFixed ? "bg-amber-800 dark:bg-stone-900" : "bg-amber-700 dark:bg-stone-950/70",
         isObtainedTreasure && "after:absolute after:inset-0 after:bg-stone-950/30 after:rounded-md after:pointer-events-none",
+        is3D && "tile-3d",
         className
       )}
       title={tile.isFixed ? "This preset tile is permanently glued to the board. It cannot be moved, slid, or rotated." : undefined}
@@ -83,7 +86,7 @@ export const Tile: React.FC<TileProps> = ({
       {/* Rotation wrapper */}
       <div
         className={cn("absolute inset-0", !disableRotationTransition && "transition-transform duration-200")}
-        style={{ transform: `rotate(${tile.rotation}deg)` }}
+        style={{ transform: `rotate(${tile.rotation}deg)`, transformStyle: is3D ? "preserve-3d" : "flat" }}
       >
         {getPathStyles()}
       </div>
@@ -96,10 +99,14 @@ export const Tile: React.FC<TileProps> = ({
           <div
             className={cn(
               "absolute bottom-1 right-1 w-5 h-5 sm:w-6 sm:h-6 rounded flex items-center justify-center",
-              "border-2 z-10 transition-transform duration-300 pointer-events-none",
+              "border-2 z-10 transition-all duration-300 pointer-events-none",
               bg, border
             )}
-            style={{ transform: `rotate(${-boardRotation}deg)` }}
+            style={
+              is3D
+                ? { transform: `rotateZ(${45 - boardRotation}deg) rotateX(-55deg) translateZ(4px)` }
+                : { transform: `rotate(${-boardRotation}deg)` }
+            }
           >
             <span className={cn("text-[9px] sm:text-[10px] font-black leading-none select-none", text)}>
               {label}
@@ -111,8 +118,12 @@ export const Tile: React.FC<TileProps> = ({
       {/* Fixed tile lock badge */}
       {tile.isFixed && (
         <div
-          className="absolute top-1 right-1 p-0.5 bg-stone-950/70 border border-stone-800/35 rounded-full text-amber-500/80 z-20 pointer-events-auto cursor-help transition-transform duration-300"
-          style={{ transform: `rotate(${-boardRotation}deg)` }}
+          className="absolute top-1 right-1 p-0.5 bg-stone-950/70 border border-stone-800/35 rounded-full text-amber-500/80 z-20 pointer-events-auto cursor-help transition-all duration-300"
+          style={
+            is3D
+              ? { transform: `rotateZ(${45 - boardRotation}deg) rotateX(-55deg) translateZ(6px)` }
+              : { transform: `rotate(${-boardRotation}deg)` }
+          }
           title="This preset tile is permanently glued to the board. It cannot be moved, slid, or rotated."
         >
           <Lock className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
@@ -123,14 +134,18 @@ export const Tile: React.FC<TileProps> = ({
       {tile.treasure && (
         <div
           className={cn(
-            "absolute z-10 p-1 backdrop-blur-sm rounded border text-[6px] sm:text-[8px] md:text-[9px] font-bold text-center leading-tight max-w-[90%] shadow-sm pointer-events-none uppercase tracking-wide transition-transform duration-300",
+            "absolute z-10 p-1 backdrop-blur-sm rounded border text-[6px] sm:text-[8px] md:text-[9px] font-bold text-center leading-tight max-w-[90%] shadow-sm pointer-events-none uppercase tracking-wide transition-all duration-300",
             isObtainedTreasure
               ? "line-through opacity-50 bg-stone-800/80 text-stone-400 border-stone-700/20"
               : isCurrentTarget
               ? "ring-1 ring-amber-400/60 bg-amber-900/60 text-amber-100 border-amber-500/30"
               : "bg-stone-950/85 text-amber-100 border-amber-500/20"
           )}
-          style={{ transform: `rotate(${-boardRotation}deg)` }}
+          style={
+            is3D
+              ? { transform: `rotateZ(${45 - boardRotation}deg) rotateX(-55deg) translateZ(8px)` }
+              : { transform: `rotate(${-boardRotation}deg)` }
+          }
         >
           {isObtainedTreasure ? `✓ ${tile.treasure.name}` : tile.treasure.name}
         </div>

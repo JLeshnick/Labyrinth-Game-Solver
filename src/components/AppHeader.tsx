@@ -21,6 +21,8 @@ import {
   Timer,
   PauseCircle,
   Clock,
+  Eye,
+  LayoutGrid,
 } from "lucide-react";
 
 export interface AppHeaderProps {
@@ -56,6 +58,10 @@ export interface AppHeaderProps {
   elapsedTime?: string;
   isTimerPaused?: boolean;
   onToggleTimer?: () => void;
+  is3D?: boolean;
+  onToggle3D: () => void;
+  rightPanelMode?: "solver" | "dashboard";
+  onToggleRightPanelMode: () => void;
 }
 
 const STEPS = [
@@ -107,6 +113,10 @@ export function AppHeader({
   elapsedTime,
   isTimerPaused = false,
   onToggleTimer,
+  is3D = false,
+  onToggle3D,
+  rightPanelMode = "solver",
+  onToggleRightPanelMode,
 }: AppHeaderProps) {
   const [showEndGameConfirm, setShowEndGameConfirm] = useState(false);
 
@@ -224,6 +234,46 @@ export function AppHeader({
 
         {/* Right — compact toolbar */}
         <div className="flex items-center gap-2 shrink-0">
+
+          {/* 3D View Toggle */}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              if (!isMuted) playClickSound();
+              onToggle3D();
+            }}
+            className={cn(
+              "text-stone-400 hover:text-stone-200 gap-1.5 h-8 px-2 cursor-pointer flex rounded-lg",
+              is3D ? "text-theme-primary hover:text-theme-primary/80 bg-theme-primary-10" : ""
+            )}
+            title={is3D ? "Disable 3D Isometric View" : "Enable 3D Isometric View"}
+          >
+            <Eye className="w-3.5 h-3.5" />
+            <span className="text-xs hidden lg:inline">3D View</span>
+          </Button>
+
+          {/* Right Panel Mode (Dashboard vs Solver) */}
+          {isGameStarted && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                if (!isMuted) playClickSound();
+                onToggleRightPanelMode();
+              }}
+              className={cn(
+                "text-stone-400 hover:text-stone-200 gap-1.5 h-8 px-2 cursor-pointer flex rounded-lg",
+                rightPanelMode === "dashboard" ? "text-theme-primary hover:text-theme-primary/80 bg-theme-primary-10" : ""
+              )}
+              title={rightPanelMode === "solver" ? "Switch to Dashboard Widgets" : "Switch to Solver Suggestions"}
+            >
+              <LayoutGrid className="w-3.5 h-3.5" />
+              <span className="text-xs hidden lg:inline">
+                {rightPanelMode === "solver" ? "Dashboard" : "Solver"}
+              </span>
+            </Button>
+          )}
 
           {/* Randomize layout (desktop & tablets) */}
           {!isGameStarted && onRandomizeBoard && (
