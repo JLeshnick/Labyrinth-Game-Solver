@@ -854,7 +854,7 @@ export default function App() {
 
           {/* Tablet & desktop side panel (md+) */}
           {!isMobile && (
-            <div className="flex w-full md:w-[320px] lg:w-[400px] xl:w-[440px] flex-col flex-shrink-0 min-h-0 md:h-full gap-3 bg-card border border-border rounded-3xl shadow-lg p-2 overflow-hidden">
+            <div className="flex w-full md:w-[320px] lg:w-[400px] xl:w-[440px] flex-col flex-shrink-0 min-h-0 md:h-full gap-3 bg-card neo-brutalism-card rounded-3xl p-2 overflow-hidden">
               {game.isGameStarted ? (
                 <SolverPanel
                   solutions={solutions}

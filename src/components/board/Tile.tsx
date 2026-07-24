@@ -48,41 +48,31 @@ export const Tile: React.FC<TileProps> = ({
       default:
         return null;
     }
-  };
-
-  const getTileStyles = () => {
-    let bgClass = "bg-stone-200 dark:bg-stone-900";
-    let borderClass = "border-stone-300 dark:border-stone-800";
+  };  const getTileStyles = () => {
+    let bgClass = "bg-stone-200 dark:bg-stone-850";
+    let borderClass = "border-2 border-stone-950 dark:border-stone-950";
     let shadowStyle: React.CSSProperties = {};
 
-    // 1. Pawn start corner presets keep their team color labels for game logic
+    // 1. Pawn start corner presets keep their team color background
     if (tile.color) {
       if (tile.color === "blue") {
-        bgClass = "bg-blue-600 dark:bg-blue-700";
-        borderClass = "border-blue-500 dark:border-blue-600";
-        if (is3D) shadowStyle = { boxShadow: "0 6px 0 #1e3a8a, 0 10px 16px rgba(0,0,0,0.4)" };
+        bgClass = "bg-blue-600 dark:bg-blue-700 text-white";
       } else if (tile.color === "red") {
-        bgClass = "bg-red-600 dark:bg-red-700";
-        borderClass = "border-red-500 dark:border-red-600";
-        if (is3D) shadowStyle = { boxShadow: "0 6px 0 #991b1b, 0 10px 16px rgba(0,0,0,0.4)" };
+        bgClass = "bg-red-650 dark:bg-red-750 text-white";
       } else if (tile.color === "green") {
-        bgClass = "bg-emerald-600 dark:bg-emerald-700";
-        borderClass = "border-emerald-500 dark:border-emerald-600";
-        if (is3D) shadowStyle = { boxShadow: "0 6px 0 #065f46, 0 10px 16px rgba(0,0,0,0.4)" };
+        bgClass = "bg-emerald-600 dark:bg-emerald-700 text-white";
       } else if (tile.color === "yellow") {
-        bgClass = "bg-amber-400 dark:bg-amber-500";
-        borderClass = "border-amber-300 dark:border-amber-450";
-        if (is3D) shadowStyle = { boxShadow: "0 6px 0 #92400e, 0 10px 16px rgba(0,0,0,0.4)" };
+        bgClass = "bg-amber-400 dark:bg-amber-500 text-stone-950";
       }
     } else {
       // 2. All standard playable tiles are a uniform, clean warm stone gray block
-      bgClass = "bg-stone-200 dark:bg-stone-900";
-      borderClass = "border-stone-300 dark:border-stone-800";
-      if (is3D) {
-        shadowStyle = {
-          boxShadow: "var(--tile-3d-shadow)",
-        };
-      }
+      bgClass = "bg-stone-200 dark:bg-stone-800";
+    }
+
+    if (is3D) {
+      shadowStyle = {
+        boxShadow: "0 6px 0 0 #000000, 0 8px 12px rgba(0,0,0,0.35)",
+      };
     }
 
     return { bgClass, borderClass, shadowStyle };
@@ -91,10 +81,10 @@ export const Tile: React.FC<TileProps> = ({
   const getCornerColorClasses = () => {
     if (!tile.color) return { border: "", text: "", bg: "" };
     const map: Record<string, { border: string; text: string; bg: string }> = {
-      blue:   { border: "border-blue-400",   text: "text-white",   bg: "bg-blue-600" },
-      red:    { border: "border-red-400",    text: "text-white",    bg: "bg-red-600" },
-      green:  { border: "border-green-400",  text: "text-white",  bg: "bg-emerald-600" },
-      yellow: { border: "border-yellow-300", text: "text-stone-950", bg: "bg-yellow-400" },
+      blue:   { border: "border-stone-950",   text: "text-white",   bg: "bg-blue-600" },
+      red:    { border: "border-stone-950",    text: "text-white",    bg: "bg-red-600" },
+      green:  { border: "border-stone-950",  text: "text-white",  bg: "bg-emerald-600" },
+      yellow: { border: "border-stone-950", text: "text-stone-950", bg: "bg-yellow-400" },
     };
     return map[tile.color] ?? { border: "", text: "", bg: "" };
   };
@@ -114,7 +104,7 @@ export const Tile: React.FC<TileProps> = ({
         bgClass,
         borderClass,
         isObtainedTreasure && "after:absolute after:inset-0 after:bg-stone-950/30 after:rounded-2xl after:pointer-events-none",
-        is3D && "tile-3d",
+        is3D ? "tile-3d" : "shadow-neumorphic",
         className
       )}
       style={is3D ? { ...shadowStyle, transformStyle: "preserve-3d" } : undefined}

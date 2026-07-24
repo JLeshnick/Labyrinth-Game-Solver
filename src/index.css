@@ -683,22 +683,61 @@
   transform: translateZ(8px);
   transform-style: preserve-3d;
   box-shadow: 
-    0 6px 0 var(--tile-shadow), 
-    0 10px 16px rgba(0, 0, 0, 0.45);
+    0 6px 0 0 #000000, 
+    0 8px 16px rgba(0, 0, 0, 0.35);
   transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .tile-3d:hover {
   transform: translateZ(14px);
   box-shadow: 
-    0 10px 0 var(--tile-shadow), 
-    0 16px 24px rgba(0, 0, 0, 0.55);
+    0 12px 0 0 #000000, 
+    0 14px 20px rgba(0, 0, 0, 0.45);
 }
 
+/* Neumorphic and Brutalist variables */
 [data-theme="dark"] {
-  --tile-shadow: #1c1917; /* stone-900 shadow base */
+  --tile-shadow: #070605;
+  --neumorphic-dark: #070605;
+  --neumorphic-light: #2c2925;
 }
 [data-theme="light"] {
-  --tile-shadow: #d6d3d1; /* stone-300 shadow base */
+  --tile-shadow: #d6d3d1;
+  --neumorphic-dark: #cbd5e1;
+  --neumorphic-light: #ffffff;
 }
 
+.shadow-neumorphic {
+  box-shadow: 6px 6px 12px var(--neumorphic-dark), -6px -6px 12px var(--neumorphic-light);
+}
+
+.shadow-neumorphic-inset {
+  box-shadow: inset 4px 4px 8px var(--neumorphic-dark), inset -4px -4px 8px var(--neumorphic-light);
+}
+
+/* ── Neo-Brutalism Theme Utility Classes ──────────────────────────── */
+.neo-brutalism-card {
+  border: 3px solid #000000;
+  box-shadow: 6px 6px 0px 0px #000000;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+[data-theme="dark"] .neo-brutalism-card {
+  border: 3px solid #000000;
+  box-shadow: 6px 6px 0px 0px #000000;
+}
+
+.neo-brutalism-button {
+  border: 2px solid #000000;
+  box-shadow: 3px 3px 0px 0px #000000;
+  transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.neo-brutalism-button:hover:not(:disabled) {
+  transform: translate(-1px, -1px);
+  box-shadow: 4px 4px 0px 0px #000000;
+}
+
+.neo-brutalism-button:active:not(:disabled) {
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0px 0px #000000;
+}
