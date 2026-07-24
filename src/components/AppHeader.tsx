@@ -2,6 +2,7 @@ import { useState } from "react";
 import type { TileData, PlayerMap } from "../types";
 import { PAWNS, TREASURES } from "../constants";
 import { Button } from "./ui/button";
+import { Tooltip } from "./ui/tooltip";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
 import { SettingsDialog } from "./modals/SettingsDialog";
 import { cn } from "../lib/utils";
@@ -18,7 +19,6 @@ import {
   Settings2,
   HelpCircle,
   Clock,
-  Eye,
 } from "lucide-react";
 
 export interface AppHeaderProps {
@@ -58,7 +58,8 @@ export interface AppHeaderProps {
   onToggle3D: () => void;
 }
 
-const iconBtnCls = "neo-brutalism-button bg-card hover:bg-stone-100 dark:hover:bg-stone-850 w-8 h-8 flex items-center justify-center rounded-lg cursor-pointer transition-all";
+const iconBtnCls =
+  "neo-brutalism-button bg-card text-foreground w-8 h-8 flex items-center justify-center rounded-lg cursor-pointer transition-all hover:bg-stone-200 hover:text-stone-950";
 
 const STEPS = [
   {
@@ -75,14 +76,13 @@ const STEPS = [
   },
 ];
 
-
 export function AppHeader({
   isGameStarted,
   canUndo,
   canRedo,
   isMuted,
   showStats: _showStats,
-  baseTheme,
+  baseTheme: _baseTheme,
   activePlayers,
   activePawn,
   looseTiles: _looseTiles,
@@ -109,8 +109,8 @@ export function AppHeader({
   elapsedTime,
   isTimerPaused = false,
   onToggleTimer,
-  is3D = false,
-  onToggle3D,
+  is3D: _is3D,
+  onToggle3D: _onToggle3D,
 }: AppHeaderProps) {
   const [showEndGameConfirm, setShowEndGameConfirm] = useState(false);
 
@@ -122,107 +122,94 @@ export function AppHeader({
         className="relative z-40 px-3 sm:px-4 py-2 flex items-center justify-between border-b-2 border-stone-950 bg-card gap-2 sm:gap-3"
         style={{ boxShadow: "0 3px 0 0 #000000" }}
       >
-        {/* Left — title only */}
-        <div className="shrink-0">
-          <h1 className="text-sm sm:text-base font-black tracking-tight text-foreground uppercase">
+        {/* Left — brutalist title linking to GitHub */}
+        <a
+          href="https://github.com/JLeshnick/Labyrinth-Game-Solver"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="shrink-0 neo-brutalism-card px-2.5 py-1 rounded-lg bg-card hover:bg-stone-200 hover:text-stone-950 transition-colors cursor-pointer"
+        >
+          <span className="text-xs sm:text-sm font-black tracking-tight text-foreground uppercase select-none">
             <span className="hidden sm:inline">Labyrinth Solver</span>
             <span className="sm:hidden">Labyrinth</span>
-          </h1>
-        </div>
+          </span>
+        </a>
 
-        {/* Center — Step Nav + timer badge */}
+        {/* Center — Step Nav (timer baked into Play Game button) */}
         <div className="flex-1 flex items-center justify-center min-w-0 gap-2">
           <div className="flex items-center bg-card neo-brutalism-card rounded-xl px-1 py-0.5 sm:p-1 gap-1">
             {STEPS.map((s) => {
               const isActive = s.id === currentStep;
               const isDisabled = s.id === "game" && !isGameStarted && !canStartGame;
+              const showTimer = s.id === "game" && isActive && elapsedTime;
               return (
-                <button
+                <Tooltip
                   key={s.id}
-                  disabled={isDisabled}
-                  onClick={() => {
-                    if (!isMuted) playClickSound();
-                    if (s.id === "game" && !isGameStarted) {
-                      onStartGame();
-                    } else if (s.id === "setup" && isGameStarted) {
-                      setShowEndGameConfirm(true);
-                    }
-                  }}
-                  title={isDisabled ? "Place all 33 movable tiles first" : undefined}
-                  className={cn(
-                    "flex items-center justify-center gap-1 sm:gap-2 px-3 sm:px-4 py-1.5 rounded-lg text-[11px] sm:text-xs font-bold transition-all border-2",
-                    isActive
-                      ? "bg-theme-primary text-stone-950 border-stone-950 shadow-[2px_2px_0_0_#000000]"
-                      : isDisabled
-                      ? "text-stone-600 border-transparent cursor-not-allowed"
-                      : "text-stone-400 border-transparent hover:text-stone-200 hover:bg-stone-900/40 cursor-pointer"
-                  )}
+                  content={
+                    isDisabled ? "Place all 33 movable tiles first" :
+                    showTimer ? (isTimerPaused ? "Resume timer" : "Pause timer") :
+                    undefined
+                  }
+                  side="bottom"
                 >
-                  {s.icon}
-                  <span className="hidden xs:inline sm:hidden">{s.shortLabel}</span>
-                  <span className="hidden sm:inline">{s.label}</span>
-                  <span className="xs:hidden">{s.shortLabel}</span>
-                </button>
+                  <button
+                    disabled={isDisabled}
+                    onClick={() => {
+                      if (!isMuted) playClickSound();
+                      if (showTimer && onToggleTimer) {
+                        onToggleTimer();
+                      } else if (s.id === "game" && !isGameStarted) {
+                        onStartGame();
+                      } else if (s.id === "setup" && isGameStarted) {
+                        setShowEndGameConfirm(true);
+                      }
+                    }}
+                    className={cn(
+                      "flex items-center justify-center gap-1 sm:gap-2 px-3 sm:px-4 py-1.5 rounded-lg text-[11px] sm:text-xs font-bold transition-all border-2",
+                      isActive
+                        ? "bg-theme-primary text-stone-950 border-stone-950 shadow-[2px_2px_0_0_#000000]"
+                        : isDisabled
+                        ? "text-stone-600 border-transparent cursor-not-allowed"
+                        : "text-stone-400 border-transparent hover:text-stone-200 hover:bg-stone-900/40 cursor-pointer"
+                    )}
+                  >
+                    {s.icon}
+                    <span className="hidden xs:inline sm:hidden">{s.shortLabel}</span>
+                    <span className="hidden sm:inline">{s.label}</span>
+                    <span className="xs:hidden">{s.shortLabel}</span>
+                    {showTimer && (
+                      <span className="font-mono text-[10px] opacity-80 ml-1">
+                        {isTimerPaused ? "⏸" : "⏱"} {elapsedTime}
+                      </span>
+                    )}
+                  </button>
+                </Tooltip>
               );
             })}
           </div>
-
-          {/* Timer badge — only during game */}
-          {isGameStarted && elapsedTime && (
-            <button
-              onClick={onToggleTimer}
-              className={cn(
-                "neo-brutalism-button rounded-lg px-2 py-1 text-xs font-mono font-bold flex items-center gap-1 cursor-pointer transition-all",
-                isTimerPaused
-                  ? "bg-card border-stone-950 text-stone-500"
-                  : "bg-card border-stone-950 text-theme-primary"
-              )}
-              title={isTimerPaused ? "Resume timer" : "Pause timer"}
-              aria-label={isTimerPaused ? "Resume timer" : "Pause timer"}
-            >
-              {isTimerPaused ? "⏸" : "⏱"} {elapsedTime}
-            </button>
-          )}
         </div>
 
         {/* Right — toolbar */}
         <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
 
-          {/* 3D View Toggle */}
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => {
-              if (!isMuted) playClickSound();
-              onToggle3D();
-            }}
-            className={cn(
-              "neo-brutalism-button bg-card hover:bg-stone-100 dark:hover:bg-stone-850 text-foreground gap-1.5 h-8 px-2.5 cursor-pointer flex items-center justify-center rounded-lg transition-all",
-              is3D ? "bg-theme-primary text-stone-950 shadow-[1px_1px_0_0_#000000] translate-x-[2px] translate-y-[2px]" : ""
-            )}
-            title={is3D ? "Disable 3D Isometric View" : "Enable 3D Isometric View"}
-          >
-            <Eye className="w-3.5 h-3.5" />
-            <span className="text-xs hidden lg:inline">3D</span>
-          </Button>
-
-          {/* Randomize layout (desktop & tablets) */}
+          {/* Randomize layout (setup only, desktop) */}
           {!isGameStarted && onRandomizeBoard && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                if (!isMuted) playClickSound();
-                onRandomizeBoard();
-              }}
-              className="neo-brutalism-button bg-card border-stone-950 text-stone-400 hover:text-stone-200 gap-1.5 h-8 px-2 hidden md:flex cursor-pointer"
-              title="Randomize layout"
-            >
-              <span className="text-xs">Randomize</span>
-            </Button>
+            <Tooltip content="Randomize Board" side="bottom">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  if (!isMuted) playClickSound();
+                  onRandomizeBoard();
+                }}
+                className="neo-brutalism-button bg-card border-stone-950 text-stone-400 hover:bg-stone-200 hover:text-stone-950 gap-1.5 h-8 px-2 hidden md:flex cursor-pointer"
+              >
+                <span className="text-xs">Randomize</span>
+              </Button>
+            </Tooltip>
           )}
 
-          {/* Pawn score chips — brutalist, only during game */}
+          {/* Pawn score chips — only during game */}
           {isGameStarted && activePlayers.length > 0 && (
             <div className="hidden sm:flex items-center gap-1.5">
               {activePlayers.map((pawnId) => {
@@ -246,7 +233,7 @@ export function AppHeader({
                       <span>{obtained.length}</span>
                       {total > 0 && <span className="opacity-70">/{total}</span>}
                     </div>
-                    {/* Hover tooltip */}
+                    {/* Hover tooltip — styled, matching existing card */}
                     <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-52 rounded-xl app-dialog-panel neo-brutalism-card p-3 z-50 invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-all duration-150 flex flex-col gap-1 pointer-events-none">
                       <div className="text-[10px] font-bold text-stone-200 capitalize border-b border-stone-800 pb-1.5 mb-0.5 flex items-center gap-1.5">
                         <div className={cn("w-3 h-3 rounded-full border border-stone-950", pawn?.colorClass ?? "bg-stone-500")} />
@@ -287,84 +274,85 @@ export function AppHeader({
 
           {/* Desktop actions toolbar */}
           <div className="hidden lg:flex items-center gap-1.5">
-            <Button
-              variant="outline"
-              size="icon"
-              disabled={!canUndo}
-              onClick={() => { if (!isMuted) playClickSound(); onUndo(); }}
-              className={cn(iconBtnCls, "disabled:opacity-30 disabled:pointer-events-none")}
-              title="Undo (Ctrl+Z)"
-              aria-label="Undo"
-            >
-              <Undo2 className="w-3.5 h-3.5" />
-            </Button>
-            <Button
-              variant="outline"
-              size="icon"
-              disabled={!canRedo}
-              onClick={() => { if (!isMuted) playClickSound(); onRedo(); }}
-              className={cn(iconBtnCls, "disabled:opacity-30 disabled:pointer-events-none")}
-              title="Redo (Ctrl+Y)"
-              aria-label="Redo"
-            >
-              <Redo2 className="w-3.5 h-3.5" />
-            </Button>
-            {isGameStarted && onOpenHistory && (
+            <Tooltip content="Undo (Ctrl+Z)" side="bottom">
               <Button
-                variant="outline"
-                size="icon"
-                onClick={() => { if (!isMuted) playClickSound(); onOpenHistory(); }}
-                className={iconBtnCls}
-                title="Move History"
-                aria-label="View move history"
+                variant="outline" size="icon"
+                disabled={!canUndo}
+                onClick={() => { if (!isMuted) playClickSound(); onUndo(); }}
+                className={cn(iconBtnCls, "disabled:opacity-30 disabled:pointer-events-none")}
+                aria-label="Undo"
               >
-                <Clock className="w-3.5 h-3.5" />
+                <Undo2 className="w-3.5 h-3.5" />
               </Button>
+            </Tooltip>
+            <Tooltip content="Redo (Ctrl+Y)" side="bottom">
+              <Button
+                variant="outline" size="icon"
+                disabled={!canRedo}
+                onClick={() => { if (!isMuted) playClickSound(); onRedo(); }}
+                className={cn(iconBtnCls, "disabled:opacity-30 disabled:pointer-events-none")}
+                aria-label="Redo"
+              >
+                <Redo2 className="w-3.5 h-3.5" />
+              </Button>
+            </Tooltip>
+            {isGameStarted && onOpenHistory && (
+              <Tooltip content="Move History" side="bottom">
+                <Button
+                  variant="outline" size="icon"
+                  onClick={() => { if (!isMuted) playClickSound(); onOpenHistory(); }}
+                  className={iconBtnCls}
+                  aria-label="View move history"
+                >
+                  <Clock className="w-3.5 h-3.5" />
+                </Button>
+              </Tooltip>
             )}
             <div className="w-px h-4 bg-stone-800 mx-0.5" />
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => { if (!isMuted) playClickSound(); onRotateBoard(); }}
-              className={iconBtnCls}
-              title="Rotate Board Perspective (90° Clockwise)"
-              aria-label="Rotate board perspective 90 degrees clockwise"
-            >
-              <RotateCw className="w-3.5 h-3.5" />
-            </Button>
+            <Tooltip content="Rotate Board 90°" side="bottom">
+              <Button
+                variant="outline" size="icon"
+                onClick={() => { if (!isMuted) playClickSound(); onRotateBoard(); }}
+                className={iconBtnCls}
+                aria-label="Rotate board perspective 90 degrees clockwise"
+              >
+                <RotateCw className="w-3.5 h-3.5" />
+              </Button>
+            </Tooltip>
             <div className="w-px h-4 bg-stone-800 mx-0.5" />
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => { if (!isMuted) playClickSound(); onToggleMute(); }}
-              className={iconBtnCls}
-              aria-label={isMuted ? "Unmute audio" : "Mute audio"}
-            >
-              {isMuted ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5 text-theme-primary" />}
-            </Button>
+            <Tooltip content={isMuted ? "Unmute audio" : "Mute audio"} side="bottom">
+              <Button
+                variant="outline" size="icon"
+                onClick={() => { if (!isMuted) playClickSound(); onToggleMute(); }}
+                className={iconBtnCls}
+                aria-label={isMuted ? "Unmute audio" : "Mute audio"}
+              >
+                {isMuted ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
+              </Button>
+            </Tooltip>
           </div>
 
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => { if (!isMuted) playClickSound(); onOpenSettings(); }}
-            className={cn(iconBtnCls, "shrink-0")}
-            title="Settings"
-            aria-label="Open settings"
-          >
-            <Settings2 className="w-3.5 h-3.5 text-foreground" />
-          </Button>
+          <Tooltip content="Settings" side="bottom">
+            <Button
+              variant="outline" size="icon"
+              onClick={() => { if (!isMuted) playClickSound(); onOpenSettings(); }}
+              className={cn(iconBtnCls, "shrink-0")}
+              aria-label="Open settings"
+            >
+              <Settings2 className="w-3.5 h-3.5" />
+            </Button>
+          </Tooltip>
 
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => { if (!isMuted) playClickSound(); onOpenWelcomeGuide(); }}
-            className={cn(iconBtnCls, "shrink-0")}
-            title="How to play"
-            aria-label="Open the how-to-play guide"
-          >
-            <HelpCircle className="w-3.5 h-3.5 text-foreground" />
-          </Button>
+          <Tooltip content="How to play" side="bottom">
+            <Button
+              variant="outline" size="icon"
+              onClick={() => { if (!isMuted) playClickSound(); onOpenWelcomeGuide(); }}
+              className={cn(iconBtnCls, "shrink-0")}
+              aria-label="Open the how-to-play guide"
+            >
+              <HelpCircle className="w-3.5 h-3.5" />
+            </Button>
+          </Tooltip>
 
           <SettingsDialog
             open={isSettingsOpen}
@@ -377,10 +365,12 @@ export function AppHeader({
               if (!isMuted) playClickSound();
               onToggleMute();
             }}
-            baseTheme={baseTheme}
+            baseTheme={_baseTheme}
             setBaseTheme={onSetBaseTheme}
             accentColor={accentColor}
             setAccentColor={setAccentColor}
+            is3D={_is3D}
+            onToggle3D={_onToggle3D}
           />
         </div>
       </header>

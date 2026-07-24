@@ -9,6 +9,7 @@ import {
   Cpu,
   RefreshCw,
   Keyboard,
+  FlaskConical,
 } from "lucide-react";
 import { playClickSound } from "../../utils/audio";
 
@@ -21,6 +22,8 @@ interface SettingsDialogProps {
   setBaseTheme: (theme: "dark" | "light") => void;
   accentColor: string;
   setAccentColor: (hex: string) => void;
+  is3D?: boolean;
+  onToggle3D?: () => void;
 }
 
 const ACCENT_PRESETS = [
@@ -62,6 +65,8 @@ export function SettingsDialog({
   setBaseTheme,
   accentColor,
   setAccentColor,
+  is3D = false,
+  onToggle3D,
 }: SettingsDialogProps) {
   const [settingsTab, setSettingsTab] =
     useState<"preferences" | "appearance" | "application">("preferences");
@@ -259,6 +264,30 @@ export function SettingsDialog({
                       Active players are now managed from the Pawns tab of the Setup panel,
                       alongside pawn placement.
                     </p>
+                  </div>
+
+                  {/* Experimental */}
+                  <div className="p-4 app-surface flex flex-col gap-3">
+                    <h3 className="text-sm font-semibold text-stone-200 flex items-center gap-2">
+                      <FlaskConical className="w-4 h-4 text-theme-primary" />
+                      Experimental
+                    </h3>
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <div className="text-xs font-semibold text-stone-200">3D Isometric View</div>
+                        <div className="text-[11px] text-stone-500 mt-0.5">Renders the board in a 3D perspective. May affect performance on some devices.</div>
+                      </div>
+                      <button
+                        onClick={onToggle3D}
+                        className={`neo-brutalism-button rounded-lg px-3 py-1.5 text-xs font-bold cursor-pointer shrink-0 ${
+                          is3D
+                            ? "bg-theme-primary border-stone-950 text-stone-950 translate-x-[1px] translate-y-[1px] shadow-[1px_1px_0_0_#000000]"
+                            : "bg-card border-stone-950 text-stone-400"
+                        }`}
+                      >
+                        {is3D ? "On" : "Off"}
+                      </button>
+                    </div>
                   </div>
                 </div>
               )}

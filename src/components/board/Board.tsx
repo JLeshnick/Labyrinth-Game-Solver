@@ -259,12 +259,14 @@ export const Board: React.FC<BoardProps> = ({
         >
         {/* SVG Solved Path Overlay — animated marching dashes */}
         {isGameStarted && hoveredPath && hoveredPath.length > 0 && (() => {
-          const pts = hoveredPath.map(c => `${c.c + 1.5},${c.r + 1.5}`).join(" ");
+          const cx = (c: number) => c + 0.9;
+          const cy = (r: number) => r + 0.9;
+          const pts = hoveredPath.map(p => `${cx(p.c)},${cy(p.r)}`).join(" ");
           const s = hoveredPath[0];
           const e = hoveredPath[hoveredPath.length - 1];
           return (
             <svg
-              viewBox="0 0 9 9"
+              viewBox="0 0 7.8 7.8"
               className="absolute inset-0 w-full h-full pointer-events-none z-30"
               aria-hidden="true"
             >
@@ -293,12 +295,12 @@ export const Board: React.FC<BoardProps> = ({
                 className="animate-path-crawl"
               />
               {/* Start marker: small square */}
-              <rect x={s.c + 1.5 - 0.13} y={s.r + 1.5 - 0.13} width="0.26" height="0.26" fill="#000000" />
-              <rect x={s.c + 1.5 - 0.08} y={s.r + 1.5 - 0.08} width="0.16" height="0.16" fill="var(--theme-color)" />
+              <rect x={cx(s.c) - 0.13} y={cy(s.r) - 0.13} width="0.26" height="0.26" fill="#000000" />
+              <rect x={cx(s.c) - 0.08} y={cy(s.r) - 0.08} width="0.16" height="0.16" fill="var(--theme-color)" />
               {/* End marker: small circle */}
               {hoveredPath.length > 1 && <>
-                <circle cx={e.c + 1.5} cy={e.r + 1.5} r="0.13" fill="#000000" />
-                <circle cx={e.c + 1.5} cy={e.r + 1.5} r="0.08" fill="var(--theme-color)" />
+                <circle cx={cx(e.c)} cy={cy(e.r)} r="0.13" fill="#000000" />
+                <circle cx={cx(e.c)} cy={cy(e.r)} r="0.08" fill="var(--theme-color)" />
               </>}
             </svg>
           );
