@@ -270,6 +270,13 @@ function hashBoard(board, spareTile) {
   return parts.join('');
 }
 
+const HOME_POSITIONS = {
+  red:    { r: 0, c: 0 },
+  blue:   { r: 6, c: 6 },
+  green:  { r: 6, c: 0 },
+  yellow: { r: 0, c: 6 }
+};
+
 /**
  * Searches for paths to the target treasure.
  * Performs a BFS search over the possible board shift options.
@@ -312,8 +319,14 @@ function solveLabyrinth(board, spareTile, startPawnPos, targetTreasure, lastShif
       
       const reach = getReachableCells(nextBoard, newPawnPos.r, newPawnPos.c);
       
-      // Verify if target is reachable
-      const targetCell = reach.cells.find(cell => nextBoard[cell.r][cell.c].treasure === targetTreasure);
+      const targetCell = reach.cells.find(cell => {
+        if (targetTreasure && targetTreasure.startsWith("home_")) {
+          const color = targetTreasure.substring(5);
+          const home = HOME_POSITIONS[color];
+          return home && cell.r === home.r && cell.c === home.c;
+        }
+        return nextBoard[cell.r][cell.c].treasure === targetTreasure;
+      });
       if (targetCell) {
         solutions.push([
           {
@@ -395,7 +408,14 @@ function solveLabyrinth(board, spareTile, startPawnPos, targetTreasure, lastShif
         
         const reach = getReachableCells(nextBoard, newPawnPos.r, newPawnPos.c);
         
-        const targetCell = reach.cells.find(cell => nextBoard[cell.r][cell.c].treasure === targetTreasure);
+        const targetCell = reach.cells.find(cell => {
+          if (targetTreasure && targetTreasure.startsWith("home_")) {
+            const color = targetTreasure.substring(5);
+            const home = HOME_POSITIONS[color];
+            return home && cell.r === home.r && cell.c === home.c;
+          }
+          return nextBoard[cell.r][cell.c].treasure === targetTreasure;
+        });
         if (targetCell) {
           const pathSteps = [
             ...currNode.path,
@@ -488,11 +508,16 @@ function getFallbackSuggestions(board, spareTile, startPawnPos, targetTreasure, 
       
       // Locate target treasure on the new board
       let targetPos = null;
-      for (let r = 0; r < 7; r++) {
-        for (let c = 0; c < 7; c++) {
-          if (nextBoard[r][c].treasure === targetTreasure) {
-            targetPos = { r, c };
-            break;
+      if (targetTreasure && targetTreasure.startsWith("home_")) {
+        const color = targetTreasure.substring(5);
+        targetPos = HOME_POSITIONS[color] || null;
+      } else {
+        for (let r = 0; r < 7; r++) {
+          for (let c = 0; c < 7; c++) {
+            if (nextBoard[r][c].treasure === targetTreasure) {
+              targetPos = { r, c };
+              break;
+            }
           }
         }
       }
@@ -587,7 +612,12 @@ function generateActionExplanation(board, spareTile, path) {
   const step1 = path[0];
   const { type, index, dir } = parseArrowId(step1.arrowId);
   const targetId = path.cardId;
-  const targetName = TREASURE_NAMES[targetId] || "Target";
+  let targetName = "Target";
+  if (targetId && targetId.startsWith("home_")) {
+    targetName = "Home Corner";
+  } else {
+    targetName = TREASURE_NAMES[targetId] || "Target";
+  }
   
   const insertFrom = dir === 'left' ? 'Left' : dir === 'right' ? 'Right' : dir === 'top' ? 'Top' : 'Bottom';
   const label = type === 'row' ? `Row ${index + 1}` : `Column ${index + 1}`;
@@ -847,9 +877,17 @@ function solveAllHandOrdered(board, spareTile, startPawnPos, handCards, lastShif
   if (!handCards || handCards.length === 0) return [];
   if (handCards.length === 1) return solveAllHand(board, spareTile, startPawnPos, handCards, lastShiftArrowId, maxTurns);
 
-  // Cap permutation search at first 4 cards to stay O(4!) = 24 at most
-  const searchCards = handCards.slice(0, 4);
-  const remainingCards = handCards.slice(4);
+  // Dynamically select the 4 closest cards in the hand to optimize ordering
+  const cardsWithDist = handCards.map(cardId => {
+    const pos = findTreasurePos(board, cardId);
+    const dist = pos ? (Math.abs(startPawnPos.r - pos.r) + Math.abs(startPawnPos.c - pos.c)) : 8;
+    return { id: cardId, dist };
+  });
+  cardsWithDist.sort((a, b) => a.dist - b.dist);
+  const sortedHandCards = cardsWithDist.map(x => x.id);
+
+  const searchCards = sortedHandCards.slice(0, 4);
+  const remainingCards = sortedHandCards.slice(4);
   const perms = permutations(searchCards);
 
   let bestScore = Infinity;
@@ -861,19 +899,29 @@ function solveAllHandOrdered(board, spareTile, startPawnPos, handCards, lastShif
 
     let score;
     if (paths.length > 0) {
-      // Found in 1 turn: turn1Cost=1, heuristic=dist to next card after landing
+      // Found in 1 turn: turn1Cost = 1
       const landPos = paths[0][0].endPos;
       const tempBoard = cloneBoard(board);
       const tempSpare = { ...spareTile, dir: paths[0][0].rotation };
       const { type, index, dir } = parseArrowId(paths[0][0].arrowId);
       executeSlideInGrid(tempBoard, tempSpare, type, index, dir);
+      
       const nextDist = perm.length > 1 ? manhattanMin(landPos, tempBoard, perm[1]) : 0;
       score = 1 + nextDist * 0.1;
     } else {
       // Not reachable in 1 turn — use fallback distance as turn1Cost estimate
       const fallback = getFallbackSuggestions(board, spareTile, startPawnPos, card0, lastShiftArrowId);
       const dist0 = fallback.length > 0 ? (fallback[0][0].minDistance ?? 6) : 6;
-      const nextDist = perm.length > 1 ? dist0 : 0;
+      const endPos = fallback.length > 0 ? fallback[0][0].endPos : startPawnPos;
+
+      const tempBoard = cloneBoard(board);
+      if (fallback.length > 0) {
+        const tempSpare = { ...spareTile, dir: fallback[0][0].rotation };
+        const { type, index, dir } = parseArrowId(fallback[0][0].arrowId);
+        executeSlideInGrid(tempBoard, tempSpare, type, index, dir);
+      }
+
+      const nextDist = perm.length > 1 ? manhattanMin(endPos, tempBoard, perm[1]) : 0;
       score = 2 + dist0 * 0.1 + nextDist * 0.05;
     }
 
@@ -898,6 +946,140 @@ function solveAllHandOrdered(board, spareTile, startPawnPos, handCards, lastShif
 }
 
 /**
+ * Cooperative multi-pawn solver step.
+ * Finds the single best action (slide + walk) among all active pawns and remaining treasures.
+ * If all treasures are collected, plans the route home for each pawn.
+ */
+function solveCoopStep(board, spareTile, pawnPositions, activePawns, remainingTreasures, lastShiftArrowId = null, maxTurns = 3) {
+  if (!activePawns || activePawns.length === 0) return [];
+
+  const pawnTargets = [];
+  if (!remainingTreasures || remainingTreasures.length === 0) {
+    // Phase 2: Get all pawns home
+    for (const pawn of activePawns) {
+      const home = HOME_POSITIONS[pawn];
+      const pPos = pawnPositions[pawn];
+      if (pPos && home && (pPos.r !== home.r || pPos.c !== home.c)) {
+        pawnTargets.push({ pawn, target: `home_${pawn}` });
+      }
+    }
+  } else {
+    // Phase 1: Collect remaining treasures
+    for (const pawn of activePawns) {
+      const pPos = pawnPositions[pawn];
+      if (!pPos) continue;
+
+      const treasuresWithDist = remainingTreasures.map(tid => {
+        const tPos = findTreasurePos(board, tid);
+        const dist = tPos ? (Math.abs(pPos.r - tPos.r) + Math.abs(pPos.c - tPos.c)) : 8;
+        return { id: tid, dist };
+      });
+
+      // Sort by distance and only search top 3 closest treasures to keep performance high
+      treasuresWithDist.sort((a, b) => a.dist - b.dist);
+      const topTreasures = treasuresWithDist.slice(0, 3).map(x => x.id);
+
+      for (const tid of topTreasures) {
+        pawnTargets.push({ pawn, target: tid });
+      }
+    }
+  }
+
+  if (pawnTargets.length === 0) {
+    // Everything collected and all active pawns are home!
+    return [];
+  }
+
+  const allCandidates = [];
+
+  for (const { pawn, target } of pawnTargets) {
+    const pawnPos = pawnPositions[pawn];
+    if (!pawnPos) continue;
+
+    // Try standard BFS search (direct paths)
+    let paths = solveLabyrinth(board, spareTile, pawnPos, target, lastShiftArrowId, maxTurns);
+    let isFallback = false;
+
+    if (paths.length === 0) {
+      // If no direct paths, get fallback proximity recommendations
+      paths = getFallbackSuggestions(board, spareTile, pawnPos, target, lastShiftArrowId);
+      isFallback = true;
+    }
+
+    for (const path of paths) {
+      if (path.length > 0) {
+        const step1 = path[0];
+        const { type, index, dir } = parseArrowId(step1.arrowId);
+
+        const tempBoard = cloneBoard(board);
+        const tempSpare = { ...spareTile, dir: step1.rotation };
+
+        const slideResult = executeSlideInGrid(tempBoard, tempSpare, type, index, dir);
+        const nextSpare = slideResult.newSpare;
+
+        const safety = calculateSafetyScore(tempBoard, nextSpare, step1.endPos, step1.arrowId);
+
+        path.safetyScore = safety;
+        path.cardId = target;
+        path.pawnColor = pawn;
+        path.isFallback = isFallback;
+      }
+    }
+
+    allCandidates.push(...paths);
+  }
+
+  // Sort candidates globally
+  allCandidates.sort((a, b) => {
+    // 1. Direct solutions before fallbacks
+    if (a.isFallback !== b.isFallback) {
+      return a.isFallback ? 1 : -1;
+    }
+
+    // 2. Shorter turn depth first
+    if (a.length !== b.length) {
+      return a.length - b.length;
+    }
+
+    // 3. Proximity distance for fallbacks
+    if (a.isFallback && b.isFallback) {
+      const aDist = a[a.length - 1].minDistance;
+      const bDist = b[b.length - 1].minDistance;
+      if (aDist !== bDist) {
+        return aDist - bDist;
+      }
+    }
+
+    // 4. Safety score higher first
+    return b.safetyScore - a.safetyScore;
+  });
+
+  // Deduplicate sorted suggestions by keeping only the best suggestion for each unique pawn + action
+  const uniquePaths = [];
+  const seenAction = new Set();
+  for (const path of allCandidates) {
+    if (path.length > 0) {
+      const step1 = path[0];
+      const normalizedRot = getNormalizedRotation(spareTile.shape, step1.rotation);
+      const actionKey = `${path.pawnColor}-${step1.arrowId}-${normalizedRot}`;
+      if (!seenAction.has(actionKey)) {
+        seenAction.add(actionKey);
+        uniquePaths.push(path);
+      }
+    }
+  }
+
+  // Generate explanations
+  for (const path of uniquePaths) {
+    if (path.length > 0) {
+      path.explanation = generateActionExplanation(board, spareTile, path);
+    }
+  }
+
+  return uniquePaths.slice(0, 5);
+}
+
+/**
  * Quickly estimates the minimum number of turns needed to reach a given treasure.
  * Returns 1 if reachable in one turn, 2 if within 2 turns, or null if not found within maxTurns.
  */
@@ -916,6 +1098,7 @@ export {
   executeSlideInGrid,
   solveAllHand,
   solveAllHandOrdered,
+  solveCoopStep,
   quickSolveMinTurns,
   getReachableCells,
   areConnected,

@@ -61,8 +61,8 @@ export const TREASURE_SHORT_NAMES: Record<string, string> = {
   spider:       "Spider",
   bat:          "Bat",
   dragon:       "Dragon",
-  ghost_bottle: "Ghost",
-  ghost_waving: "Ghost",
+  ghost_bottle: "Ghost (Bot)",
+  ghost_waving: "Ghost (Wav)",
   lady_pig:     "Lady Pig",
   sorceress:    "Witch",
 };

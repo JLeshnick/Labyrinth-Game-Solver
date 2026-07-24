@@ -22,6 +22,8 @@ interface SetupPanelProps {
   onResetBoard: () => void;
   onAddCard: (treasureId: string) => void;
   onRemoveCard: (treasureId: string) => void;
+  onAddAllCards?: () => void;
+  onClearAllCards?: () => void;
   setupTab: "tiles" | "players" | "cards";
   setSetupTab: (tab: "tiles" | "players" | "cards") => void;
   canStartGame: boolean;
@@ -29,6 +31,8 @@ interface SetupPanelProps {
   showToast: (msg: string) => void;
   onScanBoard?: () => void;
   compact?: boolean;
+  gameMode?: "standard" | "coop";
+  onSetGameMode?: (mode: "standard" | "coop") => void;
 }
 
 export function SetupPanel({
@@ -44,6 +48,8 @@ export function SetupPanel({
   onResetBoard,
   onAddCard,
   onRemoveCard,
+  onAddAllCards,
+  onClearAllCards,
   setupTab,
   setSetupTab,
   canStartGame,
@@ -51,6 +57,8 @@ export function SetupPanel({
   showToast,
   onScanBoard,
   compact = false,
+  gameMode = "standard",
+  onSetGameMode,
 }: SetupPanelProps) {
 
   if (compact) {
@@ -121,7 +129,9 @@ export function SetupPanel({
           { id: "tiles", label: "Tiles", icon: <Layers className="w-3.5 h-3.5" /> },
           { id: "players", label: "Players", icon: <Users className="w-3.5 h-3.5" /> },
           { id: "cards", label: "Cards", icon: <Compass className="w-3.5 h-3.5" /> },
-        ] as const).map((tab) => (
+        ] as const)
+          .filter((tab) => !(tab.id === "cards" && gameMode === "coop"))
+          .map((tab) => (
           <button
             key={tab.id}
             onClick={() => setSetupTab(tab.id)}
@@ -181,6 +191,34 @@ export function SetupPanel({
 
         {setupTab === "players" && (
           <div className="flex flex-col gap-4 h-full overflow-y-auto min-h-0">
+            <div className="p-3 app-surface flex flex-col gap-2">
+              <div className="text-xs font-bold text-stone-200">Game Mode</div>
+              <p className="text-[11px] text-stone-500 leading-normal">
+                Choose the play style. Cooperative mode pools all remaining treasures together for all pawns to collect.
+              </p>
+              <div className="grid grid-cols-2 gap-2 mt-1">
+                {(["standard", "coop"] as const).map((mode) => (
+                  <button
+                    key={mode}
+                    onClick={() => {
+                      if (!isMuted) playClickSound();
+                      if (onSetGameMode) {
+                        onSetGameMode(mode);
+                      }
+                    }}
+                    className={`flex items-center justify-between p-2.5 min-h-11 rounded-xl text-xs font-semibold neo-brutalism-button cursor-pointer border-stone-950 ${
+                      gameMode === mode
+                        ? "bg-theme-primary text-stone-950 translate-x-[1px] translate-y-[1px] shadow-[1px_1px_0_0_#000000]"
+                        : "bg-card text-foreground"
+                    }`}
+                  >
+                    <span className="capitalize">{mode === "coop" ? "Cooperative" : "Standard"}</span>
+                    <span className="text-[10px] opacity-75">{gameMode === mode ? "Active" : "Off"}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
             <div className="p-3 app-surface flex flex-col gap-2">
               <div className="text-xs font-semibold text-stone-200">Active Players</div>
               <p className="text-[11px] text-stone-500 leading-normal">
@@ -246,9 +284,32 @@ export function SetupPanel({
             </div>
 
             <div className="p-3 app-surface">
-              <div className="text-xs text-stone-400">
-                Player <span className="capitalize text-theme-primary font-bold">{activePawn}</span>'s hand (
-                {playerHands[activePawn]?.length ?? 0} cards):
+              <div className="flex items-center justify-between">
+                <div className="text-xs text-stone-400">
+                  Player <span className="capitalize text-theme-primary font-bold">{activePawn}</span>'s hand (
+                  {playerHands[activePawn]?.length ?? 0} cards):
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => {
+                      if (!isMuted) playClickSound();
+                      onAddAllCards?.();
+                    }}
+                    className="text-[10px] text-theme-primary hover:underline font-bold bg-transparent border-0 cursor-pointer"
+                  >
+                    Add All
+                  </button>
+                  <span className="text-[10px] text-stone-600">|</span>
+                  <button
+                    onClick={() => {
+                      if (!isMuted) playClickSound();
+                      onClearAllCards?.();
+                    }}
+                    className="text-[10px] text-red-400 hover:underline font-bold bg-transparent border-0 cursor-pointer"
+                  >
+                    Clear
+                  </button>
+                </div>
               </div>
               <div className="flex flex-wrap gap-1 mt-2">
                 {(playerHands[activePawn] ?? []).map((cardId) => {

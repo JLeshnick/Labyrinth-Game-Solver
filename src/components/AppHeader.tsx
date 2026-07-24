@@ -38,6 +38,8 @@ export interface AppHeaderProps {
   isSettingsOpen: boolean;
   playerHands: PlayerMap<string[]>;
   obtainedTreasures: PlayerMap<string[]>;
+  gameMode?: "standard" | "coop";
+  coopObtainedTreasures?: string[];
   onOpenSettings: () => void;
   onCloseSettings: () => void;
   onUndo: () => void;
@@ -116,6 +118,8 @@ export function AppHeader({
   onToggle3D: _onToggle3D,
   solverDepth,
   onSetSolverDepth,
+  gameMode = "standard",
+  coopObtainedTreasures = [],
 }: AppHeaderProps) {
   const [showEndGameConfirm, setShowEndGameConfirm] = useState(false);
 
@@ -217,10 +221,15 @@ export function AppHeader({
           {/* Pawn score chips — only during game */}
           {isGameStarted && activePlayers.length > 0 && (
             <div className="hidden sm:flex items-center gap-1.5">
+              {gameMode === "coop" && (
+                <div className="flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-black border-2 border-stone-950 bg-theme-primary text-stone-950 shadow-[2px_2px_0_0_#000000] cursor-default mr-1">
+                  <span>CO-OP: {coopObtainedTreasures.length}/24</span>
+                </div>
+              )}
               {activePlayers.map((pawnId) => {
                 const pawn = PAWNS.find((p) => p.id === pawnId);
-                const obtained = (obtainedTreasures as Record<string, string[]>)[pawnId] ?? [];
-                const hand = (playerHands as Record<string, string[]>)[pawnId] ?? [];
+                const obtained = gameMode === "coop" ? [] : (obtainedTreasures as Record<string, string[]>)[pawnId] ?? [];
+                const hand = gameMode === "coop" ? [] : (playerHands as Record<string, string[]>)[pawnId] ?? [];
                 const total = obtained.length + hand.length;
                 const isActive = pawnId === activePawn;
                 return (
@@ -235,40 +244,54 @@ export function AppHeader({
                         pawnId === "yellow" ? "text-stone-950" : "text-white"
                       )}
                     >
-                      <span>{obtained.length}</span>
-                      {total > 0 && <span className="opacity-70">/{total}</span>}
+                      {gameMode === "coop" ? (
+                        <span>{pawnId[0].toUpperCase()}</span>
+                      ) : (
+                        <>
+                          <span>{obtained.length}</span>
+                          {total > 0 && <span className="opacity-70">/{total}</span>}
+                        </>
+                      )}
                     </div>
                     {/* Hover tooltip — styled, matching existing card */}
                     <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-52 rounded-xl app-dialog-panel neo-brutalism-card p-3 z-50 invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-all duration-150 flex flex-col gap-1 pointer-events-none">
                       <div className="text-[10px] font-bold text-stone-200 capitalize border-b border-stone-800 pb-1.5 mb-0.5 flex items-center gap-1.5">
                         <div className={cn("w-3 h-3 rounded-full border border-stone-950", pawn?.colorClass ?? "bg-stone-500")} />
-                        {pawn?.name ?? pawnId} — {obtained.length} collected
+                        {pawn?.name ?? pawnId} {gameMode === "coop" ? "(Cooperative)" : `— ${obtained.length} collected`}
                       </div>
-                      {obtained.length === 0 && hand.length === 0 && (
-                        <p className="text-[9px] text-stone-600 italic">No cards assigned</p>
+                      {gameMode === "coop" ? (
+                        <p className="text-[9px] text-stone-300">
+                          Team progress: {coopObtainedTreasures.length} of 24 treasures collected.
+                        </p>
+                      ) : (
+                        <>
+                          {obtained.length === 0 && hand.length === 0 && (
+                            <p className="text-[9px] text-stone-600 italic">No cards assigned</p>
+                          )}
+                          {obtained.map((id) => {
+                            const t = TREASURES.find((x) => x.id === id);
+                            return (
+                              <div key={id} className="flex items-center gap-1.5">
+                                <span className="text-emerald-400 text-[9px] flex-shrink-0">✓</span>
+                                <span className="text-[9px] text-emerald-300 line-through opacity-75">{t?.name ?? id}</span>
+                              </div>
+                            );
+                          })}
+                          {hand.map((id, i) => {
+                            const t = TREASURES.find((x) => x.id === id);
+                            return (
+                              <div key={id} className="flex items-center gap-1.5">
+                                <span className={cn("text-[9px] flex-shrink-0", i === 0 ? "text-amber-400" : "text-stone-600")}>
+                                  {i === 0 ? "▶" : "·"}
+                                </span>
+                                <span className={cn("text-[9px]", i === 0 ? "text-amber-200 font-medium" : "text-stone-500")}>
+                                  {t?.name ?? id}{i === 0 ? " ← next" : ""}
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </>
                       )}
-                      {obtained.map((id) => {
-                        const t = TREASURES.find((x) => x.id === id);
-                        return (
-                          <div key={id} className="flex items-center gap-1.5">
-                            <span className="text-emerald-400 text-[9px] flex-shrink-0">✓</span>
-                            <span className="text-[9px] text-emerald-300 line-through opacity-75">{t?.name ?? id}</span>
-                          </div>
-                        );
-                      })}
-                      {hand.map((id, i) => {
-                        const t = TREASURES.find((x) => x.id === id);
-                        return (
-                          <div key={id} className="flex items-center gap-1.5">
-                            <span className={cn("text-[9px] flex-shrink-0", i === 0 ? "text-amber-400" : "text-stone-600")}>
-                              {i === 0 ? "▶" : "·"}
-                            </span>
-                            <span className={cn("text-[9px]", i === 0 ? "text-amber-200 font-medium" : "text-stone-500")}>
-                              {t?.name ?? id}{i === 0 ? " ← next" : ""}
-                            </span>
-                          </div>
-                        );
-                      })}
                     </div>
                   </div>
                 );

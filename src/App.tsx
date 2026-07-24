@@ -340,6 +340,11 @@ export default function App() {
     }
   }, [game.activePawn, game.isGameStarted, game.spareTile.rotation]);
 
+  // Clear hovered solver suggestion when grid or pawn positions change
+  useEffect(() => {
+    setHoveredSolution(null);
+  }, [game.grid, game.pawnPositions]);
+
   // ── Solver worker lifecycle ───────────────────────────────────────────────────
   useEffect(() => {
     try {
@@ -393,11 +398,17 @@ export default function App() {
   // ── Solver re-run on board/pawn/hand changes ──────────────────────────────────
   useEffect(() => {
     if (!game.isGameStarted || game.grid.length === 0 || !workerRef.current) return;
+    const isCoop = game.gameMode === "coop";
     const currentPawnCoord = game.pawnPositions[game.activePawn];
     const handCards = game.customTargetCoords
       ? ["custom_target"]
       : game.playerHands[game.activePawn] || [];
-    if (!currentPawnCoord || handCards.length === 0) {
+
+    if (!isCoop && (!currentPawnCoord || handCards.length === 0)) {
+      setSolutions([]);
+      return;
+    }
+    if (isCoop && !currentPawnCoord) {
       setSolutions([]);
       return;
     }
@@ -407,46 +418,39 @@ export default function App() {
     const solverSpare = game.getSolverFormattedSpare(game.spareTile);
 
     if (game.customTargetCoords) {
-      solverBoard = solverBoard.map(
-        (
-          row: {
-            r: number;
-            c: number;
-            treasure: string | null;
-            shape: string;
-            dir: number;
-            isFixed: boolean;
-            pawns: string[];
-          }[],
-          r: number
-        ) =>
-          row.map(
-            (
-              cell: {
-                r: number;
-                c: number;
-                treasure: string | null;
-                shape: string;
-                dir: number;
-                isFixed: boolean;
-                pawns: string[];
-              },
-              c: number
-            ) =>
-              r === game.customTargetCoords!.r && c === game.customTargetCoords!.c
-                ? { ...cell, treasure: "custom_target" }
-                : cell
-          )
+      solverBoard = solverBoard.map((row, r) =>
+        row.map((cell, c) =>
+          r === game.customTargetCoords!.r && c === game.customTargetCoords!.c
+            ? { ...cell, treasure: "custom_target" }
+            : cell
+        )
       );
     }
+
+    let isCoopSolve = isCoop;
+    let coopTarget = null;
+    if (isCoop && game.customTargetCoords) {
+      isCoopSolve = false; // Solve as a standard single target using solveLabyrinth
+      const activeHome = DEFAULT_PAWN_POSITIONS[game.activePawn];
+      const isHomeSelected = activeHome && game.customTargetCoords.r === activeHome.r && game.customTargetCoords.c === activeHome.c;
+      coopTarget = isHomeSelected ? `home_${game.activePawn}` : "custom_target";
+    }
+
+    // In coop mode, if a specific target card is selected, solve only for that card. Otherwise, use all remaining coop treasures.
+    const selectedTarget = game.playerActiveTargets[game.activePawn];
+    const coopTreasures = isCoop && selectedTarget ? [selectedTarget] : game.remainingCoopTreasures;
 
     workerRef.current.postMessage({
       board: solverBoard,
       spareTile: solverSpare,
       pawnPos: currentPawnCoord,
-      handCards,
+      pawnPositions: game.pawnPositions,
+      handCards: coopTarget ? [coopTarget] : handCards,
       lastShiftArrowId: game.lastShiftArrowId,
       maxTurns: solverDepth,
+      isCoop: isCoopSolve,
+      activePawns: isCoop ? [game.activePawn] : game.activePlayers,
+      remainingTreasures: coopTreasures,
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
@@ -454,6 +458,7 @@ export default function App() {
     game.spareTile,
     game.activePawn,
     game.playerHands,
+    game.playerActiveTargets,
     game.lastShiftArrowId,
     game.isGameStarted,
     game.pawnPositions,
@@ -461,6 +466,9 @@ export default function App() {
     game.getSolverFormattedSpare,
     game.customTargetCoords,
     solverDepth,
+    game.gameMode,
+    game.activePlayers,
+    game.remainingCoopTreasures,
   ]);
 
   // ── Drag and Drop ─────────────────────────────────────────────────────────────
@@ -789,6 +797,8 @@ export default function App() {
         onRandomizeBoard={game.handleRandomizeBoard}
         playerHands={game.playerHands}
         obtainedTreasures={game.obtainedTreasures}
+        gameMode={game.gameMode}
+        coopObtainedTreasures={game.coopObtainedTreasures}
         onOpenWelcomeGuide={() => setShowWelcomeGuide(true)}
         elapsedTime={game.isGameStarted ? elapsedTime : undefined}
         isTimerPaused={isTimerPaused}
@@ -852,7 +862,7 @@ export default function App() {
                     );
                   }
                 }}
-                allObtainedTreasures={Object.values(game.obtainedTreasures).flat()}
+                allObtainedTreasures={game.gameMode === "coop" ? game.coopObtainedTreasures : Object.values(game.obtainedTreasures).flat()}
                 activeTargetTreasureId={game.playerActiveTargets[game.activePawn]}
                 activePlayers={game.activePlayers}
                 is3D={is3D}
@@ -896,6 +906,8 @@ export default function App() {
                   onToggleOneMoveTargets={() => setShowOneMoveTargets((v) => !v)}
                   oneMoveTargets={oneMoveTargets}
                   isActivePawnHome={isActivePawnHome}
+                  gameMode={game.gameMode}
+                  remainingCoopTreasures={game.remainingCoopTreasures}
                 />
               ) : (
                 <SetupPanel
@@ -911,12 +923,16 @@ export default function App() {
                   onResetBoard={() => game.resetBoardToInitialPresets()}
                   onAddCard={game.handleAddCard}
                   onRemoveCard={game.handleRemoveCard}
+                  onAddAllCards={game.handleAddAllCards}
+                  onClearAllCards={game.handleClearAllCards}
                   setupTab={game.setupTab}
                   setSetupTab={game.setSetupTab}
                   canStartGame={canStartGame}
                   onStartGame={game.handleStartGame}
                   showToast={showToast}
                   onScanBoard={() => setIsScanModalOpen(true)}
+                  gameMode={game.gameMode}
+                  onSetGameMode={game.setGameMode}
                 />
               )}
             </div>
@@ -988,6 +1004,8 @@ export default function App() {
                     isActivePawnHome={isActivePawnHome}
                     compact={mobilePanelStop === "peek"}
                     onToggleStats={() => setShowStats((prev) => !prev)}
+                    gameMode={game.gameMode}
+                    remainingCoopTreasures={game.remainingCoopTreasures}
                   />
                 ) : (
                   <SetupPanel
@@ -1003,6 +1021,8 @@ export default function App() {
                     onResetBoard={() => game.resetBoardToInitialPresets()}
                     onAddCard={game.handleAddCard}
                     onRemoveCard={game.handleRemoveCard}
+                    onAddAllCards={game.handleAddAllCards}
+                    onClearAllCards={game.handleClearAllCards}
                     setupTab={game.setupTab}
                     setSetupTab={game.setSetupTab}
                     canStartGame={canStartGame}
@@ -1010,6 +1030,8 @@ export default function App() {
                     showToast={showToast}
                     onScanBoard={() => setIsScanModalOpen(true)}
                     compact={mobilePanelStop === "peek"}
+                    gameMode={game.gameMode}
+                    onSetGameMode={game.setGameMode}
                   />
                 )}
               </div>

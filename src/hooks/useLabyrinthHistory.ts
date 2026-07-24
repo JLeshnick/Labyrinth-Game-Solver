@@ -18,6 +18,9 @@ export interface HistoryRecord {
   label?: string;
   movedPawn?: string;
   pawnPath?: { r: number; c: number }[];
+  gameMode?: "standard" | "coop";
+  remainingCoopTreasures?: string[];
+  coopObtainedTreasures?: string[];
 }
 
 export function useLabyrinthHistory(initialState: HistoryRecord | null) {
@@ -45,7 +48,10 @@ export function useLabyrinthHistory(initialState: HistoryRecord | null) {
       pawnPositions?: PawnPositions,
       label?: string,
       movedPawn?: string,
-      pawnPath?: { r: number; c: number }[]
+      pawnPath?: { r: number; c: number }[],
+      gameMode?: "standard" | "coop",
+      remainingCoopTreasures?: string[],
+      coopObtainedTreasures?: string[]
     ) => {
       const record: HistoryRecord = deepClone({
         board,
@@ -59,6 +65,9 @@ export function useLabyrinthHistory(initialState: HistoryRecord | null) {
         label,
         movedPawn,
         pawnPath,
+        gameMode,
+        remainingCoopTreasures,
+        coopObtainedTreasures,
       });
 
       setHistory((prev) => {

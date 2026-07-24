@@ -36,6 +36,8 @@ interface SolverPanelProps {
   isActivePawnHome: boolean;
   compact?: boolean;
   onToggleStats?: () => void;
+  gameMode?: "standard" | "coop";
+  remainingCoopTreasures?: string[];
 }
  
 export function SolverPanel({
@@ -64,9 +66,17 @@ export function SolverPanel({
   isActivePawnHome,
   compact = false,
   onToggleStats,
+  gameMode = "standard",
+  remainingCoopTreasures = [],
 }: SolverPanelProps) {
+  const isHomeSelected = !!(customTargetCoords &&
+    customTargetCoords.r === DEFAULT_PAWN_POSITIONS[activePawn]?.r &&
+    customTargetCoords.c === DEFAULT_PAWN_POSITIONS[activePawn]?.c);
+
+  const topSolution = solutions[0];
+  const currentTargetId = playerActiveTargets[activePawn] || (topSolution ? (topSolution as any).cardId : null);
+
   if (compact) {
-    const topSolution = solutions[0];
     return (
       <div className="flex flex-col gap-1.5 px-3 pb-2">
         <div className="flex items-center justify-between gap-2">
@@ -81,7 +91,11 @@ export function SolverPanel({
             {!isActivePawnHome ? (
               <button
                 onClick={() => setCustomTargetCoords(DEFAULT_PAWN_POSITIONS[activePawn])}
-                className="text-[10px] px-2 py-1 min-h-9 neo-brutalism-button rounded-lg border-stone-950 bg-card text-stone-400 flex items-center gap-1"
+                className={`text-[10px] px-2 py-1 min-h-9 neo-brutalism-button rounded-lg border-stone-950 flex items-center gap-1 transition-all ${
+                  isHomeSelected
+                    ? "bg-theme-primary text-stone-950 shadow-[1px_1px_0_0_#000000] translate-x-[1px] translate-y-[1px]"
+                    : "bg-card text-stone-400 hover:text-stone-200"
+                }`}
               >
                 <Home className="w-3 h-3" /> Home
               </button>
@@ -129,9 +143,11 @@ export function SolverPanel({
           <button
             onClick={() => setCustomTargetCoords(DEFAULT_PAWN_POSITIONS[activePawn])}
             disabled={isActivePawnHome}
-            className={`text-[10px] md:text-xs px-2 py-1 min-h-9 neo-brutalism-button rounded-lg font-semibold flex items-center gap-1 ${
+            className={`text-[10px] md:text-xs px-2 py-1 min-h-9 neo-brutalism-button rounded-lg font-semibold flex items-center gap-1 transition-all ${
               isActivePawnHome
                 ? "border-stone-950 text-stone-500 bg-card opacity-40 cursor-not-allowed translate-x-[1px] translate-y-[1px] shadow-[1px_1px_0_0_#000000]"
+                : isHomeSelected
+                ? "bg-theme-primary text-stone-950 border-stone-950 shadow-[1px_1px_0_0_#000000] translate-x-[1px] translate-y-[1px]"
                 : "border-stone-950 bg-card text-stone-400 hover:text-stone-200 cursor-pointer"
             }`}
             title={isActivePawnHome ? "Already at home corner" : "Solve route back to home corner"}
@@ -162,16 +178,23 @@ export function SolverPanel({
             <p className="text-[10px] text-stone-600 italic">None found with current board state</p>
           ) : (
             <div className="flex flex-wrap gap-1.5">
-              {oneMoveTargets.map(t => (
-                <button
-                  key={t.id}
-                  onClick={() => onSelectTargetTreasure(activePawn, t.id)}
-                  className="text-[10px] px-2 py-1 neo-brutalism-button rounded-lg border-stone-950 bg-green-950/40 text-green-300 cursor-pointer font-medium"
-                  title={`Set ${t.name} as target`}
-                >
-                  {t.name}
-                </button>
-              ))}
+              {oneMoveTargets.map(t => {
+                const isSelected = t.id === currentTargetId;
+                return (
+                  <button
+                    key={t.id}
+                    onClick={() => onSelectTargetTreasure(activePawn, t.id)}
+                    className={`text-[10px] px-2 py-1 neo-brutalism-button rounded-lg border-stone-950 transition-all font-semibold cursor-pointer ${
+                      isSelected
+                        ? "bg-theme-primary text-stone-950 shadow-[1px_1px_0_0_#000000] translate-x-[1px] translate-y-[1px]"
+                        : "bg-green-950/40 text-green-300 hover:text-green-100"
+                    }`}
+                    title={`Set ${t.name} as target`}
+                  >
+                    {t.name}
+                  </button>
+                );
+              })}
             </div>
           )}
         </div>
@@ -198,6 +221,12 @@ export function SolverPanel({
                 <span className="text-theme-primary font-bold text-xs flex items-center gap-1">
                   {TREASURES.find(t => t.id === playerActiveTargets[activePawn])?.name ?? playerActiveTargets[activePawn]}
                   <button onClick={() => onSelectTargetTreasure(activePawn, null)} className="text-stone-500 hover:text-stone-300 text-xs ml-1 underline cursor-pointer" title="Clear target">(clear)</button>
+                </span>
+              ) : gameMode === "coop" ? (
+                <span className="text-theme-primary font-bold text-xs">
+                  {remainingCoopTreasures && remainingCoopTreasures.length > 0
+                    ? "Closest Treasure Target (Auto)"
+                    : "Home Corner (Auto)"}
                 </span>
               ) : (
                 <span className="text-stone-500 text-xs italic">Click any tile on the board to set a target</span>
@@ -276,7 +305,20 @@ export function SolverPanel({
                   {index + 1}
                 </span>
                 <div className="flex-1 min-w-0">
-                  <div className="text-xs font-semibold flex items-center gap-1.5">
+                  <div className="text-xs font-semibold flex items-center gap-1.5 flex-wrap">
+                    {(sol as any).pawnColor && (
+                      <span className={`px-1.5 py-0.5 rounded text-[9px] font-extrabold uppercase tracking-wider text-stone-950 ${
+                        (sol as any).pawnColor === "red"
+                          ? "bg-red-500"
+                          : (sol as any).pawnColor === "blue"
+                          ? "bg-blue-400"
+                          : (sol as any).pawnColor === "green"
+                          ? "bg-green-400"
+                          : "bg-yellow-400"
+                      }`}>
+                        {(sol as any).pawnColor}
+                      </span>
+                    )}
                     {isFallback ? (
                       <span className="text-amber-500 font-bold">Fallback Setup</span>
                     ) : sol.length === 1 ? (
@@ -296,7 +338,9 @@ export function SolverPanel({
                     <div className="text-[10px] mt-1.5 flex items-center gap-1 flex-wrap">
                       <span className="text-stone-500">Target:</span>
                       <span className="text-theme-primary font-semibold">
-                        {TREASURES.find((t) => t.id === (sol as { cardId?: string }).cardId)?.name ?? (sol as { cardId?: string }).cardId}
+                        {(sol as any).cardId && (sol as any).cardId.startsWith("home_")
+                          ? `${(sol as any).cardId.substring(5).toUpperCase()} Home Corner`
+                          : TREASURES.find((t) => t.id === (sol as { cardId?: string }).cardId)?.name ?? (sol as { cardId?: string }).cardId}
                       </span>
                       {(sol as { sequenceOrder?: string[] }).sequenceOrder && (sol as { sequenceOrder?: string[] }).sequenceOrder!.length > 1 && (
                         <span className="text-stone-500 italic">
