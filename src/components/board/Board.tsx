@@ -388,86 +388,89 @@ export const Board: React.FC<BoardProps> = ({
           
           const sourceGrid = originalGrid || grid;
           let pushedTile: TileData | null = null;
-          let gridRow = 0;
-          let gridColumn = 0;
           let animClass = "";
   
           if (arrow.type === "row") {
             const r = arrow.index;
             if (arrow.dir === "left") {
               pushedTile = sourceGrid[r][6];
-              gridRow = r + 2;
-              gridColumn = 9;
               animClass = "animate-preview-slide-right";
             } else {
               pushedTile = sourceGrid[r][0];
-              gridRow = r + 2;
-              gridColumn = 1;
               animClass = "animate-preview-slide-left";
             }
           } else {
             const c = arrow.index;
             if (arrow.dir === "top") {
               pushedTile = sourceGrid[6][c];
-              gridRow = 9;
-              gridColumn = c + 2;
               animClass = "animate-preview-slide-down";
             } else {
               pushedTile = sourceGrid[0][c];
-              gridRow = 1;
-              gridColumn = c + 2;
               animClass = "animate-preview-slide-up";
             }
           }
   
           if (!pushedTile) return null;
-  
+
+          // Compute absolute position for the pushed tile in the tray's coordinate space.
+          // Tile cell size = 1/7.8 of the tray. Arrow cells are 0.4fr.
+          // For a row push: the tile appears outside the board — left or right edge.
+          // For a col push: the tile appears outside — top or bottom edge.
+          const tilePct = (1 / 7.8 * 100).toFixed(2) + "%";
+          const edgeOf = (i: number) => ((0.4 + i) / 7.8 * 100).toFixed(2) + "%";
+          // r/c of the affected row/col
+          const tileR = arrow.type === "row" ? arrow.index : (arrow.dir === "top" ? -1 : 7);
+          const tileC = arrow.type === "col" ? arrow.index : (arrow.dir === "left" ? -1 : 7);
+          const posStyle: React.CSSProperties = {
+            position: "absolute",
+            width: tilePct,
+            height: tilePct,
+            zIndex: 30,
+            top: arrow.type === "col"
+              ? (arrow.dir === "top" ? `calc(-${tilePct})` : "100%")
+              : edgeOf(tileR),
+            left: arrow.type === "row"
+              ? (arrow.dir === "left" ? `calc(-${tilePct})` : "100%")
+              : edgeOf(tileC),
+          };
+
           return (
             <div
-              style={{ gridRow, gridColumn, zIndex: 30 }}
-              className={cn("relative w-full h-full aspect-square rounded-xl overflow-hidden border-2 border-stone-950 pointer-events-none shadow-[4px_4px_0_0_#000000]", animClass)}
+              style={posStyle}
+              className={cn("rounded-xl overflow-hidden border-2 border-stone-950 pointer-events-none shadow-[4px_4px_0_0_#000000]", animClass)}
             >
-              <Tile tile={pushedTile} boardRotation={boardRotation} disableRotationTransition={true} is3D={is3D} className="absolute inset-0 w-full h-full" />
+              <Tile tile={pushedTile} boardRotation={boardRotation} disableRotationTransition={true} is3D={is3D} className="w-full h-full" />
             </div>
           );
         })()}
       </div>
 
-      {/* SVG Solved Path Overlay — sibling to grid, absolute over tray, avoids gap math */}
+      {/* SVG Solved Path Overlay — c+0.9 coords in 7.8×7.8 viewBox match tile centers */}
       {isGameStarted && hoveredPath && hoveredPath.length > 0 && (() => {
-        // pct(i): center of tile i in the 0.4fr repeat(7,1fr) 0.4fr template as a %
-        const pct = (i: number) => ((i + 0.9) / 7.8 * 100).toFixed(3);
-        const pts = hoveredPath.map(p => `${pct(p.c)},${pct(p.r)}`).join(" ");
+        const tc = (i: number) => i + 0.9;
+        const pts = hoveredPath.map(p => `${tc(p.c)},${tc(p.r)}`).join(" ");
         const s = hoveredPath[0];
         const e = hoveredPath[hoveredPath.length - 1];
-        const sw = (1 / 7.8 * 100 * 0.1).toFixed(3);   // ~1.3 in pct units
-        const swThin = (1 / 7.8 * 100 * 0.065).toFixed(3);
-        const da = (1 / 7.8 * 100 * 0.18).toFixed(3);
-        const dg = (1 / 7.8 * 100 * 0.12).toFixed(3);
-        const rSq = (1 / 7.8 * 100 * 0.13).toFixed(3);
-        const rSqI = (1 / 7.8 * 100 * 0.08).toFixed(3);
-        const rCir = (1 / 7.8 * 100 * 0.13).toFixed(3);
-        const rCirI = (1 / 7.8 * 100 * 0.08).toFixed(3);
         return (
           <svg
-            viewBox="0 0 100 100"
-            preserveAspectRatio="none"
+            viewBox="0 0 7.8 7.8"
+            preserveAspectRatio="xMidYMid meet"
             className="absolute inset-0 w-full h-full pointer-events-none z-30"
             aria-hidden="true"
           >
             <polyline points={pts} fill="none" stroke="#000000"
-              strokeWidth={sw} strokeDasharray={`${da},${dg}`}
+              strokeWidth="0.10" strokeDasharray="0.18,0.12"
               strokeLinecap="round" strokeLinejoin="round"
               opacity="0.45" className="animate-path-crawl" />
             <polyline points={pts} fill="none" stroke="var(--theme-color)"
-              strokeWidth={swThin} strokeDasharray={`${da},${dg}`}
+              strokeWidth="0.06" strokeDasharray="0.18,0.12"
               strokeLinecap="round" strokeLinejoin="round"
               opacity="0.7" className="animate-path-crawl" />
-            <rect x={+pct(s.c) - +rSq} y={+pct(s.r) - +rSq} width={+rSq * 2} height={+rSq * 2} fill="#000000" />
-            <rect x={+pct(s.c) - +rSqI} y={+pct(s.r) - +rSqI} width={+rSqI * 2} height={+rSqI * 2} fill="var(--theme-color)" />
+            <rect x={tc(s.c) - 0.13} y={tc(s.r) - 0.13} width="0.26" height="0.26" fill="#000000" />
+            <rect x={tc(s.c) - 0.08} y={tc(s.r) - 0.08} width="0.16" height="0.16" fill="var(--theme-color)" />
             {hoveredPath.length > 1 && <>
-              <circle cx={pct(e.c)} cy={pct(e.r)} r={rCir} fill="#000000" />
-              <circle cx={pct(e.c)} cy={pct(e.r)} r={rCirI} fill="var(--theme-color)" />
+              <circle cx={tc(e.c)} cy={tc(e.r)} r="0.13" fill="#000000" />
+              <circle cx={tc(e.c)} cy={tc(e.r)} r="0.08" fill="var(--theme-color)" />
             </>}
           </svg>
         );
