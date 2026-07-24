@@ -136,7 +136,7 @@ export function AppHeader({
   return (
     <>
       <header
-        className="relative z-40 px-3 sm:px-6 py-2 sm:py-3 flex items-center justify-between border-b border-stone-800 bg-stone-950/70 backdrop-blur-md gap-2 sm:gap-4"
+        className="relative z-40 px-3 sm:px-6 py-2 sm:py-3 flex items-center justify-between border-b border-border bg-card/75 backdrop-blur-md gap-2 sm:gap-4"
         style={{ boxShadow: "inset 0 -1px 0 rgba(var(--theme-color-rgb), 0.25)" }}
       >
         {/* Left — branding */}
@@ -145,7 +145,7 @@ export function AppHeader({
             <Compass className="w-4 h-4 animate-pulse" />
           </div>
           <div>
-            <h1 className="text-sm sm:text-lg md:text-xl font-bold tracking-tight bg-gradient-to-r from-stone-200 to-theme-primary bg-clip-text text-transparent flex items-center">
+            <h1 className="text-sm sm:text-lg md:text-xl font-bold tracking-tight bg-gradient-to-r from-foreground to-theme-primary bg-clip-text text-transparent flex items-center">
               <span className="hidden sm:inline">Labyrinth Game Solver</span>
               <span className="sm:hidden">Labyrinth</span>
             </h1>
@@ -170,7 +170,7 @@ export function AppHeader({
         {/* Center — Step Nav */}
         <div className="flex-1 flex flex-col items-center justify-center min-w-0 gap-1">
           <div className="w-auto">
-            <div className="flex w-auto items-center app-step-nav rounded-full border border-stone-800 px-1 py-0.5 sm:p-1 gap-1">
+            <div className="flex w-auto items-center app-step-nav rounded-full border border-border px-1 py-0.5 sm:p-1 gap-1">
               {STEPS.map((s) => {
                 const isActive = s.id === currentStep;
                 const isDisabled = s.id === "game" && !isGameStarted && !canStartGame;

@@ -51,11 +51,11 @@ export const Tile: React.FC<TileProps> = ({
   };
 
   const getTileStyles = () => {
-    let bgClass = "bg-stone-700 dark:bg-stone-800";
-    let borderClass = "border-stone-600 dark:border-stone-700";
+    let bgClass = "bg-stone-200 dark:bg-stone-900";
+    let borderClass = "border-stone-300 dark:border-stone-800";
     let shadowStyle: React.CSSProperties = {};
 
-    // 1. Color coordinates or custom starts
+    // 1. Pawn start corner presets keep their team color labels for game logic
     if (tile.color) {
       if (tile.color === "blue") {
         bgClass = "bg-blue-600 dark:bg-blue-700";
@@ -71,26 +71,17 @@ export const Tile: React.FC<TileProps> = ({
         if (is3D) shadowStyle = { boxShadow: "0 6px 0 #065f46, 0 10px 16px rgba(0,0,0,0.4)" };
       } else if (tile.color === "yellow") {
         bgClass = "bg-amber-400 dark:bg-amber-500";
-        borderClass = "border-amber-300 dark:border-amber-400";
+        borderClass = "border-amber-300 dark:border-amber-450";
         if (is3D) shadowStyle = { boxShadow: "0 6px 0 #92400e, 0 10px 16px rgba(0,0,0,0.4)" };
       }
     } else {
-      // 2. Playful shapes coloring matching MazeMaster
-      if (tile.shape === "straight") {
-        // Straight = Vibrant Blue
-        bgClass = "bg-blue-500 dark:bg-blue-650";
-        borderClass = "border-blue-400 dark:border-blue-550";
-        if (is3D) shadowStyle = { boxShadow: "0 6px 0 #1e3a8a, 0 10px 16px rgba(0,0,0,0.35)" };
-      } else if (tile.shape === "corner") {
-        // Corner = Emerald / Teal
-        bgClass = "bg-emerald-500 dark:bg-emerald-650";
-        borderClass = "border-emerald-400 dark:border-emerald-550";
-        if (is3D) shadowStyle = { boxShadow: "0 6px 0 #047857, 0 10px 16px rgba(0,0,0,0.35)" };
-      } else if (tile.shape === "t-junction") {
-        // T-junction = Golden Yellow
-        bgClass = "bg-amber-400 dark:bg-amber-500";
-        borderClass = "border-amber-300 dark:border-amber-400";
-        if (is3D) shadowStyle = { boxShadow: "0 6px 0 #b45309, 0 10px 16px rgba(0,0,0,0.35)" };
+      // 2. All standard playable tiles are a uniform, clean warm stone gray block
+      bgClass = "bg-stone-200 dark:bg-stone-900";
+      borderClass = "border-stone-300 dark:border-stone-800";
+      if (is3D) {
+        shadowStyle = {
+          boxShadow: "var(--tile-3d-shadow)",
+        };
       }
     }
 
@@ -150,7 +141,7 @@ export const Tile: React.FC<TileProps> = ({
             )}
             style={
               is3D
-                ? { transform: `rotateZ(${45 - boardRotation}deg) rotateX(-55deg) translateZ(6px)` }
+                ? { transform: `rotateZ(${30 - boardRotation}deg) rotateX(-45deg) translateZ(6px)` }
                 : { transform: `rotate(${-boardRotation}deg)` }
             }
           >
@@ -167,7 +158,7 @@ export const Tile: React.FC<TileProps> = ({
           className="absolute top-1 right-1 p-1 bg-stone-900/90 border border-stone-700/60 rounded-full text-amber-400 shadow-md z-20 pointer-events-auto cursor-help transition-all duration-300"
           style={
             is3D
-              ? { transform: `rotateZ(${45 - boardRotation}deg) rotateX(-55deg) translateZ(8px)` }
+              ? { transform: `rotateZ(${30 - boardRotation}deg) rotateX(-45deg) translateZ(8px)` }
               : { transform: `rotate(${-boardRotation}deg)` }
           }
           title="This preset tile is permanently glued to the board. It cannot be moved, slid, or rotated."
@@ -189,7 +180,7 @@ export const Tile: React.FC<TileProps> = ({
           )}
           style={
             is3D
-              ? { transform: `rotateZ(${45 - boardRotation}deg) rotateX(-55deg) translateZ(10px)` }
+              ? { transform: `rotateZ(${30 - boardRotation}deg) rotateX(-45deg) translateZ(10px)` }
               : { transform: `rotate(${-boardRotation}deg)` }
           }
         >
