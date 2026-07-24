@@ -19,7 +19,6 @@ import {
   Settings2,
   HelpCircle,
   Clock,
-  Pause,
   BarChart2,
 } from "lucide-react";
 
@@ -74,8 +73,8 @@ const STEPS = [
   },
   {
     id: "game" as const,
-    label: "Play Game",
-    shortLabel: "Play",
+    label: "Game",
+    shortLabel: "Game",
     icon: <Play className="w-3 h-3" />,
   },
 ];
@@ -141,23 +140,30 @@ export function AppHeader({
           </span>
         </a>
 
-        {/* Center — Step Nav + timer pill */}
+        {/* Center — Step Nav (timer integrated in Game button) */}
         <div className="flex-1 flex items-center justify-center min-w-0 gap-2">
           <div className="flex items-center bg-card neo-brutalism-card rounded-xl px-1 py-0.5 sm:p-1 gap-1">
             {STEPS.map((s) => {
               const isActive = s.id === currentStep;
               const isDisabled = s.id === "game" && !isGameStarted && !canStartGame;
+              const showTimer = s.id === "game" && isActive && elapsedTime;
               return (
                 <Tooltip
                   key={s.id}
-                  content={isDisabled ? "Place all 33 movable tiles first" : undefined}
+                  content={
+                    isDisabled ? "Place all 33 movable tiles first" :
+                    showTimer ? (isTimerPaused ? "Resume timer" : "Pause timer") :
+                    undefined
+                  }
                   side="bottom"
                 >
                   <button
                     disabled={isDisabled}
                     onClick={() => {
                       if (!isMuted) playClickSound();
-                      if (s.id === "game" && !isGameStarted) {
+                      if (showTimer && onToggleTimer) {
+                        onToggleTimer();
+                      } else if (s.id === "game" && !isGameStarted) {
                         onStartGame();
                       } else if (s.id === "setup" && isGameStarted) {
                         setShowEndGameConfirm(true);
@@ -176,27 +182,16 @@ export function AppHeader({
                     <span className="hidden xs:inline sm:hidden">{s.shortLabel}</span>
                     <span className="hidden sm:inline">{s.label}</span>
                     <span className="xs:hidden">{s.shortLabel}</span>
+                    {showTimer && (
+                      <span className="font-mono text-[10px] opacity-80 ml-1">
+                        {isTimerPaused ? "⏸" : "⏱"} {elapsedTime}
+                      </span>
+                    )}
                   </button>
                 </Tooltip>
               );
             })}
           </div>
-
-          {/* Timer pill — visible during game, separate from step nav */}
-          {isGameStarted && elapsedTime && onToggleTimer && (
-            <Tooltip content={isTimerPaused ? "Resume timer" : "Pause timer"} side="bottom">
-              <button
-                onClick={() => { if (!isMuted) playClickSound(); onToggleTimer(); }}
-                className="hidden xs:flex items-center gap-1 px-2 py-1 rounded-lg border border-stone-700 text-stone-400 hover:text-stone-200 hover:bg-stone-800 transition-all text-[10px] font-mono cursor-pointer"
-                aria-label={isTimerPaused ? "Resume timer" : "Pause timer"}
-              >
-                {isTimerPaused
-                  ? <Pause className="w-3 h-3" />
-                  : <Clock className="w-3 h-3" />}
-                {elapsedTime}
-              </button>
-            </Tooltip>
-          )}
         </div>
 
         {/* Right — toolbar */}
