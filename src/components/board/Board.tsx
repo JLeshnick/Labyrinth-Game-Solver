@@ -125,9 +125,9 @@ const BoardSpace: React.FC<BoardSpaceProps> = ({
           is3D={is3D}
           className={cn(
             "absolute inset-0 w-full h-full",
-            isOnHoveredPath && "border-theme-primary",
-            isPathStart && "border-green-500 shadow-[0_0_15px_rgba(34,197,94,0.4)]",
-            isPathEnd && "border-2 border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.5)]"
+            isOnHoveredPath && "border-3 border-theme-primary",
+            isPathStart && "border-3 border-green-500 shadow-[4px_4px_0_0_#22c55e]",
+            isPathEnd && "border-3 border-red-500 shadow-[4px_4px_0_0_#ef4444]"
           )}
         />
       ) : (
@@ -145,23 +145,21 @@ const BoardSpace: React.FC<BoardSpaceProps> = ({
       >
         {pawns.map((color) => {
           const pegColors: Record<string, string> = {
-            red: "from-red-600 via-red-500 to-red-300 shadow-red-950/40 border-red-400 text-white",
-            blue: "from-blue-600 via-blue-500 to-blue-300 shadow-blue-950/40 border-blue-400 text-white",
-            green: "from-emerald-600 via-emerald-500 to-emerald-300 shadow-emerald-950/40 border-emerald-400 text-white",
-            yellow: "from-amber-500 via-amber-400 to-yellow-200 shadow-amber-950/50 border-yellow-300 text-stone-950",
+            red: "bg-red-500 text-white",
+            blue: "bg-blue-500 text-white",
+            green: "bg-emerald-500 text-white",
+            yellow: "bg-amber-400 text-stone-950",
           };
-          const styleClass = pegColors[color] || "from-stone-600 via-stone-500 to-stone-300 shadow-stone-950/40 text-white border-stone-400";
+          const styleClass = pegColors[color] || "bg-stone-500 text-white";
           return (
             <div
               key={color}
               className={cn(
-                "w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-gradient-to-tr border shadow-lg flex items-center justify-center text-[9px] sm:text-[10px] font-extrabold capitalize relative",
+                "w-5.5 h-5.5 sm:w-6.5 sm:h-6.5 rounded-full border-2 border-stone-950 dark:border-stone-950 shadow-[2px_2px_0_0_#000000] flex items-center justify-center text-[9px] sm:text-[10px] font-extrabold capitalize relative",
                 styleClass
               )}
             >
-              {/* Highlight glossy effect */}
-              <div className="absolute top-0.5 left-0.5 right-1 h-[30%] bg-white/20 rounded-t-full rounded-b-sm pointer-events-none" />
-              <span className="relative z-10">{color[0]}</span>
+              <span className="relative z-10">{color[0].toUpperCase()}</span>
             </div>
           );
         })}
@@ -296,16 +294,16 @@ export const Board: React.FC<BoardProps> = ({
                   gridColumn: arrow.gridColumn,
                 }}
                 className={cn(
-                  "w-full h-full max-w-[85%] max-h-[85%] mx-auto p-1 rounded-lg border transition-all focus:outline-none flex items-center justify-center",
+                  "w-full h-full max-w-[85%] max-h-[85%] mx-auto p-1 rounded-xl transition-all focus:outline-none flex items-center justify-center",
                   isForbidden
-                    ? "opacity-20 cursor-not-allowed border-red-950/40 text-red-700 bg-stone-950"
+                    ? "opacity-20 cursor-not-allowed border border-stone-850 text-stone-600 bg-stone-950/60"
                     : turnPhase === "move"
-                    ? "opacity-25 cursor-not-allowed border-stone-800 bg-stone-950 text-theme-primary"
+                    ? "opacity-25 cursor-not-allowed border border-stone-850 text-stone-600 bg-stone-950/60"
                     : isStaged
-                    ? "border-theme-primary bg-theme-primary text-stone-950 scale-110 shadow-lg shadow-theme-glow cursor-pointer"
+                    ? "border-2 border-stone-950 bg-theme-primary text-stone-950 scale-105 shadow-[2px_2px_0_0_#000000] cursor-pointer"
                     : isHighlighted
-                    ? "animate-pulse ring-2 ring-theme-primary bg-theme-primary-20 border-theme-primary text-theme-primary scale-110 cursor-pointer"
-                    : "border-stone-800 bg-stone-950 text-theme-primary hover:text-theme-primary-200 hover:bg-stone-900 hover:scale-105 active:scale-95 cursor-pointer",
+                    ? "animate-pulse border-2 border-stone-950 bg-theme-primary-20 text-theme-primary scale-105 shadow-[3px_3px_0_0_#000000] cursor-pointer"
+                    : "border-2 border-stone-950 bg-card text-foreground hover:bg-theme-primary hover:text-stone-950 shadow-[2px_2px_0_0_#000000] active:translate-x-[1px] active:translate-y-[1px] active:shadow-[1px_1px_0_0_#000000] cursor-pointer",
                 )}
                 title={
                   isForbidden

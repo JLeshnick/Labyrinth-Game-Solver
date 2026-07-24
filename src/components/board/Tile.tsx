@@ -25,25 +25,102 @@ export const Tile: React.FC<TileProps> = ({
   isCurrentTarget = false,
   is3D = false,
 }) => {
-  // Paths rendering logic — styled as white/light-gray plastic tubes
-  const getPathStyles = () => {
-    const tubeStyle = "bg-stone-50 border-stone-200/25 shadow-[0_2px_4px_rgba(0,0,0,0.15),inset_0_-2px_0_rgba(0,0,0,0.12),inset_0_2px_0_rgba(255,255,255,1)]";
+  // Paths rendering logic — styled as a unified, continuous corridor with a thick Brutalist outline
+  const getPathSVG = () => {
+    const fillClass = "fill-stone-50 dark:fill-stone-100";
+    const strokeClass = "stroke-stone-950 dark:stroke-stone-950";
+    const strokeWidth = 5.5;
+
     switch (tile.shape) {
       case "straight":
         return (
-          <div className={cn("absolute inset-y-0 left-[32%] right-[32%] border-x", tubeStyle)} />
+          <svg viewBox="0 0 100 100" className="absolute inset-0 w-full h-full pointer-events-none overflow-visible">
+            <rect
+              x="32"
+              y="-5"
+              width="36"
+              height="110"
+              className={fillClass}
+            />
+            <line
+              x1="32"
+              y1="-5"
+              x2="32"
+              y2="105"
+              className={strokeClass}
+              strokeWidth={strokeWidth}
+              strokeLinecap="round"
+            />
+            <line
+              x1="68"
+              y1="-5"
+              x2="68"
+              y2="105"
+              className={strokeClass}
+              strokeWidth={strokeWidth}
+              strokeLinecap="round"
+            />
+          </svg>
         );
       case "corner":
-        // Sweeps a smooth mathematical 1/4 arc from top center to right center
         return (
-          <div className={cn("absolute top-[-50%] right-[-50%] w-[100%] h-[100%] rounded-full border-[18px] sm:border-[22px] md:border-[26px]", tubeStyle)} />
+          <svg viewBox="0 0 100 100" className="absolute inset-0 w-full h-full pointer-events-none overflow-visible">
+            <path
+              d="M 32 -5 H 68 A 32 32 0 0 1 105 32 V 68 A 68 68 0 0 0 32 -5 Z"
+              className={fillClass}
+            />
+            <path
+              d="M 32 -5 A 68 68 0 0 1 105 68"
+              fill="none"
+              className={strokeClass}
+              strokeWidth={strokeWidth}
+              strokeLinecap="round"
+            />
+            <path
+              d="M 68 -5 A 32 32 0 0 1 105 32"
+              fill="none"
+              className={strokeClass}
+              strokeWidth={strokeWidth}
+              strokeLinecap="round"
+            />
+          </svg>
         );
       case "t-junction":
         return (
-          <>
-            <div className={cn("absolute inset-x-0 top-[32%] bottom-[32%] border-y", tubeStyle)} />
-            <div className={cn("absolute top-0 bottom-[50%] left-[32%] right-[32%] border-x", tubeStyle)} />
-          </>
+          <svg viewBox="0 0 100 100" className="absolute inset-0 w-full h-full pointer-events-none overflow-visible">
+            <path
+              d="M -5 68 H 105 V 32 H 68 V -5 H 32 V 32 H -5 Z"
+              className={fillClass}
+            />
+            {/* Bottom wall */}
+            <line
+              x1="-5"
+              y1="68"
+              x2="105"
+              y2="68"
+              className={strokeClass}
+              strokeWidth={strokeWidth}
+              strokeLinecap="round"
+            />
+            {/* Left corner wall */}
+            <path
+              d="M -5 32 H 32 V -5"
+              fill="none"
+              className={strokeClass}
+              strokeWidth={strokeWidth}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+            {/* Right corner wall */}
+            <path
+              d="M 105 32 H 68 V -5"
+              fill="none"
+              className={strokeClass}
+              strokeWidth={strokeWidth}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
         );
       default:
         return null;
@@ -115,7 +192,7 @@ export const Tile: React.FC<TileProps> = ({
         className={cn("absolute inset-0", !disableRotationTransition && "transition-transform duration-200")}
         style={{ transform: `rotate(${tile.rotation}deg)`, transformStyle: is3D ? "preserve-3d" : "flat" }}
       >
-        {getPathStyles()}
+        {getPathSVG()}
       </div>
 
       {/* Home corner marker — embedded flat into the tile corner, clearly distinct from pawns */}
