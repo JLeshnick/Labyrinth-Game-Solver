@@ -262,7 +262,6 @@ export function isFixedCell(row: number, col: number): boolean {
 export async function scanBoard(
   boardImageElement: HTMLImageElement | HTMLCanvasElement,
   corners: [CornerPoint, CornerPoint, CornerPoint, CornerPoint],
-  _atlasUrl: string,       // kept for API compatibility, no longer used
   onProgress?: (pct: number) => void
 ): Promise<BoardScanResult> {
   const templates = await loadTileTemplates();

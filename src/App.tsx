@@ -309,11 +309,6 @@ export default function App() {
         game.handleRedo();
         return;
       }
-      if (ctrl && e.key === "s") {
-        e.preventDefault();
-        showToast("Autosave keeps your layout ready next time ✨");
-        return;
-      }
       if (e.key === "?" && !ctrl) {
         e.preventDefault();
         setIsSettingsOpen(true);

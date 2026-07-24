@@ -324,7 +324,7 @@ export function BoardScanModal({ open, onClose, onApply }: Props) {
         y: c.y * scanH,
       })) as [CornerPoint, CornerPoint, CornerPoint, CornerPoint];
 
-      const scanResults = await scanBoard(scanSource, absCorners, "", setProgress);
+      const scanResults = await scanBoard(scanSource, absCorners, setProgress);
       setResults(scanResults);
       setStep("results");
     } catch (err) {

@@ -44,7 +44,6 @@ const KEYBOARD_SHORTCUTS = [
     shortcuts: [
       { keys: ["Ctrl", "Z"], desc: "Undo last action" },
       { keys: ["Ctrl", "Y"], desc: "Redo last action" },
-      { keys: ["Ctrl", "S"], desc: "Show autosave reminder" },
     ],
   },
   {
@@ -529,9 +528,8 @@ export function SettingsDialog({
                         Troubleshooting
                       </span>
                       <p className="text-[11px] text-stone-400 mt-1 leading-relaxed">
-                        If you encounter issues with saved games or stale settings, clearing the
-                        app cache will reset all local data. Your disk-saved game files (.json)
-                        remain untouched.
+                        If you encounter issues with stale settings or a corrupted board layout,
+                        clearing the app cache will reset your saved board and all preferences.
                       </p>
                     </div>
                     <Button
@@ -549,7 +547,7 @@ export function SettingsDialog({
                     <p className="font-bold text-stone-400">Privacy & Disclaimers</p>
                     <p>
                       Labyrinth Game Solver processes and stores all data locally on your
-                      system. No board data, saved games, settings, or metadata are ever uploaded
+                      system. No board data, settings, or metadata are ever uploaded
                       to remote servers.
                     </p>
                   </div>

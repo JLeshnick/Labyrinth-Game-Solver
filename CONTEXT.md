@@ -42,4 +42,4 @@ The Labyrinth project manages its interface states directly inside `App.tsx` and
 - **[src/components/Tile.tsx](src/components/Tile.tsx)**: Generates CSS-based corridors (straight, corner, t-junction) based on rotation degrees, and overlays pawn tokens.
 - **[src/solver.js](src/solver.js)**: Legacy pathfinder algorithm (implements graph BFS and slide shifts).
 - **[src/constants.ts](src/constants.ts)**: Configures diagnostic starts (colors, diagonal alignment presets, named treasures).
-- **[src/hooks/useLabyrinthStorage.ts](src/hooks/useLabyrinthStorage.ts)**: Interacts with the browser's `LocalStorage` database to save and load named slots and the auto-save.
+- **[src/hooks/useLabyrinthStorage.ts](src/hooks/useLabyrinthStorage.ts)**: Autosaves board and game state to `localStorage` (`labyrinth_strategist_state`) and restores it on reload.

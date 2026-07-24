@@ -272,9 +272,9 @@ export const Board: React.FC<BoardProps> = ({
                 className={cn(
                   "w-full h-full max-w-[70%] max-h-[70%] mx-auto p-0.5 rounded-lg transition-all focus:outline-none flex items-center justify-center",
                   isForbidden
-                    ? "opacity-20 cursor-not-allowed border border-stone-850 text-stone-600 bg-stone-950/60"
+                    ? "opacity-20 cursor-not-allowed border border-stone-700 text-stone-600 bg-stone-950/60"
                     : turnPhase === "move"
-                    ? "opacity-25 cursor-not-allowed border border-stone-850 text-stone-600 bg-stone-950/60"
+                    ? "opacity-25 cursor-not-allowed border border-stone-700 text-stone-600 bg-stone-950/60"
                     : isStaged
                     ? "neo-brutalism-button border-stone-950 bg-theme-primary text-stone-950 scale-105 translate-x-[1px] translate-y-[1px] shadow-[1px_1px_0_0_#000000] cursor-pointer"
                     : isHighlighted

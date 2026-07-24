@@ -332,7 +332,7 @@ export function SolverPanel({
               key={p.id}
               variant={activePawn === p.id ? "default" : "outline"}
               onClick={() => { if (!isMuted) playClickSound(); setActivePawn(p.id); }}
-              className={`neo-brutalism-button bg-card hover:bg-stone-100 dark:hover:bg-stone-850 text-foreground border-stone-950 h-11 md:h-9 ${activePawn === p.id ? p.colorClass + " text-stone-950 font-extrabold translate-x-[1px] translate-y-[1px] shadow-[1px_1px_0_0_#000000]" : ""}`}
+              className={`neo-brutalism-button bg-card hover:bg-stone-100 hover:bg-stone-800 text-foreground border-stone-950 h-11 md:h-9 ${activePawn === p.id ? p.colorClass + " text-stone-950 font-extrabold translate-x-[1px] translate-y-[1px] shadow-[1px_1px_0_0_#000000]" : ""}`}
             >
               {p.name}
             </Button>

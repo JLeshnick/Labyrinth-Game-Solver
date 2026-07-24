@@ -48,12 +48,6 @@ export interface AppGameState {
   pawnPositions: PawnPositions;
 }
 
-export interface SaveSlot {
-  name: string;
-  key: string;
-  timestamp: number;
-}
-
 export interface BoardScanCell {
   row: number;
   col: number;

@@ -128,7 +128,7 @@ export function SetupPanel({
             className={`flex items-center justify-center gap-1.5 px-3 md:px-4 py-2 md:py-1.5 min-h-11 md:min-h-0 rounded-lg text-xs md:text-sm font-bold transition-all cursor-pointer border-2 ${
               setupTab === tab.id
                 ? "bg-theme-primary text-stone-950 border-stone-950 shadow-[2px_2px_0_0_#000000]"
-                : "text-stone-500 hover:text-foreground hover:bg-stone-100 dark:hover:bg-stone-850 border-transparent"
+                : "text-stone-500 hover:text-foreground hover:bg-stone-800 border-transparent"
             }`}
           >
             {tab.icon}
@@ -285,7 +285,7 @@ export function SetupPanel({
                       size="sm"
                       variant={alreadyInHand ? "secondary" : "outline"}
                       onClick={() => (alreadyInHand ? onRemoveCard(t.id) : onAddCard(t.id))}
-                      className={`text-[10px] md:text-xs py-1 justify-start h-11 md:h-9 lg:h-8 px-2 truncate neo-brutalism-button bg-card hover:bg-stone-100 dark:hover:bg-stone-850 text-foreground border-2 border-stone-950 shadow-[2px_2px_0_0_#000000] ${alreadyInHand ? "bg-theme-primary text-stone-950 shadow-[1px_1px_0_0_#000000] translate-x-[1px] translate-y-[1px]" : ""}`}
+                      className={`text-[10px] md:text-xs py-1 justify-start h-11 md:h-9 lg:h-8 px-2 truncate neo-brutalism-button bg-card hover:bg-stone-800 text-foreground border-2 border-stone-950 shadow-[2px_2px_0_0_#000000] ${alreadyInHand ? "bg-theme-primary text-stone-950 shadow-[1px_1px_0_0_#000000] translate-x-[1px] translate-y-[1px]" : ""}`}
                     >
                       {t.name}
                     </Button>

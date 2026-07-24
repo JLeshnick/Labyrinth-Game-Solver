@@ -20,7 +20,7 @@ This is the project root for Labyrinth Game Solver, a responsive, mobile-friendl
 - **Mobile Standalone / PWA**: Configured with Apple Web App meta tags to allow launching full-screen from the iPhone home screen. Max viewport bounds prevent bouncing and double-tap zoom.
 - **Path Resolving**: In `vite.config.ts`, `base: './'` is configured so that files compile with relative links to support hosting on GitHub Pages subpaths. Alias `@/` maps to the `src/` folder.
 - **Safe Deep Copy**: `useLabyrinthHistory.ts` uses a custom `deepClone` (via `JSON.parse(JSON.stringify(...))`) instead of solver's `cloneBoard()` to avoid crash errors with `null` grid values.
-- **Auto-Save / Game Storage**: The state synchronizes to the browser's `localStorage` database under `labyrinth_saved_slots_list` and `labyrinth_strategist_state`.
+- **Auto-Save / Game Storage**: The board layout and game state are autosaved to the browser's `localStorage` under `labyrinth_strategist_state` and restored on reload. User preferences (theme, accent color, mute, 3D, active players) use separate keys (`labyrinth_theme`, `labyrinth_accent_color`, etc.).
 
 ## Release Pipeline
 
