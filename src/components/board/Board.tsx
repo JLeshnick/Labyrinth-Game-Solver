@@ -1,7 +1,7 @@
 import React from "react";
 import { useDroppable } from "@dnd-kit/core";
 import type { TileData } from "../../types";
-import { SHIFT_ARROWS, PAWNS } from "../../constants";
+import { SHIFT_ARROWS } from "../../constants";
 import { isOppositeArrow } from "../../solver";
 import { Tile, DraggableTile } from "./Tile";
 import { cn } from "../../lib/utils";
@@ -144,16 +144,24 @@ const BoardSpace: React.FC<BoardSpaceProps> = ({
         }
       >
         {pawns.map((color) => {
-          const pawn = PAWNS.find((p) => p.id === color);
+          const pegColors: Record<string, string> = {
+            red: "from-red-600 via-red-500 to-red-300 shadow-red-950/40 border-red-400 text-white",
+            blue: "from-blue-600 via-blue-500 to-blue-300 shadow-blue-950/40 border-blue-400 text-white",
+            green: "from-emerald-600 via-emerald-500 to-emerald-300 shadow-emerald-950/40 border-emerald-400 text-white",
+            yellow: "from-amber-500 via-amber-400 to-yellow-200 shadow-amber-950/50 border-yellow-300 text-stone-950",
+          };
+          const styleClass = pegColors[color] || "from-stone-600 via-stone-500 to-stone-300 shadow-stone-950/40 text-white border-stone-400";
           return (
             <div
               key={color}
               className={cn(
-                "w-4 h-4 sm:w-5 sm:h-5 rounded-full ring-2 ring-white shadow-lg flex items-center justify-center text-[8px] sm:text-[9px] font-bold capitalize",
-                pawn?.tokenClass ?? "bg-stone-500 ring-stone-300 text-white"
+                "w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-gradient-to-tr border shadow-lg flex items-center justify-center text-[9px] sm:text-[10px] font-extrabold capitalize relative",
+                styleClass
               )}
             >
-              {color[0]}
+              {/* Highlight glossy effect */}
+              <div className="absolute top-0.5 left-0.5 right-1 h-[30%] bg-white/20 rounded-t-full rounded-b-sm pointer-events-none" />
+              <span className="relative z-10">{color[0]}</span>
             </div>
           );
         })}

@@ -23,7 +23,6 @@ import { MoveHistoryDialog } from "./components/modals/MoveHistoryDialog";
 import { StatsPanel } from "./components/panels/StatsPanel";
 import { AppHeader } from "./components/AppHeader";
 import { WelcomeGuide } from "./components/modals/WelcomeGuide";
-import { DashboardWidgets } from "./components/panels/DashboardWidgets";
 import { Dialog, DialogContent } from "./components/ui/dialog";
 import { useLabyrinthGame } from "./hooks/useLabyrinthGame";
 import { useStopwatch } from "./hooks/useStopwatch";
@@ -107,8 +106,6 @@ export default function App() {
     }
   });
 
-  const [rightPanelMode, setRightPanelMode] = useState<"solver" | "dashboard">("solver");
-
   const toggle3D = useCallback(() => {
     setIs3D((prev) => {
       const next = !prev;
@@ -117,10 +114,6 @@ export default function App() {
       } catch {}
       return next;
     });
-  }, []);
-
-  const toggleRightPanelMode = useCallback(() => {
-    setRightPanelMode((prev) => (prev === "solver" ? "dashboard" : "solver"));
   }, []);
 
   // ── Solver worker ─────────────────────────────────────────────────────────────
@@ -798,8 +791,6 @@ export default function App() {
         onToggleTimer={toggleTimer}
         is3D={is3D}
         onToggle3D={toggle3D}
-        rightPanelMode={rightPanelMode}
-        onToggleRightPanelMode={toggleRightPanelMode}
       />
 
       <main className="flex-1 flex flex-col md:flex-row relative z-10 w-full px-2 sm:px-3 md:px-4 lg:px-6 pt-2 sm:pt-3 pb-[72px] md:pb-3 gap-3 md:gap-4 lg:gap-8 justify-center overflow-hidden min-h-0">
@@ -865,53 +856,39 @@ export default function App() {
           {!isMobile && (
             <div className="flex w-full md:w-[320px] lg:w-[400px] xl:w-[440px] flex-col flex-shrink-0 min-h-0 md:h-full gap-3">
               {game.isGameStarted ? (
-                rightPanelMode === "dashboard" ? (
-                  <DashboardWidgets
-                    grid={game.grid}
-                    pawnPositions={game.pawnPositions}
-                    activePlayers={game.activePlayers}
-                    activePawn={game.activePawn}
-                    playerHands={game.playerHands}
-                    obtainedTreasures={game.obtainedTreasures}
-                    solutions={solutions}
-                    isLoadingSolutions={isLoadingSolutions}
-                    onExecuteSolution={game.handleExecuteSolution}
-                  />
-                ) : (
-                  <SolverPanel
-                    solutions={solutions}
-                    isLoadingSolutions={isLoadingSolutions}
-                    hoveredSolution={hoveredSolution}
-                    setHoveredSolution={setHoveredSolution}
-                    activePawn={game.activePawn}
-                    setActivePawn={game.setActivePawn}
-                    activePlayers={game.activePlayers}
-                    isMuted={isMuted}
-                    spareTile={previewState ? previewState.spareTile : game.spareTile}
-                    customTargetCoords={game.customTargetCoords}
-                    setCustomTargetCoords={game.setCustomTargetCoords}
-                    onExecuteSolution={game.handleExecuteSolution}
-                    playerActiveTargets={game.playerActiveTargets}
-                    onSelectTargetTreasure={game.handleSelectTargetTreasure}
-                    stagedArrow={stagedArrow}
-                    stagedRotation={stagedRotation}
-                    onRotateStaged={() =>
-                      setStagedRotation(
-                        (prev) =>
-                          ([0, 90, 180, 270] as (0 | 90 | 180 | 270)[])[
-                            ([0, 90, 180, 270].indexOf(prev) + 1) % 4
-                          ]
-                      )
-                    }
-                    onCommitSlide={commitStagedSlide}
-                    onCancelSlide={cancelStagedSlide}
-                    turnPhase={turnPhase}
-                    showOneMoveTargets={showOneMoveTargets}
-                    onToggleOneMoveTargets={() => setShowOneMoveTargets((v) => !v)}
-                    oneMoveTargets={oneMoveTargets}
-                    isActivePawnHome={isActivePawnHome}
-                  />
-                )
+                <SolverPanel
+                  solutions={solutions}
+                  isLoadingSolutions={isLoadingSolutions}
+                  hoveredSolution={hoveredSolution}
+                  setHoveredSolution={setHoveredSolution}
+                  activePawn={game.activePawn}
+                  setActivePawn={game.setActivePawn}
+                  activePlayers={game.activePlayers}
+                  isMuted={isMuted}
+                  spareTile={previewState ? previewState.spareTile : game.spareTile}
+                  customTargetCoords={game.customTargetCoords}
+                  setCustomTargetCoords={game.setCustomTargetCoords}
+                  onExecuteSolution={game.handleExecuteSolution}
+                  playerActiveTargets={game.playerActiveTargets}
+                  onSelectTargetTreasure={game.handleSelectTargetTreasure}
+                  stagedArrow={stagedArrow}
+                  stagedRotation={stagedRotation}
+                  onRotateStaged={() =>
+                    setStagedRotation(
+                      (prev) =>
+                        ([0, 90, 180, 270] as (0 | 90 | 180 | 270)[])[
+                          ([0, 90, 180, 270].indexOf(prev) + 1) % 4
+                        ]
+                    )
+                  }
+                  onCommitSlide={commitStagedSlide}
+                  onCancelSlide={cancelStagedSlide}
+                  turnPhase={turnPhase}
+                  showOneMoveTargets={showOneMoveTargets}
+                  onToggleOneMoveTargets={() => setShowOneMoveTargets((v) => !v)}
+                  oneMoveTargets={oneMoveTargets}
+                  isActivePawnHome={isActivePawnHome}
+                />
               ) : (
                 <SetupPanel
                   looseTiles={game.looseTiles}
@@ -969,55 +946,41 @@ export default function App() {
                 )}
               >
                 {game.isGameStarted ? (
-                  rightPanelMode === "dashboard" ? (
-                    <DashboardWidgets
-                      grid={game.grid}
-                      pawnPositions={game.pawnPositions}
-                      activePlayers={game.activePlayers}
-                      activePawn={game.activePawn}
-                      playerHands={game.playerHands}
-                      obtainedTreasures={game.obtainedTreasures}
-                      solutions={solutions}
-                      isLoadingSolutions={isLoadingSolutions}
-                      onExecuteSolution={game.handleExecuteSolution}
-                    />
-                  ) : (
-                    <SolverPanel
-                      solutions={solutions}
-                      isLoadingSolutions={isLoadingSolutions}
-                      hoveredSolution={hoveredSolution}
-                      setHoveredSolution={setHoveredSolution}
-                      activePawn={game.activePawn}
-                      setActivePawn={game.setActivePawn}
-                      activePlayers={game.activePlayers}
-                      isMuted={isMuted}
-                      spareTile={previewState ? previewState.spareTile : game.spareTile}
-                      customTargetCoords={game.customTargetCoords}
-                      setCustomTargetCoords={game.setCustomTargetCoords}
-                      onExecuteSolution={game.handleExecuteSolution}
-                      playerActiveTargets={game.playerActiveTargets}
-                      onSelectTargetTreasure={game.handleSelectTargetTreasure}
-                      stagedArrow={stagedArrow}
-                      stagedRotation={stagedRotation}
-                      onRotateStaged={() =>
-                        setStagedRotation(
-                          (prev) =>
-                            ([0, 90, 180, 270] as (0 | 90 | 180 | 270)[])[
-                              ([0, 90, 180, 270].indexOf(prev) + 1) % 4
-                            ]
-                        )
-                      }
-                      onCommitSlide={commitStagedSlide}
-                      onCancelSlide={cancelStagedSlide}
-                      turnPhase={turnPhase}
-                      showOneMoveTargets={showOneMoveTargets}
-                      onToggleOneMoveTargets={() => setShowOneMoveTargets((v) => !v)}
-                      oneMoveTargets={oneMoveTargets}
-                      isActivePawnHome={isActivePawnHome}
-                      compact={mobilePanelStop === "peek"}
-                      onToggleStats={() => setShowStats((prev) => !prev)}
-                    />
-                  )
+                  <SolverPanel
+                    solutions={solutions}
+                    isLoadingSolutions={isLoadingSolutions}
+                    hoveredSolution={hoveredSolution}
+                    setHoveredSolution={setHoveredSolution}
+                    activePawn={game.activePawn}
+                    setActivePawn={game.setActivePawn}
+                    activePlayers={game.activePlayers}
+                    isMuted={isMuted}
+                    spareTile={previewState ? previewState.spareTile : game.spareTile}
+                    customTargetCoords={game.customTargetCoords}
+                    setCustomTargetCoords={game.setCustomTargetCoords}
+                    onExecuteSolution={game.handleExecuteSolution}
+                    playerActiveTargets={game.playerActiveTargets}
+                    onSelectTargetTreasure={game.handleSelectTargetTreasure}
+                    stagedArrow={stagedArrow}
+                    stagedRotation={stagedRotation}
+                    onRotateStaged={() =>
+                      setStagedRotation(
+                        (prev) =>
+                          ([0, 90, 180, 270] as (0 | 90 | 180 | 270)[])[
+                            ([0, 90, 180, 270].indexOf(prev) + 1) % 4
+                          ]
+                      )
+                    }
+                    onCommitSlide={commitStagedSlide}
+                    onCancelSlide={cancelStagedSlide}
+                    turnPhase={turnPhase}
+                    showOneMoveTargets={showOneMoveTargets}
+                    onToggleOneMoveTargets={() => setShowOneMoveTargets((v) => !v)}
+                    oneMoveTargets={oneMoveTargets}
+                    isActivePawnHome={isActivePawnHome}
+                    compact={mobilePanelStop === "peek"}
+                    onToggleStats={() => setShowStats((prev) => !prev)}
+                  />
                 ) : (
                   <SetupPanel
                     looseTiles={game.looseTiles}
