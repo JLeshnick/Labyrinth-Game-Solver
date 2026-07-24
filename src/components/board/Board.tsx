@@ -87,12 +87,9 @@ const BoardSpace: React.FC<BoardSpaceProps> = ({
         isFixedSpace
           ? "bg-stone-900/40 border border-stone-800/20"
           : "border border-dashed border-stone-800/40 bg-stone-950/30 hover:bg-stone-900/10 shadow-inner",
-        isOver && !tile ? "outline outline-2 outline-theme-primary bg-theme-primary-10" : "",
-        isOnHoveredPath ? "outline outline-2 outline-theme-primary" : "",
-        isCustomTarget ? "outline outline-[3px] outline-theme-primary z-10" : "",
+        isOver && !tile ? "bg-theme-primary-10" : "",
         previewSlideClass,
-        isActiveTarget ? "outline outline-[3px] outline-amber-400" : "",
-        isReachable ? "outline outline-2 outline-green-400 bg-green-900/20 hover:bg-green-900/30 cursor-pointer" : "",
+        isReachable ? "bg-green-900/20 hover:bg-green-900/30 cursor-pointer" : "",
       )}
     >
       {tile ? (
@@ -120,6 +117,20 @@ const BoardSpace: React.FC<BoardSpaceProps> = ({
         />
       ) : (
         <span className="sr-only">{y},{x}</span>
+      )}
+
+      {/* Highlight border overlay — rendered above the tile's box-shadow */}
+      {(isOnHoveredPath || isCustomTarget || isActiveTarget || (isOver && !tile)) && (
+        <div
+          className={cn(
+            "absolute inset-0 rounded-lg pointer-events-none z-40 border-2",
+            isCustomTarget ? "border-[3px] border-theme-primary" :
+            isActiveTarget ? "border-[3px] border-amber-400" :
+            isOnHoveredPath ? "border-2 border-theme-primary" :
+            "border-2 border-theme-primary"
+          )}
+          aria-hidden="true"
+        />
       )}
 
       {/* Render Pawns inside BoardSpace */}
@@ -226,15 +237,25 @@ export const Board: React.FC<BoardProps> = ({
         }
       >
         {/* CSS Grid Layout */}
-        <div 
+        <div
           className={cn(
             "grid gap-px xs:gap-0.5 md:gap-1 justify-items-stretch items-stretch transition-all duration-500 overflow-visible aspect-square",
-            isGameStarted ? "grid-cols-9 grid-rows-9" : "grid-cols-7 grid-rows-7",
-            is3D 
-              ? "w-[92%] h-[92%]" 
+            is3D
+              ? "w-[92%] h-[92%]"
               : "w-full h-full"
           )}
-          style={{ transformStyle: is3D ? "preserve-3d" : "flat" }}
+          style={{
+            transformStyle: is3D ? "preserve-3d" : "flat",
+            ...(isGameStarted
+              ? {
+                  gridTemplateColumns: "0.4fr repeat(7, 1fr) 0.4fr",
+                  gridTemplateRows: "0.4fr repeat(7, 1fr) 0.4fr",
+                }
+              : {
+                  gridTemplateColumns: "repeat(7, 1fr)",
+                  gridTemplateRows: "repeat(7, 1fr)",
+                }),
+          }}
         >
         {/* SVG Solved Path Overlay — animated marching dashes */}
         {isGameStarted && hoveredPath && hoveredPath.length > 0 && (() => {
