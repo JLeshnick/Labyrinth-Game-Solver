@@ -58,6 +58,8 @@ export interface AppHeaderProps {
   onToggleTimer?: () => void;
   is3D?: boolean;
   onToggle3D: () => void;
+  solverDepth?: number;
+  onSetSolverDepth?: (depth: number) => void;
 }
 
 const iconBtnCls =
@@ -113,6 +115,8 @@ export function AppHeader({
   onToggleTimer,
   is3D: _is3D,
   onToggle3D: _onToggle3D,
+  solverDepth,
+  onSetSolverDepth,
 }: AppHeaderProps) {
   const [showEndGameConfirm, setShowEndGameConfirm] = useState(false);
 
@@ -392,6 +396,8 @@ export function AppHeader({
             setAccentColor={setAccentColor}
             is3D={_is3D}
             onToggle3D={_onToggle3D}
+            solverDepth={solverDepth}
+            onSetSolverDepth={onSetSolverDepth}
           />
         </div>
       </header>

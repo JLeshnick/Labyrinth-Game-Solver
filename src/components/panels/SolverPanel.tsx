@@ -299,9 +299,8 @@ export function SolverPanel({
                         {TREASURES.find((t) => t.id === (sol as { cardId?: string }).cardId)?.name ?? (sol as { cardId?: string }).cardId}
                       </span>
                       {(sol as { sequenceOrder?: string[] }).sequenceOrder && (sol as { sequenceOrder?: string[] }).sequenceOrder!.length > 1 && (
-                        <span className="text-stone-600 italic">
-                          → then {(sol as { sequenceOrder?: string[] }).sequenceOrder!.slice(1, 3).map((id) => TREASURES.find((t) => t.id === id)?.name ?? id).join(", ")}
-                          {(sol as { sequenceOrder?: string[] }).sequenceOrder!.length > 3 ? "…" : ""}
+                        <span className="text-stone-500 italic">
+                          → then {(sol as { sequenceOrder?: string[] }).sequenceOrder!.slice(1).map((id) => TREASURES.find((t) => t.id === id)?.name ?? id).join(" → ")}
                         </span>
                       )}
                     </div>

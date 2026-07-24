@@ -43,11 +43,8 @@ import {
 } from "lucide-react";
 import { cn } from "./lib/utils";
 
-// Search depth for the solver worker. Always searches this many turns ahead
-// rather than exposing it as a user-facing option — solveAllHand already
-// ranks shorter/safer paths first, so a wider search can only surface better
-// suggestions, never worse ones.
-const SOLVER_MAX_TURNS = 3;
+// Default solver depth. Can be overridden via the Advanced settings panel.
+const DEFAULT_SOLVER_DEPTH = 3;
 
 export default function App() {
   const sensors = useSensors(
@@ -91,7 +88,11 @@ export default function App() {
   const [turnPhase, setTurnPhase] = useState<"slide" | "move">("slide");
   const [stagedArrow, setStagedArrow] = useState<string | null>(null);
   const [stagedRotation, setStagedRotation] = useState<0 | 90 | 180 | 270>(0);
-  const [showOneMoveTargets, setShowOneMoveTargets] = useState(false);
+  const [showOneMoveTargets, setShowOneMoveTargets] = useState(true);
+  const [solverDepth, setSolverDepthState] = useState<number>(() => {
+    const saved = parseInt(localStorage.getItem("labyrinth_solver_depth") ?? "");
+    return [1, 2, 3, 4, 5].includes(saved) ? saved : DEFAULT_SOLVER_DEPTH;
+  });
   const [mobilePanelStop, setMobilePanelStop] = useState<"peek" | "expanded">("expanded");
   const [hasShownSetupHint, setHasShownSetupHint] = useState(false);
   const [showWelcomeGuide, setShowWelcomeGuide] = useState(
@@ -151,6 +152,15 @@ export default function App() {
       /* storage full */
     }
   }, [baseTheme]);
+
+  const setSolverDepth = useCallback((depth: number) => {
+    setSolverDepthState(depth);
+    try {
+      localStorage.setItem("labyrinth_solver_depth", String(depth));
+    } catch {
+      /* storage full */
+    }
+  }, []);
 
   // ── Accent color ──────────────────────────────────────────────────────────────
   const applyAccentColor = useCallback((hex: string) => {
@@ -436,7 +446,7 @@ export default function App() {
       pawnPos: currentPawnCoord,
       handCards,
       lastShiftArrowId: game.lastShiftArrowId,
-      maxTurns: SOLVER_MAX_TURNS,
+      maxTurns: solverDepth,
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
@@ -450,6 +460,7 @@ export default function App() {
     game.getSolverFormattedBoard,
     game.getSolverFormattedSpare,
     game.customTargetCoords,
+    solverDepth,
   ]);
 
   // ── Drag and Drop ─────────────────────────────────────────────────────────────
@@ -784,6 +795,8 @@ export default function App() {
         onToggleTimer={toggleTimer}
         is3D={is3D}
         onToggle3D={toggle3D}
+        solverDepth={solverDepth}
+        onSetSolverDepth={setSolverDepth}
       />
 
       <main className="flex-1 flex flex-col md:flex-row relative z-10 w-full px-2 sm:px-3 md:px-4 lg:px-6 pt-2 sm:pt-3 pb-[72px] md:pb-3 gap-3 md:gap-4 lg:gap-8 justify-center overflow-hidden min-h-0">
