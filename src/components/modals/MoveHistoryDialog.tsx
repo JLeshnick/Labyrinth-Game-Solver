@@ -1,11 +1,11 @@
 import { useRef, useEffect, useState } from "react";
 import { Clock, ZoomIn, X } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
-import { Button } from "./ui/button";
-import { MiniBoardSnapshot } from "./MiniBoardSnapshot";
-import type { HistoryRecord } from "../hooks/useLabyrinthHistory";
-import type { PawnPositions } from "../types";
-import { DEFAULT_PAWN_POSITIONS } from "../constants";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
+import { Button } from "../ui/button";
+import { MiniBoardSnapshot } from "../board/MiniBoardSnapshot";
+import type { HistoryRecord } from "../../hooks/useLabyrinthHistory";
+import type { PawnPositions } from "../../types";
+import { DEFAULT_PAWN_POSITIONS } from "../../constants";
 
 interface Props {
   open: boolean;

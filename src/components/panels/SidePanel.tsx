@@ -1,9 +1,9 @@
 import React from "react";
 import { useDroppable } from "@dnd-kit/core";
-import type { TileData } from "../types";
-import { DraggableTile } from "./Tile";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "./ui/card";
-import { cn } from "../lib/utils";
+import type { TileData } from "../../types";
+import { DraggableTile } from "../board/Tile";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../ui/card";
+import { cn } from "../../lib/utils";
 
 interface SidePanelProps {
   tiles: TileData[];

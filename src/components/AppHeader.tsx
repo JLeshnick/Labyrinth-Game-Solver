@@ -3,7 +3,7 @@ import type { TileData, PlayerMap } from "../types";
 import { PAWNS, TREASURES } from "../constants";
 import { Button } from "./ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
-import { SettingsDialog } from "./SettingsDialog";
+import { SettingsDialog } from "./modals/SettingsDialog";
 import { cn } from "../lib/utils";
 import { playClickSound } from "../utils/audio";
 import {
@@ -446,7 +446,7 @@ export function AppHeader({
 
           <SettingsDialog
             open={isSettingsOpen}
-            onOpenChange={(open) => {
+            onOpenChange={(open: boolean) => {
               if (open) onOpenSettings();
               else onCloseSettings();
             }}

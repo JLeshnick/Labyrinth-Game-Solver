@@ -1,7 +1,7 @@
 import React from "react";
-import { cn } from "../lib/utils";
-import { PAWNS, TREASURES } from "../constants";
-import { Card, CardHeader, CardTitle, CardContent } from "./ui/card";
+import { cn } from "../../lib/utils";
+import { PAWNS, TREASURES } from "../../constants";
+import { Card, CardHeader, CardTitle, CardContent } from "../ui/card";
 import {
   Trophy,
   Footprints,

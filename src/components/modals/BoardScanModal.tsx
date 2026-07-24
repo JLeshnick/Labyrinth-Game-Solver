@@ -1,12 +1,12 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { Camera, CheckCircle2, AlertTriangle, ChevronRight, Upload, RotateCw } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
-import { Button } from "./ui/button";
-import { scanBoard, isFixedCell, loadTileTemplates } from "../lib/boardScanner";
-import type { CornerPoint } from "../lib/boardScanner";
-import type { TileData, BoardScanResult } from "../types";
-import { generateMovablePool, FIXED_TILES_PRESETS } from "../constants";
-import { TILE_TEMPLATE_ENTRIES } from "../data/atlasLayout";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
+import { Button } from "../ui/button";
+import { scanBoard, isFixedCell, loadTileTemplates } from "../../lib/boardScanner";
+import type { CornerPoint } from "../../lib/boardScanner";
+import type { TileData, BoardScanResult } from "../../types";
+import { generateMovablePool, FIXED_TILES_PRESETS } from "../../constants";
+import { TILE_TEMPLATE_ENTRIES } from "../../data/atlasLayout";
 
 type Step = "upload" | "align" | "scanning" | "results";
 

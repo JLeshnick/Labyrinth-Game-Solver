@@ -1,5 +1,5 @@
-import type { TileData, PawnPositions } from "../types";
-import { PAWNS } from "../constants";
+import type { TileData, PawnPositions } from "../../types";
+import { PAWNS } from "../../constants";
 
 const CELL = 10; // px per cell
 const TOTAL = CELL * 7; // 70px

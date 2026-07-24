@@ -4,10 +4,10 @@
 // wider desktop column. Interactive controls get a 44px phone floor.
 import { Sparkles, Layers, Users, Compass, Play, RotateCw, Camera } from "lucide-react";
 import { SidePanel } from "./SidePanel";
-import { Button } from "./ui/button";
-import { PAWNS, TREASURES } from "../constants";
-import { playClickSound } from "../utils/audio";
-import type { TileData } from "../types";
+import { Button } from "../ui/button";
+import { PAWNS, TREASURES } from "../../constants";
+import { playClickSound } from "../../utils/audio";
+import type { TileData } from "../../types";
 
 interface SetupPanelProps {
   looseTiles: TileData[];

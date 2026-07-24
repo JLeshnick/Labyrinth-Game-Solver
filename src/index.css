@@ -4,6 +4,10 @@
   /* Custom xs breakpoint for 480px devices (between default mobile and sm) */
   --breakpoint-xs: 480px;
 
+  /* Fonts */
+  --font-sans: "Inter", system-ui, -apple-system, sans-serif;
+  --font-display: "Outfit", system-ui, -apple-system, sans-serif;
+
   /* shadcn/ui semantic color tokens — these make Button, Card, Dialog render correctly */
   --color-background: #0c0a09;
   --color-foreground: #f5f5f4;
@@ -27,7 +31,7 @@
 
 @layer base {
   body {
-    @apply bg-stone-950 text-stone-50 overflow-hidden select-none;
+    @apply font-sans bg-stone-950 text-stone-50 overflow-hidden select-none;
     /* Smooth scrolling for bottom sheets */
     -webkit-overflow-scrolling: touch;
   }

@@ -1,10 +1,10 @@
 import React from "react";
 import { useDroppable } from "@dnd-kit/core";
-import type { TileData } from "../types";
-import { SHIFT_ARROWS, PAWNS } from "../constants";
-import { isOppositeArrow } from "../solver";
+import type { TileData } from "../../types";
+import { SHIFT_ARROWS, PAWNS } from "../../constants";
+import { isOppositeArrow } from "../../solver";
 import { Tile, DraggableTile } from "./Tile";
-import { cn } from "../lib/utils";
+import { cn } from "../../lib/utils";
 import { ChevronRight } from "lucide-react";
 
 interface BoardSpaceProps {

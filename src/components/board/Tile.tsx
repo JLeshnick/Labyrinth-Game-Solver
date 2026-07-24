@@ -1,7 +1,7 @@
 import React from "react";
 import { useDraggable } from "@dnd-kit/core";
-import type { TileData } from "../types";
-import { cn } from "../lib/utils";
+import type { TileData } from "../../types";
+import { cn } from "../../lib/utils";
 import { Lock } from "lucide-react";
 
 interface TileProps {

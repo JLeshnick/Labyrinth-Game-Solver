@@ -3,11 +3,11 @@
 // target the phone sheet; `md:` targets the tablet column; `lg:` targets the
 // wider desktop column. Interactive play controls get a 44px phone floor.
 import { Sparkles, ArrowRightCircle, MousePointer2, RotateCw, Home, Gauge } from "lucide-react";
-import { Button } from "./ui/button";
-import { Tile } from "./Tile";
-import { PAWNS, TREASURES, DEFAULT_PAWN_POSITIONS } from "../constants";
-import { playClickSound } from "../utils/audio";
-import type { TileData, SolverSolution, SolverSolutionStep } from "../types";
+import { Button } from "../ui/button";
+import { Tile } from "../board/Tile";
+import { PAWNS, TREASURES, DEFAULT_PAWN_POSITIONS } from "../../constants";
+import { playClickSound } from "../../utils/audio";
+import type { TileData, SolverSolution, SolverSolutionStep } from "../../types";
 
 interface SolverPanelProps {
   solutions: SolverSolution[];

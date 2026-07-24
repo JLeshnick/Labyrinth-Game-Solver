@@ -1,9 +1,9 @@
 import { Compass, Layers, MapPin, Play, Sparkles } from "lucide-react";
-import { Button } from "./ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
-import guideStep1Tiles from "../assets/guide-step1-tiles.png";
-import guideStep2Pawns from "../assets/guide-step2-pawns.png";
-import guideStep3Solve from "../assets/guide-step3-solve.png";
+import { Button } from "../ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
+import guideStep1Tiles from "../../assets/guide-step1-tiles.png";
+import guideStep2Pawns from "../../assets/guide-step2-pawns.png";
+import guideStep3Solve from "../../assets/guide-step3-solve.png";
 
 interface WelcomeGuideProps {
   open: boolean;
