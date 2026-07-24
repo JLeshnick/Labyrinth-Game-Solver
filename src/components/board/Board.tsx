@@ -87,12 +87,12 @@ const BoardSpace: React.FC<BoardSpaceProps> = ({
         isFixedSpace
           ? "bg-stone-900/40 border border-stone-800/20"
           : "border border-dashed border-stone-800/40 bg-stone-950/30 hover:bg-stone-900/10 shadow-inner",
-        isOver && !tile ? "ring-2 ring-theme-primary ring-inset bg-theme-primary-10" : "",
-        isOnHoveredPath ? "ring-2 ring-theme-primary ring-inset" : "",
-        isCustomTarget ? "ring-[3px] ring-theme-primary ring-inset z-10" : "",
+        isOver && !tile ? "outline outline-2 outline-theme-primary bg-theme-primary-10" : "",
+        isOnHoveredPath ? "outline outline-2 outline-theme-primary" : "",
+        isCustomTarget ? "outline outline-[3px] outline-theme-primary z-10" : "",
         previewSlideClass,
-        isActiveTarget ? "ring-[3px] ring-amber-400 ring-inset" : "",
-        isReachable ? "ring-2 ring-green-400 ring-inset bg-green-900/20 hover:bg-green-900/30 cursor-pointer" : "",
+        isActiveTarget ? "outline outline-[3px] outline-amber-400" : "",
+        isReachable ? "outline outline-2 outline-green-400 bg-green-900/20 hover:bg-green-900/30 cursor-pointer" : "",
       )}
     >
       {tile ? (

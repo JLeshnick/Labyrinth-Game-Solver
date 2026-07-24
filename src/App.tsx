@@ -798,7 +798,7 @@ export default function App() {
           onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
         >
-          <div className="flex-1 md:flex-[1.4] lg:flex-[1.5] w-full flex min-w-0 min-h-0 items-center justify-center relative">
+          <div className="flex-1 md:flex-[1.6] lg:flex-[1.8] w-full flex min-w-0 min-h-0 items-center justify-center relative">
             <div
               className={cn(
                 "relative aspect-square w-full h-auto flex-shrink-0 mx-auto",
@@ -806,7 +806,7 @@ export default function App() {
                   ? mobilePanelStop === "peek"
                     ? "max-w-[min(100vw-1.5rem,calc(100svh-200px))]"
                     : "max-w-[min(100vw-1.5rem,calc(56svh-90px))]"
-                  : "max-w-[min(100vw-2rem,calc(100svh-150px))]"
+                  : "max-w-[min(100vw-2rem,calc(100svh-120px))]"
               )}
             >
 
