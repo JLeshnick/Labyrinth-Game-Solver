@@ -14,6 +14,8 @@ interface BoardSpaceProps {
   pawns: string[];
   isGameStarted: boolean;
   isOnHoveredPath: boolean;
+  isPathStart: boolean;
+  isPathEnd: boolean;
   onCellClick: (r: number, c: number) => void;
   onTileClick: (id: string) => void;
   boardRotation: number;
@@ -34,6 +36,8 @@ const BoardSpace: React.FC<BoardSpaceProps> = ({
   pawns,
   isGameStarted,
   isOnHoveredPath,
+  isPathStart,
+  isPathEnd,
   onCellClick,
   onTileClick,
   boardRotation,
@@ -123,10 +127,12 @@ const BoardSpace: React.FC<BoardSpaceProps> = ({
       {(isOnHoveredPath || isCustomTarget || isActiveTarget || (isOver && !tile)) && (
         <div
           className={cn(
-            "absolute inset-0 rounded-lg pointer-events-none z-40 border-2",
+            "absolute inset-0 rounded-2xl pointer-events-none z-40",
+            isPathStart  ? "border-[3px] border-green-400" :
+            isPathEnd    ? "border-[3px] border-theme-primary" :
             isCustomTarget ? "border-[3px] border-theme-primary" :
             isActiveTarget ? "border-[3px] border-amber-400" :
-            isOnHoveredPath ? "border-2 border-theme-primary" :
+            isOnHoveredPath ? "border-2 border-theme-primary/60" :
             "border-2 border-theme-primary"
           )}
           aria-hidden="true"
@@ -218,9 +224,9 @@ export const Board: React.FC<BoardProps> = ({
   return (
     <div className="relative w-full h-full flex items-center justify-center overflow-visible">
       {/* 3D Tray Platform Wrapper */}
-      <div 
+      <div
         className={cn(
-          "transition-all duration-500 overflow-visible flex items-center justify-center w-full h-full aspect-square",
+          "relative transition-all duration-500 overflow-visible flex items-center justify-center w-full h-full aspect-square",
           is3D
             ? "p-4 sm:p-6 md:p-8 rounded-3xl bg-stone-150 dark:bg-stone-900 border-3 sm:border-4 border-stone-950 shadow-[8px_8px_0_0_#000000]"
             : ""
@@ -257,54 +263,6 @@ export const Board: React.FC<BoardProps> = ({
                 }),
           }}
         >
-        {/* SVG Solved Path Overlay — animated marching dashes */}
-        {isGameStarted && hoveredPath && hoveredPath.length > 0 && (() => {
-          const cx = (c: number) => c + 0.9;
-          const cy = (r: number) => r + 0.9;
-          const pts = hoveredPath.map(p => `${cx(p.c)},${cy(p.r)}`).join(" ");
-          const s = hoveredPath[0];
-          const e = hoveredPath[hoveredPath.length - 1];
-          return (
-            <svg
-              viewBox="0 0 7.8 7.8"
-              className="absolute inset-0 w-full h-full pointer-events-none z-30"
-              aria-hidden="true"
-            >
-              {/* Black underline — semi-transparent so labels beneath stay readable */}
-              <polyline
-                points={pts}
-                fill="none"
-                stroke="#000000"
-                strokeWidth="0.10"
-                strokeDasharray="0.18,0.12"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                opacity="0.45"
-                className="animate-path-crawl"
-              />
-              {/* Animated theme-color line on top */}
-              <polyline
-                points={pts}
-                fill="none"
-                stroke="var(--theme-color)"
-                strokeWidth="0.06"
-                strokeDasharray="0.18,0.12"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                opacity="0.7"
-                className="animate-path-crawl"
-              />
-              {/* Start marker: small square */}
-              <rect x={cx(s.c) - 0.13} y={cy(s.r) - 0.13} width="0.26" height="0.26" fill="#000000" />
-              <rect x={cx(s.c) - 0.08} y={cy(s.r) - 0.08} width="0.16" height="0.16" fill="var(--theme-color)" />
-              {/* End marker: small circle */}
-              {hoveredPath.length > 1 && <>
-                <circle cx={cx(e.c)} cy={cy(e.r)} r="0.13" fill="#000000" />
-                <circle cx={cx(e.c)} cy={cy(e.r)} r="0.08" fill="var(--theme-color)" />
-              </>}
-            </svg>
-          );
-        })()}
         {/* Render Shifting Arrows */}
         {isGameStarted &&
           SHIFT_ARROWS.map((arrow) => {
@@ -375,6 +333,8 @@ export const Board: React.FC<BoardProps> = ({
 
             // Path overlays state
             const isOnHoveredPath = hoveredPath ? hoveredPath.some((cell: { r: number; c: number }) => cell.r === r && cell.c === c) : false;
+            const isPathStart = !!(hoveredPath && hoveredPath.length > 0 && hoveredPath[0].r === r && hoveredPath[0].c === c);
+            const isPathEnd = !!(hoveredPath && hoveredPath.length > 1 && hoveredPath[hoveredPath.length - 1].r === r && hoveredPath[hoveredPath.length - 1].c === c);
  
             const isCustomTarget = !!(customTargetCoords && customTargetCoords.r === r && customTargetCoords.c === c);
             const isActiveTarget = !!(activeTargetCoords && activeTargetCoords.r === r && activeTargetCoords.c === c && !isCustomTarget);
@@ -403,7 +363,8 @@ export const Board: React.FC<BoardProps> = ({
                 pawns={pawnsAtCell}
                 isGameStarted={isGameStarted}
                 isOnHoveredPath={isOnHoveredPath}
-
+                isPathStart={isPathStart}
+                isPathEnd={isPathEnd}
                 onCellClick={onCellClick}
                 onTileClick={onTileClick}
                 boardRotation={boardRotation}
@@ -471,6 +432,46 @@ export const Board: React.FC<BoardProps> = ({
           );
         })()}
       </div>
+
+      {/* SVG Solved Path Overlay — sibling to grid, absolute over tray, avoids gap math */}
+      {isGameStarted && hoveredPath && hoveredPath.length > 0 && (() => {
+        // pct(i): center of tile i in the 0.4fr repeat(7,1fr) 0.4fr template as a %
+        const pct = (i: number) => ((i + 0.9) / 7.8 * 100).toFixed(3);
+        const pts = hoveredPath.map(p => `${pct(p.c)},${pct(p.r)}`).join(" ");
+        const s = hoveredPath[0];
+        const e = hoveredPath[hoveredPath.length - 1];
+        const sw = (1 / 7.8 * 100 * 0.1).toFixed(3);   // ~1.3 in pct units
+        const swThin = (1 / 7.8 * 100 * 0.065).toFixed(3);
+        const da = (1 / 7.8 * 100 * 0.18).toFixed(3);
+        const dg = (1 / 7.8 * 100 * 0.12).toFixed(3);
+        const rSq = (1 / 7.8 * 100 * 0.13).toFixed(3);
+        const rSqI = (1 / 7.8 * 100 * 0.08).toFixed(3);
+        const rCir = (1 / 7.8 * 100 * 0.13).toFixed(3);
+        const rCirI = (1 / 7.8 * 100 * 0.08).toFixed(3);
+        return (
+          <svg
+            viewBox="0 0 100 100"
+            preserveAspectRatio="none"
+            className="absolute inset-0 w-full h-full pointer-events-none z-30"
+            aria-hidden="true"
+          >
+            <polyline points={pts} fill="none" stroke="#000000"
+              strokeWidth={sw} strokeDasharray={`${da},${dg}`}
+              strokeLinecap="round" strokeLinejoin="round"
+              opacity="0.45" className="animate-path-crawl" />
+            <polyline points={pts} fill="none" stroke="var(--theme-color)"
+              strokeWidth={swThin} strokeDasharray={`${da},${dg}`}
+              strokeLinecap="round" strokeLinejoin="round"
+              opacity="0.7" className="animate-path-crawl" />
+            <rect x={+pct(s.c) - +rSq} y={+pct(s.r) - +rSq} width={+rSq * 2} height={+rSq * 2} fill="#000000" />
+            <rect x={+pct(s.c) - +rSqI} y={+pct(s.r) - +rSqI} width={+rSqI * 2} height={+rSqI * 2} fill="var(--theme-color)" />
+            {hoveredPath.length > 1 && <>
+              <circle cx={pct(e.c)} cy={pct(e.r)} r={rCir} fill="#000000" />
+              <circle cx={pct(e.c)} cy={pct(e.r)} r={rCirI} fill="var(--theme-color)" />
+            </>}
+          </svg>
+        );
+      })()}
       </div>
     </div>
   );
