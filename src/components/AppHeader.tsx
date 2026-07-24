@@ -239,8 +239,8 @@ export function AppHeader({
               onToggle3D();
             }}
             className={cn(
-              "text-stone-400 hover:text-stone-200 gap-1.5 h-8 px-2 cursor-pointer flex rounded-lg",
-              is3D ? "text-theme-primary hover:text-theme-primary/80 bg-theme-primary-10" : ""
+              "neo-brutalism-button bg-card hover:bg-stone-100 dark:hover:bg-stone-850 text-foreground gap-1.5 h-8 px-2.5 cursor-pointer flex items-center justify-center rounded-lg transition-all",
+              is3D ? "bg-theme-primary text-stone-950 shadow-[1px_1px_0_0_#000000] translate-x-[2px] translate-y-[2px]" : ""
             )}
             title={is3D ? "Disable 3D Isometric View" : "Enable 3D Isometric View"}
           >
@@ -365,7 +365,7 @@ export function AppHeader({
                 if (!isMuted) playClickSound();
                 onUndo();
               }}
-              className="border-stone-800 hover:bg-stone-900 disabled:opacity-30 w-8 h-8"
+              className="neo-brutalism-button bg-card hover:bg-stone-100 dark:hover:bg-stone-850 disabled:opacity-30 w-8 h-8 flex items-center justify-center rounded-lg cursor-pointer transition-all disabled:pointer-events-none"
               title="Undo (Ctrl+Z)"
               aria-label="Undo"
             >
@@ -380,7 +380,7 @@ export function AppHeader({
                 if (!isMuted) playClickSound();
                 onRedo();
               }}
-              className="border-stone-800 hover:bg-stone-900 disabled:opacity-30 w-8 h-8"
+              className="neo-brutalism-button bg-card hover:bg-stone-100 dark:hover:bg-stone-850 disabled:opacity-30 w-8 h-8 flex items-center justify-center rounded-lg cursor-pointer transition-all disabled:pointer-events-none"
               title="Redo (Ctrl+Y)"
               aria-label="Redo"
             >
@@ -395,7 +395,7 @@ export function AppHeader({
                   if (!isMuted) playClickSound();
                   onOpenHistory();
                 }}
-                className="border-stone-800 hover:bg-stone-900 text-stone-300 w-8 h-8"
+                className="neo-brutalism-button bg-card hover:bg-stone-100 dark:hover:bg-stone-850 w-8 h-8 flex items-center justify-center rounded-lg cursor-pointer transition-all"
                 title="Move History"
                 aria-label="View move history"
               >
@@ -412,7 +412,7 @@ export function AppHeader({
                 if (!isMuted) playClickSound();
                 onRotateBoard();
               }}
-              className="border-stone-800 hover:bg-stone-900 text-stone-300 w-8 h-8"
+              className="neo-brutalism-button bg-card hover:bg-stone-100 dark:hover:bg-stone-850 w-8 h-8 flex items-center justify-center rounded-lg cursor-pointer transition-all"
               title="Rotate Board Perspective (90° Clockwise)"
               aria-label="Rotate board perspective 90 degrees clockwise"
             >
@@ -428,11 +428,11 @@ export function AppHeader({
                 if (!isMuted) playClickSound();
                 onToggleMute();
               }}
-              className="border-stone-800 hover:bg-stone-900 w-8 h-8"
+              className="neo-brutalism-button bg-card hover:bg-stone-100 dark:hover:bg-stone-850 w-8 h-8 flex items-center justify-center rounded-lg cursor-pointer transition-all"
               aria-label={isMuted ? "Unmute audio" : "Mute audio"}
             >
               {isMuted ? (
-                <VolumeX className="w-3.5 h-3.5 text-stone-400" />
+                <VolumeX className="w-3.5 h-3.5" />
               ) : (
                 <Volume2 className="w-3.5 h-3.5 text-theme-primary" />
               )}
@@ -446,11 +446,11 @@ export function AppHeader({
               if (!isMuted) playClickSound();
               onOpenSettings();
             }}
-            className="border-stone-800 hover:bg-stone-900 w-8 h-8 shrink-0"
+            className="neo-brutalism-button bg-card hover:bg-stone-100 dark:hover:bg-stone-850 w-8 h-8 shrink-0 flex items-center justify-center rounded-lg cursor-pointer transition-all"
             title="Settings"
             aria-label="Open settings"
           >
-            <Settings2 className="w-3.5 h-3.5 text-stone-300" />
+            <Settings2 className="w-3.5 h-3.5 text-foreground" />
           </Button>
 
           <Button
@@ -460,11 +460,11 @@ export function AppHeader({
               if (!isMuted) playClickSound();
               onOpenWelcomeGuide();
             }}
-            className="border-stone-800 hover:bg-stone-900 w-8 h-8 shrink-0"
+            className="neo-brutalism-button bg-card hover:bg-stone-100 dark:hover:bg-stone-850 w-8 h-8 shrink-0 flex items-center justify-center rounded-lg cursor-pointer transition-all"
             title="How to play"
             aria-label="Open the how-to-play guide"
           >
-            <HelpCircle className="w-3.5 h-3.5 text-stone-300" />
+            <HelpCircle className="w-3.5 h-3.5 text-foreground" />
           </Button>
 
           <SettingsDialog

@@ -223,15 +223,15 @@ export const Board: React.FC<BoardProps> = ({
       {/* 3D Tray Platform Wrapper */}
       <div 
         className={cn(
-          "transition-all duration-500 overflow-visible flex items-center justify-center",
+          "transition-all duration-500 overflow-visible flex items-center justify-center w-full h-full aspect-square",
           is3D
-            ? "p-4 sm:p-6 md:p-8 rounded-3xl bg-stone-150 dark:bg-stone-900 border-2 sm:border-4 border-stone-300 dark:border-stone-850 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.6)]"
+            ? "p-4 sm:p-6 md:p-8 rounded-3xl bg-stone-150 dark:bg-stone-900 border-3 sm:border-4 border-stone-950 shadow-[8px_8px_0_0_#000000]"
             : ""
         )}
         style={
           is3D
             ? {
-                transform: `perspective(1200px) rotateX(45deg) rotateZ(${-30 + boardRotation}deg) scale(0.85)`,
+                transform: `perspective(1200px) rotateX(45deg) rotateZ(${-30 + boardRotation}deg) scale(0.92)`,
                 transformStyle: "preserve-3d",
               }
             : {
@@ -242,10 +242,10 @@ export const Board: React.FC<BoardProps> = ({
         {/* CSS Grid Layout */}
         <div 
           className={cn(
-            "grid gap-0.5 xs:gap-1 md:gap-1.5 justify-items-stretch items-stretch transition-all duration-500 overflow-visible",
+            "grid gap-0.5 xs:gap-1 md:gap-1.5 justify-items-stretch items-stretch transition-all duration-500 overflow-visible aspect-square",
             isGameStarted ? "grid-cols-9 grid-rows-9" : "grid-cols-7 grid-rows-7",
             is3D 
-              ? "w-[300px] h-[300px] xs:w-[350px] xs:h-[350px] sm:w-[400px] sm:h-[400px] md:w-[440px] md:h-[440px]" 
+              ? "w-[92%] h-[92%]" 
               : "w-full h-full"
           )}
           style={{ transformStyle: is3D ? "preserve-3d" : "flat" }}
