@@ -2,7 +2,7 @@
 // sheet (< md) and the tablet/desktop side column (md+). Unprefixed classes
 // target the phone sheet; `md:` targets the tablet column; `lg:` targets the
 // wider desktop column. Interactive controls get a 44px phone floor.
-import { Sparkles, Layers, Users, Compass, Play, RotateCw, Camera } from "lucide-react";
+import { Sparkles, Layers, Users, Compass, Play, RefreshCcw, Camera } from "lucide-react";
 import { SidePanel } from "./SidePanel";
 import { Button } from "../ui/button";
 import { PAWNS, TREASURES } from "../../constants";
@@ -170,7 +170,7 @@ export function SetupPanel({
                 aria-label="Reset layout"
                 className="border-stone-800 text-stone-400 hover:text-stone-200 hover:bg-stone-900 min-h-11 w-11 shrink-0 px-0 cursor-pointer"
               >
-                <RotateCw className="w-4 h-4" />
+                <RefreshCcw className="w-4 h-4" />
               </Button>
             </div>
             <div className="flex-1 overflow-hidden">
