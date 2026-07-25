@@ -426,7 +426,7 @@ export const Board: React.FC<BoardProps> = ({
           const pathPawnColor = (hoveredPath as any).pawnColor || activePawn;
           const strokeColor = PAWN_HEX_COLORS[pathPawnColor] || "#f59e0b";
 
-          // Calculate total path length for smooth CSS dashoffset erosion animation
+          // Calculate exact geometric path distance
           let totalLen = 0;
           for (let i = 1; i < hoveredPath.length; i++) {
             const dx = tc(hoveredPath[i].c) - tc(hoveredPath[i - 1].c);
@@ -438,32 +438,38 @@ export const Board: React.FC<BoardProps> = ({
           const durSec = (travelingPawn?.durationMs ?? 600) / 1000;
 
           return (
-            <svg viewBox="0 0 9 9" className="absolute inset-0 w-full h-full pointer-events-none z-30" aria-hidden="true">
+            <svg viewBox="0 0 9 9" className="absolute inset-0 w-full h-full pointer-events-none z-30 transition-opacity duration-150" aria-hidden="true">
               <polyline
                 points={pts}
                 fill="none"
                 stroke="#000000"
                 strokeWidth="0.10"
-                strokeDasharray={isTraveling ? `${totalLen}` : "0.18,0.12"}
-                strokeDashoffset={isTraveling ? 0 : 0}
+                strokeDasharray={isTraveling ? `${totalLen} ${totalLen}` : "0.18,0.12"}
+                strokeDashoffset={0}
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 opacity="0.45"
                 className={isTraveling ? "" : "animate-path-crawl"}
-                style={isTraveling ? { animation: `erodePath ${durSec}s linear forwards` } : undefined}
+                style={isTraveling ? {
+                  strokeDasharray: `${totalLen}`,
+                  animation: `erodeDash ${durSec}s linear forwards`,
+                } : undefined}
               />
               <polyline
                 points={pts}
                 fill="none"
                 stroke={strokeColor}
                 strokeWidth="0.06"
-                strokeDasharray={isTraveling ? `${totalLen}` : "0.18,0.12"}
-                strokeDashoffset={isTraveling ? 0 : 0}
+                strokeDasharray={isTraveling ? `${totalLen} ${totalLen}` : "0.18,0.12"}
+                strokeDashoffset={0}
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 opacity="0.85"
                 className={isTraveling ? "" : "animate-path-crawl"}
-                style={isTraveling ? { animation: `erodePath ${durSec}s linear forwards` } : undefined}
+                style={isTraveling ? {
+                  strokeDasharray: `${totalLen}`,
+                  animation: `erodeDash ${durSec}s linear forwards`,
+                } : undefined}
               />
               <circle cx={tc(s.c)} cy={tc(s.r)} r="0.13" fill="#000000" />
               <circle cx={tc(s.c)} cy={tc(s.r)} r="0.08" fill={strokeColor} />

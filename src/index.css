@@ -733,7 +733,7 @@
   offset-rotate: 0deg;
 }
 
-@keyframes erodePath {
-  0%   { stroke-dashoffset: 0; }
-  100% { stroke-dashoffset: 1000; }
+@keyframes erodeDash {
+  from { stroke-dashoffset: 0; }
+  to   { stroke-dashoffset: 100; }
 }

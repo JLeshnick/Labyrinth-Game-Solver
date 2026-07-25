@@ -52,7 +52,6 @@ export interface AppHeaderProps {
   onRedo: () => void;
   onOpenHistory?: () => void;
   onRotateBoard: () => void;
-  onToggleStats: () => void;
   onStartGame: () => void;
   onEndGame: () => void;
   onToggleMute: () => void;
@@ -69,6 +68,8 @@ export interface AppHeaderProps {
   onSetSolverDepth?: (depth: number) => void;
   pawnAnimationSpeed?: number;
   onSetPawnAnimationSpeed?: (speed: number) => void;
+  pawnStats?: Record<string, { tilesMoved: number; shiftsUsed: number; treasuresFound: number; totalTargets: number }>;
+  totalShifts?: number;
 }
 
 const iconBtnCls =
@@ -94,7 +95,6 @@ export function AppHeader({
   canUndo,
   canRedo,
   isMuted,
-  showStats,
   baseTheme: _baseTheme,
   activePlayers,
   activePawn,
@@ -109,7 +109,6 @@ export function AppHeader({
   onRedo,
   onOpenHistory,
   onRotateBoard,
-  onToggleStats,
   onStartGame,
   onEndGame,
   onToggleMute,
@@ -128,6 +127,8 @@ export function AppHeader({
   onSetSolverDepth,
   pawnAnimationSpeed,
   onSetPawnAnimationSpeed,
+  pawnStats = {},
+  totalShifts = 0,
   gameMode = "standard",
   autoPlayPaused = false,
   onToggleAutoPlayPause,
@@ -414,19 +415,67 @@ export function AppHeader({
                 <RotateCw className="w-3.5 h-3.5" />
               </Button>
             </Tooltip>
-            {isGameStarted && onToggleStats && (
+            {isGameStarted && (
               <>
                 <div className="w-px h-4 bg-stone-800 mx-0.5" />
-                <Tooltip content={showStats ? "Hide stats" : "Game stats"} side="bottom">
+                <div className="relative group">
                   <Button
                     variant="outline" size="icon"
-                    onClick={() => { if (!isMuted) playClickSound(); onToggleStats(); }}
-                    className={cn(iconBtnCls, showStats ? "bg-theme-primary-10 text-theme-primary border-theme-primary-20" : "")}
-                    aria-label="Toggle game statistics"
+                    className={cn(iconBtnCls, "cursor-default")}
+                    aria-label="Game statistics"
                   >
                     <BarChart2 className="w-3.5 h-3.5" />
                   </Button>
-                </Tooltip>
+
+                  {/* Hover Tooltip Dropdown for Game Stats */}
+                  <div className="absolute top-full right-0 mt-2 w-64 rounded-xl app-dialog-panel neo-brutalism-card p-3 z-50 invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-all duration-150 flex flex-col gap-2.5 pointer-events-none">
+                    <div className="text-xs font-bold text-stone-200 border-b border-stone-800 pb-1.5 flex items-center gap-1.5">
+                      <BarChart2 className="w-3.5 h-3.5 text-theme-primary" />
+                      Game Statistics
+                    </div>
+                    {/* Summary stats */}
+                    <div className="grid grid-cols-3 gap-1.5 text-center">
+                      <div className="app-surface p-1.5 rounded-lg">
+                        <div className="text-sm font-black text-stone-100">{totalShifts}</div>
+                        <div className="text-[9px] text-stone-400">Shifts</div>
+                      </div>
+                      <div className="app-surface p-1.5 rounded-lg">
+                        <div className="text-sm font-black text-stone-100">
+                          {Object.values(pawnStats).reduce((sum, s) => sum + s.tilesMoved, 0)}
+                        </div>
+                        <div className="text-[9px] text-stone-400">Moves</div>
+                      </div>
+                      <div className="app-surface p-1.5 rounded-lg">
+                        <div className="text-sm font-black text-amber-400">
+                          {gameMode === "coop"
+                            ? coopObtainedTreasures.length
+                            : Object.values(obtainedTreasures).reduce((sum, arr) => sum + arr.length, 0)}
+                        </div>
+                        <div className="text-[9px] text-stone-400">Found</div>
+                      </div>
+                    </div>
+
+                    {/* Active players breakdown */}
+                    <div className="space-y-1">
+                      {activePlayers.map((color) => {
+                        const pawn = PAWNS.find((p) => p.id === color);
+                        const stats = pawnStats[color] || { tilesMoved: 0, shiftsUsed: 0, treasuresFound: 0, totalTargets: 0 };
+                        const collected = gameMode === "coop" ? coopObtainedTreasures.length : (obtainedTreasures[color]?.length ?? 0);
+                        return (
+                          <div key={color} className="app-surface p-1.5 rounded-lg flex items-center justify-between text-[10px]">
+                            <div className="flex items-center gap-1.5">
+                              <div className={cn("w-2.5 h-2.5 rounded-full border border-stone-950", pawn?.colorClass ?? "bg-stone-500")} />
+                              <span className="font-bold text-stone-200 capitalize">{pawn?.name ?? color}</span>
+                            </div>
+                            <div className="text-stone-400 font-mono">
+                              {stats.tilesMoved} moves • {stats.shiftsUsed} shifts ({collected} found)
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
               </>
             )}
             <div className="w-px h-4 bg-stone-800 mx-0.5" />

@@ -1259,5 +1259,6 @@ export function useLabyrinthGame({
     setRemainingCoopTreasures,
     coopObtainedTreasures,
     setCoopObtainedTreasures,
+    totalShifts: totalShiftsRef.current,
   };
 }

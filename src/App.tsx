@@ -869,7 +869,6 @@ export default function App() {
         onRedo={() => game.handleRedo()}
         onOpenHistory={() => setIsHistoryOpen(true)}
         onRotateBoard={() => setBoardRotation((prev) => (prev + 90) % 360)}
-        onToggleStats={() => setShowStats((prev) => !prev)}
         onStartGame={game.handleStartGame}
         onEndGame={game.handleEndGame}
         onToggleMute={handleToggleMute}
@@ -898,6 +897,8 @@ export default function App() {
         onSetSolverDepth={(depth) => setSolverDepth(depth)}
         pawnAnimationSpeed={pawnAnimationSpeed}
         onSetPawnAnimationSpeed={(speed) => setPawnAnimationSpeed(speed)}
+        pawnStats={game.pawnStats}
+        totalShifts={game.totalShifts}
       />
 
       <main className="flex-1 flex flex-col md:flex-row relative z-10 w-full px-2 sm:px-3 md:px-4 lg:px-6 pt-2 sm:pt-3 pb-[72px] md:pb-3 gap-3 md:gap-4 lg:gap-8 justify-center overflow-hidden min-h-0">
