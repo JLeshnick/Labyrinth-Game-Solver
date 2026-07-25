@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { Sparkles, Play, RefreshCcw, Camera } from "lucide-react";
+import { Sparkles, Layers, Users, Compass, Play, RefreshCcw, Camera } from "lucide-react";
 import { SidePanel } from "./SidePanel";
 import { Button } from "../ui/button";
 import { PAWNS, TREASURES } from "../../constants";
@@ -120,13 +120,13 @@ export function SetupPanel({
         </Button>
       </div>
 
-      {/* Tab bar */}
-      <div className="flex items-center bg-card rounded-xl p-1 border-2 border-stone-950 self-start shadow-[3px_3px_0_0_#000000] gap-0.5">
+      {/* Tab bar — full width to align with the checklist above */}
+      <div className="flex items-center bg-card rounded-xl p-1 border-2 border-stone-950 w-full shadow-[3px_3px_0_0_#000000] gap-0.5">
         {([
-          { id: "tiles", label: "Tiles" },
-          { id: "mode", label: "Mode" },
-          { id: "players", label: "Players" },
-          { id: "cards", label: "Cards" },
+          { id: "tiles",   label: "Tiles",   icon: <Layers  className="w-3.5 h-3.5" /> },
+          { id: "mode",    label: "Mode",    icon: <Compass className="w-3.5 h-3.5" /> },
+          { id: "players", label: "Players", icon: <Users   className="w-3.5 h-3.5" /> },
+          { id: "cards",   label: "Cards",   icon: <Sparkles className="w-3.5 h-3.5" /> },
         ] as const).map((tab) => {
           const isDisabled = tab.id === "cards" && gameMode === "coop";
           return (
@@ -134,7 +134,7 @@ export function SetupPanel({
               key={tab.id}
               disabled={isDisabled}
               onClick={() => setSetupTab(tab.id)}
-              className={`flex items-center justify-center px-3 md:px-4 py-2 md:py-1.5 min-h-11 md:min-h-0 rounded-lg text-xs md:text-sm font-bold transition-all border-2 ${
+              className={`flex-1 flex items-center justify-center gap-1.5 py-2 md:py-1.5 min-h-11 md:min-h-0 rounded-lg text-xs font-bold transition-all border-2 ${
                 isDisabled
                   ? "opacity-30 cursor-not-allowed border-transparent bg-stone-900/40 text-stone-600 shadow-none"
                   : setupTab === tab.id
@@ -142,6 +142,7 @@ export function SetupPanel({
                   : "text-stone-500 hover:text-foreground hover:bg-stone-800 border-transparent cursor-pointer"
               }`}
             >
+              {tab.icon}
               {tab.label}
             </button>
           );
@@ -151,7 +152,7 @@ export function SetupPanel({
       {/* Tab content */}
       <div className="flex-1 overflow-hidden min-h-0">
         {setupTab === "tiles" && (
-          <div className="flex flex-col gap-3 h-full overflow-hidden min-h-0 p-1 pb-4">
+          <div className="flex flex-col gap-3 h-full overflow-hidden min-h-0 p-1 px-1.5 pb-4">
             <div className="flex gap-2">
               <Button
                 onClick={onRandomizeBoard}
@@ -184,7 +185,8 @@ export function SetupPanel({
                 <RefreshCcw className="w-4 h-4" />
               </Button>
             </div>
-            <div className="flex-1 overflow-hidden">
+            {/* app-surface wrapper so the neo-brutalist drop shadow isn't clipped */}
+            <div className="flex-1 overflow-hidden p-1 pb-4 app-surface">
               <SidePanel tiles={looseTiles} onTileClick={onTileClick} />
             </div>
           </div>

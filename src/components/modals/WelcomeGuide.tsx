@@ -97,22 +97,22 @@ export function WelcomeGuide({ open, onOpenChange, onDismiss }: WelcomeGuideProp
                 The solver uses an asynchronous Web Worker to simulate and search every board permutation. It ranks suggestions based on three strict criteria:
               </p>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                <div className="bg-stone-900/60 p-2.5 rounded-xl border border-stone-800/80">
-                  <div className="font-semibold text-stone-100 mb-0.5">1. Turn Depth</div>
-                  <p className="text-[10px] text-stone-400 leading-normal">
+                <div className="p-2.5 app-surface flex flex-col gap-1">
+                  <div className="text-xs font-black text-theme-primary uppercase tracking-wide">1. Turn Depth</div>
+                  <p className="text-[11px] text-stone-300 leading-normal">
                     Checks if the treasure can be reached in 1 turn (Direct Route). If not, it simulates multi-turn setups.
                   </p>
                 </div>
-                <div className="bg-stone-900/60 p-2.5 rounded-xl border border-stone-800/80">
-                  <div className="font-semibold text-stone-100 mb-0.5">2. Walk Spaces</div>
-                  <p className="text-[10px] text-stone-400 leading-normal">
-                    Fewer walked spaces (👣) are heavily prioritized for clean, direct pathways and easier board readability.
+                <div className="p-2.5 app-surface flex flex-col gap-1">
+                  <div className="text-xs font-black text-theme-primary uppercase tracking-wide">2. Walk Spaces</div>
+                  <p className="text-[11px] text-stone-300 leading-normal">
+                    Fewer walked spaces are heavily prioritized for clean, direct pathways and easier board readability.
                   </p>
                 </div>
-                <div className="bg-stone-900/60 p-2.5 rounded-xl border border-stone-800/80">
-                  <div className="font-semibold text-stone-100 mb-0.5">3. Safety Score</div>
-                  <p className="text-[10px] text-stone-400 leading-normal">
-                    Ranks connectivity out of 100. High safety means you stay open; low safety warning means you run the risk of getting trapped.
+                <div className="p-2.5 app-surface flex flex-col gap-1">
+                  <div className="text-xs font-black text-theme-primary uppercase tracking-wide">3. Safety Score</div>
+                  <p className="text-[11px] text-stone-300 leading-normal">
+                    Rates board connectivity out of 100. High safety means you stay open; low means you risk getting trapped.
                   </p>
                 </div>
               </div>
