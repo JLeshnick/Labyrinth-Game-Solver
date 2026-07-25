@@ -100,20 +100,6 @@ export function SetupPanel({
             <Sparkles className="w-3.5 h-3.5 text-theme-primary" />
             Setup Wizard & Checklist
           </h3>
-          {onResetAllDefaults && (
-            <button
-              onClick={() => {
-                if (!isMuted) playClickSound();
-                onResetAllDefaults();
-                showToast("All game settings and layout reset to defaults!");
-              }}
-              title="Reset all settings, mode, players, cards, and board to defaults"
-              className="text-[10px] md:text-xs font-extrabold flex items-center gap-1.5 bg-red-500 hover:bg-red-400 text-stone-950 px-2.5 py-1.5 rounded-lg border-2 border-stone-950 neo-brutalism-button shadow-[2px_2px_0_0_#000000] cursor-pointer shrink-0 transition-all"
-            >
-              <RefreshCcw className="w-3 h-3 text-stone-950 stroke-[2.5]" />
-              Reset Defaults
-            </button>
-          )}
         </div>
         <div className="flex flex-col gap-1.5 mt-0.5">
           <div className="flex items-center gap-2">
@@ -194,13 +180,19 @@ export function SetupPanel({
                 variant="outline"
                 onClick={() => {
                   if (!isMuted) playClickSound();
-                  onResetBoard();
+                  if (onResetAllDefaults) {
+                    onResetAllDefaults();
+                    showToast("All game settings and layout reset to defaults!");
+                  } else {
+                    onResetBoard();
+                    showToast("Board layout reset to defaults!");
+                  }
                 }}
-                title="Reset Layout"
-                aria-label="Reset layout"
-                className="border-stone-800 text-stone-400 hover:text-stone-200 hover:bg-stone-900 min-h-11 w-11 shrink-0 px-0 cursor-pointer"
+                title="Reset all settings, mode, players, cards, and board to defaults"
+                aria-label="Reset all defaults"
+                className="neo-brutalism-button border-2 border-stone-950 bg-red-500 hover:bg-red-400 text-stone-950 min-h-11 w-11 shrink-0 px-0 cursor-pointer shadow-[2px_2px_0_0_#000000]"
               >
-                <RefreshCcw className="w-4 h-4" />
+                <RefreshCcw className="w-4 h-4 stroke-[2.5]" />
               </Button>
             </div>
             {/* padding wrapper lets the card's neo-brutalist shadow breathe — overflow-visible is intentional */}
