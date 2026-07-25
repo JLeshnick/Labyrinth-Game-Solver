@@ -29,9 +29,10 @@ function renderPanel(overrides: Partial<Parameters<typeof SetupPanel>[0]> = {}) 
 }
 
 describe("SetupPanel — Pawns placement removed", () => {
-  it("renders Tiles, Players, and Cards tabs (no manual pawn-placement tab)", () => {
+  it("renders Tiles, Mode, Players, and Cards tabs (no manual pawn-placement tab)", () => {
     renderPanel();
     expect(screen.getByRole("button", { name: /tiles/i })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /mode/i })).toBeTruthy();
     expect(screen.getByRole("button", { name: /players/i })).toBeTruthy();
     expect(screen.getByRole("button", { name: /cards/i })).toBeTruthy();
   });

@@ -787,7 +787,7 @@ function solveAllHand(board, spareTile, startPawnPos, handCards, lastShiftArrowI
         
          path.safetyScore = safety;
        } else {
-         path.safetyScore = 1;
+         path.safetyScore = 100;
        }
      }
      
@@ -1047,7 +1047,7 @@ function solveCoopStep(board, spareTile, pawnPositions, activePawns, remainingTr
 
         path.safetyScore = safety;
       } else {
-        path.safetyScore = 1;
+        path.safetyScore = 100;
       }
     }
 

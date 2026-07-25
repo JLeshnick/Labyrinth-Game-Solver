@@ -102,7 +102,7 @@ export function useLabyrinthGame({
   const totalShiftsRef = useRef(0);
 
   // Setup panel state (used by handleTileClick / handleCellClick)
-  const [setupTab, setSetupTab] = useState<"tiles" | "players" | "cards">("tiles");
+  const [setupTab, setSetupTab] = useState<"tiles" | "players" | "mode" | "cards">("tiles");
 
   // Active players — stored in localStorage as a preference
   const [activePlayers, setActivePlayers] = useState<string[]>(() => {

@@ -307,7 +307,7 @@ export function SolverPanel({
         </div>
       )}
 
-      <div className="flex-1 overflow-y-auto min-h-0 pr-2 flex flex-col gap-2">
+      <div className="flex-1 overflow-y-auto min-h-0 pl-1.5 pr-2 pt-1.5 flex flex-col gap-2">
         {isLoadingSolutions ? (
           <div className="flex-1 flex flex-col items-center justify-center text-stone-500 gap-2">
             <div className="animate-spin h-5 w-5 border-2 border-stone-950 border-t-theme-primary rounded-sm" />
@@ -325,7 +325,7 @@ export function SolverPanel({
               for (const step of sol) {
                 if (step.pawnPath) walkDist += step.pawnPath.length - 1;
               }
-              const safetyPct = sol.safetyScore !== undefined ? Math.round(sol.safetyScore * 100) : null;
+              const safetyScoreValue = sol.safetyScore !== undefined ? Math.round(sol.safetyScore) : null;
               return (
                 <div
                   key={index}
@@ -339,10 +339,10 @@ export function SolverPanel({
                 >
                   {/* Rank chip */}
                   <span
-                    className={`absolute left-2 top-2.5 w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${
+                    className={`absolute -left-1.5 -top-1.5 w-6 h-6 rounded-lg flex items-center justify-center text-xs font-black border-2 border-stone-950 shadow-[1.5px_1.5px_0_0_#000000] z-10 ${
                       index === 0 && !isFallback
                         ? "bg-theme-primary text-stone-950"
-                        : "bg-theme-primary-10 text-theme-primary border border-theme-primary-20"
+                        : "bg-card text-stone-100"
                     }`}
                   >
                     {index + 1}
@@ -363,25 +363,24 @@ export function SolverPanel({
                         </span>
                       )}
                       {isFallback ? (
-                        <span className="text-amber-500 font-bold">Fallback Setup</span>
+                        <span className="text-amber-500 font-bold">Fallback Setup ({sol.length} turn{sol.length > 1 ? "s" : ""})</span>
                       ) : sol.length === 1 ? (
-                        <span className="text-green-500 font-bold">Direct Route</span>
+                        <span className="text-green-500 font-bold">Direct Route (1 turn)</span>
                       ) : (
-                        <span className="text-blue-400 font-bold">Multi-Turn Route</span>
+                        <span className="text-blue-400 font-bold">Multi-Turn Route ({sol.length} turns)</span>
                       )}
-                      <span className="text-[10px] text-stone-500">({sol.length} turn{sol.length > 1 ? "s" : ""})</span>
-                      <span className="px-1.5 py-0.5 rounded bg-stone-850 text-stone-300 text-[9px] font-semibold border border-stone-700/50 flex items-center gap-0.5 leading-none">
-                        👣 {walkDist} space{walkDist !== 1 ? "s" : ""}
+                      <span className="px-2 py-0.5 rounded-lg bg-card text-stone-100 text-[10px] font-black border-2 border-stone-950 shadow-[1px_1px_0_0_#000000] flex items-center leading-none">
+                        {walkDist} space{walkDist !== 1 ? "s" : ""}
                       </span>
-                      {safetyPct !== null && (
-                        <span className={`px-1.5 py-0.5 rounded text-[9px] font-semibold border flex items-center gap-0.5 leading-none ${
-                          safetyPct >= 80
-                            ? "bg-emerald-950/40 text-emerald-400 border-emerald-900/50"
-                            : safetyPct >= 40
-                            ? "bg-amber-950/40 text-amber-400 border-amber-900/50"
-                            : "bg-red-950/40 text-red-400 border-red-900/50"
+                      {safetyScoreValue !== null && (
+                        <span className={`px-2 py-0.5 rounded-lg text-stone-950 text-[10px] font-black border-2 border-stone-950 shadow-[1px_1px_0_0_#000000] flex items-center leading-none ${
+                          safetyScoreValue >= 80
+                            ? "bg-emerald-400"
+                            : safetyScoreValue >= 40
+                            ? "bg-amber-400"
+                            : "bg-red-500"
                         }`}>
-                          🛡️ {safetyPct}% safe
+                          {safetyScoreValue}/100 safety
                         </span>
                       )}
                     </div>
