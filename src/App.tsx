@@ -724,7 +724,7 @@ export default function App() {
     if (!game.isGameStarted || !showOneMoveTargets) return [];
     const pawnPos = game.pawnPositions[game.activePawn];
     if (!pawnPos) return [];
-    const allObtained = Object.values(game.obtainedTreasures).flat();
+    const allObtained = game.gameMode === "coop" ? (game.coopObtainedTreasures || []) : Object.values(game.obtainedTreasures).flat();
     try {
       const solverBoard = game.getSolverFormattedBoard(game.grid, game.pawnPositions);
       const solverSpare = game.getSolverFormattedSpare(game.spareTile);
@@ -756,6 +756,8 @@ export default function App() {
     game.activePawn,
     game.spareTile,
     game.obtainedTreasures,
+    game.coopObtainedTreasures,
+    game.gameMode,
     game.lastShiftArrowId,
     game.getSolverFormattedBoard,
     game.getSolverFormattedSpare,

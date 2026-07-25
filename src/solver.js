@@ -771,21 +771,23 @@ function solveAllHand(board, spareTile, startPawnPos, handCards, lastShiftArrowI
      }
      
      for (const path of paths) {
+       path.cardId = cardId;
+       path.isFallback = isFallback;
        if (path.length > 0) {
          const step1 = path[0];
          const { type, index, dir } = parseArrowId(step1.arrowId);
-         
+        
          const tempBoard = cloneBoard(board);
          const tempSpare = { ...spareTile, dir: step1.rotation };
-         
+        
          const slideResult = executeSlideInGrid(tempBoard, tempSpare, type, index, dir);
          const nextSpare = slideResult.newSpare;
-         
+        
          const safety = calculateSafetyScore(tempBoard, nextSpare, step1.endPos, step1.arrowId);
-         
+        
          path.safetyScore = safety;
-         path.cardId = cardId;
-         path.isFallback = isFallback;
+       } else {
+         path.safetyScore = 1;
        }
      }
      
@@ -1007,6 +1009,9 @@ function solveCoopStep(board, spareTile, pawnPositions, activePawns, remainingTr
     }
 
     for (const path of paths) {
+      path.cardId = target;
+      path.pawnColor = pawn;
+      path.isFallback = isFallback;
       if (path.length > 0) {
         const step1 = path[0];
         const { type, index, dir } = parseArrowId(step1.arrowId);
@@ -1020,9 +1025,8 @@ function solveCoopStep(board, spareTile, pawnPositions, activePawns, remainingTr
         const safety = calculateSafetyScore(tempBoard, nextSpare, step1.endPos, step1.arrowId);
 
         path.safetyScore = safety;
-        path.cardId = target;
-        path.pawnColor = pawn;
-        path.isFallback = isFallback;
+      } else {
+        path.safetyScore = 1;
       }
     }
 
