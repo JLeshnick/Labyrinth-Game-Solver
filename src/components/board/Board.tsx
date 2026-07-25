@@ -290,14 +290,15 @@ export const Board: React.FC<BoardProps> = ({
               ? "Slide phase complete — move your pawn"
               : `Stage tile into ${arrow.label}`;
 
-            // Orient tooltips outward into the blank space around the board, with corner edge offsets
-            let tooltipSide: "top" | "bottom" | "left" | "right" | "left-start" | "left-end" | "right-start" | "right-end" = "bottom";
-            if (arrow.dir === "top") tooltipSide = "top";
+            // Orient tooltips cleanly around the board edges without clipping viewport bounds
+            let tooltipSide: "top" | "bottom" | "left" | "right" | "bottom-left" | "bottom-right" = "bottom";
+            if (arrow.dir === "top") tooltipSide = "bottom";
             else if (arrow.dir === "bottom") tooltipSide = "bottom";
             else if (arrow.dir === "left") {
-              tooltipSide = arrow.index === 1 ? "left-start" : arrow.index === 5 ? "left-end" : "left";
+              // Left column arrows — render below the arrow aligned to its right edge so it extends inward over empty space
+              tooltipSide = "bottom-right";
             } else if (arrow.dir === "right") {
-              tooltipSide = arrow.index === 1 ? "right-start" : arrow.index === 5 ? "right-end" : "right";
+              tooltipSide = "bottom-left";
             }
 
             return (
