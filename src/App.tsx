@@ -532,7 +532,7 @@ export default function App() {
   ]);
 
   // ── Autoplay: when in auto mode, auto-execute the top solver suggestion ────────
-  const AUTOPLAY_BASE_DELAY_MS = 1200; // base pause between moves at 1× speed
+  const AUTOPLAY_BASE_DELAY_MS = 1000; // base pause between moves at 1× speed
   const isExecutingAutoMoveRef = useRef(false);
 
   useEffect(() => {
@@ -540,18 +540,20 @@ export default function App() {
     if (!game.isGameStarted) return;
     if (autoPlayPaused) return;
     if (isLoadingSolutions) return;
-    if (solutions.length === 0) return;
+    if (!solutions || solutions.length === 0) return;
     if (isExecutingAutoMoveRef.current) return;
 
-    const delay = Math.max(250, Math.round(AUTOPLAY_BASE_DELAY_MS / autoPlaySpeed));
+    const delay = Math.max(200, Math.round(AUTOPLAY_BASE_DELAY_MS / autoPlaySpeed));
     const timeoutId = setTimeout(() => {
       const top = solutions[0];
       if (top && !isExecutingAutoMoveRef.current) {
         isExecutingAutoMoveRef.current = true;
         handleExecuteSolutionWithAnimation(top as any);
+        // Release lock after animation and state update completes
+        const releaseDelay = Math.max(350, Math.round(700 / autoPlaySpeed));
         setTimeout(() => {
           isExecutingAutoMoveRef.current = false;
-        }, Math.max(300, Math.round(500 / autoPlaySpeed)));
+        }, releaseDelay);
       }
     }, delay);
 
@@ -566,6 +568,7 @@ export default function App() {
     game.grid,
     game.spareTile,
     game.activePawn,
+    game.pawnPositions,
     handleExecuteSolutionWithAnimation,
   ]);
 
