@@ -161,44 +161,47 @@ export function SetupPanel({
       <div className="flex-1 overflow-hidden min-h-0">
         {setupTab === "tiles" && (
           <div className="flex flex-col gap-3 h-full overflow-hidden min-h-0 p-1 px-1.5 pb-4">
-            <div className="flex gap-2">
-              <Button
-                onClick={onRandomizeBoard}
-                title="Randomly shuffle and rotate all movable tiles"
-                className="flex-1 neo-brutalism-button bg-theme-primary border-stone-950 hover:bg-theme-primary-hover text-stone-950 font-bold py-2.5 px-4 min-h-11 rounded-xl flex items-center justify-center gap-2 cursor-pointer"
-              >
-                <Sparkles className="w-4 h-4" />
-                Randomize Board
-              </Button>
+            <div className="flex gap-2 items-center">
+              <Tooltip content="Randomly shuffle and rotate all movable tiles" side="top" containerClassName="flex-1">
+                <Button
+                  onClick={onRandomizeBoard}
+                  className="w-full neo-brutalism-button bg-theme-primary border-stone-950 hover:bg-theme-primary-hover text-stone-950 font-bold py-2.5 px-4 min-h-11 rounded-xl flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <Sparkles className="w-4 h-4" />
+                  Randomize Board
+                </Button>
+              </Tooltip>
               {onScanBoard && (
+                <Tooltip content="Scan board photo with camera" side="top" containerClassName="shrink-0">
+                  <Button
+                    variant="outline"
+                    onClick={onScanBoard}
+                    aria-label="Scan board photo"
+                    className="neo-brutalism-button border-stone-950 bg-card text-stone-400 hover:text-stone-200 min-h-11 w-11 px-0 cursor-pointer"
+                  >
+                    <Camera className="w-4 h-4" />
+                  </Button>
+                </Tooltip>
+              )}
+              <Tooltip content="Reset all settings, mode, players, cards, and board to defaults" side="top" containerClassName="shrink-0">
                 <Button
                   variant="outline"
-                  onClick={onScanBoard}
-                  title="Scan board photo with camera"
-                  aria-label="Scan board photo"
-                  className="neo-brutalism-button border-stone-950 bg-card text-stone-400 hover:text-stone-200 min-h-11 w-11 shrink-0 px-0 cursor-pointer"
+                  onClick={() => {
+                    if (!isMuted) playClickSound();
+                    if (onResetAllDefaults) {
+                      onResetAllDefaults();
+                      showToast("All game settings and layout reset to defaults!");
+                    } else {
+                      onResetBoard();
+                      showToast("Board layout reset to defaults!");
+                    }
+                  }}
+                  aria-label="Reset all defaults"
+                  className="neo-brutalism-button border-2 border-stone-950 bg-red-500 hover:bg-red-400 text-stone-950 min-h-11 w-11 px-0 cursor-pointer shadow-[2px_2px_0_0_#000000]"
                 >
-                  <Camera className="w-4 h-4" />
+                  <RefreshCcw className="w-4 h-4 stroke-[2.5]" />
                 </Button>
-              )}
-              <Button
-                variant="outline"
-                onClick={() => {
-                  if (!isMuted) playClickSound();
-                  if (onResetAllDefaults) {
-                    onResetAllDefaults();
-                    showToast("All game settings and layout reset to defaults!");
-                  } else {
-                    onResetBoard();
-                    showToast("Board layout reset to defaults!");
-                  }
-                }}
-                title="Reset all settings, mode, players, cards, and board to defaults"
-                aria-label="Reset all defaults"
-                className="neo-brutalism-button border-2 border-stone-950 bg-red-500 hover:bg-red-400 text-stone-950 min-h-11 w-11 shrink-0 px-0 cursor-pointer shadow-[2px_2px_0_0_#000000]"
-              >
-                <RefreshCcw className="w-4 h-4 stroke-[2.5]" />
-              </Button>
+              </Tooltip>
             </div>
             {/* padding wrapper lets the card's neo-brutalist shadow breathe — overflow-visible is intentional */}
             <div className="flex-1 overflow-visible min-h-0 p-1 pb-4">

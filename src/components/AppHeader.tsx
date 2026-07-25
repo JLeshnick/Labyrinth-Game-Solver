@@ -116,7 +116,7 @@ export function AppHeader({
   showToast: _showToast,
   playerHands,
   obtainedTreasures,
-  onRandomizeBoard,
+  onRandomizeBoard: _onRandomizeBoard,
   onOpenWelcomeGuide,
   elapsedTime,
   isTimerPaused = false,
@@ -269,22 +269,7 @@ export function AppHeader({
         {/* Right — toolbar */}
         <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
 
-          {/* Randomize layout (setup only, desktop) */}
-          {!isGameStarted && onRandomizeBoard && (
-            <Tooltip content="Randomize Board" side="bottom">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  if (!isMuted) playClickSound();
-                  onRandomizeBoard();
-                }}
-                className="neo-brutalism-button bg-card border-stone-950 text-stone-400 hover:bg-stone-200 hover:text-stone-950 gap-1.5 h-8 px-2 hidden md:flex cursor-pointer"
-              >
-                <span className="text-xs">Randomize</span>
-              </Button>
-            </Tooltip>
-          )}
+
 
           {/* Pawn score chips — only during game */}
           {isGameStarted && activePlayers.length > 0 && (
