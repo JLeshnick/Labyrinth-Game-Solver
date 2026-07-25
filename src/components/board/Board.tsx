@@ -268,7 +268,11 @@ export const Board: React.FC<BoardProps> = ({
               ? "w-[92%] h-[92%]"
               : "w-full h-full"
           )}
-          style={{ transformStyle: is3D ? "preserve-3d" : "flat" }}
+          style={{
+            transformStyle: is3D ? "preserve-3d" : "flat",
+            gridTemplateColumns: isGameStarted ? "repeat(9, minmax(0, 1fr))" : "repeat(7, minmax(0, 1fr))",
+            gridTemplateRows: isGameStarted ? "repeat(9, minmax(0, 1fr))" : "repeat(7, minmax(0, 1fr))",
+          }}
         >
         {/* Render Shifting Arrows */}
         {isGameStarted &&
@@ -287,9 +291,9 @@ export const Board: React.FC<BoardProps> = ({
                   gridColumn: arrow.gridColumn,
                 }}
                 className={cn(
-                  "w-full h-full max-w-[70%] max-h-[70%] mx-auto p-0.5 rounded-lg transition-all focus:outline-none flex items-center justify-center",
+                  "w-full h-full max-w-[70%] max-h-[70%] aspect-square my-auto mx-auto p-0.5 rounded-lg transition-all focus:outline-none flex items-center justify-center self-center justify-self-center",
                   isForbidden
-                    ? "opacity-20 cursor-not-allowed border border-stone-700 text-stone-600 bg-stone-950/60"
+                    ? "opacity-40 cursor-not-allowed border-2 border-stone-600/60 text-stone-500 bg-stone-900/80 shadow-none"
                     : turnPhase === "move"
                     ? "opacity-25 cursor-not-allowed border border-stone-700 text-stone-600 bg-stone-950/60"
                     : isStaged
@@ -417,20 +421,12 @@ export const Board: React.FC<BoardProps> = ({
           );
         })()}
 
-        {/* SVG Path Overlay — absolute over the 9×9 grid, viewBox 0 0 9 9, tile center = c+1.5 */}
-        {isGameStarted && hoveredPath && hoveredPath.length > 0 && (() => {
+        {/* SVG Path Overlay for solution / hovered path preview */}
+        {isGameStarted && hoveredPath && hoveredPath.length > 0 && !travelingPawn && (() => {
           const tc = (i: number) => i + 1.5;
-          
-          // Dynamic path trail erosion during pawn travel
-          let displayPath = hoveredPath;
-          if (travelingPawn && travelingPawn.path && travelingPawn.path.length > 0) {
-            displayPath = travelingPawn.path;
-          }
-          if (displayPath.length === 0) return null;
-
-          const pts = displayPath.map(p => `${tc(p.c)},${tc(p.r)}`).join(" ");
-          const s = displayPath[0];
-          const e = displayPath[displayPath.length - 1];
+          const pts = hoveredPath.map(p => `${tc(p.c)},${tc(p.r)}`).join(" ");
+          const s = hoveredPath[0];
+          const e = hoveredPath[hoveredPath.length - 1];
           const pathPawnColor = (hoveredPath as any).pawnColor || activePawn;
           const strokeColor = PAWN_HEX_COLORS[pathPawnColor] || "#f59e0b";
 
@@ -460,34 +456,80 @@ export const Board: React.FC<BoardProps> = ({
               />
               <circle cx={tc(s.c)} cy={tc(s.r)} r="0.13" fill="#000000" />
               <circle cx={tc(s.c)} cy={tc(s.r)} r="0.08" fill={strokeColor} />
-              {displayPath.length > 1 && <>
-                <circle cx={tc(e.c)} cy={tc(e.r)} r="0.13" fill="#000000" />
-                <circle cx={tc(e.c)} cy={tc(e.r)} r="0.08" fill={strokeColor} />
-              </>}
+              {hoveredPath.length > 1 && (
+                <>
+                  <circle cx={tc(e.c)} cy={tc(e.r)} r="0.13" fill="#000000" />
+                  <circle cx={tc(e.c)} cy={tc(e.r)} r="0.08" fill={strokeColor} />
+                </>
+              )}
             </svg>
           );
         })()}
 
-        {/* Pawn travel animation — follows the exact multi-tile path smoothly waypoint by waypoint */}
+        {/* Dynamic Path Trail Erosion during active pawn travel */}
         {isGameStarted && travelingPawn && travelingPawn.path && travelingPawn.path.length > 1 && (() => {
           const tc = (i: number) => i + 1.5;
-          const color = PAWN_HEX_COLORS[travelingPawn.color] || "#f59e0b";
           const pathD = travelingPawn.path
             .map((p, idx) => `${idx === 0 ? "M" : "L"} ${tc(p.c)} ${tc(p.r)}`)
             .join(" ");
+          const e = travelingPawn.path[travelingPawn.path.length - 1];
+          const color = PAWN_HEX_COLORS[travelingPawn.color] || "#f59e0b";
           const durSec = `${(travelingPawn.durationMs / 1000).toFixed(2)}s`;
 
+          // Calculate total path length in viewBox coordinate units
+          let totalLen = 0;
+          for (let i = 0; i < travelingPawn.path.length - 1; i++) {
+            const p1 = travelingPawn.path[i];
+            const p2 = travelingPawn.path[i + 1];
+            totalLen += Math.hypot(tc(p2.c) - tc(p1.c), tc(p2.r) - tc(p1.r));
+          }
+          const totalLenStr = totalLen.toFixed(3);
+
           return (
-            <svg key={travelingPawn.key} viewBox="0 0 9 9" className="absolute inset-0 w-full h-full pointer-events-none z-40" aria-hidden="true">
-              {/* shadow */}
+            <svg key={travelingPawn.key} viewBox="0 0 9 9" className="absolute inset-0 w-full h-full pointer-events-none z-30" aria-hidden="true">
+              {/* Background guide track */}
+              <path
+                d={pathD}
+                fill="none"
+                stroke="#000000"
+                strokeWidth="0.08"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                opacity="0.2"
+              />
+
+              {/* Eroding solution path behind traveling pawn */}
+              <path
+                d={pathD}
+                fill="none"
+                stroke={color}
+                strokeWidth="0.06"
+                strokeDasharray="0.18,0.12"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                opacity="0.85"
+              >
+                <animate
+                  attributeName="stroke-dasharray"
+                  from={`0,${totalLenStr}`}
+                  to={`${totalLenStr},0`}
+                  dur={durSec}
+                  fill="freeze"
+                  calcMode="linear"
+                />
+              </path>
+
+              {/* End destination target dot */}
+              <circle cx={tc(e.c)} cy={tc(e.r)} r="0.12" fill="#000000" />
+              <circle cx={tc(e.c)} cy={tc(e.r)} r="0.08" fill={color} />
+
+              {/* Pawn drop shadow sliding along path */}
               <circle r="0.18" fill="#000000" opacity="0.5">
                 <animateMotion dur={durSec} calcMode="linear" fill="freeze" path={pathD} />
-                <animate attributeName="opacity" values="0.5;0.5;0" keyTimes="0;0.9;1" dur={durSec} fill="freeze" />
               </circle>
-              {/* colored pawn dot */}
+              {/* Animated Pawn dot */}
               <circle r="0.14" fill={color} stroke="#000000" strokeWidth="0.04">
                 <animateMotion dur={durSec} calcMode="linear" fill="freeze" path={pathD} />
-                <animate attributeName="opacity" values="1;1;0" keyTimes="0;0.9;1" dur={durSec} fill="freeze" />
               </circle>
             </svg>
           );
