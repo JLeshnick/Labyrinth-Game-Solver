@@ -140,16 +140,17 @@ export default function App() {
   const [travelingPawn, setTravelingPawn] = useState<{
     color: string;
     path: { r: number; c: number }[];
-    currentStepIndex: number;
+    durationMs: number;
     key: number;
   } | null>(null);
   // While animating, hold pawn at from-position so it doesn't snap before the dot lands
   const [pawnPositionOverride, setPawnPositionOverride] = useState<Record<string, {r: number; c: number}> | null>(null);
   const travelTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // ── Autoplay controls state ──────────────────────────────────────────────────
+  // ── Autoplay & animation settings ──────────────────────────────────────────────
   const [autoPlayPaused, setAutoPlayPaused] = useState(false);
   const [autoPlaySpeed, setAutoPlaySpeed] = useState<0.5 | 1 | 2 | 4>(1);
+  const [pawnAnimationSpeed, setPawnAnimationSpeed] = useState<number>(600);
 
   // ── Toast system ──────────────────────────────────────────────────────────────
   const [toastText, setToastText] = useState<string | null>(null);
@@ -253,16 +254,16 @@ export default function App() {
       if (travelTimerRef.current) clearTimeout(travelTimerRef.current);
       // Lock the pawn display at FROM so it doesn't instantly jump
       setPawnPositionOverride(prev => ({ ...game.pawnPositions, ...prev, [pawnColor]: fromPos }));
-      setTravelingPawn({ color: pawnColor, path: fullPath, currentStepIndex: 0, key: Date.now() });
 
-      // Step through waypoints to erode path under moving pawn
-      const stepDuration = 600 / (fullPath.length - 1);
-      fullPath.forEach((_, idx) => {
-        if (idx > 0) {
-          setTimeout(() => {
-            setTravelingPawn(prev => prev ? { ...prev, currentStepIndex: idx } : null);
-          }, stepDuration * idx);
-        }
+      // Duration scales based on path length and user speed setting (300ms, 600ms, 1000ms base)
+      const numSteps = fullPath.length - 1;
+      const animDuration = Math.max(250, Math.round(pawnAnimationSpeed * Math.min(2, Math.max(0.7, numSteps * 0.4))));
+
+      setTravelingPawn({
+        color: pawnColor,
+        path: fullPath,
+        durationMs: animDuration,
+        key: Date.now(),
       });
 
       // Execute the real move after the animation dot has completed the path
@@ -270,13 +271,13 @@ export default function App() {
         game.handleExecuteSolution(path);
         setTravelingPawn(null);
         setPawnPositionOverride(null);
-      }, 650);
+      }, animDuration + 40);
     } else {
       // No animation path possible — execute immediately
       game.handleExecuteSolution(path);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [game.activePawn, game.pawnPositions, game.handleExecuteSolution]);
+  }, [game.activePawn, game.pawnPositions, game.handleExecuteSolution, pawnAnimationSpeed]);
 
   const handleScanApply = useCallback(
     (scannedGrid: (TileData | null)[][], looseTiles: TileData[]) => {
@@ -894,7 +895,9 @@ export default function App() {
         is3D={is3D}
         onToggle3D={toggle3D}
         solverDepth={solverDepth}
-        onSetSolverDepth={setSolverDepth}
+        onSetSolverDepth={(depth) => setSolverDepth(depth)}
+        pawnAnimationSpeed={pawnAnimationSpeed}
+        onSetPawnAnimationSpeed={(speed) => setPawnAnimationSpeed(speed)}
       />
 
       <main className="flex-1 flex flex-col md:flex-row relative z-10 w-full px-2 sm:px-3 md:px-4 lg:px-6 pt-2 sm:pt-3 pb-[72px] md:pb-3 gap-3 md:gap-4 lg:gap-8 justify-center overflow-hidden min-h-0">

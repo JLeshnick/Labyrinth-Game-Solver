@@ -891,7 +891,9 @@ export function useLabyrinthGame({
       coopObtainedTreasures: [],
     });
     onToast(
-      gameMode === "coop"
+      gameMode === "auto"
+        ? "Auto Mode active! Sit back while the solver automatically executes optimal moves."
+        : gameMode === "coop"
         ? "Cooperative Game started! Collect all treasures and get all pawns back home."
         : "Game started! Slide the spare tile and move your pawn to targets."
     );

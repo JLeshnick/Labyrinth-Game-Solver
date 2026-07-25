@@ -67,6 +67,8 @@ export interface AppHeaderProps {
   onToggle3D: () => void;
   solverDepth?: number;
   onSetSolverDepth?: (depth: number) => void;
+  pawnAnimationSpeed?: number;
+  onSetPawnAnimationSpeed?: (speed: number) => void;
 }
 
 const iconBtnCls =
@@ -124,6 +126,8 @@ export function AppHeader({
   onToggle3D: _onToggle3D,
   solverDepth,
   onSetSolverDepth,
+  pawnAnimationSpeed,
+  onSetPawnAnimationSpeed,
   gameMode = "standard",
   autoPlayPaused = false,
   onToggleAutoPlayPause,
@@ -479,6 +483,8 @@ export function AppHeader({
             onToggle3D={_onToggle3D}
             solverDepth={solverDepth}
             onSetSolverDepth={onSetSolverDepth}
+            pawnAnimationSpeed={pawnAnimationSpeed}
+            onSetPawnAnimationSpeed={onSetPawnAnimationSpeed}
           />
         </div>
       </header>

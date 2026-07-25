@@ -127,8 +127,12 @@ export function SolverPanel({
 
   return (
     <div className="flex-1 flex flex-col min-h-0 gap-2 md:gap-3 p-2 md:p-3 lg:p-4">
-      {/* Turn phase status — only shown for move phase or when an arrow is staged */}
-      {turnPhase === "move" ? (
+      {gameMode === "auto" ? (
+        <div className="px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-2 app-surface text-amber-300">
+          <Sparkles className="w-3.5 h-3.5 shrink-0 text-amber-400 animate-pulse" />
+          <span>Auto Mode Active — Solver is playing optimal moves</span>
+        </div>
+      ) : turnPhase === "move" ? (
         <div className="px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-2 app-surface text-green-300">
           <MousePointer2 className="w-3 h-3 shrink-0" />
           <span>Click a green cell to move your pawn</span>

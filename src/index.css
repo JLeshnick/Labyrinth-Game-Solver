@@ -732,3 +732,8 @@
   animation: pawnTravel 0.7s cubic-bezier(0.4, 0, 0.2, 1) both;
   offset-rotate: 0deg;
 }
+
+@keyframes erodePath {
+  0%   { stroke-dashoffset: 0; }
+  100% { stroke-dashoffset: 1000; }
+}
