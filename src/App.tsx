@@ -532,23 +532,40 @@ export default function App() {
   ]);
 
   // ── Autoplay: when in auto mode, auto-execute the top solver suggestion ────────
-  const AUTOPLAY_BASE_DELAY_MS = 2000; // base pause between moves at 1× speed
+  const AUTOPLAY_BASE_DELAY_MS = 1400; // base pause between moves at 1× speed
+  const isExecutingAutoMoveRef = useRef(false);
+
   useEffect(() => {
     if (game.gameMode !== "auto") return;
     if (!game.isGameStarted) return;
     if (isLoadingSolutions) return;
     if (solutions.length === 0) return;
     if (autoPlayPaused) return;
-    const delay = Math.round(AUTOPLAY_BASE_DELAY_MS / autoPlaySpeed);
+    if (isExecutingAutoMoveRef.current) return;
+
+    const delay = Math.max(300, Math.round(AUTOPLAY_BASE_DELAY_MS / autoPlaySpeed));
     const timeoutId = setTimeout(() => {
       const top = solutions[0];
-      if (top) {
+      if (top && !isExecutingAutoMoveRef.current) {
+        isExecutingAutoMoveRef.current = true;
         handleExecuteSolutionWithAnimation(top as any);
+        // Reset ref after move execution finishes
+        setTimeout(() => {
+          isExecutingAutoMoveRef.current = false;
+        }, Math.max(350, Math.round(600 / autoPlaySpeed)));
       }
     }, delay);
+
     return () => clearTimeout(timeoutId);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [solutions, isLoadingSolutions, game.isGameStarted, game.gameMode, autoPlayPaused, autoPlaySpeed, handleExecuteSolutionWithAnimation]);
+  }, [
+    solutions,
+    isLoadingSolutions,
+    game.isGameStarted,
+    game.gameMode,
+    autoPlayPaused,
+    autoPlaySpeed,
+    handleExecuteSolutionWithAnimation,
+  ]);
 
   // ── Drag and Drop ─────────────────────────────────────────────────────────────
   const handleDragStart = (e: DragStartEvent) => setActiveId(e.active.id as string);
