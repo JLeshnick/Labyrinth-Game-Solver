@@ -245,10 +245,18 @@ export function useLabyrinthGame({
         color: tilePartial.color,
       };
     });
+    const freshMovablePool = generateMovablePool();
     setGrid(initialGrid);
     setPawnPositions(DEFAULT_PAWN_POSITIONS);
-    setLooseTiles(generateMovablePool());
+    setLooseTiles(freshMovablePool);
+    setSpareTile({
+      id: "spare_initial",
+      shape: "straight",
+      rotation: 0,
+      isFixed: false,
+    });
     setIsGameStarted(false);
+    setGameStartState(null);
     setLastShiftArrowId(null);
     setPlayerHands(EMPTY_PLAYER_HANDS);
     setPlayerActiveTargets(EMPTY_PLAYER_TARGETS);
