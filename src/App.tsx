@@ -119,7 +119,20 @@ export default function App() {
 
   // ── Solver worker ─────────────────────────────────────────────────────────────
   const [solutions, setSolutions] = useState<SolverSolution[]>([]);
-  const [hoveredSolution, setHoveredSolution] = useState<SolverSolution | null>(null);
+  const [hoveredSolutionIndex, setHoveredSolutionIndex] = useState<number | null>(null);
+  const hoveredSolution = (hoveredSolutionIndex !== null && solutions && hoveredSolutionIndex < solutions.length) ? solutions[hoveredSolutionIndex] : null;
+
+  const handleSetHoveredSolution = useCallback((sol: SolverSolution | null) => {
+    if (sol === null) {
+      setHoveredSolutionIndex(null);
+    } else {
+      const idx = solutions.indexOf(sol);
+      if (idx !== -1) {
+        setHoveredSolutionIndex(idx);
+      }
+    }
+  }, [solutions]);
+
   const [isLoadingSolutions, setIsLoadingSolutions] = useState(false);
   const workerRef = useRef<Worker | null>(null);
 
@@ -336,14 +349,8 @@ export default function App() {
       setTurnPhase("slide");
       setStagedArrow(null);
       setStagedRotation(game.spareTile.rotation as 0 | 90 | 180 | 270);
-      setHoveredSolution(null);
     }
   }, [game.activePawn, game.isGameStarted, game.spareTile.rotation]);
-
-  // Clear hovered solver suggestion when grid or pawn positions change
-  useEffect(() => {
-    setHoveredSolution(null);
-  }, [game.grid, game.pawnPositions]);
 
   // ── Solver worker lifecycle ───────────────────────────────────────────────────
   useEffect(() => {
@@ -880,7 +887,7 @@ export default function App() {
                   solutions={solutions}
                   isLoadingSolutions={isLoadingSolutions}
                   hoveredSolution={hoveredSolution}
-                  setHoveredSolution={setHoveredSolution}
+                  setHoveredSolution={handleSetHoveredSolution}
                   activePawn={game.activePawn}
                   setActivePawn={game.setActivePawn}
                   activePlayers={game.activePlayers}
@@ -976,7 +983,7 @@ export default function App() {
                     solutions={solutions}
                     isLoadingSolutions={isLoadingSolutions}
                     hoveredSolution={hoveredSolution}
-                    setHoveredSolution={setHoveredSolution}
+                    setHoveredSolution={handleSetHoveredSolution}
                     activePawn={game.activePawn}
                     setActivePawn={game.setActivePawn}
                     activePlayers={game.activePlayers}
