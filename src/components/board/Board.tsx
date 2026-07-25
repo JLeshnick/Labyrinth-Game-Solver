@@ -88,7 +88,7 @@ const BoardSpace: React.FC<BoardSpaceProps> = ({
         transformStyle: is3D ? "preserve-3d" : "flat",
       }}
       className={cn(
-        "relative w-full h-full aspect-square rounded-lg flex items-center justify-center transition-all cursor-pointer",
+        "relative w-full h-full aspect-square rounded-lg flex items-center justify-center transition-all cursor-pointer hover:z-50",
         isFixedSpace
           ? "bg-stone-900/40 border border-stone-800/20"
           : "border border-dashed border-stone-800/40 bg-stone-950/30 hover:bg-stone-900/10 shadow-inner",
