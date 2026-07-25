@@ -1,42 +1,12 @@
-import { Compass, Layers, MapPin, Play, Sparkles, ArrowRightLeft } from "lucide-react";
+import { Compass, Layers, Users, HelpCircle, Shield, Award } from "lucide-react";
 import { Button } from "../ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
-import guideStep1Tiles from "../../assets/guide-step1-tiles.png";
-import guideStep2Pawns from "../../assets/guide-step2-pawns.png";
-import guideStep3Solve from "../../assets/guide-step3-solve.png";
 
 interface WelcomeGuideProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onDismiss: () => void;
 }
-
-const STEPS = [
-  {
-    icon: Layers,
-    title: "1. Place the tiles",
-    body: "Drag the loose tiles onto the board, or tap Randomize Board to lay them out instantly. Fixed corner and edge tiles are already in place.",
-    preview: guideStep1Tiles,
-  },
-  {
-    icon: MapPin,
-    title: "2. Place the pawns",
-    body: "Assign each player's pawn to a starting corner and deal treasure cards to their hand.",
-    preview: guideStep2Pawns,
-  },
-  {
-    icon: Play,
-    title: "3. Play",
-    body: "Slide a tile in, then move your pawn toward its target treasure. The panel beside (or below) the board always shows the solver's best slide-and-move combo to reach your current target in the fewest turns.",
-    preview: guideStep3Solve,
-  },
-  {
-    icon: ArrowRightLeft,
-    title: "4. Each turn has two phases",
-    body: "First, slide: tap an arrow on the board edge to stage a shift, then confirm it. Second, move: tap any green-highlighted cell to walk your pawn there. Both phases must complete before the turn ends. To set a custom target, tap any tile on the board during your move phase.",
-    preview: null,
-  },
-];
 
 export function WelcomeGuide({ open, onOpenChange, onDismiss }: WelcomeGuideProps) {
   return (
@@ -48,52 +18,137 @@ export function WelcomeGuide({ open, onOpenChange, onDismiss }: WelcomeGuideProp
       }}
     >
       <DialogContent
-        className="sm:max-w-[440px] md:max-w-[560px] lg:max-w-[680px] xl:max-w-[760px] text-stone-100 p-6 rounded-xl"
+        className="sm:max-w-[500px] md:max-w-[650px] lg:max-w-[750px] xl:max-w-[850px] bg-card text-stone-100 p-6 rounded-3xl border-3 border-stone-950 shadow-[6px_6px_0_0_#000000] overflow-hidden flex flex-col max-h-[85vh]"
         onKeyDown={(e) => {
           if (e.key === " ") e.stopPropagation();
         }}
       >
-        <DialogHeader>
-          <DialogTitle className="text-lg font-bold text-stone-100 flex items-center gap-2">
-            <Compass className="w-5 h-5 text-theme-primary" />
-            Welcome to Labyrinth Solver
+        <DialogHeader className="shrink-0 pb-3 border-b border-stone-850">
+          <DialogTitle className="text-xl font-black text-stone-100 flex items-center gap-2 uppercase tracking-wide">
+            <Compass className="w-6 h-6 text-theme-primary" />
+            Labyrinth Companion & Solver Guide
           </DialogTitle>
+          <p className="text-xs text-stone-400 mt-1">
+            Learn the game rules, cooperative mechanics, and how the pathfinding solver ranks suggestions.
+          </p>
         </DialogHeader>
-        <p className="text-sm text-stone-400 mt-1 leading-relaxed">
-          Set up the board to match your real Labyrinth game, then let the solver guide every turn.
-        </p>
-        <div className="flex flex-col gap-4 mt-4 max-h-[60vh] overflow-y-auto pr-1">
-          {STEPS.map((step) => (
-            <div key={step.title} className="flex items-start gap-3">
-              <div className="p-2 rounded-xl bg-theme-primary-10 border border-theme-primary-20 text-theme-primary shrink-0">
-                <step.icon className="w-4 h-4" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="text-sm font-semibold text-stone-100">{step.title}</div>
-                <p className="text-xs text-stone-400 mt-0.5 leading-relaxed">{step.body}</p>
-                {step.preview && (
-                  <img
-                    src={step.preview}
-                    alt=""
-                    className="mt-2 w-full rounded-lg border border-stone-800 object-cover max-h-24 md:max-h-40"
-                  />
-                )}
+
+        <div className="flex-1 overflow-y-auto pr-1 my-4 flex flex-col gap-5 text-sm">
+          {/* Section 1: Gameplay Basics */}
+          <div className="flex flex-col gap-2 p-3.5 app-surface">
+            <h3 className="font-bold text-stone-100 flex items-center gap-2 border-b border-stone-800 pb-1.5 uppercase text-xs tracking-wider">
+              <Layers className="w-4 h-4 text-theme-primary" />
+              1. Labyrinth Rules & Basics
+            </h3>
+            <div className="text-xs text-stone-300 flex flex-col gap-2 mt-1 leading-relaxed">
+              <p>
+                The game board consists of a <span className="font-bold text-stone-100">7x7 grid</span> of pathways. Sixteen fixed tiles are permanently locked, while the remaining 33 tiles are movable pathways slid into the grid. One spare tile always remains loose outside.
+              </p>
+              <div className="pl-3 border-l-2 border-stone-800 flex flex-col gap-1.5">
+                <p>
+                  <span className="font-bold text-theme-primary">Two-Phase Turns:</span> Every player's turn must follow two steps:
+                </p>
+                <ul className="list-disc pl-4 space-y-1">
+                  <li>
+                    <span className="font-semibold text-stone-100">Slide:</span> Insert the loose spare tile (rotated as you choose) into any row or column marked with an arrow (odd indices <span className="font-semibold">1, 3, 5</span>). This pushes out a new spare tile on the opposite side. If your pawn is pushed off, it wraps around to the newly inserted tile.
+                  </li>
+                  <li>
+                    <span className="font-semibold text-stone-100">Walk:</span> Walk your pawn as far as you want along connected, uninterrupted pathways.
+                  </li>
+                </ul>
               </div>
             </div>
-          ))}
+          </div>
+
+          {/* Section 2: Game Modes */}
+          <div className="flex flex-col gap-2 p-3.5 app-surface">
+            <h3 className="font-bold text-stone-100 flex items-center gap-2 border-b border-stone-800 pb-1.5 uppercase text-xs tracking-wider">
+              <Users className="w-4 h-4 text-theme-primary" />
+              2. Play Modes & Setups
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-1.5">
+              <div className="flex flex-col gap-1">
+                <div className="text-xs font-bold text-emerald-400 flex items-center gap-1">
+                  <Award className="w-3.5 h-3.5" /> Classic / Standard Mode
+                </div>
+                <p className="text-[11px] text-stone-300 leading-relaxed">
+                  Traditional competitive rules. Each active player has a private hand of secret target cards they must reach in order. You navigate pawns toward their own targets.
+                </p>
+              </div>
+              <div className="flex flex-col gap-1">
+                <div className="text-xs font-bold text-blue-400 flex items-center gap-1">
+                  <Compass className="w-3.5 h-3.5" /> Cooperative Mode
+                </div>
+                <p className="text-[11px] text-stone-300 leading-relaxed">
+                  All players work together against the game to collect all 24 treasures. The solver pools the remaining treasures and automatically identifies which player pawn has the absolute closest/most efficient route, suggesting that player take the next action to optimize total turn count.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Section 3: Solver Architecture & Algorithms */}
+          <div className="flex flex-col gap-2 p-3.5 app-surface">
+            <h3 className="font-bold text-stone-100 flex items-center gap-2 border-b border-stone-800 pb-1.5 uppercase text-xs tracking-wider">
+              <Shield className="w-4 h-4 text-theme-primary" />
+              3. Solver Engine & Ranking Metrics
+            </h3>
+            <div className="text-xs text-stone-300 flex flex-col gap-2.5 mt-1 leading-relaxed">
+              <p>
+                The solver uses an asynchronous Web Worker to simulate and search every board permutation. It ranks suggestions based on three strict criteria:
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div className="p-2.5 app-surface flex flex-col gap-1">
+                  <div className="text-xs font-black text-theme-primary uppercase tracking-wide">1. Turn Depth</div>
+                  <p className="text-[11px] text-stone-300 leading-normal">
+                    Checks if the treasure can be reached in 1 turn (Direct Route). If not, it simulates multi-turn setups.
+                  </p>
+                </div>
+                <div className="p-2.5 app-surface flex flex-col gap-1">
+                  <div className="text-xs font-black text-theme-primary uppercase tracking-wide">2. Walk Spaces</div>
+                  <p className="text-[11px] text-stone-300 leading-normal">
+                    Fewer walked spaces are heavily prioritized for clean, direct pathways and easier board readability.
+                  </p>
+                </div>
+                <div className="p-2.5 app-surface flex flex-col gap-1">
+                  <div className="text-xs font-black text-theme-primary uppercase tracking-wide">3. Safety Score</div>
+                  <p className="text-[11px] text-stone-300 leading-normal">
+                    Rates board connectivity out of 100. High safety means you stay open; low means you risk getting trapped.
+                  </p>
+                </div>
+              </div>
+              <div className="pl-3 border-l-2 border-stone-800 flex flex-col gap-1">
+                <p>
+                  <span className="font-bold text-amber-400">Fallback Strategy:</span> If a treasure is unreachable, the solver searches for slides that position your pawn closest (Manhattan distance) to set up future routes.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Section 4: Tips & Custom Commands */}
+          <div className="flex flex-col gap-1.5 text-xs text-stone-300">
+            <h4 className="font-semibold text-stone-200">Pro Tips:</h4>
+            <ul className="list-disc pl-4 space-y-1.5 leading-relaxed">
+              <li>
+                <span className="font-semibold text-theme-primary">Custom Targets:</span> During play, you can click <span className="font-semibold text-stone-100">any tile on the board</span> to set a custom destination. The solver will immediately calculate paths to that coordinate instead of your active card. Click clear to return to your cards.
+              </li>
+              <li>
+                <span className="font-semibold text-theme-primary">Manual Moves:</span> You are not forced to follow the solver. Feel free to drag-and-drop the spare tile or click the board manually; the solver will automatically adapt.
+              </li>
+            </ul>
+          </div>
         </div>
-        <div className="flex items-center gap-2 mt-5 p-3 rounded-xl bg-theme-primary-10 border border-theme-primary-20 text-xs text-stone-300">
-          <Sparkles className="w-4 h-4 text-theme-primary shrink-0" />
-          Tip: tap the <span className="font-semibold text-theme-primary mx-1">?</span> button anytime to see this again.
-        </div>
-        <div className="flex justify-end mt-6">
+
+        <div className="shrink-0 flex items-center justify-between border-t border-stone-800 pt-4 mt-1">
+          <div className="flex items-center gap-1.5 text-xs text-stone-400">
+            <HelpCircle className="w-4 h-4 text-theme-primary" />
+            Click <span className="text-theme-primary font-bold">?</span> to view this guide again.
+          </div>
           <Button
-            variant="brutalist"
             onClick={() => {
               onDismiss();
               onOpenChange(false);
             }}
-            className="rounded-lg"
+            className="neo-brutalism-button bg-theme-primary border-stone-950 text-stone-950 font-black px-5 py-2 rounded-xl text-xs cursor-pointer shadow-[3px_3px_0_0_#000000]"
           >
             Got it, let's play
           </Button>

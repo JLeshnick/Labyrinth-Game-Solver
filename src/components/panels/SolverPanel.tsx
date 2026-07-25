@@ -2,6 +2,7 @@
 // sheet (< md) and the tablet/desktop side column (md+). Unprefixed classes
 // target the phone sheet; `md:` targets the tablet column; `lg:` targets the
 // wider desktop column. Interactive play controls get a 44px phone floor.
+import { useState } from "react";
 import { Sparkles, ArrowRightCircle, MousePointer2, RotateCw, Home, Gauge } from "lucide-react";
 import { Button } from "../ui/button";
 import { Tile } from "../board/Tile";
@@ -36,6 +37,8 @@ interface SolverPanelProps {
   isActivePawnHome: boolean;
   compact?: boolean;
   onToggleStats?: () => void;
+  gameMode?: "standard" | "coop" | "auto";
+  remainingCoopTreasures?: string[];
 }
  
 export function SolverPanel({
@@ -64,9 +67,21 @@ export function SolverPanel({
   isActivePawnHome,
   compact = false,
   onToggleStats,
+  gameMode = "standard",
+  remainingCoopTreasures = [],
 }: SolverPanelProps) {
+  const [showAllSuggestions, setShowAllSuggestions] = useState(false);
+
+  const isHomeSelected = !!(customTargetCoords &&
+    customTargetCoords.r === DEFAULT_PAWN_POSITIONS[activePawn]?.r &&
+    customTargetCoords.c === DEFAULT_PAWN_POSITIONS[activePawn]?.c);
+
+  const topSolution = solutions[0];
+  const currentTargetId = playerActiveTargets[activePawn] || (topSolution ? (topSolution as any).cardId : null);
+  // Key changes whenever new solutions arrive so the list re-mounts and plays the fade animation
+  const solutionsKey = solutions.length + "-" + ((topSolution as any)?.cardId ?? "") + "-" + activePawn;
+
   if (compact) {
-    const topSolution = solutions[0];
     return (
       <div className="flex flex-col gap-1.5 px-3 pb-2">
         <div className="flex items-center justify-between gap-2">
@@ -81,7 +96,11 @@ export function SolverPanel({
             {!isActivePawnHome ? (
               <button
                 onClick={() => setCustomTargetCoords(DEFAULT_PAWN_POSITIONS[activePawn])}
-                className="text-[10px] px-2 py-1 min-h-9 neo-brutalism-button rounded-lg border-stone-950 bg-card text-stone-400 flex items-center gap-1"
+                className={`text-[10px] px-2 py-1 min-h-9 neo-brutalism-button rounded-lg border-stone-950 flex items-center gap-1 transition-all ${
+                  isHomeSelected
+                    ? "bg-theme-primary text-stone-950 shadow-[1px_1px_0_0_#000000] translate-x-[1px] translate-y-[1px]"
+                    : "bg-card text-stone-400 hover:text-stone-200"
+                }`}
               >
                 <Home className="w-3 h-3" /> Home
               </button>
@@ -108,8 +127,12 @@ export function SolverPanel({
 
   return (
     <div className="flex-1 flex flex-col min-h-0 gap-2 md:gap-3 p-2 md:p-3 lg:p-4">
-      {/* Turn phase status — only shown for move phase or when an arrow is staged */}
-      {turnPhase === "move" ? (
+      {gameMode === "auto" ? (
+        <div className="px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-2 app-surface text-amber-300">
+          <Sparkles className="w-3.5 h-3.5 shrink-0 text-amber-400 animate-pulse" />
+          <span>Auto Mode Active — Solver is playing optimal moves</span>
+        </div>
+      ) : turnPhase === "move" ? (
         <div className="px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-2 app-surface text-green-300">
           <MousePointer2 className="w-3 h-3 shrink-0" />
           <span>Click a green cell to move your pawn</span>
@@ -129,9 +152,11 @@ export function SolverPanel({
           <button
             onClick={() => setCustomTargetCoords(DEFAULT_PAWN_POSITIONS[activePawn])}
             disabled={isActivePawnHome}
-            className={`text-[10px] md:text-xs px-2 py-1 min-h-9 neo-brutalism-button rounded-lg font-semibold flex items-center gap-1 ${
+            className={`text-[10px] md:text-xs px-2 py-1 min-h-9 neo-brutalism-button rounded-lg font-semibold flex items-center gap-1 transition-all ${
               isActivePawnHome
                 ? "border-stone-950 text-stone-500 bg-card opacity-40 cursor-not-allowed translate-x-[1px] translate-y-[1px] shadow-[1px_1px_0_0_#000000]"
+                : isHomeSelected
+                ? "bg-theme-primary text-stone-950 border-stone-950 shadow-[1px_1px_0_0_#000000] translate-x-[1px] translate-y-[1px]"
                 : "border-stone-950 bg-card text-stone-400 hover:text-stone-200 cursor-pointer"
             }`}
             title={isActivePawnHome ? "Already at home corner" : "Solve route back to home corner"}
@@ -162,55 +187,101 @@ export function SolverPanel({
             <p className="text-[10px] text-stone-600 italic">None found with current board state</p>
           ) : (
             <div className="flex flex-wrap gap-1.5">
-              {oneMoveTargets.map(t => (
-                <button
-                  key={t.id}
-                  onClick={() => onSelectTargetTreasure(activePawn, t.id)}
-                  className="text-[10px] px-2 py-1 neo-brutalism-button rounded-lg border-stone-950 bg-green-950/40 text-green-300 cursor-pointer font-medium"
-                  title={`Set ${t.name} as target`}
-                >
-                  {t.name}
-                </button>
-              ))}
+              {oneMoveTargets.map(t => {
+                const isSelected = t.id === currentTargetId;
+                return (
+                  <button
+                    key={t.id}
+                    onClick={() => onSelectTargetTreasure(activePawn, t.id)}
+                    className={`text-[10px] px-2 py-1 neo-brutalism-button rounded-lg border-stone-950 transition-all font-semibold cursor-pointer ${
+                      isSelected
+                        ? "bg-theme-primary text-stone-950 shadow-[1px_1px_0_0_#000000] translate-x-[1px] translate-y-[1px]"
+                        : "bg-green-950/40 text-green-300 hover:text-green-100"
+                    }`}
+                    title={`Set ${t.name} as target`}
+                  >
+                    {t.name}
+                  </button>
+                );
+              })}
             </div>
           )}
         </div>
       )}
 
-      <div className="p-4 app-surface flex items-center justify-between text-left">
-        <div className="flex items-center gap-3">
-          <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-stone-950 ${PAWNS.find((p) => p.id === activePawn)?.colorClass ?? "bg-stone-500"}`}>
-            {activePawn[0].toUpperCase()}
+      <div className="p-4 app-surface flex items-center justify-between text-left gap-4">
+        {/* Left Side: Turn & Target info */}
+        <div className="flex-1 min-w-0 flex flex-col gap-2.5">
+          <div className="flex items-center gap-2.5">
+            {/* Brutalist Pawn Theme (matching game board style) */}
+            <div className={`w-8 h-8 rounded-full border-2 border-stone-950 shadow-[2px_2px_0_0_#000000] flex items-center justify-center text-xs font-black capitalize relative shrink-0 ${
+              activePawn === "red"
+                ? "bg-red-500 text-white"
+                : activePawn === "blue"
+                ? "bg-blue-500 text-white"
+                : activePawn === "green"
+                ? "bg-emerald-500 text-white"
+                : activePawn === "yellow"
+                ? "bg-amber-400 text-stone-950"
+                : "bg-stone-500 text-white"
+            }`}>
+              <span className="relative z-10">{activePawn[0].toUpperCase()}</span>
+            </div>
+            <div>
+              <div className="text-[10px] font-bold text-stone-500 uppercase tracking-wider leading-none">Turn</div>
+              <div className="text-xs font-black text-stone-100 capitalize mt-1 leading-none">{activePawn} Player</div>
+            </div>
           </div>
+
+          <div className="border-t border-stone-800/80 my-0.5"></div>
+
           <div>
-            <div className="text-xs text-stone-400">Active Pawn's Turn</div>
-            <div className="font-semibold text-stone-100 flex items-center gap-1.5 flex-wrap mt-0.5">
-              <span>Target:</span>
+            <div className="text-[10px] font-bold text-stone-500 uppercase tracking-wider leading-none">Target Goal</div>
+            <div className="mt-1.5 flex items-center flex-wrap gap-1 leading-none">
               {customTargetCoords ? (
-                <span className="text-theme-primary font-bold flex items-center gap-1 text-xs">
-                  {customTargetCoords.r === DEFAULT_PAWN_POSITIONS[activePawn]?.r &&
+                <span className="text-theme-primary font-bold text-xs flex items-center gap-1">
+                  🎯 {customTargetCoords.r === DEFAULT_PAWN_POSITIONS[activePawn]?.r &&
                   customTargetCoords.c === DEFAULT_PAWN_POSITIONS[activePawn]?.c
                     ? "Home Corner"
                     : `Custom Target (${customTargetCoords.r}, ${customTargetCoords.c})`}
-                  <button onClick={() => setCustomTargetCoords(null)} className="text-stone-500 hover:text-stone-300 text-xs ml-1 underline cursor-pointer" title="Clear Custom Target">(clear)</button>
+                  <button onClick={() => setCustomTargetCoords(null)} className="text-stone-500 hover:text-stone-300 text-[10px] ml-1 underline cursor-pointer" title="Clear Custom Target">(clear)</button>
                 </span>
               ) : playerActiveTargets[activePawn] ? (
                 <span className="text-theme-primary font-bold text-xs flex items-center gap-1">
-                  {TREASURES.find(t => t.id === playerActiveTargets[activePawn])?.name ?? playerActiveTargets[activePawn]}
-                  <button onClick={() => onSelectTargetTreasure(activePawn, null)} className="text-stone-500 hover:text-stone-300 text-xs ml-1 underline cursor-pointer" title="Clear target">(clear)</button>
+                  🏆 {TREASURES.find(t => t.id === playerActiveTargets[activePawn])?.name ?? playerActiveTargets[activePawn]}
+                  <button onClick={() => onSelectTargetTreasure(activePawn, null)} className="text-stone-500 hover:text-stone-300 text-[10px] ml-1 underline cursor-pointer" title="Clear target">(clear)</button>
+                </span>
+              ) : gameMode === "coop" ? (
+                <span className="text-theme-primary font-bold text-xs">
+                  ✨ {remainingCoopTreasures && remainingCoopTreasures.length > 0 ? (
+                    currentTargetId ? (
+                      `Closest: ${TREASURES.find(t => t.id === currentTargetId)?.name ?? currentTargetId} (Auto)`
+                    ) : (
+                      "Closest Treasure (Auto)"
+                    )
+                  ) : (
+                    "Home Corner (Auto)"
+                  )}
                 </span>
               ) : (
-                <span className="text-stone-500 text-xs italic">Click any tile on the board to set a target</span>
+                <span className="text-stone-550 text-xs italic">Click any board tile to select target</span>
               )}
             </div>
           </div>
         </div>
-        <div className="flex flex-col items-center gap-1">
-          <div className="text-[10px] text-stone-500">Spare Tile</div>
-          <Tile
-            tile={{ ...spareTile, rotation: stagedArrow ? stagedRotation : spareTile.rotation }}
-            className="w-16 h-16 md:w-20 md:h-20 border-theme-primary-40"
-          />
+
+        {/* Vertical Divider */}
+        <div className="w-[1px] self-stretch bg-stone-850/60 shrink-0 my-0.5"></div>
+
+        {/* Right Side: Spare Tile */}
+        <div className="flex flex-col items-center gap-1.5 shrink-0">
+          <div className="text-[10px] font-bold text-stone-500 uppercase tracking-wider leading-none">Spare Tile</div>
+          <div className="mt-1">
+            <Tile
+              tile={{ ...spareTile, rotation: stagedArrow ? stagedRotation : spareTile.rotation }}
+              className="w-14 h-14 md:w-16 md:h-16 border-theme-primary-40"
+            />
+          </div>
           {stagedArrow ? (
             <div className="flex flex-col items-center gap-1 mt-0.5">
               <button
@@ -245,77 +316,105 @@ export function SolverPanel({
         </div>
       )}
 
-      <div className="flex-1 overflow-y-auto min-h-0 pr-2 flex flex-col gap-2">
+      <div key={solutionsKey} className="flex-1 overflow-y-auto min-h-0 pl-1.5 pr-2 pt-1.5 pb-2 flex flex-col gap-2">
         {isLoadingSolutions ? (
-          <div className="flex-1 flex flex-col items-center justify-center text-stone-500 gap-2">
+          <div className="flex-1 flex flex-col items-center justify-center text-stone-500 gap-2 animate-fade-in">
             <div className="animate-spin h-5 w-5 border-2 border-stone-950 border-t-theme-primary rounded-sm" />
             Computing paths...
           </div>
         ) : solutions.length > 0 ? (
-          solutions.map((sol, index) => {
-            const isFallback = sol.isFallback;
+          (() => {
+            const visibleSolutions = showAllSuggestions ? solutions : solutions.slice(0, 5);
             return (
-              <div
-                key={index}
-                onMouseEnter={() => setHoveredSolution(sol)}
-                onMouseLeave={() => setHoveredSolution(null)}
-                className={`relative p-2.5 pl-9 rounded-xl transition-all flex items-start justify-between cursor-pointer group gap-2 ${
-                  index === 0 && !isFallback
-                    ? "app-surface-accent hover:border-theme-primary"
-                    : "app-surface hover:border-theme-primary-40"
-                } ${isFallback ? "opacity-75 hover:opacity-100" : ""}`}
-              >
-                {/* Rank chip */}
-                <span
-                  className={`absolute left-2 top-2.5 w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${
-                    index === 0 && !isFallback
-                      ? "bg-theme-primary text-stone-950"
-                      : "bg-theme-primary-10 text-theme-primary border border-theme-primary-20"
-                  }`}
-                >
-                  {index + 1}
-                </span>
-                <div className="flex-1 min-w-0">
-                  <div className="text-xs font-semibold flex items-center gap-1.5">
-                    {isFallback ? (
-                      <span className="text-amber-500 font-bold">Fallback Setup</span>
-                    ) : sol.length === 1 ? (
-                      <span className="text-green-500 font-bold">Direct Route</span>
-                    ) : (
-                      <span className="text-blue-400 font-bold">Multi-Turn Route</span>
-                    )}
-                    <span className="text-[10px] text-stone-500">({sol.length} turn{sol.length > 1 ? "s" : ""})</span>
-                  </div>
-                  <div className="text-xs font-medium text-stone-100 mt-1 font-mono leading-relaxed">
-                    {sol.explanation?.slide}
-                  </div>
-                  <div className="text-xs text-stone-400 leading-relaxed">
-                    {sol.explanation?.walk}
-                  </div>
-                  {(sol as { cardId?: string; sequenceOrder?: string[] }).cardId && (
-                    <div className="text-[10px] mt-1.5 flex items-center gap-1 flex-wrap">
-                      <span className="text-stone-500">Target:</span>
-                      <span className="text-theme-primary font-semibold">
-                        {TREASURES.find((t) => t.id === (sol as { cardId?: string }).cardId)?.name ?? (sol as { cardId?: string }).cardId}
-                      </span>
-                      {(sol as { sequenceOrder?: string[] }).sequenceOrder && (sol as { sequenceOrder?: string[] }).sequenceOrder!.length > 1 && (
-                        <span className="text-stone-500 italic">
-                          → then {(sol as { sequenceOrder?: string[] }).sequenceOrder!.slice(1).map((id) => TREASURES.find((t) => t.id === id)?.name ?? id).join(" → ")}
-                        </span>
-                      )}
-                    </div>
-                  )}
+              <div className="flex flex-col gap-2 animate-fade-in">
+                <div className="text-[10px] text-stone-550 px-1 mb-1 italic flex items-center justify-between flex-wrap gap-2">
+                  <span>Ranked by: Turn depth, walk spaces, safety</span>
+                  <button
+                    onClick={() => { if (!isMuted) playClickSound(); setShowAllSuggestions(!showAllSuggestions); }}
+                    className={`px-2.5 py-1 rounded-lg border-2 border-stone-950 font-black shadow-[1.5px_1.5px_0_0_#000000] cursor-pointer text-[9px] uppercase tracking-wide leading-none transition-transform hover:-translate-y-0.5 ${
+                      showAllSuggestions
+                        ? "bg-theme-primary text-stone-950"
+                        : "bg-card text-stone-400 hover:text-stone-200"
+                    }`}
+                  >
+                    {showAllSuggestions ? "Show Top 5" : `Show All (${solutions.length})`}
+                  </button>
                 </div>
-                <Button
-                  size="sm"
-                  onClick={(e) => { e.stopPropagation(); onExecuteSolution(sol); }}
-                  className="neo-brutalism-button bg-card hover:bg-theme-primary hover:text-stone-950 text-foreground border-stone-950 font-black text-xs px-3 py-1.5 min-h-11 md:min-h-9 rounded-lg flex-shrink-0 self-center cursor-pointer"
-                >
-                  Execute
-                </Button>
+                {visibleSolutions.map((sol, index) => {
+                  const isFallback = sol.isFallback;
+                  let walkDist = 0;
+                  for (const step of sol) {
+                    if (step.pawnPath) walkDist += step.pawnPath.length - 1;
+                  }
+                  const safetyScoreValue = sol.safetyScore !== undefined ? Math.round(sol.safetyScore) : null;
+                  return (
+                    <div
+                      key={index}
+                      onMouseEnter={() => setHoveredSolution(sol)}
+                      onMouseLeave={() => setHoveredSolution(null)}
+                      className={`relative p-2.5 pl-10 rounded-xl transition-all flex items-start justify-between cursor-pointer group gap-2 ${
+                        index === 0 && !isFallback
+                          ? "app-surface-accent hover:border-theme-primary"
+                          : "app-surface hover:border-theme-primary-40"
+                      } ${isFallback ? "opacity-75 hover:opacity-100" : ""}`}
+                    >
+                      {/* Rank chip */}
+                      <span
+                        className={`absolute left-2.5 top-2.5 w-6 h-6 rounded-lg flex items-center justify-center text-xs font-black border-2 border-stone-950 shadow-[1.5px_1.5px_0_0_#000000] z-10 ${
+                          index === 0 && !isFallback
+                            ? "bg-theme-primary text-stone-950"
+                            : "bg-card text-stone-100"
+                        }`}
+                      >
+                        {index + 1}
+                      </span>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-xs font-semibold flex items-center gap-1 flex-wrap">
+                          {isFallback ? (
+                            <span className="px-1.5 py-0.5 rounded-lg bg-amber-400 text-stone-950 text-[10px] font-black border-2 border-stone-950 shadow-[1px_1px_0_0_#000000] flex items-center leading-none whitespace-nowrap">
+                              Fallback ({sol.length}t)
+                            </span>
+                          ) : sol.length === 1 ? (
+                            <span className="px-1.5 py-0.5 rounded-lg bg-emerald-400 text-stone-950 text-[10px] font-black border-2 border-stone-950 shadow-[1px_1px_0_0_#000000] flex items-center leading-none whitespace-nowrap">
+                              Direct (1 turn)
+                            </span>
+                          ) : (
+                            <span className="px-1.5 py-0.5 rounded-lg bg-blue-400 text-stone-950 text-[10px] font-black border-2 border-stone-950 shadow-[1px_1px_0_0_#000000] flex items-center leading-none whitespace-nowrap">
+                              Multi ({sol.length} turns)
+                            </span>
+                          )}
+                          <span className="px-1.5 py-0.5 rounded-lg bg-card text-stone-100 text-[10px] font-black border-2 border-stone-950 shadow-[1px_1px_0_0_#000000] flex items-center leading-none whitespace-nowrap">
+                            {walkDist}sp
+                          </span>
+                          {safetyScoreValue !== null && (
+                            <span className={`px-1.5 py-0.5 rounded-lg text-stone-950 text-[10px] font-black border-2 border-stone-950 shadow-[1px_1px_0_0_#000000] flex items-center leading-none whitespace-nowrap ${
+                              safetyScoreValue >= 80
+                                ? "bg-emerald-400"
+                                : safetyScoreValue >= 40
+                                ? "bg-amber-400"
+                                : "bg-red-500"
+                            }`}>
+                              {safetyScoreValue}/100
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-xs font-medium text-stone-100 mt-1 font-mono leading-relaxed">
+                          {sol.explanation?.slide}
+                        </div>
+                      </div>
+                      <Button
+                        size="sm"
+                        onClick={(e) => { e.stopPropagation(); onExecuteSolution(sol); }}
+                        className="neo-brutalism-button bg-card hover:bg-theme-primary hover:text-stone-950 text-foreground border-stone-950 font-black text-xs px-3 py-1.5 min-h-11 md:min-h-9 rounded-lg flex-shrink-0 self-center cursor-pointer"
+                      >
+                        Execute
+                      </Button>
+                    </div>
+                  );
+                })}
               </div>
             );
-          })
+          })()
         ) : (
           <div className="flex-1 flex items-center justify-center text-stone-600 text-sm">
             No paths found. Check the selected target.
@@ -323,7 +422,7 @@ export function SolverPanel({
         )}
       </div>
 
-      <div className="border-t border-stone-800 pt-4">
+      <div className="shrink-0 mt-1">
         <div className="text-xs text-stone-400 mb-2 font-medium">Select Player:</div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
           {PAWNS.filter((p) => activePlayers.includes(p.id)).map((p) => (

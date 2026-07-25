@@ -1,7 +1,4 @@
-// Responsive model: this panel renders in two DOM sites — the phone bottom
-// sheet (< md) and the tablet/desktop side column (md+). Unprefixed classes
-// target the phone sheet; `md:` targets the tablet column; `lg:` targets the
-// wider desktop column. Interactive controls get a 44px phone floor.
+import { useEffect } from "react";
 import { Sparkles, Layers, Users, Compass, Play, RefreshCcw, Camera } from "lucide-react";
 import { SidePanel } from "./SidePanel";
 import { Button } from "../ui/button";
@@ -22,13 +19,17 @@ interface SetupPanelProps {
   onResetBoard: () => void;
   onAddCard: (treasureId: string) => void;
   onRemoveCard: (treasureId: string) => void;
-  setupTab: "tiles" | "players" | "cards";
-  setSetupTab: (tab: "tiles" | "players" | "cards") => void;
+  onAddAllCards?: () => void;
+  onClearAllCards?: () => void;
+  setupTab: "tiles" | "players" | "mode" | "cards";
+  setSetupTab: (tab: "tiles" | "players" | "mode" | "cards") => void;
   canStartGame: boolean;
   onStartGame: () => void;
   showToast: (msg: string) => void;
   onScanBoard?: () => void;
   compact?: boolean;
+  gameMode?: "standard" | "coop" | "auto";
+  onSetGameMode?: (mode: "standard" | "coop" | "auto") => void;
 }
 
 export function SetupPanel({
@@ -44,6 +45,8 @@ export function SetupPanel({
   onResetBoard,
   onAddCard,
   onRemoveCard,
+  onAddAllCards,
+  onClearAllCards,
   setupTab,
   setSetupTab,
   canStartGame,
@@ -51,7 +54,15 @@ export function SetupPanel({
   showToast,
   onScanBoard,
   compact = false,
+  gameMode = "standard",
+  onSetGameMode,
 }: SetupPanelProps) {
+
+  useEffect(() => {
+    if ((gameMode === "coop" || gameMode === "auto") && setupTab === "cards") {
+      setSetupTab("tiles");
+    }
+  }, [gameMode, setupTab, setSetupTab]);
 
   if (compact) {
     const movableTilesRemaining = Math.max(0, looseTiles.length - 1);
@@ -94,12 +105,6 @@ export function SetupPanel({
               {looseTiles.length === 1 ? "✓" : `(needs ${looseTiles.length - 1} more)`}
             </span>
           </div>
-          <div className="flex items-center gap-2">
-            <span className={`w-2 h-2 rounded-full border border-stone-950 ${activePlayers.length > 0 ? "bg-green-500" : "bg-red-500"}`} />
-            <span className="text-stone-300">
-              Active Players: {activePlayers.length} {activePlayers.length > 0 ? "✓" : "✗"}
-            </span>
-          </div>
         </div>
         <Button
           onClick={() => {
@@ -115,32 +120,39 @@ export function SetupPanel({
         </Button>
       </div>
 
-      {/* Tab bar */}
-      <div className="flex items-center bg-card rounded-xl p-1 border-2 border-stone-950 self-start shadow-[3px_3px_0_0_#000000]">
+      {/* Tab bar — full width to align with the checklist above */}
+      <div className="flex items-center bg-card rounded-xl p-1 border-2 border-stone-950 w-full shadow-[3px_3px_0_0_#000000] gap-0.5">
         {([
-          { id: "tiles", label: "Tiles", icon: <Layers className="w-3.5 h-3.5" /> },
-          { id: "players", label: "Players", icon: <Users className="w-3.5 h-3.5" /> },
-          { id: "cards", label: "Cards", icon: <Compass className="w-3.5 h-3.5" /> },
-        ] as const).map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => setSetupTab(tab.id)}
-            className={`flex items-center justify-center gap-1.5 px-3 md:px-4 py-2 md:py-1.5 min-h-11 md:min-h-0 rounded-lg text-xs md:text-sm font-bold transition-all cursor-pointer border-2 ${
-              setupTab === tab.id
-                ? "bg-theme-primary text-stone-950 border-stone-950 shadow-[2px_2px_0_0_#000000]"
-                : "text-stone-500 hover:text-foreground hover:bg-stone-800 border-transparent"
-            }`}
-          >
-            {tab.icon}
-            {tab.label}
-          </button>
-        ))}
+          { id: "tiles",   label: "Tiles",   icon: <Layers  className="w-3.5 h-3.5" /> },
+          { id: "mode",    label: "Mode",    icon: <Compass className="w-3.5 h-3.5" /> },
+          { id: "players", label: "Players", icon: <Users   className="w-3.5 h-3.5" /> },
+          { id: "cards",   label: "Cards",   icon: <Sparkles className="w-3.5 h-3.5" /> },
+        ] as const).map((tab) => {
+          const isDisabled = tab.id === "cards" && (gameMode === "coop" || gameMode === "auto");
+          return (
+            <button
+              key={tab.id}
+              disabled={isDisabled}
+              onClick={() => setSetupTab(tab.id)}
+              className={`flex-1 flex items-center justify-center gap-1.5 py-2 md:py-1.5 min-h-11 md:min-h-0 rounded-lg text-xs font-bold transition-all border-2 ${
+                isDisabled
+                  ? "opacity-30 cursor-not-allowed border-transparent bg-stone-900/40 text-stone-600 shadow-none"
+                  : setupTab === tab.id
+                  ? "bg-theme-primary text-stone-950 border-stone-950 shadow-[2px_2px_0_0_#000000] cursor-pointer"
+                  : "text-stone-500 hover:text-foreground hover:bg-stone-800 border-transparent cursor-pointer"
+              }`}
+            >
+              {tab.icon}
+              {tab.label}
+            </button>
+          );
+        })}
       </div>
 
       {/* Tab content */}
       <div className="flex-1 overflow-hidden min-h-0">
         {setupTab === "tiles" && (
-          <div className="flex flex-col gap-3 h-full overflow-hidden min-h-0">
+          <div className="flex flex-col gap-3 h-full overflow-hidden min-h-0 p-1 px-1.5 pb-4">
             <div className="flex gap-2">
               <Button
                 onClick={onRandomizeBoard}
@@ -173,14 +185,47 @@ export function SetupPanel({
                 <RefreshCcw className="w-4 h-4" />
               </Button>
             </div>
-            <div className="flex-1 overflow-hidden">
+            {/* padding wrapper lets the card's neo-brutalist shadow breathe — overflow-visible is intentional */}
+            <div className="flex-1 overflow-visible min-h-0 p-1 pb-4">
               <SidePanel tiles={looseTiles} onTileClick={onTileClick} />
             </div>
           </div>
         )}
 
+        {setupTab === "mode" && (
+          <div className="flex flex-col gap-4 h-full overflow-y-auto min-h-0 p-1 px-1.5 pb-4">
+            <div className="p-3 app-surface flex flex-col gap-2">
+              <div className="text-xs font-bold text-stone-200">Game Mode</div>
+              <p className="text-[11px] text-stone-500 leading-normal">
+                Standard: each player hunts their own cards. Cooperative: all players share a pool. Auto: the solver plays itself automatically.
+              </p>
+              <div className="grid grid-cols-3 gap-2 mt-1">
+                {(["standard", "coop", "auto"] as const).map((mode) => (
+                  <button
+                    key={mode}
+                    onClick={() => {
+                      if (!isMuted) playClickSound();
+                      if (onSetGameMode) {
+                        onSetGameMode(mode);
+                      }
+                    }}
+                    className={`flex flex-col items-center justify-center gap-0.5 p-2.5 min-h-11 rounded-xl text-xs font-semibold neo-brutalism-button cursor-pointer border-stone-950 ${
+                      gameMode === mode
+                        ? "bg-theme-primary text-stone-950 translate-x-[1px] translate-y-[1px] shadow-[1px_1px_0_0_#000000]"
+                        : "bg-card text-foreground"
+                    }`}
+                  >
+                    <span>{mode === "coop" ? "Co-op" : mode === "auto" ? "Auto" : "Standard"}</span>
+                    <span className="text-[9px] opacity-60">{gameMode === mode ? "Active" : "—"}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
         {setupTab === "players" && (
-          <div className="flex flex-col gap-4 h-full overflow-y-auto min-h-0">
+          <div className="flex flex-col gap-4 h-full overflow-y-auto min-h-0 p-1 px-1.5 pb-4">
             <div className="p-3 app-surface flex flex-col gap-2">
               <div className="text-xs font-semibold text-stone-200">Active Players</div>
               <p className="text-[11px] text-stone-500 leading-normal">
@@ -224,7 +269,7 @@ export function SetupPanel({
         )}
 
         {setupTab === "cards" && (
-          <div className="flex flex-col gap-4 h-full overflow-hidden min-h-0">
+          <div className="flex flex-col gap-4 h-full overflow-hidden min-h-0 p-1 px-1.5">
             {/* Optional cards info */}
             <div className="text-[11px] text-stone-500 leading-relaxed app-surface px-3 py-2 rounded-lg">
               <span className="text-stone-300 font-semibold">Hand cards are optional.</span> During play you can tap any board tile to navigate there instead. Use this section if you know your full card set upfront — the solver will then optimize the order to reach all your treasures in the fewest moves.
@@ -246,9 +291,32 @@ export function SetupPanel({
             </div>
 
             <div className="p-3 app-surface">
-              <div className="text-xs text-stone-400">
-                Player <span className="capitalize text-theme-primary font-bold">{activePawn}</span>'s hand (
-                {playerHands[activePawn]?.length ?? 0} cards):
+              <div className="flex items-center justify-between">
+                <div className="text-xs text-stone-400">
+                  Player <span className="capitalize text-theme-primary font-bold">{activePawn}</span>'s hand (
+                  {playerHands[activePawn]?.length ?? 0} cards):
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => {
+                      if (!isMuted) playClickSound();
+                      onAddAllCards?.();
+                    }}
+                    className="text-[10px] text-theme-primary hover:underline font-bold bg-transparent border-0 cursor-pointer"
+                  >
+                    Add All
+                  </button>
+                  <span className="text-[10px] text-stone-600">|</span>
+                  <button
+                    onClick={() => {
+                      if (!isMuted) playClickSound();
+                      onClearAllCards?.();
+                    }}
+                    className="text-[10px] text-red-400 hover:underline font-bold bg-transparent border-0 cursor-pointer"
+                  >
+                    Clear
+                  </button>
+                </div>
               </div>
               <div className="flex flex-wrap gap-1 mt-2">
                 {(playerHands[activePawn] ?? []).map((cardId) => {
@@ -270,7 +338,7 @@ export function SetupPanel({
               </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto pr-1 min-h-0">
+            <div className="flex-1 overflow-y-auto pr-1 min-h-0 pb-8">
               <div className="text-xs text-stone-400 mb-2 font-medium">Add Treasure Cards:</div>
               <div className="grid grid-cols-2 gap-1.5 pb-8 text-left">
                 {TREASURES.filter((t) => {

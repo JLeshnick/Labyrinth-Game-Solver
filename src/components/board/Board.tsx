@@ -6,6 +6,7 @@ import { isOppositeArrow } from "../../solver";
 import { Tile, DraggableTile } from "./Tile";
 import { cn } from "../../lib/utils";
 import { ChevronRight } from "lucide-react";
+import { Tooltip } from "../ui/tooltip";
 
 interface BoardSpaceProps {
   x: number;
@@ -192,10 +193,25 @@ interface BoardProps {
   turnPhase?: "slide" | "move";
   stagedArrow?: string | null;
   onTreasureClick?: (treasureId: string, alreadyObtained: boolean) => void;
+  isTargetCoords?: boolean;
+  is3D?: boolean;
+  activePawn?: string;
   allObtainedTreasures?: string[];
   activeTargetTreasureId?: string | null;
-  is3D?: boolean;
+  travelingPawn?: {
+    color: string;
+    path: { r: number; c: number }[];
+    durationMs: number;
+    key: number;
+  } | null;
 }
+
+const PAWN_HEX_COLORS: Record<string, string> = {
+  red: "#ef4444",
+  blue: "#3b82f6",
+  green: "#10b981",
+  yellow: "#f59e0b",
+};
 
 export const Board: React.FC<BoardProps> = ({
   grid,
@@ -219,10 +235,12 @@ export const Board: React.FC<BoardProps> = ({
   allObtainedTreasures,
   activeTargetTreasureId,
   is3D = false,
+  activePawn = "red",
+  travelingPawn,
 }) => {
 
   return (
-    <div className="relative w-full h-full flex items-center justify-center overflow-visible">
+    <div className="relative w-full h-full p-6 flex items-center justify-center overflow-visible">
       {/* 3D Tray Platform Wrapper */}
       <div
         className={cn(
@@ -251,66 +269,87 @@ export const Board: React.FC<BoardProps> = ({
               ? "w-[92%] h-[92%]"
               : "w-full h-full"
           )}
-          style={{ transformStyle: is3D ? "preserve-3d" : "flat" }}
+          style={{
+            transformStyle: is3D ? "preserve-3d" : "flat",
+            gridTemplateColumns: isGameStarted ? "repeat(9, minmax(0, 1fr))" : "repeat(7, minmax(0, 1fr))",
+            gridTemplateRows: isGameStarted ? "repeat(9, minmax(0, 1fr))" : "repeat(7, minmax(0, 1fr))",
+          }}
         >
-        {/* Render Shifting Arrows */}
-        {isGameStarted &&
+          {/* Render Shifting Arrows */}
+          {isGameStarted &&
           SHIFT_ARROWS.map((arrow) => {
             const isForbidden = !!(lastShiftArrowId && isOppositeArrow(arrow.id, lastShiftArrowId));
             const isHighlighted = hoveredSolutionArrow === arrow.id;
             const isStaged = stagedArrow === arrow.id;
 
+            const tooltipText = isForbidden
+              ? "Forbidden: Cannot reverse previous shift"
+              : isStaged
+              ? "Click again to rotate tile — then use Commit in panel"
+              : turnPhase === "move"
+              ? "Slide phase complete — move your pawn"
+              : `Stage tile into ${arrow.label}`;
+
+            // Orient tooltips cleanly around the board edges without clipping viewport bounds
+            let tooltipSide: "top" | "bottom" | "left" | "right" | "bottom-left" | "bottom-right" = "bottom";
+            if (arrow.dir === "top") tooltipSide = "top";
+            else if (arrow.dir === "bottom") tooltipSide = "bottom";
+            else if (arrow.dir === "left") {
+              // Left column arrows — render below the arrow aligned to its right edge so it extends inward over empty space
+              tooltipSide = "bottom-right";
+            } else if (arrow.dir === "right") {
+              tooltipSide = "bottom-left";
+            }
+
             return (
-              <button
+              <Tooltip
                 key={arrow.id}
-                onClick={() => !isForbidden && onArrowClick(arrow.id)}
-                disabled={isForbidden || turnPhase === "move"}
+                content={tooltipText}
+                side={tooltipSide}
                 style={{
                   gridRow: arrow.gridRow,
                   gridColumn: arrow.gridColumn,
+                  zIndex: 20,
                 }}
-                className={cn(
-                  "w-full h-full max-w-[70%] max-h-[70%] mx-auto p-0.5 rounded-lg transition-all focus:outline-none flex items-center justify-center",
-                  isForbidden
-                    ? "opacity-20 cursor-not-allowed border border-stone-700 text-stone-600 bg-stone-950/60"
-                    : turnPhase === "move"
-                    ? "opacity-25 cursor-not-allowed border border-stone-700 text-stone-600 bg-stone-950/60"
-                    : isStaged
-                    ? "neo-brutalism-button border-stone-950 bg-theme-primary text-stone-950 scale-105 translate-x-[1px] translate-y-[1px] shadow-[1px_1px_0_0_#000000] cursor-pointer"
-                    : isHighlighted
-                    ? "neo-brutalism-button border-stone-950 bg-theme-primary-20 text-theme-primary scale-105 cursor-pointer"
-                    : "neo-brutalism-button border-stone-950 bg-card text-foreground hover:bg-theme-primary hover:text-stone-950 cursor-pointer",
-                )}
-                title={
-                  isForbidden
-                    ? "Forbidden: Cannot immediately reverse the previous shift"
-                    : isStaged
-                    ? "Click again to rotate tile — then use Commit in the panel"
-                    : `Stage tile into ${arrow.label}`
-                }
-                aria-label={
-                  isForbidden
-                    ? `Forbidden: Cannot reverse previous shift into ${arrow.label}`
-                    : isStaged
-                    ? `Rotate staged tile for ${arrow.label}`
-                    : `Stage spare tile into ${arrow.label}`
-                }
+                containerClassName="w-full h-full flex items-center justify-center relative"
               >
-                <ChevronRight
-                  className="w-4 h-4 sm:w-5 sm:h-5"
-                  style={{
-                    transform: `rotate(${
-                      arrow.dir === "left"
-                        ? 0
-                        : arrow.dir === "right"
-                        ? 180
-                        : arrow.dir === "top"
-                        ? 90
-                        : -90
-                    }deg)`,
-                  }}
-                />
-              </button>
+                <button
+                  onClick={() => !isForbidden && onArrowClick(arrow.id)}
+                  disabled={isForbidden || turnPhase === "move"}
+                  className={cn(
+                    "w-full h-full max-w-[70%] max-h-[70%] aspect-square my-auto mx-auto p-0.5 rounded-lg transition-all focus:outline-none flex items-center justify-center self-center justify-self-center",
+                    isForbidden || turnPhase === "move"
+                      ? "neo-brutalism-button bg-card border-stone-950 text-stone-600 opacity-40 cursor-not-allowed shadow-none translate-x-0 translate-y-0"
+                      : isStaged
+                      ? "neo-brutalism-button border-stone-950 bg-theme-primary text-stone-950 scale-105 translate-x-[1px] translate-y-[1px] shadow-[1px_1px_0_0_#000000] cursor-pointer"
+                      : isHighlighted
+                      ? "neo-brutalism-button border-stone-950 bg-theme-primary-20 text-theme-primary scale-105 cursor-pointer"
+                      : "neo-brutalism-button border-stone-950 bg-card text-foreground hover:bg-theme-primary hover:text-stone-950 cursor-pointer",
+                  )}
+                  aria-label={
+                    isForbidden
+                      ? `Forbidden: Cannot reverse previous shift into ${arrow.label}`
+                      : isStaged
+                      ? `Rotate staged tile for ${arrow.label}`
+                      : `Stage spare tile into ${arrow.label}`
+                  }
+                >
+                  <ChevronRight
+                    className="w-4 h-4 sm:w-5 sm:h-5"
+                    style={{
+                      transform: `rotate(${
+                        arrow.dir === "left"
+                          ? 0
+                          : arrow.dir === "right"
+                          ? 180
+                          : arrow.dir === "top"
+                          ? 90
+                          : -90
+                      }deg)`,
+                    }}
+                  />
+                </button>
+              </Tooltip>
             );
           })}
 
@@ -392,7 +431,7 @@ export const Board: React.FC<BoardProps> = ({
           if (!pushedTile) return null;
           return (
             <div
-              style={{ gridRow, gridColumn, zIndex: 30 }}
+              style={{ gridRow, gridColumn, zIndex: 70 }}
               className={cn("relative w-full h-full aspect-square rounded-xl overflow-hidden border-2 border-stone-950 pointer-events-none shadow-[4px_4px_0_0_#000000]", animClass)}
             >
               <Tile tile={pushedTile} boardRotation={boardRotation} disableRotationTransition={true} is3D={is3D} className="absolute inset-0 w-full h-full" />
@@ -400,22 +439,118 @@ export const Board: React.FC<BoardProps> = ({
           );
         })()}
 
-        {/* SVG Path Overlay — absolute over the 9×9 grid, viewBox 0 0 9 9, tile center = c+1.5 */}
-        {isGameStarted && hoveredPath && hoveredPath.length > 0 && (() => {
+        {/* SVG Path Overlay for solution / hovered path preview */}
+        {isGameStarted && hoveredPath && hoveredPath.length > 0 && !travelingPawn && (() => {
           const tc = (i: number) => i + 1.5;
           const pts = hoveredPath.map(p => `${tc(p.c)},${tc(p.r)}`).join(" ");
           const s = hoveredPath[0];
           const e = hoveredPath[hoveredPath.length - 1];
+          const pathPawnColor = (hoveredPath as any).pawnColor || activePawn;
+          const strokeColor = PAWN_HEX_COLORS[pathPawnColor] || "#f59e0b";
+
           return (
-            <svg viewBox="0 0 9 9" className="absolute inset-0 w-full h-full pointer-events-none z-30" aria-hidden="true">
-              <polyline points={pts} fill="none" stroke="#000000" strokeWidth="0.10" strokeDasharray="0.18,0.12" strokeLinecap="round" strokeLinejoin="round" opacity="0.45" className="animate-path-crawl" />
-              <polyline points={pts} fill="none" stroke="var(--theme-color)" strokeWidth="0.06" strokeDasharray="0.18,0.12" strokeLinecap="round" strokeLinejoin="round" opacity="0.7" className="animate-path-crawl" />
-              <rect x={tc(s.c) - 0.13} y={tc(s.r) - 0.13} width="0.26" height="0.26" fill="#000000" />
-              <rect x={tc(s.c) - 0.08} y={tc(s.r) - 0.08} width="0.16" height="0.16" fill="var(--theme-color)" />
-              {hoveredPath.length > 1 && <>
-                <circle cx={tc(e.c)} cy={tc(e.r)} r="0.13" fill="#000000" />
-                <circle cx={tc(e.c)} cy={tc(e.r)} r="0.08" fill="var(--theme-color)" />
-              </>}
+            <svg viewBox="0 0 9 9" className="absolute inset-0 w-full h-full pointer-events-none z-30 transition-opacity duration-150" aria-hidden="true">
+              <polyline
+                points={pts}
+                fill="none"
+                stroke="#000000"
+                strokeWidth="0.10"
+                strokeDasharray="0.18,0.12"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                opacity="0.45"
+                className="animate-path-crawl"
+              />
+              <polyline
+                points={pts}
+                fill="none"
+                stroke={strokeColor}
+                strokeWidth="0.06"
+                strokeDasharray="0.18,0.12"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                opacity="0.85"
+                className="animate-path-crawl"
+              />
+              <circle cx={tc(s.c)} cy={tc(s.r)} r="0.13" fill="#000000" />
+              <circle cx={tc(s.c)} cy={tc(s.r)} r="0.08" fill={strokeColor} />
+              {hoveredPath.length > 1 && (
+                <>
+                  <circle cx={tc(e.c)} cy={tc(e.r)} r="0.13" fill="#000000" />
+                  <circle cx={tc(e.c)} cy={tc(e.r)} r="0.08" fill={strokeColor} />
+                </>
+              )}
+            </svg>
+          );
+        })()}
+
+        {/* Dynamic Path Trail Erosion during active pawn travel */}
+        {isGameStarted && travelingPawn && travelingPawn.path && travelingPawn.path.length > 1 && (() => {
+          const tc = (i: number) => i + 1.5;
+          const pathD = travelingPawn.path
+            .map((p, idx) => `${idx === 0 ? "M" : "L"} ${tc(p.c)} ${tc(p.r)}`)
+            .join(" ");
+          const e = travelingPawn.path[travelingPawn.path.length - 1];
+          const color = PAWN_HEX_COLORS[travelingPawn.color] || "#f59e0b";
+          const durSec = `${(travelingPawn.durationMs / 1000).toFixed(2)}s`;
+
+          // Calculate total path length in viewBox coordinate units
+          let totalLen = 0;
+          for (let i = 0; i < travelingPawn.path.length - 1; i++) {
+            const p1 = travelingPawn.path[i];
+            const p2 = travelingPawn.path[i + 1];
+            totalLen += Math.hypot(tc(p2.c) - tc(p1.c), tc(p2.r) - tc(p1.r));
+          }
+          const totalLenStr = totalLen.toFixed(3);
+
+          return (
+            <svg key={travelingPawn.key} viewBox="0 0 9 9" className="absolute inset-0 w-full h-full pointer-events-none z-30" aria-hidden="true">
+              {/* Background dark track along full path */}
+              <path
+                d={pathD}
+                fill="none"
+                stroke="#000000"
+                strokeWidth="0.10"
+                strokeDasharray="0.18,0.12"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                opacity="0.3"
+              />
+
+              {/* Full colored path that erodes (is pushed off) from behind the pawn as it travels */}
+              <path
+                d={pathD}
+                fill="none"
+                stroke={color}
+                strokeWidth="0.06"
+                strokeDasharray={`${totalLenStr} ${totalLenStr}`}
+                strokeDashoffset="0"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                opacity="0.9"
+              >
+                <animate
+                  attributeName="stroke-dashoffset"
+                  from="0"
+                  to={`-${totalLenStr}`}
+                  dur={durSec}
+                  fill="freeze"
+                  calcMode="linear"
+                />
+              </path>
+
+              {/* End destination target dot */}
+              <circle cx={tc(e.c)} cy={tc(e.r)} r="0.12" fill="#000000" />
+              <circle cx={tc(e.c)} cy={tc(e.r)} r="0.08" fill={color} />
+
+              {/* Pawn drop shadow sliding along path */}
+              <circle r="0.18" fill="#000000" opacity="0.5">
+                <animateMotion dur={durSec} calcMode="linear" fill="freeze" path={pathD} />
+              </circle>
+              {/* Animated Pawn dot */}
+              <circle r="0.14" fill={color} stroke="#000000" strokeWidth="0.04">
+                <animateMotion dur={durSec} calcMode="linear" fill="freeze" path={pathD} />
+              </circle>
             </svg>
           );
         })()}

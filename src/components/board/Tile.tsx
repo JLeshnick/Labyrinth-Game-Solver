@@ -212,7 +212,7 @@ export const Tile: React.FC<TileProps> = ({
       {tile.treasure && (
         <div
           className={cn(
-            "absolute bottom-0 inset-x-0 z-10 flex items-center justify-center px-1 py-0.5 border-t-2 border-stone-950 transition-all duration-300 pointer-events-none rounded-b-2xl",
+            "absolute bottom-0 inset-x-0 z-10 flex items-center justify-center px-1 py-0.5 border-t-2 border-stone-950 transition-all duration-300 pointer-events-none rounded-b-[14px]",
             isObtainedTreasure
               ? "bg-stone-600 opacity-50"
               : isCurrentTarget

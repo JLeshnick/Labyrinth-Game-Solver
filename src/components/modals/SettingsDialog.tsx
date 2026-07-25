@@ -26,6 +26,8 @@ interface SettingsDialogProps {
   onToggle3D?: () => void;
   solverDepth?: number;
   onSetSolverDepth?: (depth: number) => void;
+  pawnAnimationSpeed?: number;
+  onSetPawnAnimationSpeed?: (speed: number) => void;
 }
 
 const ACCENT_PRESETS = [
@@ -70,6 +72,8 @@ export function SettingsDialog({
   onToggle3D,
   solverDepth = 3,
   onSetSolverDepth,
+  pawnAnimationSpeed = 600,
+  onSetPawnAnimationSpeed,
 }: SettingsDialogProps) {
   const [settingsTab, setSettingsTab] =
     useState<"preferences" | "appearance" | "application">("preferences");
@@ -316,6 +320,35 @@ export function SettingsDialog({
                           <span className="text-[10px] text-stone-600 ml-1">
                             {solverDepth === 3 ? "(default)" : solverDepth > 3 ? "(slower)" : "(faster)"}
                           </span>
+                        </div>
+                      </div>
+                    )}
+                    {onSetPawnAnimationSpeed && (
+                      <div className="flex flex-col gap-2 pt-2 border-t border-stone-800">
+                        <div>
+                          <div className="text-xs font-semibold text-stone-200">Pawn Movement Speed</div>
+                          <div className="text-[11px] text-stone-500 mt-0.5">
+                            Controls how fast pawns travel along the path corridors during move execution.
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {[
+                            { label: "Slow", ms: 1000 },
+                            { label: "Normal", ms: 600 },
+                            { label: "Fast", ms: 300 },
+                          ].map((opt) => (
+                            <button
+                              key={opt.ms}
+                              onClick={() => { if (!isMuted) playClickSound(); onSetPawnAnimationSpeed(opt.ms); }}
+                              className={`neo-brutalism-button rounded-lg px-3 py-1.5 text-xs font-bold cursor-pointer transition-all ${
+                                pawnAnimationSpeed === opt.ms
+                                  ? "bg-theme-primary border-stone-950 text-stone-950 translate-x-[1px] translate-y-[1px] shadow-[1px_1px_0_0_#000000]"
+                                  : "bg-card border-stone-950 text-stone-400 hover:text-stone-200"
+                              }`}
+                            >
+                              {opt.label}
+                            </button>
+                          ))}
                         </div>
                       </div>
                     )}

@@ -712,3 +712,28 @@
   transform: translate(2px, 2px);
   box-shadow: 1px 1px 0px 0px #000000;
 }
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0);   }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.18s ease-out both;
+}
+
+@keyframes pawnTravel {
+  0%   { offset-distance: 0%;   opacity: 1; }
+  90%  { offset-distance: 100%; opacity: 1; }
+  100% { offset-distance: 100%; opacity: 0; }
+}
+
+.animate-pawn-travel {
+  animation: pawnTravel 0.7s cubic-bezier(0.4, 0, 0.2, 1) both;
+  offset-rotate: 0deg;
+}
+
+@keyframes erodeDash {
+  from { stroke-dashoffset: 0; }
+  to   { stroke-dashoffset: 100; }
+}

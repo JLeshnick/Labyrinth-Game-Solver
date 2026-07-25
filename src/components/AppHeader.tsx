@@ -38,13 +38,20 @@ export interface AppHeaderProps {
   isSettingsOpen: boolean;
   playerHands: PlayerMap<string[]>;
   obtainedTreasures: PlayerMap<string[]>;
+  compact?: boolean;
+  gameMode?: "standard" | "coop" | "auto";
+  autoPlayPaused?: boolean;
+  onToggleAutoPlayPause?: () => void;
+  autoPlaySpeed?: 0.5 | 1 | 2 | 4;
+  onSetAutoPlaySpeed?: (speed: 0.5 | 1 | 2 | 4) => void;
+  onStopAutoPlay?: () => void;
+  coopObtainedTreasures?: string[];
   onOpenSettings: () => void;
   onCloseSettings: () => void;
   onUndo: () => void;
   onRedo: () => void;
   onOpenHistory?: () => void;
   onRotateBoard: () => void;
-  onToggleStats: () => void;
   onStartGame: () => void;
   onEndGame: () => void;
   onToggleMute: () => void;
@@ -59,6 +66,10 @@ export interface AppHeaderProps {
   onToggle3D: () => void;
   solverDepth?: number;
   onSetSolverDepth?: (depth: number) => void;
+  pawnAnimationSpeed?: number;
+  onSetPawnAnimationSpeed?: (speed: number) => void;
+  pawnStats?: Record<string, { tilesMoved: number; shiftsUsed: number; treasuresFound: number; totalTargets: number }>;
+  totalShifts?: number;
 }
 
 const iconBtnCls =
@@ -84,7 +95,6 @@ export function AppHeader({
   canUndo,
   canRedo,
   isMuted,
-  showStats,
   baseTheme: _baseTheme,
   activePlayers,
   activePawn,
@@ -99,7 +109,6 @@ export function AppHeader({
   onRedo,
   onOpenHistory,
   onRotateBoard,
-  onToggleStats,
   onStartGame,
   onEndGame,
   onToggleMute,
@@ -116,6 +125,17 @@ export function AppHeader({
   onToggle3D: _onToggle3D,
   solverDepth,
   onSetSolverDepth,
+  pawnAnimationSpeed,
+  onSetPawnAnimationSpeed,
+  pawnStats = {},
+  totalShifts = 0,
+  gameMode = "standard",
+  autoPlayPaused = false,
+  onToggleAutoPlayPause,
+  autoPlaySpeed = 1,
+  onSetAutoPlaySpeed,
+  onStopAutoPlay,
+  coopObtainedTreasures = [],
 }: AppHeaderProps) {
   const [showEndGameConfirm, setShowEndGameConfirm] = useState(false);
 
@@ -128,17 +148,19 @@ export function AppHeader({
         style={{ boxShadow: "0 3px 0 0 #000000" }}
       >
         {/* Left — brutalist title linking to GitHub */}
-        <a
-          href="https://github.com/JLeshnick/Labyrinth-Game-Solver"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="shrink-0 neo-brutalism-card px-2.5 py-1 rounded-lg bg-card hover:bg-stone-200 hover:text-stone-950 transition-colors cursor-pointer"
-        >
-          <span className="text-xs sm:text-sm font-black tracking-tight text-foreground uppercase select-none">
-            <span className="hidden sm:inline">Labyrinth Solver</span>
-            <span className="sm:hidden">Labyrinth</span>
-          </span>
-        </a>
+        <Tooltip content="Labyrinth Companion & Solver — View on GitHub" side="bottom-left">
+          <a
+            href="https://github.com/JLeshnick/Labyrinth-Game-Solver"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="shrink-0 neo-brutalism-card px-2.5 py-1 rounded-lg bg-card hover:bg-stone-200 hover:text-stone-950 transition-colors cursor-pointer"
+          >
+            <span className="text-xs sm:text-sm font-black tracking-tight text-foreground uppercase select-none">
+              <span className="hidden sm:inline">Labyrinth Solver</span>
+              <span className="sm:hidden">Labyrinth</span>
+            </span>
+          </a>
+        </Tooltip>
 
         {/* Center — Step Nav (timer integrated in Game button) */}
         <div className="flex-1 flex items-center justify-center min-w-0 gap-2">
@@ -192,6 +214,56 @@ export function AppHeader({
               );
             })}
           </div>
+
+          {/* Ribbon Auto-Play Controls */}
+          {isGameStarted && gameMode === "auto" && (
+            <div className="flex items-center gap-1 bg-card neo-brutalism-card rounded-xl px-1.5 py-1 border-2 border-stone-950 shadow-[2px_2px_0_0_#000000] shrink-0">
+              <button
+                title={autoPlayPaused ? "Resume Auto Play" : "Pause Auto Play"}
+                onClick={() => {
+                  if (!isMuted) playClickSound();
+                  onToggleAutoPlayPause?.();
+                }}
+                className="neo-brutalism-button bg-theme-primary border-stone-950 text-stone-950 w-7 h-7 rounded-lg flex items-center justify-center text-xs font-black cursor-pointer"
+              >
+                {autoPlayPaused ? "▶" : "⏸"}
+              </button>
+
+              <div className="w-px h-4 bg-stone-800 mx-0.5" />
+
+              <div className="flex items-center gap-0.5">
+                {([0.5, 1, 2, 4] as const).map((s) => (
+                  <button
+                    key={s}
+                    onClick={() => {
+                      if (!isMuted) playClickSound();
+                      onSetAutoPlaySpeed?.(s);
+                    }}
+                    className={`px-1 py-0.5 rounded text-[9px] font-black border border-stone-950 cursor-pointer transition-all ${
+                      autoPlaySpeed === s
+                        ? "bg-theme-primary text-stone-950 shadow-[1px_1px_0_0_#000000]"
+                        : "bg-stone-900 text-stone-300 hover:bg-stone-800"
+                    }`}
+                  >
+                    {s}×
+                  </button>
+                ))}
+              </div>
+
+              <div className="w-px h-4 bg-stone-800 mx-0.5" />
+
+              <button
+                title="Exit Auto Mode"
+                onClick={() => {
+                  if (!isMuted) playClickSound();
+                  onStopAutoPlay?.();
+                }}
+                className="neo-brutalism-button bg-red-500 border-stone-950 text-stone-950 px-1.5 h-7 rounded-lg text-[9px] font-black cursor-pointer whitespace-nowrap"
+              >
+                ✕ Exit
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Right — toolbar */}
@@ -217,10 +289,15 @@ export function AppHeader({
           {/* Pawn score chips — only during game */}
           {isGameStarted && activePlayers.length > 0 && (
             <div className="hidden sm:flex items-center gap-1.5">
+              {gameMode === "coop" && (
+                <div className="flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-black border-2 border-stone-950 bg-theme-primary text-stone-950 shadow-[2px_2px_0_0_#000000] cursor-default mr-1">
+                  <span>CO-OP: {coopObtainedTreasures.length}/24</span>
+                </div>
+              )}
               {activePlayers.map((pawnId) => {
                 const pawn = PAWNS.find((p) => p.id === pawnId);
-                const obtained = (obtainedTreasures as Record<string, string[]>)[pawnId] ?? [];
-                const hand = (playerHands as Record<string, string[]>)[pawnId] ?? [];
+                const obtained = gameMode === "coop" ? [] : (obtainedTreasures as Record<string, string[]>)[pawnId] ?? [];
+                const hand = gameMode === "coop" ? [] : (playerHands as Record<string, string[]>)[pawnId] ?? [];
                 const total = obtained.length + hand.length;
                 const isActive = pawnId === activePawn;
                 return (
@@ -235,40 +312,54 @@ export function AppHeader({
                         pawnId === "yellow" ? "text-stone-950" : "text-white"
                       )}
                     >
-                      <span>{obtained.length}</span>
-                      {total > 0 && <span className="opacity-70">/{total}</span>}
+                      {gameMode === "coop" ? (
+                        <span>{pawnId[0].toUpperCase()}</span>
+                      ) : (
+                        <>
+                          <span>{obtained.length}</span>
+                          {total > 0 && <span className="opacity-70">/{total}</span>}
+                        </>
+                      )}
                     </div>
                     {/* Hover tooltip — styled, matching existing card */}
                     <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-52 rounded-xl app-dialog-panel neo-brutalism-card p-3 z-50 invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-all duration-150 flex flex-col gap-1 pointer-events-none">
                       <div className="text-[10px] font-bold text-stone-200 capitalize border-b border-stone-800 pb-1.5 mb-0.5 flex items-center gap-1.5">
                         <div className={cn("w-3 h-3 rounded-full border border-stone-950", pawn?.colorClass ?? "bg-stone-500")} />
-                        {pawn?.name ?? pawnId} — {obtained.length} collected
+                        {pawn?.name ?? pawnId} {gameMode === "coop" ? "(Cooperative)" : `— ${obtained.length} collected`}
                       </div>
-                      {obtained.length === 0 && hand.length === 0 && (
-                        <p className="text-[9px] text-stone-600 italic">No cards assigned</p>
+                      {gameMode === "coop" ? (
+                        <p className="text-[9px] text-stone-300">
+                          Team progress: {coopObtainedTreasures.length} of 24 treasures collected.
+                        </p>
+                      ) : (
+                        <>
+                          {obtained.length === 0 && hand.length === 0 && (
+                            <p className="text-[9px] text-stone-600 italic">No cards assigned</p>
+                          )}
+                          {obtained.map((id) => {
+                            const t = TREASURES.find((x) => x.id === id);
+                            return (
+                              <div key={id} className="flex items-center gap-1.5">
+                                <span className="text-emerald-400 text-[9px] flex-shrink-0">✓</span>
+                                <span className="text-[9px] text-emerald-300 line-through opacity-75">{t?.name ?? id}</span>
+                              </div>
+                            );
+                          })}
+                          {hand.map((id, i) => {
+                            const t = TREASURES.find((x) => x.id === id);
+                            return (
+                              <div key={id} className="flex items-center gap-1.5">
+                                <span className={cn("text-[9px] flex-shrink-0", i === 0 ? "text-amber-400" : "text-stone-600")}>
+                                  {i === 0 ? "▶" : "·"}
+                                </span>
+                                <span className={cn("text-[9px]", i === 0 ? "text-amber-200 font-medium" : "text-stone-500")}>
+                                  {t?.name ?? id}{i === 0 ? " ← next" : ""}
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </>
                       )}
-                      {obtained.map((id) => {
-                        const t = TREASURES.find((x) => x.id === id);
-                        return (
-                          <div key={id} className="flex items-center gap-1.5">
-                            <span className="text-emerald-400 text-[9px] flex-shrink-0">✓</span>
-                            <span className="text-[9px] text-emerald-300 line-through opacity-75">{t?.name ?? id}</span>
-                          </div>
-                        );
-                      })}
-                      {hand.map((id, i) => {
-                        const t = TREASURES.find((x) => x.id === id);
-                        return (
-                          <div key={id} className="flex items-center gap-1.5">
-                            <span className={cn("text-[9px] flex-shrink-0", i === 0 ? "text-amber-400" : "text-stone-600")}>
-                              {i === 0 ? "▶" : "·"}
-                            </span>
-                            <span className={cn("text-[9px]", i === 0 ? "text-amber-200 font-medium" : "text-stone-500")}>
-                              {t?.name ?? id}{i === 0 ? " ← next" : ""}
-                            </span>
-                          </div>
-                        );
-                      })}
                     </div>
                   </div>
                 );
@@ -324,19 +415,67 @@ export function AppHeader({
                 <RotateCw className="w-3.5 h-3.5" />
               </Button>
             </Tooltip>
-            {isGameStarted && onToggleStats && (
+            {isGameStarted && (
               <>
                 <div className="w-px h-4 bg-stone-800 mx-0.5" />
-                <Tooltip content={showStats ? "Hide stats" : "Game stats"} side="bottom">
+                <div className="relative group">
                   <Button
                     variant="outline" size="icon"
-                    onClick={() => { if (!isMuted) playClickSound(); onToggleStats(); }}
-                    className={cn(iconBtnCls, showStats ? "bg-theme-primary-10 text-theme-primary border-theme-primary-20" : "")}
-                    aria-label="Toggle game statistics"
+                    className={cn(iconBtnCls, "cursor-default")}
+                    aria-label="Game statistics"
                   >
                     <BarChart2 className="w-3.5 h-3.5" />
                   </Button>
-                </Tooltip>
+
+                  {/* Hover Tooltip Dropdown for Game Stats */}
+                  <div className="absolute top-full right-0 mt-2 w-64 rounded-xl app-dialog-panel neo-brutalism-card p-3 z-50 invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-all duration-150 flex flex-col gap-2.5 pointer-events-none">
+                    <div className="text-xs font-bold text-stone-200 border-b border-stone-800 pb-1.5 flex items-center gap-1.5">
+                      <BarChart2 className="w-3.5 h-3.5 text-theme-primary" />
+                      Game Statistics
+                    </div>
+                    {/* Summary stats */}
+                    <div className="grid grid-cols-3 gap-1.5 text-center">
+                      <div className="app-surface p-1.5 rounded-lg">
+                        <div className="text-sm font-black text-stone-100">{totalShifts}</div>
+                        <div className="text-[9px] text-stone-400">Shifts</div>
+                      </div>
+                      <div className="app-surface p-1.5 rounded-lg">
+                        <div className="text-sm font-black text-stone-100">
+                          {Object.values(pawnStats).reduce((sum, s) => sum + s.tilesMoved, 0)}
+                        </div>
+                        <div className="text-[9px] text-stone-400">Moves</div>
+                      </div>
+                      <div className="app-surface p-1.5 rounded-lg">
+                        <div className="text-sm font-black text-amber-400">
+                          {gameMode === "coop"
+                            ? coopObtainedTreasures.length
+                            : Object.values(obtainedTreasures).reduce((sum, arr) => sum + arr.length, 0)}
+                        </div>
+                        <div className="text-[9px] text-stone-400">Found</div>
+                      </div>
+                    </div>
+
+                    {/* Active players breakdown */}
+                    <div className="space-y-1">
+                      {activePlayers.map((color) => {
+                        const pawn = PAWNS.find((p) => p.id === color);
+                        const stats = pawnStats[color] || { tilesMoved: 0, shiftsUsed: 0, treasuresFound: 0, totalTargets: 0 };
+                        const collected = gameMode === "coop" ? coopObtainedTreasures.length : (obtainedTreasures[color]?.length ?? 0);
+                        return (
+                          <div key={color} className="app-surface p-1.5 rounded-lg flex items-center justify-between text-[10px]">
+                            <div className="flex items-center gap-1.5">
+                              <div className={cn("w-2.5 h-2.5 rounded-full border border-stone-950", pawn?.colorClass ?? "bg-stone-500")} />
+                              <span className="font-bold text-stone-200 capitalize">{pawn?.name ?? color}</span>
+                            </div>
+                            <div className="text-stone-400 font-mono">
+                              {stats.tilesMoved} moves • {stats.shiftsUsed} shifts ({collected} found)
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
               </>
             )}
             <div className="w-px h-4 bg-stone-800 mx-0.5" />
@@ -363,7 +502,7 @@ export function AppHeader({
             </Button>
           </Tooltip>
 
-          <Tooltip content="How to play" side="bottom">
+          <Tooltip content="How to play" side="bottom-right">
             <Button
               variant="outline" size="icon"
               onClick={() => { if (!isMuted) playClickSound(); onOpenWelcomeGuide(); }}
@@ -393,6 +532,8 @@ export function AppHeader({
             onToggle3D={_onToggle3D}
             solverDepth={solverDepth}
             onSetSolverDepth={onSetSolverDepth}
+            pawnAnimationSpeed={pawnAnimationSpeed}
+            onSetPawnAnimationSpeed={onSetPawnAnimationSpeed}
           />
         </div>
       </header>

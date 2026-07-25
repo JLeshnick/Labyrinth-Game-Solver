@@ -7,6 +7,7 @@ import {
   EMPTY_PLAYER_HANDS,
   EMPTY_PLAYER_TARGETS,
   EMPTY_OBTAINED_TREASURES,
+  TREASURES,
 } from "../constants";
 import type {
   TileData,
@@ -31,7 +32,13 @@ import {
   playPawnMoveSound,
 } from "../utils/audio";
 import { useLabyrinthHistory } from "./useLabyrinthHistory";
-  import { useLabyrinthStorage } from "./useLabyrinthStorage";
+import { useLabyrinthStorage } from "./useLabyrinthStorage";
+const HOME_POSITIONS: Record<string, { r: number; c: number }> = {
+  red:    { r: 0, c: 0 },
+  blue:   { r: 6, c: 6 },
+  green:  { r: 6, c: 0 },
+  yellow: { r: 0, c: 6 }
+};
 
 type PawnStat = {
   tilesMoved: number;
@@ -85,6 +92,9 @@ export function useLabyrinthGame({
   const [obtainedTreasures, setObtainedTreasures] =
     useState<PlayerMap<string[]>>(EMPTY_OBTAINED_TREASURES);
   const [pawnStats, setPawnStats] = useState<Record<string, PawnStat>>({});
+  const [gameMode, setGameMode] = useState<"standard" | "coop" | "auto">("standard");
+  const [remainingCoopTreasures, setRemainingCoopTreasures] = useState<string[]>([]);
+  const [coopObtainedTreasures, setCoopObtainedTreasures] = useState<string[]>([]);
   const [customTargetCoords, setCustomTargetCoords] = useState<{
     r: number;
     c: number;
@@ -92,7 +102,7 @@ export function useLabyrinthGame({
   const totalShiftsRef = useRef(0);
 
   // Setup panel state (used by handleTileClick / handleCellClick)
-  const [setupTab, setSetupTab] = useState<"tiles" | "players" | "cards">("tiles");
+  const [setupTab, setSetupTab] = useState<"tiles" | "players" | "mode" | "cards">("tiles");
 
   // Active players — stored in localStorage as a preference
   const [activePlayers, setActivePlayers] = useState<string[]>(() => {
@@ -141,6 +151,9 @@ export function useLabyrinthGame({
       isGameStarted,
       gameStartState: gameStartState ?? null,
       pawnPositions,
+      gameMode,
+      remainingCoopTreasures,
+      coopObtainedTreasures,
     });
     // Intentionally only react to board/card/pawn state changes — not every callback
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -155,6 +168,9 @@ export function useLabyrinthGame({
     lastShiftArrowId,
     isGameStarted,
     pawnPositions,
+    gameMode,
+    remainingCoopTreasures,
+    coopObtainedTreasures,
   ]);
 
   // ── Solver adapter helpers ───────────────────────────────────────────────────
@@ -272,6 +288,9 @@ export function useLabyrinthGame({
       setIsGameStarted(saved.isGameStarted || false);
       setGameStartState(saved.gameStartState || null);
       setPawnPositions(saved.pawnPositions || DEFAULT_PAWN_POSITIONS);
+      setGameMode(saved.gameMode || "standard");
+      setRemainingCoopTreasures(saved.remainingCoopTreasures || []);
+      setCoopObtainedTreasures(saved.coopObtainedTreasures || []);
       setCustomTargetCoords(null);
       totalShiftsRef.current = 0;
 
@@ -284,6 +303,9 @@ export function useLabyrinthGame({
         playerActiveTargets: saved.playerActiveTargets || EMPTY_PLAYER_TARGETS,
         obtainedTreasures: saved.obtainedTreasures || EMPTY_OBTAINED_TREASURES,
         pawnPositions: saved.pawnPositions,
+        gameMode: saved.gameMode || "standard",
+        remainingCoopTreasures: saved.remainingCoopTreasures || [],
+        coopObtainedTreasures: saved.coopObtainedTreasures || [],
       });
     },
     [resetHistory]
@@ -353,7 +375,12 @@ export function useLabyrinthGame({
         playerActiveTargets,
         obtainedTreasures,
         pawnPositions,
-        "Board randomized"
+        "Board randomized",
+        undefined,
+        undefined,
+        gameMode,
+        remainingCoopTreasures,
+        coopObtainedTreasures
       );
       saveAutosave({
         board: initialGrid,
@@ -367,6 +394,9 @@ export function useLabyrinthGame({
         isGameStarted: false,
         gameStartState: null,
         pawnPositions,
+        gameMode,
+        remainingCoopTreasures,
+        coopObtainedTreasures,
       });
       onToast("Board Randomized Successfully!");
     }
@@ -421,7 +451,7 @@ export function useLabyrinthGame({
       if (!isGameStarted) return;
 
       const startCoord = pawnPositions[activePawn];
-      if (!startCoord || (startCoord.r === r && startCoord.c === c)) return;
+      if (!startCoord) return;
 
       const solverBoard = getSolverFormattedBoard(grid, pawnPositions);
       const { cells } = getReachableCells(solverBoard, startCoord.r, startCoord.c);
@@ -435,41 +465,72 @@ export function useLabyrinthGame({
         setPawnPositions(nextPositions);
         trackPawnMove(activePawn, 1);
 
-        const activeTargetCard = playerActiveTargets[activePawn];
         const landedTreasure = grid[r][c]?.treasure;
         let nextPlayerHands = playerHands;
         let nextPlayerActiveTargets = playerActiveTargets;
         let nextObtainedTreasures = obtainedTreasures;
+        let nextRemainingCoop = remainingCoopTreasures;
+        let nextObtainedCoop = coopObtainedTreasures;
+        let claimed = false;
 
-        if (landedTreasure && landedTreasure.id === activeTargetCard) {
-          if (!isMuted) playSuccessSound();
-          const nextHand = playerHands[activePawn].filter(
-            (tid) => tid !== activeTargetCard
-          );
-          nextPlayerHands = { ...playerHands, [activePawn]: nextHand };
-          nextPlayerActiveTargets = {
-            ...playerActiveTargets,
-            [activePawn]: nextHand.length > 0 ? nextHand[0] : null,
-          };
-          nextObtainedTreasures = {
-            ...obtainedTreasures,
-            [activePawn]: [
-              ...(obtainedTreasures[activePawn] || []),
-              activeTargetCard,
-            ],
-          };
-          setPlayerHands(nextPlayerHands);
-          setPlayerActiveTargets(nextPlayerActiveTargets);
-          setObtainedTreasures(nextObtainedTreasures);
-          trackPawnTreasure(activePawn);
-          onToast(`Goal Achieved: Found ${landedTreasure.name}! 🏆`);
+        if (gameMode === "coop") {
+          if (landedTreasure && remainingCoopTreasures.includes(landedTreasure.id)) {
+            if (!isMuted) playSuccessSound();
+            nextRemainingCoop = remainingCoopTreasures.filter((tid) => tid !== landedTreasure.id);
+            nextObtainedCoop = [...coopObtainedTreasures, landedTreasure.id];
+            setRemainingCoopTreasures(nextRemainingCoop);
+            setCoopObtainedTreasures(nextObtainedCoop);
+            trackPawnTreasure(activePawn);
+            onToast(`Goal Achieved: Found ${landedTreasure.name}! 🏆`);
+            claimed = true;
+          } else if (remainingCoopTreasures.length === 0) {
+            const home = HOME_POSITIONS[activePawn];
+            if (home && r === home.r && c === home.c) {
+              onToast(`${activePawn.toUpperCase()} has reached home! 🏠`);
+              const allHome = activePlayers.every((p) => {
+                const pos = nextPositions[p];
+                const pHome = HOME_POSITIONS[p];
+                return pos && pHome && pos.r === pHome.r && pos.c === pHome.c;
+              });
+              if (allHome) {
+                if (!isMuted) playSuccessSound();
+                onToast("Cooperative Victory! All treasures collected and all pawns are home! 🎉🏆");
+              }
+            }
+          }
         } else {
+          if (landedTreasure && playerHands[activePawn].includes(landedTreasure.id)) {
+            if (!isMuted) playSuccessSound();
+            const nextHand = playerHands[activePawn].filter((tid) => tid !== landedTreasure.id);
+            nextPlayerHands = { ...playerHands, [activePawn]: nextHand };
+            nextPlayerActiveTargets = {
+              ...playerActiveTargets,
+              [activePawn]: nextHand.length > 0 ? nextHand[0] : null,
+            };
+            nextObtainedTreasures = {
+              ...obtainedTreasures,
+              [activePawn]: [
+                ...(obtainedTreasures[activePawn] || []),
+                landedTreasure.id,
+              ],
+            };
+            setPlayerHands(nextPlayerHands);
+            setPlayerActiveTargets(nextPlayerActiveTargets);
+            setObtainedTreasures(nextObtainedTreasures);
+            trackPawnTreasure(activePawn);
+            onToast(`Goal Achieved: Found ${landedTreasure.name}! 🏆`);
+            claimed = true;
+          }
+        }
+
+        if (!claimed) {
           onToast(`Moved ${activePawn.toUpperCase()} pawn to (${r}, ${c})`);
         }
 
-        const moveLabel = landedTreasure && landedTreasure.id === activeTargetCard
+        const moveLabel = claimed && landedTreasure
           ? `${activePawn[0].toUpperCase()}${activePawn.slice(1)} found ${landedTreasure.name}`
           : `${activePawn[0].toUpperCase()}${activePawn.slice(1)} → (${r},${c})`;
+
         pushStateToHistory(
           grid,
           spareTile,
@@ -481,8 +542,12 @@ export function useLabyrinthGame({
           nextPositions,
           moveLabel,
           activePawn,
-          [startCoord, { r, c }]
+          [startCoord, { r, c }],
+          gameMode,
+          nextRemainingCoop,
+          nextObtainedCoop
         );
+
         saveAutosave({
           board: grid,
           looseTiles: [],
@@ -495,9 +560,12 @@ export function useLabyrinthGame({
           isGameStarted,
           gameStartState,
           pawnPositions: nextPositions,
+          gameMode,
+          remainingCoopTreasures: nextRemainingCoop,
+          coopObtainedTreasures: nextObtainedCoop,
         });
 
-        if (!landedTreasure || landedTreasure.id !== activeTargetCard) {
+        if (gameMode === "coop" || !claimed) {
           switchToNextPawn();
         }
       } else {
@@ -530,6 +598,10 @@ export function useLabyrinthGame({
       saveAutosave,
       switchToNextPawn,
       onToast,
+      gameMode,
+      remainingCoopTreasures,
+      coopObtainedTreasures,
+      activePlayers,
     ]
   );
 
@@ -597,7 +669,12 @@ export function useLabyrinthGame({
         playerActiveTargets,
         obtainedTreasures,
         nextPositions,
-        slideLabel
+        slideLabel,
+        undefined,
+        undefined,
+        gameMode,
+        remainingCoopTreasures,
+        coopObtainedTreasures
       );
       saveAutosave({
         board: nextGrid,
@@ -611,6 +688,9 @@ export function useLabyrinthGame({
         isGameStarted,
         gameStartState,
         pawnPositions: nextPositions,
+        gameMode,
+        remainingCoopTreasures,
+        coopObtainedTreasures,
       });
     },
     [
@@ -631,6 +711,9 @@ export function useLabyrinthGame({
       pushStateToHistory,
       saveAutosave,
       onToast,
+      gameMode,
+      remainingCoopTreasures,
+      coopObtainedTreasures,
     ]
   );
 
@@ -671,6 +754,50 @@ export function useLabyrinthGame({
     [activePawn, playerHands]
   );
 
+  const handleAddAllCards = useCallback(() => {
+    // Collect all treasures that are not already in other players' hands
+    const allAvailable = TREASURES.filter((t) => {
+      return !Object.entries(playerHands).some(([color, hand]) => color !== activePawn && hand.includes(t.id));
+    }).map((t) => t.id);
+
+    setPlayerHands((prev) => ({ ...prev, [activePawn]: allAvailable }));
+    setPlayerActiveTargets((prev) => ({
+      ...prev,
+      [activePawn]: allAvailable.length > 0 ? allAvailable[0] : null,
+    }));
+    setPawnStats((prev) => {
+      const current =
+        prev[activePawn] ?? {
+          tilesMoved: 0,
+          shiftsUsed: 0,
+          treasuresFound: 0,
+          totalTargets: 0,
+        };
+      return {
+        ...prev,
+        [activePawn]: { ...current, totalTargets: allAvailable.length },
+      };
+    });
+  }, [activePawn, playerHands]);
+
+  const handleClearAllCards = useCallback(() => {
+    setPlayerHands((prev) => ({ ...prev, [activePawn]: [] }));
+    setPlayerActiveTargets((prev) => ({ ...prev, [activePawn]: null }));
+    setPawnStats((prev) => {
+      const current =
+        prev[activePawn] ?? {
+          tilesMoved: 0,
+          shiftsUsed: 0,
+          treasuresFound: 0,
+          totalTargets: 0,
+        };
+      return {
+        ...prev,
+        [activePawn]: { ...current, totalTargets: 0 },
+      };
+    });
+  }, [activePawn]);
+
   const handleSelectTargetTreasure = useCallback(
     (pawnColor: string, treasureId: string | null) => {
       setPlayerActiveTargets((prev) => ({ ...prev, [pawnColor]: treasureId }));
@@ -687,6 +814,26 @@ export function useLabyrinthGame({
     }
     if (!isMuted) playSuccessSound();
 
+    let initialRemainingCoop: string[] = [];
+    if (gameMode === "coop") {
+      const boardTreasures: string[] = [];
+      grid.forEach((row) => {
+        row.forEach((tile) => {
+          if (tile && tile.treasure) {
+            boardTreasures.push(tile.treasure.id);
+          }
+        });
+      });
+      looseTiles.forEach((tile) => {
+        if (tile && tile.treasure) {
+          boardTreasures.push(tile.treasure.id);
+        }
+      });
+      initialRemainingCoop = boardTreasures;
+      setRemainingCoopTreasures(initialRemainingCoop);
+      setCoopObtainedTreasures([]);
+    }
+
     const startState: AppGameState = {
       board: grid.map((r) => [...r]),
       spareTile: { ...looseTiles[0] },
@@ -699,6 +846,9 @@ export function useLabyrinthGame({
       isGameStarted: false,
       gameStartState: null,
       pawnPositions: { ...pawnPositions },
+      gameMode,
+      remainingCoopTreasures: initialRemainingCoop,
+      coopObtainedTreasures: [],
     };
 
     setSpareTile(looseTiles[0]);
@@ -717,7 +867,12 @@ export function useLabyrinthGame({
       playerActiveTargets,
       obtainedTreasures,
       pawnPositions,
-      "Game started"
+      "Game started",
+      undefined,
+      undefined,
+      gameMode,
+      initialRemainingCoop,
+      []
     );
     saveAutosave({
       board: grid,
@@ -731,8 +886,17 @@ export function useLabyrinthGame({
       isGameStarted: true,
       gameStartState: startState,
       pawnPositions,
+      gameMode,
+      remainingCoopTreasures: initialRemainingCoop,
+      coopObtainedTreasures: [],
     });
-    onToast("Game started! Slide the spare tile and move your pawn to targets.");
+    onToast(
+      gameMode === "auto"
+        ? "Auto Mode active! Sit back while the solver automatically executes optimal moves."
+        : gameMode === "coop"
+        ? "Cooperative Game started! Collect all treasures and get all pawns back home."
+        : "Game started! Slide the spare tile and move your pawn to targets."
+    );
   }, [
     looseTiles,
     isMuted,
@@ -745,6 +909,7 @@ export function useLabyrinthGame({
     pushStateToHistory,
     saveAutosave,
     onToast,
+    gameMode,
   ]);
 
   const handleEndGame = useCallback(() => {
@@ -756,6 +921,9 @@ export function useLabyrinthGame({
     const restoredTargets = gameStartState.playerActiveTargets ?? EMPTY_PLAYER_TARGETS;
     const restoredObtained = gameStartState.obtainedTreasures ?? EMPTY_OBTAINED_TREASURES;
     const restoredActivePawn = gameStartState.activePawn ?? "red";
+    const restoredGameMode = gameStartState.gameMode ?? "standard";
+    const restoredRemainingCoop = gameStartState.remainingCoopTreasures ?? [];
+    const restoredObtainedCoop = gameStartState.coopObtainedTreasures ?? [];
 
     setGrid(gameStartState.board);
     setLooseTiles([gameStartState.spareTile]);
@@ -765,6 +933,9 @@ export function useLabyrinthGame({
     setPlayerActiveTargets(restoredTargets);
     setObtainedTreasures(restoredObtained);
     setActivePawn(restoredActivePawn);
+    setGameMode(restoredGameMode);
+    setRemainingCoopTreasures(restoredRemainingCoop);
+    setCoopObtainedTreasures(restoredObtainedCoop);
     setIsGameStarted(false);
     setLastShiftArrowId(null);
     setGameStartState(null);
@@ -781,6 +952,9 @@ export function useLabyrinthGame({
       playerActiveTargets: restoredTargets,
       obtainedTreasures: restoredObtained,
       pawnPositions: restoredPawnPositions,
+      gameMode: restoredGameMode,
+      remainingCoopTreasures: restoredRemainingCoop,
+      coopObtainedTreasures: restoredObtainedCoop,
     });
 
     saveAutosave({
@@ -795,6 +969,9 @@ export function useLabyrinthGame({
       isGameStarted: false,
       gameStartState: null,
       pawnPositions: restoredPawnPositions,
+      gameMode: restoredGameMode,
+      remainingCoopTreasures: restoredRemainingCoop,
+      coopObtainedTreasures: restoredObtainedCoop,
     });
   }, [
     gameStartState,
@@ -815,6 +992,12 @@ export function useLabyrinthGame({
       if (!arrow) return;
       if (!isMuted) playSlideSound();
 
+      // Read which pawn is moving from the solver solution (coop mode supports multi-pawn steps)
+      const pawnToMove = (path as any).pawnColor ?? activePawn;
+      if (pawnToMove !== activePawn) {
+        setActivePawn(pawnToMove);
+      }
+
       const rotDegrees = ([0, 90, 180, 270] as Rotation[])[turn1.rotation];
       const solverBoard = getSolverFormattedBoard(grid, pawnPositions);
       const { newSpare } = executeSlideInGrid(
@@ -827,9 +1010,9 @@ export function useLabyrinthGame({
 
       const nextGrid = fromSolverGrid(grid, solverBoard, nextTileId);
       const nextSpare = fromSolverSpare(newSpare, String(Date.now()));
-      const nextPositions = {
+      const nextPositions: PawnPositions = {
         ...pawnPositions,
-        [activePawn]: { r: turn1.endPos.r, c: turn1.endPos.c },
+        [pawnToMove]: { r: turn1.endPos.r, c: turn1.endPos.c },
       };
 
       setGrid(nextGrid);
@@ -837,60 +1020,92 @@ export function useLabyrinthGame({
       setPawnPositions(nextPositions);
       setLastShiftArrowId(turn1.arrowId);
       totalShiftsRef.current += 1;
-      trackPawnMove(activePawn, 1);
+      trackPawnMove(pawnToMove, 1);
 
-      const activeTargetCard = playerActiveTargets[activePawn];
       const landedTreasure = nextGrid[turn1.endPos.r][turn1.endPos.c]?.treasure;
       let nextPlayerHands = playerHands;
       let nextPlayerActiveTargets = playerActiveTargets;
       let nextObtainedTreasures = obtainedTreasures;
+      let nextRemainingCoop = remainingCoopTreasures;
+      let nextObtainedCoop = coopObtainedTreasures;
+      let claimed = false;
 
-      if (landedTreasure && landedTreasure.id === activeTargetCard) {
-        if (!isMuted) playSuccessSound();
-        const nextHand = playerHands[activePawn].filter(
-          (tid) => tid !== activeTargetCard
-        );
-        nextPlayerHands = { ...playerHands, [activePawn]: nextHand };
-        nextPlayerActiveTargets = {
-          ...playerActiveTargets,
-          [activePawn]: nextHand.length > 0 ? nextHand[0] : null,
-        };
-        nextObtainedTreasures = {
-          ...obtainedTreasures,
-          [activePawn]: [
-            ...(obtainedTreasures[activePawn] || []),
-            activeTargetCard,
-          ],
-        };
-        setPlayerHands(nextPlayerHands);
-        setPlayerActiveTargets(nextPlayerActiveTargets);
-        setObtainedTreasures(nextObtainedTreasures);
-        trackPawnTreasure(activePawn);
-        onToast(`Goal Achieved: Found ${landedTreasure.name}! 🏆`);
+      if (gameMode === "coop") {
+        if (landedTreasure && remainingCoopTreasures.includes(landedTreasure.id)) {
+          if (!isMuted) playSuccessSound();
+          nextRemainingCoop = remainingCoopTreasures.filter((tid) => tid !== landedTreasure.id);
+          nextObtainedCoop = [...coopObtainedTreasures, landedTreasure.id];
+          setRemainingCoopTreasures(nextRemainingCoop);
+          setCoopObtainedTreasures(nextObtainedCoop);
+          trackPawnTreasure(pawnToMove);
+          onToast(`Goal Achieved: Found ${landedTreasure.name}! 🏆`);
+          claimed = true;
+        } else if (remainingCoopTreasures.length === 0) {
+          const home = HOME_POSITIONS[pawnToMove];
+          if (home && turn1.endPos.r === home.r && turn1.endPos.c === home.c) {
+            onToast(`${pawnToMove.toUpperCase()} has reached home! 🏠`);
+            const allHome = activePlayers.every((p) => {
+              const pos = nextPositions[p];
+              const pHome = HOME_POSITIONS[p];
+              return pos && pHome && pos.r === pHome.r && pos.c === pHome.c;
+            });
+            if (allHome) {
+              if (!isMuted) playSuccessSound();
+              onToast("Cooperative Victory! All treasures collected and all pawns are home! 🎉🏆");
+            }
+          }
+        }
+      } else {
+        if (landedTreasure && playerHands[pawnToMove].includes(landedTreasure.id)) {
+          if (!isMuted) playSuccessSound();
+          const nextHand = playerHands[pawnToMove].filter((tid) => tid !== landedTreasure.id);
+          nextPlayerHands = { ...playerHands, [pawnToMove]: nextHand };
+          nextPlayerActiveTargets = {
+            ...playerActiveTargets,
+            [pawnToMove]: nextHand.length > 0 ? nextHand[0] : null,
+          };
+          nextObtainedTreasures = {
+            ...obtainedTreasures,
+            [pawnToMove]: [
+              ...(obtainedTreasures[pawnToMove] || []),
+              landedTreasure.id,
+            ],
+          };
+          setPlayerHands(nextPlayerHands);
+          setPlayerActiveTargets(nextPlayerActiveTargets);
+          setObtainedTreasures(nextObtainedTreasures);
+          trackPawnTreasure(pawnToMove);
+          onToast(`Goal Achieved: Found ${landedTreasure.name}! 🏆`);
+          claimed = true;
+        }
       }
+      const execLabel = claimed && landedTreasure
+        ? `${pawnToMove[0].toUpperCase()}${pawnToMove.slice(1)} found ${landedTreasure.name}`
+        : `${pawnToMove[0].toUpperCase()}${pawnToMove.slice(1)} → (${turn1.endPos.r},${turn1.endPos.c})`;
+      const execPath = (turn1 as { pawnPath?: { r: number; c: number }[] }).pawnPath ?? [pawnPositions[pawnToMove], turn1.endPos];
 
-      const execLabel = landedTreasure && landedTreasure.id === activeTargetCard
-        ? `${activePawn[0].toUpperCase()}${activePawn.slice(1)} found ${landedTreasure.name}`
-        : `${activePawn[0].toUpperCase()}${activePawn.slice(1)} → (${turn1.endPos.r},${turn1.endPos.c})`;
-      const execPath = (turn1 as { pawnPath?: { r: number; c: number }[] }).pawnPath ?? [pawnPositions[activePawn], turn1.endPos];
       pushStateToHistory(
         nextGrid,
         nextSpare,
         turn1.arrowId,
-        activePawn,
+        pawnToMove,
         nextPlayerHands,
         nextPlayerActiveTargets,
         nextObtainedTreasures,
         nextPositions,
         execLabel,
-        activePawn,
-        execPath
+        pawnToMove,
+        execPath,
+        gameMode,
+        nextRemainingCoop,
+        nextObtainedCoop
       );
+
       saveAutosave({
         board: nextGrid,
         looseTiles: [],
         spareTile: nextSpare,
-        activePawn,
+        activePawn: pawnToMove,
         playerHands: nextPlayerHands,
         playerActiveTargets: nextPlayerActiveTargets,
         obtainedTreasures: nextObtainedTreasures,
@@ -898,7 +1113,11 @@ export function useLabyrinthGame({
         isGameStarted,
         gameStartState,
         pawnPositions: nextPositions,
+        gameMode,
+        remainingCoopTreasures: nextRemainingCoop,
+        coopObtainedTreasures: nextObtainedCoop,
       });
+
       switchToNextPawn();
     },
     [
@@ -921,6 +1140,10 @@ export function useLabyrinthGame({
       saveAutosave,
       switchToNextPawn,
       onToast,
+      gameMode,
+      remainingCoopTreasures,
+      coopObtainedTreasures,
+      activePlayers,
     ]
   );
 
@@ -935,6 +1158,9 @@ export function useLabyrinthGame({
       setPlayerActiveTargets(state.playerActiveTargets);
       setObtainedTreasures(state.obtainedTreasures || EMPTY_OBTAINED_TREASURES);
       if (state.pawnPositions) setPawnPositions(state.pawnPositions);
+      if (state.gameMode) setGameMode(state.gameMode);
+      if (state.remainingCoopTreasures) setRemainingCoopTreasures(state.remainingCoopTreasures);
+      if (state.coopObtainedTreasures) setCoopObtainedTreasures(state.coopObtainedTreasures);
     });
   }, [undo]);
 
@@ -948,6 +1174,9 @@ export function useLabyrinthGame({
       setPlayerActiveTargets(state.playerActiveTargets);
       setObtainedTreasures(state.obtainedTreasures || EMPTY_OBTAINED_TREASURES);
       if (state.pawnPositions) setPawnPositions(state.pawnPositions);
+      if (state.gameMode) setGameMode(state.gameMode);
+      if (state.remainingCoopTreasures) setRemainingCoopTreasures(state.remainingCoopTreasures);
+      if (state.coopObtainedTreasures) setCoopObtainedTreasures(state.coopObtainedTreasures);
     });
   }, [redo]);
 
@@ -961,6 +1190,9 @@ export function useLabyrinthGame({
       setPlayerActiveTargets(state.playerActiveTargets);
       setObtainedTreasures(state.obtainedTreasures || EMPTY_OBTAINED_TREASURES);
       if (state.pawnPositions) setPawnPositions(state.pawnPositions);
+      if (state.gameMode) setGameMode(state.gameMode);
+      if (state.remainingCoopTreasures) setRemainingCoopTreasures(state.remainingCoopTreasures);
+      if (state.coopObtainedTreasures) setCoopObtainedTreasures(state.coopObtainedTreasures);
     });
   }, [jumpToHistory]);
 
@@ -1014,10 +1246,19 @@ export function useLabyrinthGame({
     handleSlide,
     handleAddCard,
     handleRemoveCard,
+    handleAddAllCards,
+    handleClearAllCards,
     handleSelectTargetTreasure,
     handleStartGame,
     handleEndGame,
     handleExecuteSolution,
     switchToNextPawn,
+    gameMode,
+    setGameMode,
+    remainingCoopTreasures,
+    setRemainingCoopTreasures,
+    coopObtainedTreasures,
+    setCoopObtainedTreasures,
+    totalShifts: totalShiftsRef.current,
   };
 }

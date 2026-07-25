@@ -46,6 +46,9 @@ export interface AppGameState {
   isGameStarted: boolean;
   gameStartState: AppGameState | null;
   pawnPositions: PawnPositions;
+  gameMode?: "standard" | "coop" | "auto";
+  remainingCoopTreasures?: string[];
+  coopObtainedTreasures?: string[];
 }
 
 export interface BoardScanCell {
