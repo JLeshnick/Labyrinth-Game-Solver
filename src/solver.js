@@ -811,6 +811,27 @@ function solveAllHand(board, spareTile, startPawnPos, handCards, lastShiftArrowI
          return aDist - bDist;
        }
      }
+
+     // Prioritize avoiding trapped/dead ends (safety score <= 0.1)
+     const aTrapped = a.safetyScore <= 0.1;
+     const bTrapped = b.safetyScore <= 0.1;
+     if (aTrapped !== bTrapped) {
+       return aTrapped ? 1 : -1;
+     }
+
+     // Prioritize fewer walk spaces (more direct)
+     const getWalkDist = (p) => {
+       let d = 0;
+       for (const step of p) {
+         if (step.pawnPath) d += step.pawnPath.length - 1;
+       }
+       return d;
+     };
+     const aWalk = getWalkDist(a);
+     const bWalk = getWalkDist(b);
+     if (aWalk !== bWalk) {
+       return aWalk - bWalk;
+     }
      
      return b.safetyScore - a.safetyScore;
    });
@@ -1054,7 +1075,28 @@ function solveCoopStep(board, spareTile, pawnPositions, activePawns, remainingTr
       }
     }
 
-    // 4. Safety score higher first
+    // 4. Prioritize avoiding trapped/dead ends (safety score <= 0.1)
+    const aTrapped = a.safetyScore <= 0.1;
+    const bTrapped = b.safetyScore <= 0.1;
+    if (aTrapped !== bTrapped) {
+      return aTrapped ? 1 : -1;
+    }
+
+    // 5. Prioritize fewer walk spaces (more direct)
+    const getWalkDist = (p) => {
+      let d = 0;
+      for (const step of p) {
+        if (step.pawnPath) d += step.pawnPath.length - 1;
+      }
+      return d;
+    };
+    const aWalk = getWalkDist(a);
+    const bWalk = getWalkDist(b);
+    if (aWalk !== bWalk) {
+      return aWalk - bWalk;
+    }
+
+    // 6. Safety score higher first
     return b.safetyScore - a.safetyScore;
   });
 

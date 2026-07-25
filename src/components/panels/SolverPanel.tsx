@@ -314,53 +314,77 @@ export function SolverPanel({
             Computing paths...
           </div>
         ) : solutions.length > 0 ? (
-          solutions.map((sol, index) => {
-            const isFallback = sol.isFallback;
-            return (
-              <div
-                key={index}
-                onMouseEnter={() => setHoveredSolution(sol)}
-                onMouseLeave={() => setHoveredSolution(null)}
-                className={`relative p-2.5 pl-9 rounded-xl transition-all flex items-start justify-between cursor-pointer group gap-2 ${
-                  index === 0 && !isFallback
-                    ? "app-surface-accent hover:border-theme-primary"
-                    : "app-surface hover:border-theme-primary-40"
-                } ${isFallback ? "opacity-75 hover:opacity-100" : ""}`}
-              >
-                {/* Rank chip */}
-                <span
-                  className={`absolute left-2 top-2.5 w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${
+          <>
+            <div className="text-[10px] text-stone-500 px-1 mb-0.5 italic flex items-center justify-between">
+              <span>Ranked by: 1. Turn count, 2. Walk distance, 3. Safety</span>
+              <span>Showing top {solutions.length}</span>
+            </div>
+            {solutions.map((sol, index) => {
+              const isFallback = sol.isFallback;
+              let walkDist = 0;
+              for (const step of sol) {
+                if (step.pawnPath) walkDist += step.pawnPath.length - 1;
+              }
+              const safetyPct = sol.safetyScore !== undefined ? Math.round(sol.safetyScore * 100) : null;
+              return (
+                <div
+                  key={index}
+                  onMouseEnter={() => setHoveredSolution(sol)}
+                  onMouseLeave={() => setHoveredSolution(null)}
+                  className={`relative p-2.5 pl-9 rounded-xl transition-all flex items-start justify-between cursor-pointer group gap-2 ${
                     index === 0 && !isFallback
-                      ? "bg-theme-primary text-stone-950"
-                      : "bg-theme-primary-10 text-theme-primary border border-theme-primary-20"
-                  }`}
+                      ? "app-surface-accent hover:border-theme-primary"
+                      : "app-surface hover:border-theme-primary-40"
+                  } ${isFallback ? "opacity-75 hover:opacity-100" : ""}`}
                 >
-                  {index + 1}
-                </span>
-                <div className="flex-1 min-w-0">
-                  <div className="text-xs font-semibold flex items-center gap-1.5 flex-wrap">
-                    {(sol as any).pawnColor && (
-                      <span className={`px-1.5 py-0.5 rounded text-[9px] font-extrabold uppercase tracking-wider text-stone-950 ${
-                        (sol as any).pawnColor === "red"
-                          ? "bg-red-500"
-                          : (sol as any).pawnColor === "blue"
-                          ? "bg-blue-400"
-                          : (sol as any).pawnColor === "green"
-                          ? "bg-green-400"
-                          : "bg-yellow-400"
-                      }`}>
-                        {(sol as any).pawnColor}
+                  {/* Rank chip */}
+                  <span
+                    className={`absolute left-2 top-2.5 w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${
+                      index === 0 && !isFallback
+                        ? "bg-theme-primary text-stone-950"
+                        : "bg-theme-primary-10 text-theme-primary border border-theme-primary-20"
+                    }`}
+                  >
+                    {index + 1}
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-xs font-semibold flex items-center gap-1.5 flex-wrap">
+                      {(sol as any).pawnColor && (
+                        <span className={`px-1.5 py-0.5 rounded text-[9px] font-extrabold uppercase tracking-wider text-stone-950 ${
+                          (sol as any).pawnColor === "red"
+                            ? "bg-red-500"
+                            : (sol as any).pawnColor === "blue"
+                            ? "bg-blue-400"
+                            : (sol as any).pawnColor === "green"
+                            ? "bg-green-400"
+                            : "bg-yellow-400"
+                        }`}>
+                          {(sol as any).pawnColor}
+                        </span>
+                      )}
+                      {isFallback ? (
+                        <span className="text-amber-500 font-bold">Fallback Setup</span>
+                      ) : sol.length === 1 ? (
+                        <span className="text-green-500 font-bold">Direct Route</span>
+                      ) : (
+                        <span className="text-blue-400 font-bold">Multi-Turn Route</span>
+                      )}
+                      <span className="text-[10px] text-stone-500">({sol.length} turn{sol.length > 1 ? "s" : ""})</span>
+                      <span className="px-1.5 py-0.5 rounded bg-stone-850 text-stone-300 text-[9px] font-semibold border border-stone-700/50 flex items-center gap-0.5 leading-none">
+                        👣 {walkDist} space{walkDist !== 1 ? "s" : ""}
                       </span>
-                    )}
-                    {isFallback ? (
-                      <span className="text-amber-500 font-bold">Fallback Setup</span>
-                    ) : sol.length === 1 ? (
-                      <span className="text-green-500 font-bold">Direct Route</span>
-                    ) : (
-                      <span className="text-blue-400 font-bold">Multi-Turn Route</span>
-                    )}
-                    <span className="text-[10px] text-stone-500">({sol.length} turn{sol.length > 1 ? "s" : ""})</span>
-                  </div>
+                      {safetyPct !== null && (
+                        <span className={`px-1.5 py-0.5 rounded text-[9px] font-semibold border flex items-center gap-0.5 leading-none ${
+                          safetyPct >= 80
+                            ? "bg-emerald-950/40 text-emerald-400 border-emerald-900/50"
+                            : safetyPct >= 40
+                            ? "bg-amber-950/40 text-amber-400 border-amber-900/50"
+                            : "bg-red-950/40 text-red-400 border-red-900/50"
+                        }`}>
+                          🛡️ {safetyPct}% safe
+                        </span>
+                      )}
+                    </div>
                   <div className="text-xs font-medium text-stone-100 mt-1 font-mono leading-relaxed">
                     {sol.explanation?.slide}
                   </div>
@@ -392,7 +416,7 @@ export function SolverPanel({
                 </Button>
               </div>
             );
-          })
+          })}</>
         ) : (
           <div className="flex-1 flex items-center justify-center text-stone-600 text-sm">
             No paths found. Check the selected target.
