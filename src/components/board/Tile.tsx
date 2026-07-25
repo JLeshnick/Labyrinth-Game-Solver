@@ -180,7 +180,6 @@ export const Tile: React.FC<TileProps> = ({
         className
       )}
       style={is3D ? { ...shadowStyle, transformStyle: "preserve-3d" } : undefined}
-      title={tile.isFixed ? "This preset tile is permanently glued to the board. It cannot be moved, slid, or rotated." : undefined}
     >
       {/* Inner container with overflow-hidden to cleanly clip the SVG paths */}
       <div className="absolute inset-0 rounded-[14px] overflow-hidden" style={{ transformStyle: is3D ? "preserve-3d" : "flat" }}>
