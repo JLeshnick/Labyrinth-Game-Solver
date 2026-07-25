@@ -290,10 +290,11 @@ export const Board: React.FC<BoardProps> = ({
               ? "Slide phase complete — move your pawn"
               : `Stage tile into ${arrow.label}`;
 
+            // Point tooltips inward toward the board interior to avoid clipping viewport boundaries
             const tooltipSide =
-              arrow.dir === "top" ? "top" :
-              arrow.dir === "bottom" ? "bottom" :
-              arrow.dir === "left" ? "left" : "right";
+              arrow.dir === "top" ? "bottom" :
+              arrow.dir === "bottom" ? "top" :
+              arrow.dir === "left" ? "right" : "left";
 
             return (
               <Tooltip
@@ -303,8 +304,9 @@ export const Board: React.FC<BoardProps> = ({
                 style={{
                   gridRow: arrow.gridRow,
                   gridColumn: arrow.gridColumn,
+                  zIndex: 60,
                 }}
-                containerClassName="w-full h-full flex items-center justify-center"
+                containerClassName="w-full h-full flex items-center justify-center relative"
               >
                 <button
                   onClick={() => !isForbidden && onArrowClick(arrow.id)}

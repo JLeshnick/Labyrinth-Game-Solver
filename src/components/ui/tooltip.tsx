@@ -27,7 +27,7 @@ export function Tooltip({ content, children, side = "bottom", className, contain
       <div
         role="tooltip"
         className={cn(
-          "absolute z-50 px-2 py-1 rounded-lg text-[11px] font-semibold whitespace-nowrap",
+          "absolute z-[100] px-2 py-1 rounded-lg text-[11px] font-semibold whitespace-nowrap",
           "app-dialog-panel neo-brutalism-card text-stone-200",
           "invisible opacity-0 group-hover:visible group-hover:opacity-100",
           "transition-opacity duration-100 pointer-events-none",
