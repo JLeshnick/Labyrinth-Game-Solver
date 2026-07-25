@@ -274,6 +274,21 @@ export function useLabyrinthGame({
     });
   }, [resetHistory]);
 
+  const resetAllDefaults = useCallback(() => {
+    resetBoardToInitialPresets();
+    setActivePlayers(["red", "blue", "green", "yellow"]);
+    setActivePawn("red");
+    setGameMode("standard");
+    setRemainingCoopTreasures([]);
+    setCoopObtainedTreasures([]);
+    try {
+      localStorage.removeItem("labyrinth_autosave");
+      localStorage.removeItem("labyrinth_active_players");
+    } catch {
+      /* storage blocked */
+    }
+  }, [resetBoardToInitialPresets]);
+
   // ── hydrate from autosave on mount ───────────────────────────────────────────
   const hydrateFromSaved = useCallback(
     (saved: Partial<AppGameState>, fallbackSpare: TileData) => {
@@ -1239,6 +1254,7 @@ export function useLabyrinthGame({
     // Initialisation
     hydrateFromSaved,
     resetBoardToInitialPresets,
+    resetAllDefaults,
     // Game handlers
     handleRandomizeBoard,
     handleTileClick,

@@ -30,6 +30,7 @@ interface SetupPanelProps {
   compact?: boolean;
   gameMode?: "standard" | "coop" | "auto";
   onSetGameMode?: (mode: "standard" | "coop" | "auto") => void;
+  onResetAllDefaults?: () => void;
 }
 
 export function SetupPanel({
@@ -56,6 +57,7 @@ export function SetupPanel({
   compact = false,
   gameMode = "standard",
   onSetGameMode,
+  onResetAllDefaults,
 }: SetupPanelProps) {
 
   useEffect(() => {
@@ -93,10 +95,26 @@ export function SetupPanel({
     <div className="flex-1 flex flex-col min-h-0 gap-3 md:gap-4 p-2 md:p-3 lg:p-4">
       {/* Checklist */}
       <div className="p-3 app-surface flex flex-col gap-2 text-xs md:text-sm text-left">
-        <h3 className="font-bold text-stone-200 flex items-center gap-1.5 border-b border-stone-800 pb-1.5">
-          <Sparkles className="w-3.5 h-3.5 text-theme-primary" />
-          Setup Wizard & Checklist
-        </h3>
+        <div className="flex items-center justify-between border-b border-stone-800 pb-1.5">
+          <h3 className="font-bold text-stone-200 flex items-center gap-1.5">
+            <Sparkles className="w-3.5 h-3.5 text-theme-primary" />
+            Setup Wizard & Checklist
+          </h3>
+          {onResetAllDefaults && (
+            <button
+              onClick={() => {
+                if (!isMuted) playClickSound();
+                onResetAllDefaults();
+                showToast("All game settings and layout reset to defaults!");
+              }}
+              title="Reset all settings, mode, players, cards, and board to defaults"
+              className="text-[10px] text-red-400 hover:text-red-300 font-bold flex items-center gap-1 bg-stone-900/60 hover:bg-stone-900 border border-red-950/60 px-2 py-1 rounded-lg transition-all cursor-pointer shrink-0"
+            >
+              <RefreshCcw className="w-3 h-3" />
+              Reset Defaults
+            </button>
+          )}
+        </div>
         <div className="flex flex-col gap-1.5 mt-0.5">
           <div className="flex items-center gap-2">
             <span className={`w-2 h-2 rounded-full border border-stone-950 ${looseTiles.length === 1 ? "bg-green-500" : "bg-theme-primary"}`} />

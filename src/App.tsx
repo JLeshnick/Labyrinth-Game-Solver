@@ -1031,6 +1031,7 @@ export default function App() {
                   onScanBoard={() => setIsScanModalOpen(true)}
                   gameMode={game.gameMode}
                   onSetGameMode={game.setGameMode}
+                  onResetAllDefaults={game.resetAllDefaults}
                 />
               )}
             </div>
@@ -1130,6 +1131,7 @@ export default function App() {
                     compact={mobilePanelStop === "peek"}
                     gameMode={game.gameMode}
                     onSetGameMode={game.setGameMode}
+                    onResetAllDefaults={game.resetAllDefaults}
                   />
                 )}
               </div>
