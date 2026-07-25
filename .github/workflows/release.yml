@@ -21,6 +21,9 @@ jobs:
   release-and-deploy:
     name: Build, Release & Deploy
     runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
 
     steps:
       - name: Checkout Code
@@ -70,4 +73,5 @@ jobs:
           path: dist
 
       - name: Deploy to GitHub Pages
+        id: deploy
         uses: actions/deploy-pages@v4
