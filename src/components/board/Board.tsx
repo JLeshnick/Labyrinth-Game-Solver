@@ -290,15 +290,14 @@ export const Board: React.FC<BoardProps> = ({
               ? "Slide phase complete — move your pawn"
               : `Stage tile into ${arrow.label}`;
 
-            // Orient tooltips outward into the blank space around the board, offsetting corners to stay within viewport
-            let tooltipSide: "top" | "bottom" | "left" | "right" | "bottom-left" | "bottom-right" = "bottom";
+            // Orient tooltips outward into the blank space around the board, with corner edge offsets
+            let tooltipSide: "top" | "bottom" | "left" | "right" | "left-start" | "left-end" | "right-start" | "right-end" = "bottom";
             if (arrow.dir === "top") tooltipSide = "top";
             else if (arrow.dir === "bottom") tooltipSide = "bottom";
             else if (arrow.dir === "left") {
-              // Left column arrows — offset top/bottom-most left arrows toward interior vertically if needed
-              tooltipSide = arrow.index === 1 ? "left" : arrow.index === 5 ? "left" : "left";
+              tooltipSide = arrow.index === 1 ? "left-start" : arrow.index === 5 ? "left-end" : "left";
             } else if (arrow.dir === "right") {
-              tooltipSide = "right";
+              tooltipSide = arrow.index === 1 ? "right-start" : arrow.index === 5 ? "right-end" : "right";
             }
 
             return (
@@ -309,7 +308,7 @@ export const Board: React.FC<BoardProps> = ({
                 style={{
                   gridRow: arrow.gridRow,
                   gridColumn: arrow.gridColumn,
-                  zIndex: 60,
+                  zIndex: 20,
                 }}
                 containerClassName="w-full h-full flex items-center justify-center relative"
               >
@@ -431,7 +430,7 @@ export const Board: React.FC<BoardProps> = ({
           if (!pushedTile) return null;
           return (
             <div
-              style={{ gridRow, gridColumn, zIndex: 30 }}
+              style={{ gridRow, gridColumn, zIndex: 70 }}
               className={cn("relative w-full h-full aspect-square rounded-xl overflow-hidden border-2 border-stone-950 pointer-events-none shadow-[4px_4px_0_0_#000000]", animClass)}
             >
               <Tile tile={pushedTile} boardRotation={boardRotation} disableRotationTransition={true} is3D={is3D} className="absolute inset-0 w-full h-full" />
