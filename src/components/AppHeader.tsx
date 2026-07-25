@@ -132,7 +132,7 @@ export function AppHeader({
         style={{ boxShadow: "0 3px 0 0 #000000" }}
       >
         {/* Left — brutalist title linking to GitHub */}
-        <Tooltip content="Labyrinth Companion & Solver — View on GitHub" side="bottom">
+        <Tooltip content="Labyrinth Companion & Solver — View on GitHub" side="bottom-left">
           <a
             href="https://github.com/JLeshnick/Labyrinth-Game-Solver"
             target="_blank"

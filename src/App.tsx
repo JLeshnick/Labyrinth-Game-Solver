@@ -143,7 +143,13 @@ export default function App() {
     to: { r: number; c: number };
     key: number;
   } | null>(null);
+  // While animating, hold pawn at from-position so it doesn't snap before the dot lands
+  const [pawnPositionOverride, setPawnPositionOverride] = useState<Record<string, {r: number; c: number}> | null>(null);
   const travelTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // ── Autoplay controls state ──────────────────────────────────────────────────
+  const [autoPlayPaused, setAutoPlayPaused] = useState(false);
+  const [autoPlaySpeed, setAutoPlaySpeed] = useState<0.5 | 1 | 2 | 4>(1);
 
   // ── Toast system ──────────────────────────────────────────────────────────────
   const [toastText, setToastText] = useState<string | null>(null);
@@ -236,6 +242,7 @@ export default function App() {
   const canStartGame = game.looseTiles.length === 1 || game.looseTiles.length === 0;
 
   // ── Pawn travel animation wrapper (needs game to be declared first) ────────────
+  const ANIM_DURATION_MS = 550; // dot flight time
   const handleExecuteSolutionWithAnimation = useCallback((path: any) => {
     if (!path || path.length === 0) return;
     const pawnColor = path.pawnColor ?? game.activePawn;
@@ -243,10 +250,19 @@ export default function App() {
     const toPos = path[0]?.endPos;
     if (fromPos && toPos) {
       if (travelTimerRef.current) clearTimeout(travelTimerRef.current);
+      // Lock the pawn display at FROM so it doesn't instantly jump
+      setPawnPositionOverride(prev => ({ ...game.pawnPositions, ...prev, [pawnColor]: fromPos }));
       setTravelingPawn({ color: pawnColor, from: fromPos, to: toPos, key: Date.now() });
-      travelTimerRef.current = setTimeout(() => setTravelingPawn(null), 750);
+      // Execute the real move after the animation dot has already arrived
+      travelTimerRef.current = setTimeout(() => {
+        game.handleExecuteSolution(path);
+        setTravelingPawn(null);
+        setPawnPositionOverride(null);
+      }, ANIM_DURATION_MS);
+    } else {
+      // No animation possible (same cell or missing data) — execute immediately
+      game.handleExecuteSolution(path);
     }
-    game.handleExecuteSolution(path);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [game.activePawn, game.pawnPositions, game.handleExecuteSolution]);
 
@@ -503,21 +519,23 @@ export default function App() {
   ]);
 
   // ── Autoplay: when in auto mode, auto-execute the top solver suggestion ────────
+  const AUTOPLAY_BASE_DELAY_MS = 2000; // base pause between moves at 1× speed
   useEffect(() => {
     if (game.gameMode !== "auto") return;
     if (!game.isGameStarted) return;
     if (isLoadingSolutions) return;
     if (solutions.length === 0) return;
-    // Wait for the solver to settle, then fire the top suggestion after a readable delay
+    if (autoPlayPaused) return;
+    const delay = Math.round(AUTOPLAY_BASE_DELAY_MS / autoPlaySpeed);
     const timeoutId = setTimeout(() => {
       const top = solutions[0];
       if (top) {
         handleExecuteSolutionWithAnimation(top as any);
       }
-    }, 1800); // 1.8s so the user can see what's about to happen
+    }, delay);
     return () => clearTimeout(timeoutId);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [solutions, isLoadingSolutions, game.isGameStarted, game.gameMode]);
+  }, [solutions, isLoadingSolutions, game.isGameStarted, game.gameMode, autoPlayPaused, autoPlaySpeed]);
 
   // ── Drag and Drop ─────────────────────────────────────────────────────────────
   const handleDragStart = (e: DragStartEvent) => setActiveId(e.active.id as string);
@@ -882,7 +900,11 @@ export default function App() {
                 grid={effectivePreview ? effectivePreview.grid : game.grid}
                 originalGrid={game.grid}
                 pawnPositions={
-                  effectivePreview ? effectivePreview.pawnPositions : game.pawnPositions
+                  effectivePreview
+                    ? effectivePreview.pawnPositions
+                    : pawnPositionOverride
+                    ? { ...game.pawnPositions, ...pawnPositionOverride }
+                    : game.pawnPositions
                 }
                 onCellClick={handleManualCellClick}
                 onTileClick={game.handleTileClick}
@@ -920,6 +942,51 @@ export default function App() {
                 travelingPawn={travelingPawn}
               />
             </div>
+
+            {/* Auto-play control bar — shown below board when in auto mode */}
+            {game.isGameStarted && game.gameMode === "auto" && (
+              <div className="flex items-center justify-center gap-2 mt-2 flex-wrap animate-fade-in">
+                <div className="flex items-center gap-1 bg-card neo-brutalism-card rounded-xl px-2 py-1.5 border-2 border-stone-950 shadow-[3px_3px_0_0_#000000]">
+                  {/* Rewind / step-back (not implemented, greyed) */}
+                  <button
+                    title="Pause / Resume"
+                    onClick={() => setAutoPlayPaused(p => !p)}
+                    className="neo-brutalism-button bg-theme-primary border-stone-950 text-stone-950 w-8 h-8 rounded-lg flex items-center justify-center text-sm font-black cursor-pointer"
+                  >
+                    {autoPlayPaused ? "▶" : "⏸"}
+                  </button>
+
+                  <div className="w-px h-5 bg-stone-700 mx-1" />
+
+                  {/* Speed selector */}
+                  <span className="text-[10px] text-stone-400 font-bold mr-0.5">Speed:</span>
+                  {([0.5, 1, 2, 4] as const).map((s) => (
+                    <button
+                      key={s}
+                      onClick={() => setAutoPlaySpeed(s)}
+                      className={`px-1.5 py-0.5 rounded-md text-[10px] font-black border-2 border-stone-950 cursor-pointer transition-all ${
+                        autoPlaySpeed === s
+                          ? "bg-theme-primary text-stone-950 shadow-[1px_1px_0_0_#000000] translate-x-[1px] translate-y-[1px]"
+                          : "bg-stone-800 text-stone-300 shadow-[2px_2px_0_0_#000000] hover:bg-stone-700"
+                      }`}
+                    >
+                      {s}×
+                    </button>
+                  ))}
+
+                  <div className="w-px h-5 bg-stone-700 mx-1" />
+
+                  {/* Stop auto mode */}
+                  <button
+                    title="Exit Auto Mode"
+                    onClick={() => { game.setGameMode("standard"); setAutoPlayPaused(false); }}
+                    className="neo-brutalism-button bg-red-500 border-stone-950 text-stone-950 px-2 h-8 rounded-lg text-[10px] font-black cursor-pointer whitespace-nowrap"
+                  >
+                    ✕ Stop Auto
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Tablet & desktop side panel (md+) */}
