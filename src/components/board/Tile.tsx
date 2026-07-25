@@ -170,7 +170,7 @@ export const Tile: React.FC<TileProps> = ({
         }
       }}
       className={cn(
-        "relative rounded-2xl border-2 transition-all duration-150 flex items-center justify-center select-none",
+        "relative rounded-2xl border-2 transition-all duration-150 flex items-center justify-center select-none group/tile hover:z-50",
         bgClass,
         borderClass,
         isObtainedTreasure && "after:absolute after:inset-0 after:bg-stone-950/30 after:rounded-2xl after:pointer-events-none",
@@ -195,7 +195,7 @@ export const Tile: React.FC<TileProps> = ({
 
       {/* Fixed tile lock badge */}
       {tile.isFixed && (
-        <Tooltip content="Permanently fixed preset tile (glued to board)" side="top" containerClassName="absolute top-1 right-1 z-20">
+        <Tooltip content="Permanently fixed preset tile (glued to board)" side="top" containerClassName="absolute top-1 right-1 z-[100]">
           <div
             className="p-0.5 bg-stone-950 border-2 border-stone-950 rounded-md text-amber-400 shadow-[2px_2px_0_0_#000000] pointer-events-auto cursor-help"
             style={

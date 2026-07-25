@@ -183,7 +183,7 @@ export function SetupPanel({
                   </Button>
                 </Tooltip>
               )}
-              <Tooltip content="Reset all settings, mode, players, cards, and board to defaults" side="bottom-right" containerClassName="shrink-0">
+              <Tooltip content="Reset all settings, mode, players, cards, and board to defaults" side="bottom-left" containerClassName="shrink-0">
                 <Button
                   variant="outline"
                   onClick={() => {
