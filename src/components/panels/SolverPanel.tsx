@@ -378,11 +378,17 @@ export function SolverPanel({
                             </span>
                           )}
                           {isFallback ? (
-                            <span className="text-amber-500 font-bold">Fallback Setup ({sol.length} turn{sol.length > 1 ? "s" : ""})</span>
+                            <span className="px-2 py-0.5 rounded-lg bg-amber-400 text-stone-950 text-[10px] font-black border-2 border-stone-950 shadow-[1px_1px_0_0_#000000] flex items-center leading-none">
+                              Fallback ({sol.length} turn{sol.length > 1 ? "s" : ""})
+                            </span>
                           ) : sol.length === 1 ? (
-                            <span className="text-green-500 font-bold">Direct Route (1 turn)</span>
+                            <span className="px-2 py-0.5 rounded-lg bg-emerald-400 text-stone-950 text-[10px] font-black border-2 border-stone-950 shadow-[1px_1px_0_0_#000000] flex items-center leading-none">
+                              Direct Route (1 turn)
+                            </span>
                           ) : (
-                            <span className="text-blue-400 font-bold">Multi-Turn Route ({sol.length} turns)</span>
+                            <span className="px-2 py-0.5 rounded-lg bg-blue-400 text-stone-950 text-[10px] font-black border-2 border-stone-950 shadow-[1px_1px_0_0_#000000] flex items-center leading-none">
+                              Multi-Turn ({sol.length} turns)
+                            </span>
                           )}
                           <span className="px-2 py-0.5 rounded-lg bg-card text-stone-100 text-[10px] font-black border-2 border-stone-950 shadow-[1px_1px_0_0_#000000] flex items-center leading-none">
                             {walkDist} space{walkDist !== 1 ? "s" : ""}
@@ -401,9 +407,6 @@ export function SolverPanel({
                         </div>
                         <div className="text-xs font-medium text-stone-100 mt-1 font-mono leading-relaxed">
                           {sol.explanation?.slide}
-                        </div>
-                        <div className="text-xs text-stone-400 leading-relaxed">
-                          {sol.explanation?.walk}
                         </div>
                       </div>
                       <Button

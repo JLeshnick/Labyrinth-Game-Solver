@@ -185,8 +185,8 @@ export function SetupPanel({
                 <RefreshCcw className="w-4 h-4" />
               </Button>
             </div>
-            {/* app-surface wrapper so the neo-brutalist drop shadow isn't clipped */}
-            <div className="flex-1 overflow-hidden p-1 pb-4 app-surface">
+            {/* padding wrapper keeps the tile-panel shadow visible without adding a double border */}
+            <div className="flex-1 overflow-hidden p-1 pb-4">
               <SidePanel tiles={looseTiles} onTileClick={onTileClick} />
             </div>
           </div>

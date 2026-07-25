@@ -386,7 +386,7 @@ export function AppHeader({
             </Button>
           </Tooltip>
 
-          <Tooltip content="How to play" side="bottom">
+          <Tooltip content="How to play" side="left">
             <Button
               variant="outline" size="icon"
               onClick={() => { if (!isMuted) playClickSound(); onOpenWelcomeGuide(); }}
