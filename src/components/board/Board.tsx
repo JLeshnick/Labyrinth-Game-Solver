@@ -6,6 +6,7 @@ import { isOppositeArrow } from "../../solver";
 import { Tile, DraggableTile } from "./Tile";
 import { cn } from "../../lib/utils";
 import { ChevronRight } from "lucide-react";
+import { Tooltip } from "../ui/tooltip";
 
 interface BoardSpaceProps {
   x: number;
@@ -274,64 +275,73 @@ export const Board: React.FC<BoardProps> = ({
             gridTemplateRows: isGameStarted ? "repeat(9, minmax(0, 1fr))" : "repeat(7, minmax(0, 1fr))",
           }}
         >
-        {/* Render Shifting Arrows */}
-        {isGameStarted &&
+          {/* Render Shifting Arrows */}
+          {isGameStarted &&
           SHIFT_ARROWS.map((arrow) => {
             const isForbidden = !!(lastShiftArrowId && isOppositeArrow(arrow.id, lastShiftArrowId));
             const isHighlighted = hoveredSolutionArrow === arrow.id;
             const isStaged = stagedArrow === arrow.id;
 
+            const tooltipText = isForbidden
+              ? "Forbidden: Cannot reverse previous shift"
+              : isStaged
+              ? "Click again to rotate tile — then use Commit in panel"
+              : turnPhase === "move"
+              ? "Slide phase complete — move your pawn"
+              : `Stage tile into ${arrow.label}`;
+
+            const tooltipSide =
+              arrow.dir === "top" ? "top" :
+              arrow.dir === "bottom" ? "bottom" :
+              arrow.dir === "left" ? "left" : "right";
+
             return (
-              <button
+              <Tooltip
                 key={arrow.id}
-                onClick={() => !isForbidden && onArrowClick(arrow.id)}
-                disabled={isForbidden || turnPhase === "move"}
-                style={{
-                  gridRow: arrow.gridRow,
-                  gridColumn: arrow.gridColumn,
-                }}
-                className={cn(
-                  "w-full h-full max-w-[70%] max-h-[70%] aspect-square my-auto mx-auto p-0.5 rounded-lg transition-all focus:outline-none flex items-center justify-center self-center justify-self-center",
-                  isForbidden
-                    ? "opacity-40 cursor-not-allowed border-2 border-stone-600/60 text-stone-500 bg-stone-900/80 shadow-none"
-                    : turnPhase === "move"
-                    ? "opacity-25 cursor-not-allowed border border-stone-700 text-stone-600 bg-stone-950/60"
-                    : isStaged
-                    ? "neo-brutalism-button border-stone-950 bg-theme-primary text-stone-950 scale-105 translate-x-[1px] translate-y-[1px] shadow-[1px_1px_0_0_#000000] cursor-pointer"
-                    : isHighlighted
-                    ? "neo-brutalism-button border-stone-950 bg-theme-primary-20 text-theme-primary scale-105 cursor-pointer"
-                    : "neo-brutalism-button border-stone-950 bg-card text-foreground hover:bg-theme-primary hover:text-stone-950 cursor-pointer",
-                )}
-                title={
-                  isForbidden
-                    ? "Forbidden: Cannot immediately reverse the previous shift"
-                    : isStaged
-                    ? "Click again to rotate tile — then use Commit in the panel"
-                    : `Stage tile into ${arrow.label}`
-                }
-                aria-label={
-                  isForbidden
-                    ? `Forbidden: Cannot reverse previous shift into ${arrow.label}`
-                    : isStaged
-                    ? `Rotate staged tile for ${arrow.label}`
-                    : `Stage spare tile into ${arrow.label}`
-                }
+                content={tooltipText}
+                side={tooltipSide}
               >
-                <ChevronRight
-                  className="w-4 h-4 sm:w-5 sm:h-5"
+                <button
+                  onClick={() => !isForbidden && onArrowClick(arrow.id)}
+                  disabled={isForbidden || turnPhase === "move"}
                   style={{
-                    transform: `rotate(${
-                      arrow.dir === "left"
-                        ? 0
-                        : arrow.dir === "right"
-                        ? 180
-                        : arrow.dir === "top"
-                        ? 90
-                        : -90
-                    }deg)`,
+                    gridRow: arrow.gridRow,
+                    gridColumn: arrow.gridColumn,
                   }}
-                />
-              </button>
+                  className={cn(
+                    "w-full h-full max-w-[70%] max-h-[70%] aspect-square my-auto mx-auto p-0.5 rounded-lg transition-all focus:outline-none flex items-center justify-center self-center justify-self-center",
+                    isForbidden || turnPhase === "move"
+                      ? "neo-brutalism-button bg-card border-stone-950 text-stone-600 opacity-40 cursor-not-allowed shadow-none translate-x-0 translate-y-0"
+                      : isStaged
+                      ? "neo-brutalism-button border-stone-950 bg-theme-primary text-stone-950 scale-105 translate-x-[1px] translate-y-[1px] shadow-[1px_1px_0_0_#000000] cursor-pointer"
+                      : isHighlighted
+                      ? "neo-brutalism-button border-stone-950 bg-theme-primary-20 text-theme-primary scale-105 cursor-pointer"
+                      : "neo-brutalism-button border-stone-950 bg-card text-foreground hover:bg-theme-primary hover:text-stone-950 cursor-pointer",
+                  )}
+                  aria-label={
+                    isForbidden
+                      ? `Forbidden: Cannot reverse previous shift into ${arrow.label}`
+                      : isStaged
+                      ? `Rotate staged tile for ${arrow.label}`
+                      : `Stage spare tile into ${arrow.label}`
+                  }
+                >
+                  <ChevronRight
+                    className="w-4 h-4 sm:w-5 sm:h-5"
+                    style={{
+                      transform: `rotate(${
+                        arrow.dir === "left"
+                          ? 0
+                          : arrow.dir === "right"
+                          ? 180
+                          : arrow.dir === "top"
+                          ? 90
+                          : -90
+                      }deg)`,
+                    }}
+                  />
+                </button>
+              </Tooltip>
             );
           })}
 
