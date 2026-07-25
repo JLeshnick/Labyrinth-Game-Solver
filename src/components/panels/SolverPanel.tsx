@@ -2,6 +2,7 @@
 // sheet (< md) and the tablet/desktop side column (md+). Unprefixed classes
 // target the phone sheet; `md:` targets the tablet column; `lg:` targets the
 // wider desktop column. Interactive play controls get a 44px phone floor.
+import { useState } from "react";
 import { Sparkles, ArrowRightCircle, MousePointer2, RotateCw, Home, Gauge } from "lucide-react";
 import { Button } from "../ui/button";
 import { Tile } from "../board/Tile";
@@ -69,6 +70,8 @@ export function SolverPanel({
   gameMode = "standard",
   remainingCoopTreasures = [],
 }: SolverPanelProps) {
+  const [showAllSuggestions, setShowAllSuggestions] = useState(false);
+
   const isHomeSelected = !!(customTargetCoords &&
     customTargetCoords.r === DEFAULT_PAWN_POSITIONS[activePawn]?.r &&
     customTargetCoords.c === DEFAULT_PAWN_POSITIONS[activePawn]?.c);
@@ -314,108 +317,108 @@ export function SolverPanel({
             Computing paths...
           </div>
         ) : solutions.length > 0 ? (
-          <>
-            <div className="text-[10px] text-stone-500 px-1 mb-0.5 italic flex items-center justify-between">
-              <span>Ranked by: 1. Turn count, 2. Walk distance, 3. Safety</span>
-              <span>Showing top {solutions.length}</span>
-            </div>
-            {solutions.map((sol, index) => {
-              const isFallback = sol.isFallback;
-              let walkDist = 0;
-              for (const step of sol) {
-                if (step.pawnPath) walkDist += step.pawnPath.length - 1;
-              }
-              const safetyScoreValue = sol.safetyScore !== undefined ? Math.round(sol.safetyScore) : null;
-              return (
-                <div
-                  key={index}
-                  onMouseEnter={() => setHoveredSolution(sol)}
-                  onMouseLeave={() => setHoveredSolution(null)}
-                  className={`relative p-2.5 pl-9 rounded-xl transition-all flex items-start justify-between cursor-pointer group gap-2 ${
-                    index === 0 && !isFallback
-                      ? "app-surface-accent hover:border-theme-primary"
-                      : "app-surface hover:border-theme-primary-40"
-                  } ${isFallback ? "opacity-75 hover:opacity-100" : ""}`}
-                >
-                  {/* Rank chip */}
-                  <span
-                    className={`absolute -left-1.5 -top-1.5 w-6 h-6 rounded-lg flex items-center justify-center text-xs font-black border-2 border-stone-950 shadow-[1.5px_1.5px_0_0_#000000] z-10 ${
-                      index === 0 && !isFallback
+          (() => {
+            const visibleSolutions = showAllSuggestions ? solutions : solutions.slice(0, 5);
+            return (
+              <>
+                <div className="text-[10px] text-stone-550 px-1 mb-1 italic flex items-center justify-between flex-wrap gap-2">
+                  <span>Ranked by: Turn depth, walk spaces, safety</span>
+                  <button
+                    onClick={() => { if (!isMuted) playClickSound(); setShowAllSuggestions(!showAllSuggestions); }}
+                    className={`px-2.5 py-1 rounded-lg border-2 border-stone-950 font-black shadow-[1.5px_1.5px_0_0_#000000] cursor-pointer text-[9px] uppercase tracking-wide leading-none transition-transform hover:-translate-y-0.5 ${
+                      showAllSuggestions
                         ? "bg-theme-primary text-stone-950"
-                        : "bg-card text-stone-100"
+                        : "bg-card text-stone-400 hover:text-stone-200"
                     }`}
                   >
-                    {index + 1}
-                  </span>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-xs font-semibold flex items-center gap-1.5 flex-wrap">
-                      {(sol as any).pawnColor && (
-                        <span className={`px-1.5 py-0.5 rounded text-[9px] font-extrabold uppercase tracking-wider text-stone-950 ${
-                          (sol as any).pawnColor === "red"
-                            ? "bg-red-500"
-                            : (sol as any).pawnColor === "blue"
-                            ? "bg-blue-400"
-                            : (sol as any).pawnColor === "green"
-                            ? "bg-green-400"
-                            : "bg-yellow-400"
-                        }`}>
-                          {(sol as any).pawnColor}
-                        </span>
-                      )}
-                      {isFallback ? (
-                        <span className="text-amber-500 font-bold">Fallback Setup ({sol.length} turn{sol.length > 1 ? "s" : ""})</span>
-                      ) : sol.length === 1 ? (
-                        <span className="text-green-500 font-bold">Direct Route (1 turn)</span>
-                      ) : (
-                        <span className="text-blue-400 font-bold">Multi-Turn Route ({sol.length} turns)</span>
-                      )}
-                      <span className="px-2 py-0.5 rounded-lg bg-card text-stone-100 text-[10px] font-black border-2 border-stone-950 shadow-[1px_1px_0_0_#000000] flex items-center leading-none">
-                        {walkDist} space{walkDist !== 1 ? "s" : ""}
-                      </span>
-                      {safetyScoreValue !== null && (
-                        <span className={`px-2 py-0.5 rounded-lg text-stone-950 text-[10px] font-black border-2 border-stone-950 shadow-[1px_1px_0_0_#000000] flex items-center leading-none ${
-                          safetyScoreValue >= 80
-                            ? "bg-emerald-400"
-                            : safetyScoreValue >= 40
-                            ? "bg-amber-400"
-                            : "bg-red-500"
-                        }`}>
-                          {safetyScoreValue}/100 safety
-                        </span>
-                      )}
-                    </div>
-                  <div className="text-xs font-medium text-stone-100 mt-1 font-mono leading-relaxed">
-                    {sol.explanation?.slide}
-                  </div>
-                  <div className="text-xs text-stone-400 leading-relaxed">
-                    {sol.explanation?.walk}
-                  </div>
-                  {(sol as { cardId?: string; sequenceOrder?: string[] }).cardId && (
-                    <div className="text-[10px] mt-1.5 flex items-center gap-1 flex-wrap">
-                      <span className="text-stone-500">Target:</span>
-                      <span className="text-theme-primary font-semibold">
-                        {(sol as any).cardId && (sol as any).cardId.startsWith("home_")
-                          ? `${(sol as any).cardId.substring(5).toUpperCase()} Home Corner`
-                          : TREASURES.find((t) => t.id === (sol as { cardId?: string }).cardId)?.name ?? (sol as { cardId?: string }).cardId}
-                      </span>
-                      {(sol as { sequenceOrder?: string[] }).sequenceOrder && (sol as { sequenceOrder?: string[] }).sequenceOrder!.length > 1 && (
-                        <span className="text-stone-500 italic">
-                          → then {(sol as { sequenceOrder?: string[] }).sequenceOrder!.slice(1).map((id) => TREASURES.find((t) => t.id === id)?.name ?? id).join(" → ")}
-                        </span>
-                      )}
-                    </div>
-                  )}
+                    {showAllSuggestions ? "Show Top 5" : `Show All (${solutions.length})`}
+                  </button>
                 </div>
-                <Button
-                  size="sm"
-                  onClick={(e) => { e.stopPropagation(); onExecuteSolution(sol); }}
-                  className="neo-brutalism-button bg-card hover:bg-theme-primary hover:text-stone-950 text-foreground border-stone-950 font-black text-xs px-3 py-1.5 min-h-11 md:min-h-9 rounded-lg flex-shrink-0 self-center cursor-pointer"
-                >
-                  Execute
-                </Button>
-              </div>
+                {visibleSolutions.map((sol, index) => {
+                  const isFallback = sol.isFallback;
+                  let walkDist = 0;
+                  for (const step of sol) {
+                    if (step.pawnPath) walkDist += step.pawnPath.length - 1;
+                  }
+                  const safetyScoreValue = sol.safetyScore !== undefined ? Math.round(sol.safetyScore) : null;
+                  return (
+                    <div
+                      key={index}
+                      onMouseEnter={() => setHoveredSolution(sol)}
+                      onMouseLeave={() => setHoveredSolution(null)}
+                      className={`relative p-2.5 pl-10 rounded-xl transition-all flex items-start justify-between cursor-pointer group gap-2 ${
+                        index === 0 && !isFallback
+                          ? "app-surface-accent hover:border-theme-primary"
+                          : "app-surface hover:border-theme-primary-40"
+                      } ${isFallback ? "opacity-75 hover:opacity-100" : ""}`}
+                    >
+                      {/* Rank chip */}
+                      <span
+                        className={`absolute left-2.5 top-2.5 w-6 h-6 rounded-lg flex items-center justify-center text-xs font-black border-2 border-stone-950 shadow-[1.5px_1.5px_0_0_#000000] z-10 ${
+                          index === 0 && !isFallback
+                            ? "bg-theme-primary text-stone-950"
+                            : "bg-card text-stone-100"
+                        }`}
+                      >
+                        {index + 1}
+                      </span>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-xs font-semibold flex items-center gap-1.5 flex-wrap">
+                          {(sol as any).pawnColor && (
+                            <span className={`px-1.5 py-0.5 rounded text-[9px] font-extrabold uppercase tracking-wider text-stone-950 ${
+                              (sol as any).pawnColor === "red"
+                                ? "bg-red-500"
+                                : (sol as any).pawnColor === "blue"
+                                ? "bg-blue-400"
+                                : (sol as any).pawnColor === "green"
+                                ? "bg-green-400"
+                                : "bg-yellow-400"
+                            }`}>
+                              {(sol as any).pawnColor}
+                            </span>
+                          )}
+                          {isFallback ? (
+                            <span className="text-amber-500 font-bold">Fallback Setup ({sol.length} turn{sol.length > 1 ? "s" : ""})</span>
+                          ) : sol.length === 1 ? (
+                            <span className="text-green-500 font-bold">Direct Route (1 turn)</span>
+                          ) : (
+                            <span className="text-blue-400 font-bold">Multi-Turn Route ({sol.length} turns)</span>
+                          )}
+                          <span className="px-2 py-0.5 rounded-lg bg-card text-stone-100 text-[10px] font-black border-2 border-stone-950 shadow-[1px_1px_0_0_#000000] flex items-center leading-none">
+                            {walkDist} space{walkDist !== 1 ? "s" : ""}
+                          </span>
+                          {safetyScoreValue !== null && (
+                            <span className={`px-2 py-0.5 rounded-lg text-stone-950 text-[10px] font-black border-2 border-stone-950 shadow-[1px_1px_0_0_#000000] flex items-center leading-none ${
+                              safetyScoreValue >= 80
+                                ? "bg-emerald-400"
+                                : safetyScoreValue >= 40
+                                ? "bg-amber-400"
+                                : "bg-red-500"
+                            }`}>
+                              {safetyScoreValue}/100 safety
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-xs font-medium text-stone-100 mt-1 font-mono leading-relaxed">
+                          {sol.explanation?.slide}
+                        </div>
+                        <div className="text-xs text-stone-400 leading-relaxed">
+                          {sol.explanation?.walk}
+                        </div>
+                      </div>
+                      <Button
+                        size="sm"
+                        onClick={(e) => { e.stopPropagation(); onExecuteSolution(sol); }}
+                        className="neo-brutalism-button bg-card hover:bg-theme-primary hover:text-stone-950 text-foreground border-stone-950 font-black text-xs px-3 py-1.5 min-h-11 md:min-h-9 rounded-lg flex-shrink-0 self-center cursor-pointer"
+                      >
+                        Execute
+                      </Button>
+                    </div>
+                  );
+                })}
+              </>
             );
-          })}</>
+          })()
         ) : (
           <div className="flex-1 flex items-center justify-center text-stone-600 text-sm">
             No paths found. Check the selected target.

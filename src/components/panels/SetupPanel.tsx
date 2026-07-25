@@ -1,8 +1,5 @@
-// Responsive model: this panel renders in two DOM sites — the phone bottom
-// sheet (< md) and the tablet/desktop side column (md+). Unprefixed classes
-// target the phone sheet; `md:` targets the tablet column; `lg:` targets the
-// wider desktop column. Interactive controls get a 44px phone floor.
-import { Sparkles, Layers, Users, Compass, Play, RefreshCcw, Camera } from "lucide-react";
+import { useEffect } from "react";
+import { Sparkles, Play, RefreshCcw, Camera } from "lucide-react";
 import { SidePanel } from "./SidePanel";
 import { Button } from "../ui/button";
 import { PAWNS, TREASURES } from "../../constants";
@@ -61,6 +58,12 @@ export function SetupPanel({
   onSetGameMode,
 }: SetupPanelProps) {
 
+  useEffect(() => {
+    if (gameMode === "coop" && setupTab === "cards") {
+      setSetupTab("tiles");
+    }
+  }, [gameMode, setupTab, setSetupTab]);
+
   if (compact) {
     const movableTilesRemaining = Math.max(0, looseTiles.length - 1);
     return (
@@ -102,12 +105,6 @@ export function SetupPanel({
               {looseTiles.length === 1 ? "✓" : `(needs ${looseTiles.length - 1} more)`}
             </span>
           </div>
-          <div className="flex items-center gap-2">
-            <span className={`w-2 h-2 rounded-full border border-stone-950 ${activePlayers.length > 0 ? "bg-green-500" : "bg-red-500"}`} />
-            <span className="text-stone-300">
-              Active Players: {activePlayers.length} {activePlayers.length > 0 ? "✓" : "✗"}
-            </span>
-          </div>
         </div>
         <Button
           onClick={() => {
@@ -126,26 +123,29 @@ export function SetupPanel({
       {/* Tab bar */}
       <div className="flex items-center bg-card rounded-xl p-1 border-2 border-stone-950 self-start shadow-[3px_3px_0_0_#000000] gap-0.5">
         {([
-          { id: "tiles", label: "Tiles", icon: <Layers className="w-3.5 h-3.5" /> },
-          { id: "mode", label: "Mode", icon: <Compass className="w-3.5 h-3.5" /> },
-          { id: "players", label: "Players", icon: <Users className="w-3.5 h-3.5" /> },
-          { id: "cards", label: "Cards", icon: <Sparkles className="w-3.5 h-3.5" /> },
-        ] as const)
-          .filter((tab) => !(tab.id === "cards" && gameMode === "coop"))
-          .map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => setSetupTab(tab.id)}
-            className={`flex items-center justify-center gap-1.5 px-3 md:px-4 py-2 md:py-1.5 min-h-11 md:min-h-0 rounded-lg text-xs md:text-sm font-bold transition-all cursor-pointer border-2 ${
-              setupTab === tab.id
-                ? "bg-theme-primary text-stone-950 border-stone-950 shadow-[2px_2px_0_0_#000000]"
-                : "text-stone-500 hover:text-foreground hover:bg-stone-800 border-transparent"
-            }`}
-          >
-            {tab.icon}
-            {tab.label}
-          </button>
-        ))}
+          { id: "tiles", label: "Tiles" },
+          { id: "mode", label: "Mode" },
+          { id: "players", label: "Players" },
+          { id: "cards", label: "Cards" },
+        ] as const).map((tab) => {
+          const isDisabled = tab.id === "cards" && gameMode === "coop";
+          return (
+            <button
+              key={tab.id}
+              disabled={isDisabled}
+              onClick={() => setSetupTab(tab.id)}
+              className={`flex items-center justify-center px-3 md:px-4 py-2 md:py-1.5 min-h-11 md:min-h-0 rounded-lg text-xs md:text-sm font-bold transition-all border-2 ${
+                isDisabled
+                  ? "opacity-30 cursor-not-allowed border-transparent bg-stone-900/40 text-stone-600 shadow-none"
+                  : setupTab === tab.id
+                  ? "bg-theme-primary text-stone-950 border-stone-950 shadow-[2px_2px_0_0_#000000] cursor-pointer"
+                  : "text-stone-500 hover:text-foreground hover:bg-stone-800 border-transparent cursor-pointer"
+              }`}
+            >
+              {tab.label}
+            </button>
+          );
+        })}
       </div>
 
       {/* Tab content */}

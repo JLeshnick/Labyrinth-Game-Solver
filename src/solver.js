@@ -1122,7 +1122,7 @@ function solveCoopStep(board, spareTile, pawnPositions, activePawns, remainingTr
     }
   }
 
-  return uniquePaths.slice(0, 5);
+  return uniquePaths;
 }
 
 /**
