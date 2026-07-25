@@ -240,7 +240,7 @@ export const Board: React.FC<BoardProps> = ({
 }) => {
 
   return (
-    <div className="relative w-full h-full flex items-center justify-center overflow-visible">
+    <div className="relative w-full h-full p-6 flex items-center justify-center overflow-visible">
       {/* 3D Tray Platform Wrapper */}
       <div
         className={cn(
@@ -290,11 +290,16 @@ export const Board: React.FC<BoardProps> = ({
               ? "Slide phase complete — move your pawn"
               : `Stage tile into ${arrow.label}`;
 
-            // Point tooltips inward toward the board interior to avoid clipping viewport boundaries
-            const tooltipSide =
-              arrow.dir === "top" ? "bottom" :
-              arrow.dir === "bottom" ? "top" :
-              arrow.dir === "left" ? "right" : "left";
+            // Orient tooltips outward into the blank space around the board, offsetting corners to stay within viewport
+            let tooltipSide: "top" | "bottom" | "left" | "right" | "bottom-left" | "bottom-right" = "bottom";
+            if (arrow.dir === "top") tooltipSide = "top";
+            else if (arrow.dir === "bottom") tooltipSide = "bottom";
+            else if (arrow.dir === "left") {
+              // Left column arrows — offset top/bottom-most left arrows toward interior vertically if needed
+              tooltipSide = arrow.index === 1 ? "left" : arrow.index === 5 ? "left" : "left";
+            } else if (arrow.dir === "right") {
+              tooltipSide = "right";
+            }
 
             return (
               <Tooltip
