@@ -219,20 +219,15 @@ export const Tile: React.FC<TileProps> = ({
               ? "bg-amber-400"
               : "bg-amber-300"
           )}
-          style={
-            boardRotation
-              ? {
-                  transform: `rotate(${-boardRotation}deg)`,
-                  transformOrigin: "center center",
-                }
-              : undefined
-          }
           title={tile.treasure.name}
         >
-          <span className={cn(
-            "text-[9px] sm:text-[10px] font-black text-stone-950 leading-tight text-center select-none uppercase tracking-tight",
-            isObtainedTreasure && "line-through opacity-70"
-          )}>
+          <span
+            style={boardRotation ? { transform: `rotate(${-boardRotation}deg)` } : undefined}
+            className={cn(
+              "text-[9px] sm:text-[10px] font-black text-stone-950 leading-tight text-center select-none uppercase tracking-tight inline-block transition-transform duration-300",
+              isObtainedTreasure && "line-through opacity-70"
+            )}
+          >
             {TREASURE_SHORT_NAMES[tile.treasure.id] ?? tile.treasure.name}
           </span>
         </div>
