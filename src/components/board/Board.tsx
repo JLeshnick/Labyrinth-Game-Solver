@@ -292,7 +292,7 @@ export const Board: React.FC<BoardProps> = ({
 
             // Orient tooltips cleanly around the board edges without clipping viewport bounds
             let tooltipSide: "top" | "bottom" | "left" | "right" | "bottom-left" | "bottom-right" = "bottom";
-            if (arrow.dir === "top") tooltipSide = "bottom";
+            if (arrow.dir === "top") tooltipSide = "top";
             else if (arrow.dir === "bottom") tooltipSide = "bottom";
             else if (arrow.dir === "left") {
               // Left column arrows — render below the arrow aligned to its right edge so it extends inward over empty space
