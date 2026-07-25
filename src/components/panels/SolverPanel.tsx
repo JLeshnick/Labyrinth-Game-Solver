@@ -370,24 +370,6 @@ export function SolverPanel({
                       </span>
                       <div className="flex-1 min-w-0">
                         <div className="text-xs font-semibold flex items-center gap-1 flex-wrap">
-                          {(sol as any).pawnColor && (
-                            <span className={`px-1.5 py-0.5 rounded text-[9px] font-extrabold uppercase tracking-wider text-stone-950 ${
-                              (sol as any).pawnColor === "red"
-                                ? "bg-red-500"
-                                : (sol as any).pawnColor === "blue"
-                                ? "bg-blue-400"
-                                : (sol as any).pawnColor === "green"
-                                ? "bg-green-400"
-                                : "bg-yellow-400"
-                            }`}>
-                              {(sol as any).pawnColor}
-                            </span>
-                          )}
-                          {(sol as any).cardId && (
-                            <span className="px-1.5 py-0.5 rounded text-[9px] font-extrabold uppercase tracking-wider bg-purple-400 text-stone-950 border border-stone-950">
-                              {TREASURES.find(t => t.id === (sol as any).cardId)?.name ?? (sol as any).cardId}
-                            </span>
-                          )}
                           {isFallback ? (
                             <span className="px-1.5 py-0.5 rounded-lg bg-amber-400 text-stone-950 text-[10px] font-black border-2 border-stone-950 shadow-[1px_1px_0_0_#000000] flex items-center leading-none whitespace-nowrap">
                               Fallback ({sol.length}t)
