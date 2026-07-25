@@ -496,8 +496,8 @@ export default function App() {
       coopTarget = isHomeSelected ? `home_${game.activePawn}` : "custom_target";
     }
 
-    // In coop mode, if a specific target card is selected, solve only for that card. Otherwise, use all remaining coop treasures.
-    const selectedTarget = game.playerActiveTargets[game.activePawn];
+    // In coop mode, if a specific target card is selected, solve only for that card. In auto mode or unselected coop, solve globally for all remaining treasures.
+    const selectedTarget = game.gameMode === "auto" ? null : game.playerActiveTargets[game.activePawn];
     const coopTreasures = isCoop && selectedTarget ? [selectedTarget] : game.remainingCoopTreasures;
 
     workerRef.current.postMessage({
@@ -532,23 +532,45 @@ export default function App() {
   ]);
 
   // ── Autoplay: when in auto mode, auto-execute the top solver suggestion ────────
-  const AUTOPLAY_BASE_DELAY_MS = 2000; // base pause between moves at 1× speed
+  const AUTOPLAY_BASE_DELAY_MS = 1000; // base pause between moves at 1× speed
+  const isExecutingAutoMoveRef = useRef(false);
+
   useEffect(() => {
     if (game.gameMode !== "auto") return;
     if (!game.isGameStarted) return;
-    if (isLoadingSolutions) return;
-    if (solutions.length === 0) return;
     if (autoPlayPaused) return;
-    const delay = Math.round(AUTOPLAY_BASE_DELAY_MS / autoPlaySpeed);
+    if (isLoadingSolutions) return;
+    if (!solutions || solutions.length === 0) return;
+    if (isExecutingAutoMoveRef.current) return;
+
+    const delay = Math.max(200, Math.round(AUTOPLAY_BASE_DELAY_MS / autoPlaySpeed));
     const timeoutId = setTimeout(() => {
       const top = solutions[0];
-      if (top) {
+      if (top && !isExecutingAutoMoveRef.current) {
+        isExecutingAutoMoveRef.current = true;
         handleExecuteSolutionWithAnimation(top as any);
+        // Release lock after animation and state update completes
+        const releaseDelay = Math.max(350, Math.round(700 / autoPlaySpeed));
+        setTimeout(() => {
+          isExecutingAutoMoveRef.current = false;
+        }, releaseDelay);
       }
     }, delay);
+
     return () => clearTimeout(timeoutId);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [solutions, isLoadingSolutions, game.isGameStarted, game.gameMode, autoPlayPaused, autoPlaySpeed]);
+  }, [
+    solutions,
+    isLoadingSolutions,
+    game.isGameStarted,
+    game.gameMode,
+    autoPlayPaused,
+    autoPlaySpeed,
+    game.grid,
+    game.spareTile,
+    game.activePawn,
+    game.pawnPositions,
+    handleExecuteSolutionWithAnimation,
+  ]);
 
   // ── Drag and Drop ─────────────────────────────────────────────────────────────
   const handleDragStart = (e: DragStartEvent) => setActiveId(e.active.id as string);
@@ -1031,6 +1053,7 @@ export default function App() {
                   onScanBoard={() => setIsScanModalOpen(true)}
                   gameMode={game.gameMode}
                   onSetGameMode={game.setGameMode}
+                  onResetAllDefaults={game.resetAllDefaults}
                 />
               )}
             </div>
@@ -1130,6 +1153,7 @@ export default function App() {
                     compact={mobilePanelStop === "peek"}
                     gameMode={game.gameMode}
                     onSetGameMode={game.setGameMode}
+                    onResetAllDefaults={game.resetAllDefaults}
                   />
                 )}
               </div>

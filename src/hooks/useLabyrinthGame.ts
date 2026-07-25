@@ -245,10 +245,18 @@ export function useLabyrinthGame({
         color: tilePartial.color,
       };
     });
+    const freshMovablePool = generateMovablePool();
     setGrid(initialGrid);
     setPawnPositions(DEFAULT_PAWN_POSITIONS);
-    setLooseTiles(generateMovablePool());
+    setLooseTiles(freshMovablePool);
+    setSpareTile({
+      id: "spare_initial",
+      shape: "straight",
+      rotation: 0,
+      isFixed: false,
+    });
     setIsGameStarted(false);
+    setGameStartState(null);
     setLastShiftArrowId(null);
     setPlayerHands(EMPTY_PLAYER_HANDS);
     setPlayerActiveTargets(EMPTY_PLAYER_TARGETS);
@@ -273,6 +281,21 @@ export function useLabyrinthGame({
       pawnPositions: DEFAULT_PAWN_POSITIONS,
     });
   }, [resetHistory]);
+
+  const resetAllDefaults = useCallback(() => {
+    resetBoardToInitialPresets();
+    setActivePlayers(["red", "blue", "green", "yellow"]);
+    setActivePawn("red");
+    setGameMode("standard");
+    setRemainingCoopTreasures([]);
+    setCoopObtainedTreasures([]);
+    try {
+      localStorage.removeItem("labyrinth_autosave");
+      localStorage.removeItem("labyrinth_active_players");
+    } catch {
+      /* storage blocked */
+    }
+  }, [resetBoardToInitialPresets]);
 
   // ── hydrate from autosave on mount ───────────────────────────────────────────
   const hydrateFromSaved = useCallback(
@@ -1239,6 +1262,7 @@ export function useLabyrinthGame({
     // Initialisation
     hydrateFromSaved,
     resetBoardToInitialPresets,
+    resetAllDefaults,
     // Game handlers
     handleRandomizeBoard,
     handleTileClick,

@@ -72,4 +72,38 @@ describe("App smoke render", () => {
     // Verified manually in-browser; no jsdom-accessible DOM signal for it.
     expect(true).toBe(true);
   });
+
+  it("auto mode continuously triggers solutions without user input", async () => {
+    class AutoWorker {
+      onmessage: ((e: MessageEvent) => void) | null = null;
+      onerror: ((e: unknown) => void) | null = null;
+      postMessage() {
+        setTimeout(() => {
+          this.onmessage?.({
+            data: {
+              success: true,
+              solutions: [
+                [
+                  {
+                    arrowId: "top_1",
+                    rotation: 1,
+                    endPos: { r: 0, c: 1 },
+                    pawnPath: [{ r: 0, c: 0 }, { r: 0, c: 1 }],
+                  },
+                ],
+              ],
+            },
+          } as MessageEvent);
+        }, 0);
+      }
+      terminate() {}
+    }
+    vi.stubGlobal("Worker", AutoWorker as unknown as typeof Worker);
+
+    await act(async () => {
+      render(<App />);
+    });
+
+    expect(screen.getAllByText(/labyrinth/i).length).toBeGreaterThan(0);
+  });
 });

@@ -3,6 +3,7 @@ import { useDraggable } from "@dnd-kit/core";
 import type { TileData } from "../../types";
 import { cn } from "../../lib/utils";
 import { Lock } from "lucide-react";
+import { Tooltip } from "../ui/tooltip";
 import { TREASURE_SHORT_NAMES } from "../../constants";
 
 interface TileProps {
@@ -169,7 +170,7 @@ export const Tile: React.FC<TileProps> = ({
         }
       }}
       className={cn(
-        "relative rounded-2xl border-2 transition-all duration-150 flex items-center justify-center select-none",
+        "relative rounded-2xl border-2 transition-all duration-150 flex items-center justify-center select-none group/tile",
         bgClass,
         borderClass,
         isObtainedTreasure && "after:absolute after:inset-0 after:bg-stone-950/30 after:rounded-2xl after:pointer-events-none",
@@ -179,7 +180,6 @@ export const Tile: React.FC<TileProps> = ({
         className
       )}
       style={is3D ? { ...shadowStyle, transformStyle: "preserve-3d" } : undefined}
-      title={tile.isFixed ? "This preset tile is permanently glued to the board. It cannot be moved, slid, or rotated." : undefined}
     >
       {/* Inner container with overflow-hidden to cleanly clip the SVG paths */}
       <div className="absolute inset-0 rounded-[14px] overflow-hidden" style={{ transformStyle: is3D ? "preserve-3d" : "flat" }}>
@@ -195,17 +195,18 @@ export const Tile: React.FC<TileProps> = ({
 
       {/* Fixed tile lock badge */}
       {tile.isFixed && (
-        <div
-          className="absolute top-1 right-1 p-0.5 bg-stone-950 border-2 border-stone-950 rounded-md text-amber-400 shadow-[2px_2px_0_0_#000000] z-20 pointer-events-auto cursor-help"
-          style={
-            is3D
-              ? { transform: `rotateZ(${30 - boardRotation}deg) rotateX(-45deg) translateZ(8px)` }
-              : { transform: `rotate(${-boardRotation}deg)` }
-          }
-          title="This preset tile is permanently glued to the board. It cannot be moved, slid, or rotated."
-        >
-          <Lock className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
-        </div>
+        <Tooltip content="Permanently fixed preset tile (glued to board)" side="top" containerClassName="absolute top-1 right-1 z-[100]">
+          <div
+            className="p-0.5 bg-stone-950 border-2 border-stone-950 rounded-md text-amber-400 shadow-[2px_2px_0_0_#000000] pointer-events-auto cursor-help"
+            style={
+              is3D
+                ? { transform: `rotateZ(${30 - boardRotation}deg) rotateX(-45deg) translateZ(8px)` }
+                : { transform: `rotate(${-boardRotation}deg)` }
+            }
+          >
+            <Lock className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
+          </div>
+        </Tooltip>
       )}
 
       {/* Treasure name banner — sits across the bottom of the tile */}
@@ -219,17 +220,15 @@ export const Tile: React.FC<TileProps> = ({
               ? "bg-amber-400"
               : "bg-amber-300"
           )}
-          style={
-            is3D
-              ? { transform: `rotateZ(${30 - boardRotation}deg) rotateX(-45deg) translateZ(10px)` }
-              : { transform: `rotate(${-boardRotation}deg)` }
-          }
           title={tile.treasure.name}
         >
-          <span className={cn(
-            "text-[9px] sm:text-[10px] font-black text-stone-950 leading-tight text-center select-none uppercase tracking-tight",
-            isObtainedTreasure && "line-through opacity-70"
-          )}>
+          <span
+            style={boardRotation ? { transform: `rotate(${-boardRotation}deg)` } : undefined}
+            className={cn(
+              "text-[9px] sm:text-[10px] font-black text-stone-950 leading-tight text-center select-none uppercase tracking-tight inline-block transition-transform duration-300",
+              isObtainedTreasure && "line-through opacity-70"
+            )}
+          >
             {TREASURE_SHORT_NAMES[tile.treasure.id] ?? tile.treasure.name}
           </span>
         </div>

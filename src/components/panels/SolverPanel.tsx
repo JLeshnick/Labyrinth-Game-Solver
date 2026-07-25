@@ -251,13 +251,13 @@ export function SolverPanel({
                   🏆 {TREASURES.find(t => t.id === playerActiveTargets[activePawn])?.name ?? playerActiveTargets[activePawn]}
                   <button onClick={() => onSelectTargetTreasure(activePawn, null)} className="text-stone-500 hover:text-stone-300 text-[10px] ml-1 underline cursor-pointer" title="Clear target">(clear)</button>
                 </span>
-              ) : gameMode === "coop" ? (
+              ) : gameMode === "coop" || gameMode === "auto" ? (
                 <span className="text-theme-primary font-bold text-xs">
                   ✨ {remainingCoopTreasures && remainingCoopTreasures.length > 0 ? (
                     currentTargetId ? (
-                      `Closest: ${TREASURES.find(t => t.id === currentTargetId)?.name ?? currentTargetId} (Auto)`
+                      `Optimal: ${TREASURES.find(t => t.id === currentTargetId)?.name ?? currentTargetId} (Auto)`
                     ) : (
-                      "Closest Treasure (Auto)"
+                      "Optimal Global Path (Auto)"
                     )
                   ) : (
                     "Home Corner (Auto)"
