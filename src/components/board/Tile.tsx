@@ -170,7 +170,7 @@ export const Tile: React.FC<TileProps> = ({
         }
       }}
       className={cn(
-        "relative rounded-2xl border-2 transition-all duration-150 flex items-center justify-center select-none group/tile hover:z-50",
+        "relative rounded-2xl border-2 transition-all duration-150 flex items-center justify-center select-none group/tile",
         bgClass,
         borderClass,
         isObtainedTreasure && "after:absolute after:inset-0 after:bg-stone-950/30 after:rounded-2xl after:pointer-events-none",

@@ -142,7 +142,7 @@ const BoardSpace: React.FC<BoardSpaceProps> = ({
 
       {/* Render Pawns inside BoardSpace */}
       <div 
-        className="absolute inset-0 pointer-events-none flex flex-wrap items-center justify-center gap-1 p-1 z-20 transition-all duration-300"
+        className="absolute inset-0 pointer-events-none flex flex-wrap items-center justify-center gap-1 p-1 z-50 transition-all duration-300"
         style={
           is3D
             ? { transform: `rotateZ(${30 - boardRotation}deg) rotateX(-45deg) translateZ(14px)` }
