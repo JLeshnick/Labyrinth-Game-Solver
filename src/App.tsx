@@ -548,7 +548,7 @@ export default function App() {
     }, delay);
     return () => clearTimeout(timeoutId);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [solutions, isLoadingSolutions, game.isGameStarted, game.gameMode, autoPlayPaused, autoPlaySpeed]);
+  }, [solutions, isLoadingSolutions, game.isGameStarted, game.gameMode, autoPlayPaused, autoPlaySpeed, handleExecuteSolutionWithAnimation]);
 
   // ── Drag and Drop ─────────────────────────────────────────────────────────────
   const handleDragStart = (e: DragStartEvent) => setActiveId(e.active.id as string);
