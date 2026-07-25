@@ -976,8 +976,16 @@ function solveAllHandOrdered(board, spareTile, startPawnPos, handCards, lastShif
 function solveCoopStep(board, spareTile, pawnPositions, activePawns, remainingTreasures, lastShiftArrowId = null, maxTurns = 3) {
   if (!activePawns || activePawns.length === 0) return [];
 
-  const pawnTargets = [];
-  if (!remainingTreasures || remainingTreasures.length === 0) {
+  let pawnTargets = [];
+  // If a target card is explicitly selected, only search for that specific target
+  if (remainingTreasures && remainingTreasures.length === 1 && remainingTreasures[0] !== "custom_target" && !remainingTreasures[0].startsWith("home_")) {
+    const selectedTid = remainingTreasures[0];
+    for (const pawn of activePawns) {
+      if (pawnPositions[pawn]) {
+        pawnTargets.push({ pawn, target: selectedTid });
+      }
+    }
+  } else if (!remainingTreasures || remainingTreasures.length === 0) {
     // Phase 2: Get all pawns home
     for (const pawn of activePawns) {
       const home = HOME_POSITIONS[pawn];

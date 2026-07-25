@@ -487,18 +487,7 @@ export const Board: React.FC<BoardProps> = ({
 
           return (
             <svg key={travelingPawn.key} viewBox="0 0 9 9" className="absolute inset-0 w-full h-full pointer-events-none z-30" aria-hidden="true">
-              {/* Background guide track */}
-              <path
-                d={pathD}
-                fill="none"
-                stroke="#000000"
-                strokeWidth="0.08"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                opacity="0.2"
-              />
-
-              {/* Eroding solution path behind traveling pawn */}
+              {/* Path ahead yet to travel (colored, shrinks as pawn moves) */}
               <path
                 d={pathD}
                 fill="none"
@@ -507,7 +496,28 @@ export const Board: React.FC<BoardProps> = ({
                 strokeDasharray="0.18,0.12"
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                opacity="0.85"
+                opacity="0.9"
+              >
+                <animate
+                  attributeName="stroke-dasharray"
+                  from={`${totalLenStr},0`}
+                  to={`0,${totalLenStr}`}
+                  dur={durSec}
+                  fill="freeze"
+                  calcMode="linear"
+                />
+              </path>
+
+              {/* Traveled path behind pawn (fades to dark gray track) */}
+              <path
+                d={pathD}
+                fill="none"
+                stroke="#000000"
+                strokeWidth="0.08"
+                strokeDasharray="0.18,0.12"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                opacity="0.3"
               >
                 <animate
                   attributeName="stroke-dasharray"
