@@ -875,6 +875,7 @@ export default function App() {
                 activeTargetTreasureId={game.playerActiveTargets[game.activePawn]}
                 activePlayers={game.activePlayers}
                 is3D={is3D}
+                activePawn={game.activePawn}
               />
             </div>
           </div>

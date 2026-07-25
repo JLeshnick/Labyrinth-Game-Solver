@@ -192,10 +192,19 @@ interface BoardProps {
   turnPhase?: "slide" | "move";
   stagedArrow?: string | null;
   onTreasureClick?: (treasureId: string, alreadyObtained: boolean) => void;
+  isTargetCoords?: boolean;
+  is3D?: boolean;
+  activePawn?: string;
   allObtainedTreasures?: string[];
   activeTargetTreasureId?: string | null;
-  is3D?: boolean;
 }
+
+const PAWN_HEX_COLORS: Record<string, string> = {
+  red: "#ef4444",
+  blue: "#3b82f6",
+  green: "#10b981",
+  yellow: "#f59e0b",
+};
 
 export const Board: React.FC<BoardProps> = ({
   grid,
@@ -219,6 +228,7 @@ export const Board: React.FC<BoardProps> = ({
   allObtainedTreasures,
   activeTargetTreasureId,
   is3D = false,
+  activePawn = "red",
 }) => {
 
   return (
@@ -406,15 +416,17 @@ export const Board: React.FC<BoardProps> = ({
           const pts = hoveredPath.map(p => `${tc(p.c)},${tc(p.r)}`).join(" ");
           const s = hoveredPath[0];
           const e = hoveredPath[hoveredPath.length - 1];
+          const pathPawnColor = (hoveredPath as any).pawnColor || activePawn;
+          const strokeColor = PAWN_HEX_COLORS[pathPawnColor] || "#f59e0b";
           return (
             <svg viewBox="0 0 9 9" className="absolute inset-0 w-full h-full pointer-events-none z-30" aria-hidden="true">
               <polyline points={pts} fill="none" stroke="#000000" strokeWidth="0.10" strokeDasharray="0.18,0.12" strokeLinecap="round" strokeLinejoin="round" opacity="0.45" className="animate-path-crawl" />
-              <polyline points={pts} fill="none" stroke="var(--theme-color)" strokeWidth="0.06" strokeDasharray="0.18,0.12" strokeLinecap="round" strokeLinejoin="round" opacity="0.7" className="animate-path-crawl" />
-              <rect x={tc(s.c) - 0.13} y={tc(s.r) - 0.13} width="0.26" height="0.26" fill="#000000" />
-              <rect x={tc(s.c) - 0.08} y={tc(s.r) - 0.08} width="0.16" height="0.16" fill="var(--theme-color)" />
+              <polyline points={pts} fill="none" stroke={strokeColor} strokeWidth="0.06" strokeDasharray="0.18,0.12" strokeLinecap="round" strokeLinejoin="round" opacity="0.85" className="animate-path-crawl" />
+              <circle cx={tc(s.c)} cy={tc(s.r)} r="0.13" fill="#000000" />
+              <circle cx={tc(s.c)} cy={tc(s.r)} r="0.08" fill={strokeColor} />
               {hoveredPath.length > 1 && <>
                 <circle cx={tc(e.c)} cy={tc(e.r)} r="0.13" fill="#000000" />
-                <circle cx={tc(e.c)} cy={tc(e.r)} r="0.08" fill="var(--theme-color)" />
+                <circle cx={tc(e.c)} cy={tc(e.r)} r="0.08" fill={strokeColor} />
               </>}
             </svg>
           );
