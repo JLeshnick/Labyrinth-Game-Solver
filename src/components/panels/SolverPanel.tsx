@@ -78,6 +78,8 @@ export function SolverPanel({
 
   const topSolution = solutions[0];
   const currentTargetId = playerActiveTargets[activePawn] || (topSolution ? (topSolution as any).cardId : null);
+  // Key changes whenever new solutions arrive so the list re-mounts and plays the fade animation
+  const solutionsKey = solutions.length + "-" + ((topSolution as any)?.cardId ?? "") + "-" + activePawn;
 
   if (compact) {
     return (
@@ -310,9 +312,9 @@ export function SolverPanel({
         </div>
       )}
 
-      <div className="flex-1 overflow-y-auto min-h-0 pl-1.5 pr-2 pt-1.5 flex flex-col gap-2">
+      <div key={solutionsKey} className="flex-1 overflow-y-auto min-h-0 pl-1.5 pr-2 pt-1.5 pb-2 flex flex-col gap-2">
         {isLoadingSolutions ? (
-          <div className="flex-1 flex flex-col items-center justify-center text-stone-500 gap-2">
+          <div className="flex-1 flex flex-col items-center justify-center text-stone-500 gap-2 animate-fade-in">
             <div className="animate-spin h-5 w-5 border-2 border-stone-950 border-t-theme-primary rounded-sm" />
             Computing paths...
           </div>
@@ -320,7 +322,7 @@ export function SolverPanel({
           (() => {
             const visibleSolutions = showAllSuggestions ? solutions : solutions.slice(0, 5);
             return (
-              <>
+              <div className="flex flex-col gap-2 animate-fade-in">
                 <div className="text-[10px] text-stone-550 px-1 mb-1 italic flex items-center justify-between flex-wrap gap-2">
                   <span>Ranked by: Turn depth, walk spaces, safety</span>
                   <button
@@ -419,7 +421,7 @@ export function SolverPanel({
                     </div>
                   );
                 })}
-              </>
+              </div>
             );
           })()
         ) : (
@@ -429,7 +431,7 @@ export function SolverPanel({
         )}
       </div>
 
-      <div className="border-t border-stone-800 pt-4">
+      <div className="shrink-0 mt-1">
         <div className="text-xs text-stone-400 mb-2 font-medium">Select Player:</div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
           {PAWNS.filter((p) => activePlayers.includes(p.id)).map((p) => (

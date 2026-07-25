@@ -132,17 +132,19 @@ export function AppHeader({
         style={{ boxShadow: "0 3px 0 0 #000000" }}
       >
         {/* Left — brutalist title linking to GitHub */}
-        <a
-          href="https://github.com/JLeshnick/Labyrinth-Game-Solver"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="shrink-0 neo-brutalism-card px-2.5 py-1 rounded-lg bg-card hover:bg-stone-200 hover:text-stone-950 transition-colors cursor-pointer"
-        >
-          <span className="text-xs sm:text-sm font-black tracking-tight text-foreground uppercase select-none">
-            <span className="hidden sm:inline">Labyrinth Solver</span>
-            <span className="sm:hidden">Labyrinth</span>
-          </span>
-        </a>
+        <Tooltip content="Labyrinth Companion & Solver — View on GitHub" side="bottom">
+          <a
+            href="https://github.com/JLeshnick/Labyrinth-Game-Solver"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="shrink-0 neo-brutalism-card px-2.5 py-1 rounded-lg bg-card hover:bg-stone-200 hover:text-stone-950 transition-colors cursor-pointer"
+          >
+            <span className="text-xs sm:text-sm font-black tracking-tight text-foreground uppercase select-none">
+              <span className="hidden sm:inline">Labyrinth Solver</span>
+              <span className="sm:hidden">Labyrinth</span>
+            </span>
+          </a>
+        </Tooltip>
 
         {/* Center — Step Nav (timer integrated in Game button) */}
         <div className="flex-1 flex items-center justify-center min-w-0 gap-2">

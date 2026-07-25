@@ -712,3 +712,12 @@
   transform: translate(2px, 2px);
   box-shadow: 1px 1px 0px 0px #000000;
 }
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0);   }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.18s ease-out both;
+}
