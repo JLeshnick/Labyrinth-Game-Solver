@@ -108,9 +108,9 @@ export function SetupPanel({
                 showToast("All game settings and layout reset to defaults!");
               }}
               title="Reset all settings, mode, players, cards, and board to defaults"
-              className="text-[10px] text-red-400 hover:text-red-300 font-bold flex items-center gap-1 bg-stone-900/60 hover:bg-stone-900 border border-red-950/60 px-2 py-1 rounded-lg transition-all cursor-pointer shrink-0"
+              className="text-[10px] md:text-xs font-extrabold flex items-center gap-1.5 bg-red-500 hover:bg-red-400 text-stone-950 px-2.5 py-1.5 rounded-lg border-2 border-stone-950 neo-brutalism-button shadow-[2px_2px_0_0_#000000] cursor-pointer shrink-0 transition-all"
             >
-              <RefreshCcw className="w-3 h-3" />
+              <RefreshCcw className="w-3 h-3 text-stone-950 stroke-[2.5]" />
               Reset Defaults
             </button>
           )}
