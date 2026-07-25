@@ -6,9 +6,11 @@ interface TooltipProps {
   children: React.ReactElement;
   side?: "top" | "bottom" | "bottom-left" | "bottom-right" | "left" | "right";
   className?: string;
+  containerClassName?: string;
+  style?: React.CSSProperties;
 }
 
-export function Tooltip({ content, children, side = "bottom", className }: TooltipProps) {
+export function Tooltip({ content, children, side = "bottom", className, containerClassName, style }: TooltipProps) {
   if (!content) return children;
 
   const posClass =
@@ -20,7 +22,7 @@ export function Tooltip({ content, children, side = "bottom", className }: Toolt
     /* bottom */              "top-full mt-2 left-1/2 -translate-x-1/2";
 
   return (
-    <div className="relative group inline-flex">
+    <div className={cn("relative group inline-flex", containerClassName)} style={style}>
       {children}
       <div
         role="tooltip"

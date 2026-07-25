@@ -300,14 +300,15 @@ export const Board: React.FC<BoardProps> = ({
                 key={arrow.id}
                 content={tooltipText}
                 side={tooltipSide}
+                style={{
+                  gridRow: arrow.gridRow,
+                  gridColumn: arrow.gridColumn,
+                }}
+                containerClassName="w-full h-full flex items-center justify-center"
               >
                 <button
                   onClick={() => !isForbidden && onArrowClick(arrow.id)}
                   disabled={isForbidden || turnPhase === "move"}
-                  style={{
-                    gridRow: arrow.gridRow,
-                    gridColumn: arrow.gridColumn,
-                  }}
                   className={cn(
                     "w-full h-full max-w-[70%] max-h-[70%] aspect-square my-auto mx-auto p-0.5 rounded-lg transition-all focus:outline-none flex items-center justify-center self-center justify-self-center",
                     isForbidden || turnPhase === "move"
