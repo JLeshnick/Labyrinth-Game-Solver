@@ -532,27 +532,26 @@ export default function App() {
   ]);
 
   // ── Autoplay: when in auto mode, auto-execute the top solver suggestion ────────
-  const AUTOPLAY_BASE_DELAY_MS = 1400; // base pause between moves at 1× speed
+  const AUTOPLAY_BASE_DELAY_MS = 1200; // base pause between moves at 1× speed
   const isExecutingAutoMoveRef = useRef(false);
 
   useEffect(() => {
     if (game.gameMode !== "auto") return;
     if (!game.isGameStarted) return;
+    if (autoPlayPaused) return;
     if (isLoadingSolutions) return;
     if (solutions.length === 0) return;
-    if (autoPlayPaused) return;
     if (isExecutingAutoMoveRef.current) return;
 
-    const delay = Math.max(300, Math.round(AUTOPLAY_BASE_DELAY_MS / autoPlaySpeed));
+    const delay = Math.max(250, Math.round(AUTOPLAY_BASE_DELAY_MS / autoPlaySpeed));
     const timeoutId = setTimeout(() => {
       const top = solutions[0];
       if (top && !isExecutingAutoMoveRef.current) {
         isExecutingAutoMoveRef.current = true;
         handleExecuteSolutionWithAnimation(top as any);
-        // Reset ref after move execution finishes
         setTimeout(() => {
           isExecutingAutoMoveRef.current = false;
-        }, Math.max(350, Math.round(600 / autoPlaySpeed)));
+        }, Math.max(300, Math.round(500 / autoPlaySpeed)));
       }
     }, delay);
 
@@ -564,6 +563,9 @@ export default function App() {
     game.gameMode,
     autoPlayPaused,
     autoPlaySpeed,
+    game.grid,
+    game.spareTile,
+    game.activePawn,
     handleExecuteSolutionWithAnimation,
   ]);
 
