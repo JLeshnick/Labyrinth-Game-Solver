@@ -2,18 +2,18 @@ import type { TileData, Treasure, PawnPositions, PlayerMap } from "./types";
 
 export const TREASURES: Treasure[] = [
   // Fixed T-Junction Treasures (12)
-  { id: "book", name: "Book with Clasp" },
-  { id: "coins", name: "Bag of Gold Coins" },
-  { id: "map", name: "Treasure Map" },
-  { id: "crown", name: "Gold Crown" },
-  { id: "keys", name: "Set of Keys" },
+  { id: "book", name: "Book" },
+  { id: "coins", name: "Coins" },
+  { id: "map", name: "Map" },
+  { id: "crown", name: "Crown" },
+  { id: "keys", name: "Keys" },
   { id: "skull", name: "Skull" },
-  { id: "ring", name: "Gold Ring" },
-  { id: "chest", name: "Treasure Chest" },
+  { id: "ring", name: "Ring" },
+  { id: "chest", name: "Chest" },
   { id: "emerald", name: "Jewel" },
   { id: "sword", name: "Sword" },
-  { id: "menorah", name: "Gold Menorah" },
-  { id: "helmet", name: "Helmet (armor)" },
+  { id: "menorah", name: "Menorah" },
+  { id: "helmet", name: "Helmet" },
 
   // Movable Corner (Right-Angle Corridor) Treasures (6)
   { id: "lizard", name: "Lizard" },
@@ -21,15 +21,15 @@ export const TREASURES: Treasure[] = [
   { id: "owl", name: "Owl" },
   { id: "scarab", name: "Scarab" },
   { id: "rat", name: "Rat" },
-  { id: "spider", name: "Spider on Web" },
+  { id: "spider", name: "Spider" },
 
   // Movable Straight Corridor Treasures (6)
   { id: "bat", name: "Bat" },
   { id: "dragon", name: "Dragon" },
-  { id: "ghost_bottle", name: "Ghost (in bottle)" },
-  { id: "ghost_waving", name: "Ghost (waving)" },
+  { id: "ghost_bottle", name: "Ghost (Bottle)" },
+  { id: "ghost_waving", name: "Ghost (Waving)" },
   { id: "lady_pig", name: "Lady Pig" },
-  { id: "sorceress", name: "Sorceress" }
+  { id: "sorceress", name: "Witch" }
 ];
 
 export const PAWNS = [
@@ -61,8 +61,8 @@ export const TREASURE_SHORT_NAMES: Record<string, string> = {
   spider:       "Spider",
   bat:          "Bat",
   dragon:       "Dragon",
-  ghost_bottle: "Ghost (Bot)",
-  ghost_waving: "Ghost (Wav)",
+  ghost_bottle: "Ghost (Bottle)",
+  ghost_waving: "Ghost (Waving)",
   lady_pig:     "Lady Pig",
   sorceress:    "Witch",
 };
