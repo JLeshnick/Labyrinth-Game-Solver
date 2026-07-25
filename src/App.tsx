@@ -136,6 +136,15 @@ export default function App() {
   const [isLoadingSolutions, setIsLoadingSolutions] = useState(false);
   const workerRef = useRef<Worker | null>(null);
 
+  // ── Pawn travel animation state ───────────────────────────────────────────────
+  const [travelingPawn, setTravelingPawn] = useState<{
+    color: string;
+    from: { r: number; c: number };
+    to: { r: number; c: number };
+    key: number;
+  } | null>(null);
+  const travelTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   // ── Toast system ──────────────────────────────────────────────────────────────
   const [toastText, setToastText] = useState<string | null>(null);
   const showToast = useCallback(
@@ -225,6 +234,21 @@ export default function App() {
   });
 
   const canStartGame = game.looseTiles.length === 1 || game.looseTiles.length === 0;
+
+  // ── Pawn travel animation wrapper (needs game to be declared first) ────────────
+  const handleExecuteSolutionWithAnimation = useCallback((path: any) => {
+    if (!path || path.length === 0) return;
+    const pawnColor = path.pawnColor ?? game.activePawn;
+    const fromPos = game.pawnPositions[pawnColor];
+    const toPos = path[0]?.endPos;
+    if (fromPos && toPos) {
+      if (travelTimerRef.current) clearTimeout(travelTimerRef.current);
+      setTravelingPawn({ color: pawnColor, from: fromPos, to: toPos, key: Date.now() });
+      travelTimerRef.current = setTimeout(() => setTravelingPawn(null), 750);
+    }
+    game.handleExecuteSolution(path);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [game.activePawn, game.pawnPositions, game.handleExecuteSolution]);
 
   const handleScanApply = useCallback(
     (scannedGrid: (TileData | null)[][], looseTiles: TileData[]) => {
@@ -405,7 +429,7 @@ export default function App() {
   // ── Solver re-run on board/pawn/hand changes ──────────────────────────────────
   useEffect(() => {
     if (!game.isGameStarted || game.grid.length === 0 || !workerRef.current) return;
-    const isCoop = game.gameMode === "coop";
+    const isCoop = game.gameMode === "coop" || game.gameMode === "auto";
     const currentPawnCoord = game.pawnPositions[game.activePawn];
     const handCards = game.customTargetCoords
       ? ["custom_target"]
@@ -477,6 +501,23 @@ export default function App() {
     game.activePlayers,
     game.remainingCoopTreasures,
   ]);
+
+  // ── Autoplay: when in auto mode, auto-execute the top solver suggestion ────────
+  useEffect(() => {
+    if (game.gameMode !== "auto") return;
+    if (!game.isGameStarted) return;
+    if (isLoadingSolutions) return;
+    if (solutions.length === 0) return;
+    // Wait for the solver to settle, then fire the top suggestion after a readable delay
+    const timeoutId = setTimeout(() => {
+      const top = solutions[0];
+      if (top) {
+        handleExecuteSolutionWithAnimation(top as any);
+      }
+    }, 1800); // 1.8s so the user can see what's about to happen
+    return () => clearTimeout(timeoutId);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [solutions, isLoadingSolutions, game.isGameStarted, game.gameMode]);
 
   // ── Drag and Drop ─────────────────────────────────────────────────────────────
   const handleDragStart = (e: DragStartEvent) => setActiveId(e.active.id as string);
@@ -871,11 +912,12 @@ export default function App() {
                     );
                   }
                 }}
-                allObtainedTreasures={game.gameMode === "coop" ? game.coopObtainedTreasures : Object.values(game.obtainedTreasures).flat()}
+                allObtainedTreasures={game.gameMode === "coop" || game.gameMode === "auto" ? game.coopObtainedTreasures : Object.values(game.obtainedTreasures).flat()}
                 activeTargetTreasureId={game.playerActiveTargets[game.activePawn]}
                 activePlayers={game.activePlayers}
                 is3D={is3D}
                 activePawn={game.activePawn}
+                travelingPawn={travelingPawn}
               />
             </div>
           </div>
@@ -896,7 +938,7 @@ export default function App() {
                   spareTile={previewState ? previewState.spareTile : game.spareTile}
                   customTargetCoords={game.customTargetCoords}
                   setCustomTargetCoords={game.setCustomTargetCoords}
-                  onExecuteSolution={game.handleExecuteSolution}
+                  onExecuteSolution={handleExecuteSolutionWithAnimation}
                   playerActiveTargets={game.playerActiveTargets}
                   onSelectTargetTreasure={game.handleSelectTargetTreasure}
                   stagedArrow={stagedArrow}
@@ -992,7 +1034,7 @@ export default function App() {
                     spareTile={previewState ? previewState.spareTile : game.spareTile}
                     customTargetCoords={game.customTargetCoords}
                     setCustomTargetCoords={game.setCustomTargetCoords}
-                    onExecuteSolution={game.handleExecuteSolution}
+                    onExecuteSolution={handleExecuteSolutionWithAnimation}
                     playerActiveTargets={game.playerActiveTargets}
                     onSelectTargetTreasure={game.handleSelectTargetTreasure}
                     stagedArrow={stagedArrow}

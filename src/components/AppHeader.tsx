@@ -38,7 +38,7 @@ export interface AppHeaderProps {
   isSettingsOpen: boolean;
   playerHands: PlayerMap<string[]>;
   obtainedTreasures: PlayerMap<string[]>;
-  gameMode?: "standard" | "coop";
+  gameMode?: "standard" | "coop" | "auto";
   coopObtainedTreasures?: string[];
   onOpenSettings: () => void;
   onCloseSettings: () => void;
@@ -388,7 +388,7 @@ export function AppHeader({
             </Button>
           </Tooltip>
 
-          <Tooltip content="How to play" side="left">
+          <Tooltip content="How to play" side="bottom-right">
             <Button
               variant="outline" size="icon"
               onClick={() => { if (!isMuted) playClickSound(); onOpenWelcomeGuide(); }}

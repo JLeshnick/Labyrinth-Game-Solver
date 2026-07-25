@@ -197,6 +197,7 @@ interface BoardProps {
   activePawn?: string;
   allObtainedTreasures?: string[];
   activeTargetTreasureId?: string | null;
+  travelingPawn?: { color: string; from: { r: number; c: number }; to: { r: number; c: number }; key: number } | null;
 }
 
 const PAWN_HEX_COLORS: Record<string, string> = {
@@ -229,6 +230,7 @@ export const Board: React.FC<BoardProps> = ({
   activeTargetTreasureId,
   is3D = false,
   activePawn = "red",
+  travelingPawn,
 }) => {
 
   return (
@@ -428,6 +430,31 @@ export const Board: React.FC<BoardProps> = ({
                 <circle cx={tc(e.c)} cy={tc(e.r)} r="0.13" fill="#000000" />
                 <circle cx={tc(e.c)} cy={tc(e.r)} r="0.08" fill={strokeColor} />
               </>}
+            </svg>
+          );
+        })()}
+
+        {/* Pawn travel animation — shows a dot flying from old position to new on each move */}
+        {isGameStarted && travelingPawn && (() => {
+          const tc = (i: number) => i + 1.5;
+          const color = PAWN_HEX_COLORS[travelingPawn.color] || "#f59e0b";
+          const fx = tc(travelingPawn.from.c);
+          const fy = tc(travelingPawn.from.r);
+          const tx = tc(travelingPawn.to.c);
+          const ty = tc(travelingPawn.to.r);
+          const path = `M ${fx} ${fy} L ${tx} ${ty}`;
+          return (
+            <svg key={travelingPawn.key} viewBox="0 0 9 9" className="absolute inset-0 w-full h-full pointer-events-none z-40" aria-hidden="true">
+              {/* shadow */}
+              <circle r="0.18" fill="#000000" opacity="0.5">
+                <animateMotion dur="0.65s" calcMode="spline" keySplines="0.4 0 0.2 1" fill="freeze" path={path} />
+                <animate attributeName="opacity" values="0.5;0.5;0" keyTimes="0;0.85;1" dur="0.65s" fill="freeze" />
+              </circle>
+              {/* colored dot */}
+              <circle r="0.14" fill={color} stroke="#000000" strokeWidth="0.04">
+                <animateMotion dur="0.65s" calcMode="spline" keySplines="0.4 0 0.2 1" fill="freeze" path={path} />
+                <animate attributeName="opacity" values="1;1;0" keyTimes="0;0.85;1" dur="0.65s" fill="freeze" />
+              </circle>
             </svg>
           );
         })()}

@@ -721,3 +721,14 @@
 .animate-fade-in {
   animation: fadeIn 0.18s ease-out both;
 }
+
+@keyframes pawnTravel {
+  0%   { offset-distance: 0%;   opacity: 1; }
+  90%  { offset-distance: 100%; opacity: 1; }
+  100% { offset-distance: 100%; opacity: 0; }
+}
+
+.animate-pawn-travel {
+  animation: pawnTravel 0.7s cubic-bezier(0.4, 0, 0.2, 1) both;
+  offset-rotate: 0deg;
+}

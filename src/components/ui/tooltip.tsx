@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 interface TooltipProps {
   content: React.ReactNode;
   children: React.ReactElement;
-  side?: "top" | "bottom" | "left" | "right";
+  side?: "top" | "bottom" | "bottom-right" | "left" | "right";
   className?: string;
 }
 
@@ -12,10 +12,11 @@ export function Tooltip({ content, children, side = "bottom", className }: Toolt
   if (!content) return children;
 
   const posClass =
-    side === "top"    ? "bottom-full mb-2 left-1/2 -translate-x-1/2" :
-    side === "left"   ? "right-full mr-2 top-1/2 -translate-y-1/2" :
-    side === "right"  ? "left-full ml-2 top-1/2 -translate-y-1/2" :
-    /* bottom */       "top-full mt-2 left-1/2 -translate-x-1/2";
+    side === "top"          ? "bottom-full mb-2 left-1/2 -translate-x-1/2" :
+    side === "left"         ? "right-full mr-2 top-1/2 -translate-y-1/2" :
+    side === "right"        ? "left-full ml-2 top-1/2 -translate-y-1/2" :
+    side === "bottom-right" ? "top-full mt-2 right-0" :
+    /* bottom */              "top-full mt-2 left-1/2 -translate-x-1/2";
 
   return (
     <div className="relative group inline-flex">

@@ -18,7 +18,7 @@ export interface HistoryRecord {
   label?: string;
   movedPawn?: string;
   pawnPath?: { r: number; c: number }[];
-  gameMode?: "standard" | "coop";
+  gameMode?: "standard" | "coop" | "auto";
   remainingCoopTreasures?: string[];
   coopObtainedTreasures?: string[];
 }
@@ -49,7 +49,7 @@ export function useLabyrinthHistory(initialState: HistoryRecord | null) {
       label?: string,
       movedPawn?: string,
       pawnPath?: { r: number; c: number }[],
-      gameMode?: "standard" | "coop",
+      gameMode?: "standard" | "coop" | "auto",
       remainingCoopTreasures?: string[],
       coopObtainedTreasures?: string[]
     ) => {

@@ -37,7 +37,7 @@ interface SolverPanelProps {
   isActivePawnHome: boolean;
   compact?: boolean;
   onToggleStats?: () => void;
-  gameMode?: "standard" | "coop";
+  gameMode?: "standard" | "coop" | "auto";
   remainingCoopTreasures?: string[];
 }
  
@@ -365,7 +365,7 @@ export function SolverPanel({
                         {index + 1}
                       </span>
                       <div className="flex-1 min-w-0">
-                        <div className="text-xs font-semibold flex items-center gap-1.5 flex-wrap">
+                        <div className="text-xs font-semibold flex items-center gap-1 flex-wrap">
                           {(sol as any).pawnColor && (
                             <span className={`px-1.5 py-0.5 rounded text-[9px] font-extrabold uppercase tracking-wider text-stone-950 ${
                               (sol as any).pawnColor === "red"
@@ -380,30 +380,30 @@ export function SolverPanel({
                             </span>
                           )}
                           {isFallback ? (
-                            <span className="px-2 py-0.5 rounded-lg bg-amber-400 text-stone-950 text-[10px] font-black border-2 border-stone-950 shadow-[1px_1px_0_0_#000000] flex items-center leading-none">
-                              Fallback ({sol.length} turn{sol.length > 1 ? "s" : ""})
+                            <span className="px-1.5 py-0.5 rounded-lg bg-amber-400 text-stone-950 text-[10px] font-black border-2 border-stone-950 shadow-[1px_1px_0_0_#000000] flex items-center leading-none whitespace-nowrap">
+                              Fallback ({sol.length}t)
                             </span>
                           ) : sol.length === 1 ? (
-                            <span className="px-2 py-0.5 rounded-lg bg-emerald-400 text-stone-950 text-[10px] font-black border-2 border-stone-950 shadow-[1px_1px_0_0_#000000] flex items-center leading-none">
-                              Direct Route (1 turn)
+                            <span className="px-1.5 py-0.5 rounded-lg bg-emerald-400 text-stone-950 text-[10px] font-black border-2 border-stone-950 shadow-[1px_1px_0_0_#000000] flex items-center leading-none whitespace-nowrap">
+                              Direct (1 turn)
                             </span>
                           ) : (
-                            <span className="px-2 py-0.5 rounded-lg bg-blue-400 text-stone-950 text-[10px] font-black border-2 border-stone-950 shadow-[1px_1px_0_0_#000000] flex items-center leading-none">
-                              Multi-Turn ({sol.length} turns)
+                            <span className="px-1.5 py-0.5 rounded-lg bg-blue-400 text-stone-950 text-[10px] font-black border-2 border-stone-950 shadow-[1px_1px_0_0_#000000] flex items-center leading-none whitespace-nowrap">
+                              Multi ({sol.length} turns)
                             </span>
                           )}
-                          <span className="px-2 py-0.5 rounded-lg bg-card text-stone-100 text-[10px] font-black border-2 border-stone-950 shadow-[1px_1px_0_0_#000000] flex items-center leading-none">
-                            {walkDist} space{walkDist !== 1 ? "s" : ""}
+                          <span className="px-1.5 py-0.5 rounded-lg bg-card text-stone-100 text-[10px] font-black border-2 border-stone-950 shadow-[1px_1px_0_0_#000000] flex items-center leading-none whitespace-nowrap">
+                            {walkDist}sp
                           </span>
                           {safetyScoreValue !== null && (
-                            <span className={`px-2 py-0.5 rounded-lg text-stone-950 text-[10px] font-black border-2 border-stone-950 shadow-[1px_1px_0_0_#000000] flex items-center leading-none ${
+                            <span className={`px-1.5 py-0.5 rounded-lg text-stone-950 text-[10px] font-black border-2 border-stone-950 shadow-[1px_1px_0_0_#000000] flex items-center leading-none whitespace-nowrap ${
                               safetyScoreValue >= 80
                                 ? "bg-emerald-400"
                                 : safetyScoreValue >= 40
                                 ? "bg-amber-400"
                                 : "bg-red-500"
                             }`}>
-                              {safetyScoreValue}/100 safety
+                              {safetyScoreValue}/100
                             </span>
                           )}
                         </div>

@@ -92,7 +92,7 @@ export function useLabyrinthGame({
   const [obtainedTreasures, setObtainedTreasures] =
     useState<PlayerMap<string[]>>(EMPTY_OBTAINED_TREASURES);
   const [pawnStats, setPawnStats] = useState<Record<string, PawnStat>>({});
-  const [gameMode, setGameMode] = useState<"standard" | "coop">("standard");
+  const [gameMode, setGameMode] = useState<"standard" | "coop" | "auto">("standard");
   const [remainingCoopTreasures, setRemainingCoopTreasures] = useState<string[]>([]);
   const [coopObtainedTreasures, setCoopObtainedTreasures] = useState<string[]>([]);
   const [customTargetCoords, setCustomTargetCoords] = useState<{

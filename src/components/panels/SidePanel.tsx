@@ -31,7 +31,7 @@ export const SidePanel: React.FC<SidePanelProps> = ({ tiles, onTileClick }) => {
       <CardContent
         ref={setNodeRef}
         className={cn(
-          "flex-1 min-h-0 relative px-4 pb-4 transition-colors rounded-b-lg border border-transparent",
+          "flex-1 min-h-0 relative px-4 pb-4 transition-colors rounded-b-xl border border-transparent",
           isOver ? "ring-2 ring-theme-primary ring-inset bg-theme-primary-10" : ""
         )}
       >

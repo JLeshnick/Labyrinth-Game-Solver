@@ -28,8 +28,8 @@ interface SetupPanelProps {
   showToast: (msg: string) => void;
   onScanBoard?: () => void;
   compact?: boolean;
-  gameMode?: "standard" | "coop";
-  onSetGameMode?: (mode: "standard" | "coop") => void;
+  gameMode?: "standard" | "coop" | "auto";
+  onSetGameMode?: (mode: "standard" | "coop" | "auto") => void;
 }
 
 export function SetupPanel({
@@ -59,7 +59,7 @@ export function SetupPanel({
 }: SetupPanelProps) {
 
   useEffect(() => {
-    if (gameMode === "coop" && setupTab === "cards") {
+    if ((gameMode === "coop" || gameMode === "auto") && setupTab === "cards") {
       setSetupTab("tiles");
     }
   }, [gameMode, setupTab, setSetupTab]);
@@ -128,7 +128,7 @@ export function SetupPanel({
           { id: "players", label: "Players", icon: <Users   className="w-3.5 h-3.5" /> },
           { id: "cards",   label: "Cards",   icon: <Sparkles className="w-3.5 h-3.5" /> },
         ] as const).map((tab) => {
-          const isDisabled = tab.id === "cards" && gameMode === "coop";
+          const isDisabled = tab.id === "cards" && (gameMode === "coop" || gameMode === "auto");
           return (
             <button
               key={tab.id}
@@ -185,8 +185,8 @@ export function SetupPanel({
                 <RefreshCcw className="w-4 h-4" />
               </Button>
             </div>
-            {/* padding wrapper keeps the tile-panel shadow visible without adding a double border */}
-            <div className="flex-1 overflow-hidden p-1 pb-4">
+            {/* padding wrapper lets the card's neo-brutalist shadow breathe — overflow-visible is intentional */}
+            <div className="flex-1 overflow-visible min-h-0 p-1 pb-4">
               <SidePanel tiles={looseTiles} onTileClick={onTileClick} />
             </div>
           </div>
@@ -197,10 +197,10 @@ export function SetupPanel({
             <div className="p-3 app-surface flex flex-col gap-2">
               <div className="text-xs font-bold text-stone-200">Game Mode</div>
               <p className="text-[11px] text-stone-500 leading-normal">
-                Choose the play style. Cooperative mode pools all remaining treasures together for all pawns to collect.
+                Standard: each player hunts their own cards. Cooperative: all players share a pool. Auto: the solver plays itself automatically.
               </p>
-              <div className="grid grid-cols-2 gap-2 mt-1">
-                {(["standard", "coop"] as const).map((mode) => (
+              <div className="grid grid-cols-3 gap-2 mt-1">
+                {(["standard", "coop", "auto"] as const).map((mode) => (
                   <button
                     key={mode}
                     onClick={() => {
@@ -209,14 +209,14 @@ export function SetupPanel({
                         onSetGameMode(mode);
                       }
                     }}
-                    className={`flex items-center justify-between p-2.5 min-h-11 rounded-xl text-xs font-semibold neo-brutalism-button cursor-pointer border-stone-950 ${
+                    className={`flex flex-col items-center justify-center gap-0.5 p-2.5 min-h-11 rounded-xl text-xs font-semibold neo-brutalism-button cursor-pointer border-stone-950 ${
                       gameMode === mode
                         ? "bg-theme-primary text-stone-950 translate-x-[1px] translate-y-[1px] shadow-[1px_1px_0_0_#000000]"
                         : "bg-card text-foreground"
                     }`}
                   >
-                    <span className="capitalize">{mode === "coop" ? "Cooperative" : "Standard"}</span>
-                    <span className="text-[10px] opacity-75">{gameMode === mode ? "Active" : "Off"}</span>
+                    <span>{mode === "coop" ? "Co-op" : mode === "auto" ? "Auto" : "Standard"}</span>
+                    <span className="text-[9px] opacity-60">{gameMode === mode ? "Active" : "—"}</span>
                   </button>
                 ))}
               </div>
