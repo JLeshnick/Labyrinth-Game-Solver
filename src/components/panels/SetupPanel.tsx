@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { Sparkles, Layers, Users, Compass, Play, RefreshCcw, Camera } from "lucide-react";
 import { SidePanel } from "./SidePanel";
 import { Button } from "../ui/button";
+import { Tooltip } from "../ui/tooltip";
 import { PAWNS, TREASURES } from "../../constants";
 import { playClickSound } from "../../utils/audio";
 import type { TileData } from "../../types";
@@ -75,18 +76,20 @@ export function SetupPanel({
             ? "Setup complete — ready to play"
             : `${movableTilesRemaining} tile${movableTilesRemaining === 1 ? "" : "s"} left to place`}
         </span>
-        <Button
-          onClick={() => {
-            if (!isMuted) playClickSound();
-            onStartGame();
-          }}
-          disabled={!canStartGame}
-          size="sm"
-          className="neo-brutalism-button bg-theme-primary border-stone-950 hover:bg-theme-primary-hover text-stone-950 font-bold min-h-9 rounded-lg flex items-center gap-1.5 shrink-0 disabled:opacity-40 disabled:cursor-not-allowed disabled:translate-x-0 disabled:translate-y-0 disabled:shadow-[2px_2px_0_0_#000000]"
-        >
-          <Play className="w-3.5 h-3.5" />
-          Start
-        </Button>
+        <Tooltip content="Start playing with current board setup" side="left">
+          <Button
+            onClick={() => {
+              if (!isMuted) playClickSound();
+              onStartGame();
+            }}
+            disabled={!canStartGame}
+            size="sm"
+            className="neo-brutalism-button bg-theme-primary border-stone-950 hover:bg-theme-primary-hover text-stone-950 font-bold min-h-9 rounded-lg flex items-center gap-1.5 shrink-0 disabled:opacity-40 disabled:cursor-not-allowed disabled:translate-x-0 disabled:translate-y-0 disabled:shadow-[2px_2px_0_0_#000000]"
+          >
+            <Play className="w-3.5 h-3.5" />
+            Start
+          </Button>
+        </Tooltip>
       </div>
     );
   }
@@ -110,45 +113,47 @@ export function SetupPanel({
             </span>
           </div>
         </div>
-        <Button
-          onClick={() => {
-            if (!isMuted) playClickSound();
-            onStartGame();
-          }}
-          disabled={!canStartGame}
-          title={!canStartGame ? "Place all movable tiles first" : undefined}
-          className="w-full neo-brutalism-button bg-theme-primary border-stone-950 hover:bg-theme-primary-hover text-stone-950 font-bold py-2.5 px-4 min-h-11 rounded-xl flex items-center justify-center gap-2 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed disabled:translate-x-0 disabled:translate-y-0 disabled:shadow-[2px_2px_0_0_#000000] mt-1"
-        >
-          <Play className="w-4 h-4" />
-          Start Game
-        </Button>
+        <Tooltip content={!canStartGame ? "Place all 33 movable tiles on the board first" : "Lock in layout and begin game turn"} side="bottom">
+          <Button
+            onClick={() => {
+              if (!isMuted) playClickSound();
+              onStartGame();
+            }}
+            disabled={!canStartGame}
+            className="w-full neo-brutalism-button bg-theme-primary border-stone-950 hover:bg-theme-primary-hover text-stone-950 font-bold py-2.5 px-4 min-h-11 rounded-xl flex items-center justify-center gap-2 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed disabled:translate-x-0 disabled:translate-y-0 disabled:shadow-[2px_2px_0_0_#000000] mt-1"
+          >
+            <Play className="w-4 h-4" />
+            Start Game
+          </Button>
+        </Tooltip>
       </div>
 
       {/* Tab bar — full width to align with the checklist above */}
       <div className="flex items-center bg-card rounded-xl p-1 border-2 border-stone-950 w-full shadow-[3px_3px_0_0_#000000] gap-0.5">
         {([
-          { id: "tiles",   label: "Tiles",   icon: <Layers  className="w-3.5 h-3.5" /> },
-          { id: "mode",    label: "Mode",    icon: <Compass className="w-3.5 h-3.5" /> },
-          { id: "players", label: "Players", icon: <Users   className="w-3.5 h-3.5" /> },
-          { id: "cards",   label: "Cards",   icon: <Sparkles className="w-3.5 h-3.5" /> },
+          { id: "tiles",   label: "Tiles",   icon: <Layers  className="w-3.5 h-3.5" />, desc: "Configure movable board tiles" },
+          { id: "mode",    label: "Mode",    icon: <Compass className="w-3.5 h-3.5" />, desc: "Select Standard, Co-op, or Auto game mode" },
+          { id: "players", label: "Players", icon: <Users   className="w-3.5 h-3.5" />, desc: "Toggle active player pawns" },
+          { id: "cards",   label: "Cards",   icon: <Sparkles className="w-3.5 h-3.5" />, desc: "Assign treasure cards to players" },
         ] as const).map((tab) => {
           const isDisabled = tab.id === "cards" && (gameMode === "coop" || gameMode === "auto");
           return (
-            <button
-              key={tab.id}
-              disabled={isDisabled}
-              onClick={() => setSetupTab(tab.id)}
-              className={`flex-1 flex items-center justify-center gap-1.5 py-2 md:py-1.5 min-h-11 md:min-h-0 rounded-lg text-xs font-bold transition-all border-2 ${
-                isDisabled
-                  ? "opacity-30 cursor-not-allowed border-transparent bg-stone-900/40 text-stone-600 shadow-none"
-                  : setupTab === tab.id
-                  ? "bg-theme-primary text-stone-950 border-stone-950 shadow-[2px_2px_0_0_#000000] cursor-pointer"
-                  : "text-stone-500 hover:text-foreground hover:bg-stone-800 border-transparent cursor-pointer"
-              }`}
-            >
-              {tab.icon}
-              {tab.label}
-            </button>
+            <Tooltip key={tab.id} content={isDisabled ? "Cards tab disabled in Co-op / Auto mode" : tab.desc} side="bottom">
+              <button
+                disabled={isDisabled}
+                onClick={() => setSetupTab(tab.id)}
+                className={`w-full flex items-center justify-center gap-1.5 py-2 md:py-1.5 min-h-11 md:min-h-0 rounded-lg text-xs font-bold transition-all border-2 ${
+                  isDisabled
+                    ? "opacity-30 cursor-not-allowed border-transparent bg-stone-900/40 text-stone-600 shadow-none"
+                    : setupTab === tab.id
+                    ? "bg-theme-primary text-stone-950 border-stone-950 shadow-[2px_2px_0_0_#000000] cursor-pointer"
+                    : "text-stone-500 hover:text-foreground hover:bg-stone-800 border-transparent cursor-pointer"
+                }`}
+              >
+                {tab.icon}
+                {tab.label}
+              </button>
+            </Tooltip>
           );
         })}
       </div>
@@ -158,42 +163,46 @@ export function SetupPanel({
         {setupTab === "tiles" && (
           <div className="flex flex-col gap-3 h-full overflow-hidden min-h-0 p-1 px-1.5 pb-4">
             <div className="flex gap-2">
-              <Button
-                onClick={onRandomizeBoard}
-                className="flex-1 neo-brutalism-button bg-theme-primary border-stone-950 hover:bg-theme-primary-hover text-stone-950 font-bold py-2.5 px-4 min-h-11 rounded-xl flex items-center justify-center gap-2 cursor-pointer"
-              >
-                <Sparkles className="w-4 h-4" />
-                Randomize Board
-              </Button>
+              <Tooltip content="Randomly shuffle and rotate all movable tiles" side="top">
+                <Button
+                  onClick={onRandomizeBoard}
+                  className="flex-1 neo-brutalism-button bg-theme-primary border-stone-950 hover:bg-theme-primary-hover text-stone-950 font-bold py-2.5 px-4 min-h-11 rounded-xl flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <Sparkles className="w-4 h-4" />
+                  Randomize Board
+                </Button>
+              </Tooltip>
               {onScanBoard && (
+                <Tooltip content="Scan board photo with camera" side="top">
+                  <Button
+                    variant="outline"
+                    onClick={onScanBoard}
+                    aria-label="Scan board photo"
+                    className="neo-brutalism-button border-stone-950 bg-card text-stone-400 hover:text-stone-200 min-h-11 w-11 shrink-0 px-0 cursor-pointer"
+                  >
+                    <Camera className="w-4 h-4" />
+                  </Button>
+                </Tooltip>
+              )}
+              <Tooltip content="Reset all settings, mode, players, cards, and board to defaults" side="top">
                 <Button
                   variant="outline"
-                  onClick={onScanBoard}
-                  title="Scan Board Photo"
-                  aria-label="Scan board photo"
-                  className="neo-brutalism-button border-stone-950 bg-card text-stone-400 hover:text-stone-200 min-h-11 w-11 shrink-0 px-0 cursor-pointer"
+                  onClick={() => {
+                    if (!isMuted) playClickSound();
+                    if (onResetAllDefaults) {
+                      onResetAllDefaults();
+                      showToast("All game settings and layout reset to defaults!");
+                    } else {
+                      onResetBoard();
+                      showToast("Board layout reset to defaults!");
+                    }
+                  }}
+                  aria-label="Reset all defaults"
+                  className="neo-brutalism-button border-2 border-stone-950 bg-red-500 hover:bg-red-400 text-stone-950 min-h-11 w-11 shrink-0 px-0 cursor-pointer shadow-[2px_2px_0_0_#000000]"
                 >
-                  <Camera className="w-4 h-4" />
+                  <RefreshCcw className="w-4 h-4 stroke-[2.5]" />
                 </Button>
-              )}
-              <Button
-                variant="outline"
-                onClick={() => {
-                  if (!isMuted) playClickSound();
-                  if (onResetAllDefaults) {
-                    onResetAllDefaults();
-                    showToast("All game settings and layout reset to defaults!");
-                  } else {
-                    onResetBoard();
-                    showToast("Board layout reset to defaults!");
-                  }
-                }}
-                title="Reset all settings, mode, players, cards, and board to defaults"
-                aria-label="Reset all defaults"
-                className="neo-brutalism-button border-2 border-stone-950 bg-red-500 hover:bg-red-400 text-stone-950 min-h-11 w-11 shrink-0 px-0 cursor-pointer shadow-[2px_2px_0_0_#000000]"
-              >
-                <RefreshCcw className="w-4 h-4 stroke-[2.5]" />
-              </Button>
+              </Tooltip>
             </div>
             {/* padding wrapper lets the card's neo-brutalist shadow breathe — overflow-visible is intentional */}
             <div className="flex-1 overflow-visible min-h-0 p-1 pb-4">

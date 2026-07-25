@@ -220,9 +220,12 @@ export const Tile: React.FC<TileProps> = ({
               : "bg-amber-300"
           )}
           style={
-            is3D
-              ? { transform: `rotateZ(${30 - boardRotation}deg) rotateX(-45deg) translateZ(10px)` }
-              : { transform: `rotate(${-boardRotation}deg)` }
+            boardRotation
+              ? {
+                  transform: `rotate(${-boardRotation}deg)`,
+                  transformOrigin: "center center",
+                }
+              : undefined
           }
           title={tile.treasure.name}
         >
