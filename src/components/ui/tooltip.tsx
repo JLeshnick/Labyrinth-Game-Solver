@@ -31,10 +31,10 @@ export function Tooltip({ content, children, side = "bottom", className, contain
       <div
         role="tooltip"
         className={cn(
-          "absolute z-[100] px-2 py-1 rounded-lg text-[11px] font-semibold whitespace-nowrap",
-          "app-dialog-panel neo-brutalism-card text-stone-200",
+          "absolute z-[9999] px-2.5 py-1.5 rounded-lg text-[11px] font-bold max-w-xs w-max text-center leading-tight shadow-xl",
+          "app-dialog-panel neo-brutalism-card text-stone-200 border-2 border-stone-950 bg-stone-900",
           "invisible opacity-0 group-hover:visible group-hover:opacity-100",
-          "transition-opacity duration-100 pointer-events-none",
+          "transition-opacity duration-150 pointer-events-none",
           posClass,
           className
         )}
