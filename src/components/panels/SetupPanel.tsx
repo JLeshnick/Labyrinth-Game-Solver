@@ -158,11 +158,11 @@ export function SetupPanel({
       </div>
 
       {/* Tab content */}
-      <div className="flex-1 overflow-hidden min-h-0">
+      <div className="flex-1 overflow-visible min-h-0">
         {setupTab === "tiles" && (
-          <div className="flex flex-col gap-3 h-full overflow-hidden min-h-0 p-1 px-1.5 pb-4">
-            <div className="flex gap-2 items-center">
-              <Tooltip content="Randomly shuffle and rotate all movable tiles" side="top" containerClassName="flex-1">
+          <div className="flex flex-col gap-3 h-full overflow-visible min-h-0 p-1 px-1.5 pb-4">
+            <div className="flex gap-2 items-center overflow-visible">
+              <Tooltip content="Randomly shuffle and rotate all movable tiles" side="bottom" containerClassName="flex-1">
                 <Button
                   onClick={onRandomizeBoard}
                   className="w-full neo-brutalism-button bg-theme-primary border-stone-950 hover:bg-theme-primary-hover text-stone-950 font-bold py-2.5 px-4 min-h-11 rounded-xl flex items-center justify-center gap-2 cursor-pointer"
@@ -172,7 +172,7 @@ export function SetupPanel({
                 </Button>
               </Tooltip>
               {onScanBoard && (
-                <Tooltip content="Scan board photo with camera" side="top" containerClassName="shrink-0">
+                <Tooltip content="Scan board photo with camera" side="bottom" containerClassName="shrink-0">
                   <Button
                     variant="outline"
                     onClick={onScanBoard}
@@ -183,7 +183,7 @@ export function SetupPanel({
                   </Button>
                 </Tooltip>
               )}
-              <Tooltip content="Reset all settings, mode, players, cards, and board to defaults" side="top" containerClassName="shrink-0">
+              <Tooltip content="Reset all settings, mode, players, cards, and board to defaults" side="bottom" containerClassName="shrink-0">
                 <Button
                   variant="outline"
                   onClick={() => {
