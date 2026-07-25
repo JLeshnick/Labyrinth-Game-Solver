@@ -496,8 +496,8 @@ export default function App() {
       coopTarget = isHomeSelected ? `home_${game.activePawn}` : "custom_target";
     }
 
-    // In coop mode, if a specific target card is selected, solve only for that card. Otherwise, use all remaining coop treasures.
-    const selectedTarget = game.playerActiveTargets[game.activePawn];
+    // In coop mode, if a specific target card is selected, solve only for that card. In auto mode or unselected coop, solve globally for all remaining treasures.
+    const selectedTarget = game.gameMode === "auto" ? null : game.playerActiveTargets[game.activePawn];
     const coopTreasures = isCoop && selectedTarget ? [selectedTarget] : game.remainingCoopTreasures;
 
     workerRef.current.postMessage({
