@@ -3,6 +3,7 @@ import { useDraggable } from "@dnd-kit/core";
 import type { TileData } from "../../types";
 import { cn } from "../../lib/utils";
 import { Lock } from "lucide-react";
+import { Tooltip } from "../ui/tooltip";
 import { TREASURE_SHORT_NAMES } from "../../constants";
 
 interface TileProps {
@@ -195,17 +196,18 @@ export const Tile: React.FC<TileProps> = ({
 
       {/* Fixed tile lock badge */}
       {tile.isFixed && (
-        <div
-          className="absolute top-1 right-1 p-0.5 bg-stone-950 border-2 border-stone-950 rounded-md text-amber-400 shadow-[2px_2px_0_0_#000000] z-20 pointer-events-auto cursor-help"
-          style={
-            is3D
-              ? { transform: `rotateZ(${30 - boardRotation}deg) rotateX(-45deg) translateZ(8px)` }
-              : { transform: `rotate(${-boardRotation}deg)` }
-          }
-          title="This preset tile is permanently glued to the board. It cannot be moved, slid, or rotated."
-        >
-          <Lock className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
-        </div>
+        <Tooltip content="Permanently fixed preset tile (glued to board)" side="top" containerClassName="absolute top-1 right-1 z-20">
+          <div
+            className="p-0.5 bg-stone-950 border-2 border-stone-950 rounded-md text-amber-400 shadow-[2px_2px_0_0_#000000] pointer-events-auto cursor-help"
+            style={
+              is3D
+                ? { transform: `rotateZ(${30 - boardRotation}deg) rotateX(-45deg) translateZ(8px)` }
+                : { transform: `rotate(${-boardRotation}deg)` }
+            }
+          >
+            <Lock className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
+          </div>
+        </Tooltip>
       )}
 
       {/* Treasure name banner — sits across the bottom of the tile */}
