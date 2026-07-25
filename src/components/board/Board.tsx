@@ -420,22 +420,19 @@ export const Board: React.FC<BoardProps> = ({
         {/* SVG Path Overlay — absolute over the 9×9 grid, viewBox 0 0 9 9, tile center = c+1.5 */}
         {isGameStarted && hoveredPath && hoveredPath.length > 0 && (() => {
           const tc = (i: number) => i + 1.5;
-          const pts = hoveredPath.map(p => `${tc(p.c)},${tc(p.r)}`).join(" ");
-          const s = hoveredPath[0];
-          const e = hoveredPath[hoveredPath.length - 1];
+          
+          // Dynamic path trail erosion during pawn travel
+          let displayPath = hoveredPath;
+          if (travelingPawn && travelingPawn.path && travelingPawn.path.length > 0) {
+            displayPath = travelingPawn.path;
+          }
+          if (displayPath.length === 0) return null;
+
+          const pts = displayPath.map(p => `${tc(p.c)},${tc(p.r)}`).join(" ");
+          const s = displayPath[0];
+          const e = displayPath[displayPath.length - 1];
           const pathPawnColor = (hoveredPath as any).pawnColor || activePawn;
           const strokeColor = PAWN_HEX_COLORS[pathPawnColor] || "#f59e0b";
-
-          // Calculate exact geometric path distance
-          let totalLen = 0;
-          for (let i = 1; i < hoveredPath.length; i++) {
-            const dx = tc(hoveredPath[i].c) - tc(hoveredPath[i - 1].c);
-            const dy = tc(hoveredPath[i].r) - tc(hoveredPath[i - 1].r);
-            totalLen += Math.sqrt(dx * dx + dy * dy);
-          }
-
-          const isTraveling = travelingPawn && travelingPawn.path && travelingPawn.path.length > 0;
-          const durSec = (travelingPawn?.durationMs ?? 600) / 1000;
 
           return (
             <svg viewBox="0 0 9 9" className="absolute inset-0 w-full h-full pointer-events-none z-30 transition-opacity duration-150" aria-hidden="true">
@@ -444,36 +441,26 @@ export const Board: React.FC<BoardProps> = ({
                 fill="none"
                 stroke="#000000"
                 strokeWidth="0.10"
-                strokeDasharray={isTraveling ? `${totalLen} ${totalLen}` : "0.18,0.12"}
-                strokeDashoffset={0}
+                strokeDasharray="0.18,0.12"
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 opacity="0.45"
-                className={isTraveling ? "" : "animate-path-crawl"}
-                style={isTraveling ? {
-                  strokeDasharray: `${totalLen}`,
-                  animation: `erodeDash ${durSec}s linear forwards`,
-                } : undefined}
+                className="animate-path-crawl"
               />
               <polyline
                 points={pts}
                 fill="none"
                 stroke={strokeColor}
                 strokeWidth="0.06"
-                strokeDasharray={isTraveling ? `${totalLen} ${totalLen}` : "0.18,0.12"}
-                strokeDashoffset={0}
+                strokeDasharray="0.18,0.12"
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 opacity="0.85"
-                className={isTraveling ? "" : "animate-path-crawl"}
-                style={isTraveling ? {
-                  strokeDasharray: `${totalLen}`,
-                  animation: `erodeDash ${durSec}s linear forwards`,
-                } : undefined}
+                className="animate-path-crawl"
               />
               <circle cx={tc(s.c)} cy={tc(s.r)} r="0.13" fill="#000000" />
               <circle cx={tc(s.c)} cy={tc(s.r)} r="0.08" fill={strokeColor} />
-              {hoveredPath.length > 1 && <>
+              {displayPath.length > 1 && <>
                 <circle cx={tc(e.c)} cy={tc(e.r)} r="0.13" fill="#000000" />
                 <circle cx={tc(e.c)} cy={tc(e.r)} r="0.08" fill={strokeColor} />
               </>}
