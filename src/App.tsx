@@ -139,8 +139,8 @@ export default function App() {
   // ── Pawn travel animation state ───────────────────────────────────────────────
   const [travelingPawn, setTravelingPawn] = useState<{
     color: string;
-    from: { r: number; c: number };
-    to: { r: number; c: number };
+    path: { r: number; c: number }[];
+    currentStepIndex: number;
     key: number;
   } | null>(null);
   // While animating, hold pawn at from-position so it doesn't snap before the dot lands
@@ -242,25 +242,37 @@ export default function App() {
   const canStartGame = game.looseTiles.length === 1 || game.looseTiles.length === 0;
 
   // ── Pawn travel animation wrapper (needs game to be declared first) ────────────
-  const ANIM_DURATION_MS = 550; // dot flight time
   const handleExecuteSolutionWithAnimation = useCallback((path: any) => {
     if (!path || path.length === 0) return;
+    const turn1 = path[0];
     const pawnColor = path.pawnColor ?? game.activePawn;
     const fromPos = game.pawnPositions[pawnColor];
-    const toPos = path[0]?.endPos;
-    if (fromPos && toPos) {
+    const fullPath: { r: number; c: number }[] = turn1?.pawnPath || (fromPos ? [fromPos, turn1.endPos] : []);
+
+    if (fullPath.length > 1 && fromPos) {
       if (travelTimerRef.current) clearTimeout(travelTimerRef.current);
       // Lock the pawn display at FROM so it doesn't instantly jump
       setPawnPositionOverride(prev => ({ ...game.pawnPositions, ...prev, [pawnColor]: fromPos }));
-      setTravelingPawn({ color: pawnColor, from: fromPos, to: toPos, key: Date.now() });
-      // Execute the real move after the animation dot has already arrived
+      setTravelingPawn({ color: pawnColor, path: fullPath, currentStepIndex: 0, key: Date.now() });
+
+      // Step through waypoints to erode path under moving pawn
+      const stepDuration = 600 / (fullPath.length - 1);
+      fullPath.forEach((_, idx) => {
+        if (idx > 0) {
+          setTimeout(() => {
+            setTravelingPawn(prev => prev ? { ...prev, currentStepIndex: idx } : null);
+          }, stepDuration * idx);
+        }
+      });
+
+      // Execute the real move after the animation dot has completed the path
       travelTimerRef.current = setTimeout(() => {
         game.handleExecuteSolution(path);
         setTravelingPawn(null);
         setPawnPositionOverride(null);
-      }, ANIM_DURATION_MS);
+      }, 650);
     } else {
-      // No animation possible (same cell or missing data) — execute immediately
+      // No animation path possible — execute immediately
       game.handleExecuteSolution(path);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -866,6 +878,14 @@ export default function App() {
         playerHands={game.playerHands}
         obtainedTreasures={game.obtainedTreasures}
         gameMode={game.gameMode}
+        autoPlayPaused={autoPlayPaused}
+        onToggleAutoPlayPause={() => setAutoPlayPaused((p) => !p)}
+        autoPlaySpeed={autoPlaySpeed}
+        onSetAutoPlaySpeed={(s) => setAutoPlaySpeed(s)}
+        onStopAutoPlay={() => {
+          game.setGameMode("standard");
+          setAutoPlayPaused(false);
+        }}
         coopObtainedTreasures={game.coopObtainedTreasures}
         onOpenWelcomeGuide={() => setShowWelcomeGuide(true)}
         elapsedTime={game.isGameStarted ? elapsedTime : undefined}
@@ -942,51 +962,6 @@ export default function App() {
                 travelingPawn={travelingPawn}
               />
             </div>
-
-            {/* Auto-play control bar — shown below board when in auto mode */}
-            {game.isGameStarted && game.gameMode === "auto" && (
-              <div className="flex items-center justify-center gap-2 mt-2 flex-wrap animate-fade-in">
-                <div className="flex items-center gap-1 bg-card neo-brutalism-card rounded-xl px-2 py-1.5 border-2 border-stone-950 shadow-[3px_3px_0_0_#000000]">
-                  {/* Rewind / step-back (not implemented, greyed) */}
-                  <button
-                    title="Pause / Resume"
-                    onClick={() => setAutoPlayPaused(p => !p)}
-                    className="neo-brutalism-button bg-theme-primary border-stone-950 text-stone-950 w-8 h-8 rounded-lg flex items-center justify-center text-sm font-black cursor-pointer"
-                  >
-                    {autoPlayPaused ? "▶" : "⏸"}
-                  </button>
-
-                  <div className="w-px h-5 bg-stone-700 mx-1" />
-
-                  {/* Speed selector */}
-                  <span className="text-[10px] text-stone-400 font-bold mr-0.5">Speed:</span>
-                  {([0.5, 1, 2, 4] as const).map((s) => (
-                    <button
-                      key={s}
-                      onClick={() => setAutoPlaySpeed(s)}
-                      className={`px-1.5 py-0.5 rounded-md text-[10px] font-black border-2 border-stone-950 cursor-pointer transition-all ${
-                        autoPlaySpeed === s
-                          ? "bg-theme-primary text-stone-950 shadow-[1px_1px_0_0_#000000] translate-x-[1px] translate-y-[1px]"
-                          : "bg-stone-800 text-stone-300 shadow-[2px_2px_0_0_#000000] hover:bg-stone-700"
-                      }`}
-                    >
-                      {s}×
-                    </button>
-                  ))}
-
-                  <div className="w-px h-5 bg-stone-700 mx-1" />
-
-                  {/* Stop auto mode */}
-                  <button
-                    title="Exit Auto Mode"
-                    onClick={() => { game.setGameMode("standard"); setAutoPlayPaused(false); }}
-                    className="neo-brutalism-button bg-red-500 border-stone-950 text-stone-950 px-2 h-8 rounded-lg text-[10px] font-black cursor-pointer whitespace-nowrap"
-                  >
-                    ✕ Stop Auto
-                  </button>
-                </div>
-              </div>
-            )}
           </div>
 
           {/* Tablet & desktop side panel (md+) */}

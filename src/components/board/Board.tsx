@@ -197,7 +197,12 @@ interface BoardProps {
   activePawn?: string;
   allObtainedTreasures?: string[];
   activeTargetTreasureId?: string | null;
-  travelingPawn?: { color: string; from: { r: number; c: number }; to: { r: number; c: number }; key: number } | null;
+  travelingPawn?: {
+    color: string;
+    path: { r: number; c: number }[];
+    currentStepIndex?: number;
+    key: number;
+  } | null;
 }
 
 const PAWN_HEX_COLORS: Record<string, string> = {
@@ -415,9 +420,17 @@ export const Board: React.FC<BoardProps> = ({
         {/* SVG Path Overlay — absolute over the 9×9 grid, viewBox 0 0 9 9, tile center = c+1.5 */}
         {isGameStarted && hoveredPath && hoveredPath.length > 0 && (() => {
           const tc = (i: number) => i + 1.5;
-          const pts = hoveredPath.map(p => `${tc(p.c)},${tc(p.r)}`).join(" ");
-          const s = hoveredPath[0];
-          const e = hoveredPath[hoveredPath.length - 1];
+          // If pawn is traveling along this solution path, erode the path behind it as it moves!
+          let visiblePath = hoveredPath;
+          if (travelingPawn && travelingPawn.path && travelingPawn.path.length > 0) {
+            const stepIdx = travelingPawn.currentStepIndex ?? 0;
+            visiblePath = travelingPawn.path.slice(stepIdx);
+          }
+          if (visiblePath.length === 0) return null;
+
+          const pts = visiblePath.map(p => `${tc(p.c)},${tc(p.r)}`).join(" ");
+          const s = visiblePath[0];
+          const e = visiblePath[visiblePath.length - 1];
           const pathPawnColor = (hoveredPath as any).pawnColor || activePawn;
           const strokeColor = PAWN_HEX_COLORS[pathPawnColor] || "#f59e0b";
           return (
@@ -426,7 +439,7 @@ export const Board: React.FC<BoardProps> = ({
               <polyline points={pts} fill="none" stroke={strokeColor} strokeWidth="0.06" strokeDasharray="0.18,0.12" strokeLinecap="round" strokeLinejoin="round" opacity="0.85" className="animate-path-crawl" />
               <circle cx={tc(s.c)} cy={tc(s.r)} r="0.13" fill="#000000" />
               <circle cx={tc(s.c)} cy={tc(s.r)} r="0.08" fill={strokeColor} />
-              {hoveredPath.length > 1 && <>
+              {visiblePath.length > 1 && <>
                 <circle cx={tc(e.c)} cy={tc(e.r)} r="0.13" fill="#000000" />
                 <circle cx={tc(e.c)} cy={tc(e.r)} r="0.08" fill={strokeColor} />
               </>}
@@ -434,26 +447,25 @@ export const Board: React.FC<BoardProps> = ({
           );
         })()}
 
-        {/* Pawn travel animation — shows a dot flying from old position to new on each move */}
-        {isGameStarted && travelingPawn && (() => {
+        {/* Pawn travel animation — follows the exact multi-tile path waypoint by waypoint */}
+        {isGameStarted && travelingPawn && travelingPawn.path && travelingPawn.path.length > 1 && (() => {
           const tc = (i: number) => i + 1.5;
           const color = PAWN_HEX_COLORS[travelingPawn.color] || "#f59e0b";
-          const fx = tc(travelingPawn.from.c);
-          const fy = tc(travelingPawn.from.r);
-          const tx = tc(travelingPawn.to.c);
-          const ty = tc(travelingPawn.to.r);
-          const path = `M ${fx} ${fy} L ${tx} ${ty}`;
+          const pathD = travelingPawn.path
+            .map((p, idx) => `${idx === 0 ? "M" : "L"} ${tc(p.c)} ${tc(p.r)}`)
+            .join(" ");
+
           return (
             <svg key={travelingPawn.key} viewBox="0 0 9 9" className="absolute inset-0 w-full h-full pointer-events-none z-40" aria-hidden="true">
               {/* shadow */}
               <circle r="0.18" fill="#000000" opacity="0.5">
-                <animateMotion dur="0.65s" calcMode="spline" keySplines="0.4 0 0.2 1" fill="freeze" path={path} />
-                <animate attributeName="opacity" values="0.5;0.5;0" keyTimes="0;0.85;1" dur="0.65s" fill="freeze" />
+                <animateMotion dur="0.6s" calcMode="linear" fill="freeze" path={pathD} />
+                <animate attributeName="opacity" values="0.5;0.5;0" keyTimes="0;0.9;1" dur="0.6s" fill="freeze" />
               </circle>
-              {/* colored dot */}
+              {/* colored pawn dot */}
               <circle r="0.14" fill={color} stroke="#000000" strokeWidth="0.04">
-                <animateMotion dur="0.65s" calcMode="spline" keySplines="0.4 0 0.2 1" fill="freeze" path={path} />
-                <animate attributeName="opacity" values="1;1;0" keyTimes="0;0.85;1" dur="0.65s" fill="freeze" />
+                <animateMotion dur="0.6s" calcMode="linear" fill="freeze" path={pathD} />
+                <animate attributeName="opacity" values="1;1;0" keyTimes="0;0.9;1" dur="0.6s" fill="freeze" />
               </circle>
             </svg>
           );

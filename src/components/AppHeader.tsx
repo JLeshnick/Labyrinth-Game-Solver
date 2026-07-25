@@ -38,7 +38,13 @@ export interface AppHeaderProps {
   isSettingsOpen: boolean;
   playerHands: PlayerMap<string[]>;
   obtainedTreasures: PlayerMap<string[]>;
+  compact?: boolean;
   gameMode?: "standard" | "coop" | "auto";
+  autoPlayPaused?: boolean;
+  onToggleAutoPlayPause?: () => void;
+  autoPlaySpeed?: 0.5 | 1 | 2 | 4;
+  onSetAutoPlaySpeed?: (speed: 0.5 | 1 | 2 | 4) => void;
+  onStopAutoPlay?: () => void;
   coopObtainedTreasures?: string[];
   onOpenSettings: () => void;
   onCloseSettings: () => void;
@@ -119,6 +125,11 @@ export function AppHeader({
   solverDepth,
   onSetSolverDepth,
   gameMode = "standard",
+  autoPlayPaused = false,
+  onToggleAutoPlayPause,
+  autoPlaySpeed = 1,
+  onSetAutoPlaySpeed,
+  onStopAutoPlay,
   coopObtainedTreasures = [],
 }: AppHeaderProps) {
   const [showEndGameConfirm, setShowEndGameConfirm] = useState(false);
@@ -198,6 +209,56 @@ export function AppHeader({
               );
             })}
           </div>
+
+          {/* Ribbon Auto-Play Controls */}
+          {isGameStarted && gameMode === "auto" && (
+            <div className="flex items-center gap-1 bg-card neo-brutalism-card rounded-xl px-1.5 py-1 border-2 border-stone-950 shadow-[2px_2px_0_0_#000000] shrink-0">
+              <button
+                title={autoPlayPaused ? "Resume Auto Play" : "Pause Auto Play"}
+                onClick={() => {
+                  if (!isMuted) playClickSound();
+                  onToggleAutoPlayPause?.();
+                }}
+                className="neo-brutalism-button bg-theme-primary border-stone-950 text-stone-950 w-7 h-7 rounded-lg flex items-center justify-center text-xs font-black cursor-pointer"
+              >
+                {autoPlayPaused ? "▶" : "⏸"}
+              </button>
+
+              <div className="w-px h-4 bg-stone-800 mx-0.5" />
+
+              <div className="flex items-center gap-0.5">
+                {([0.5, 1, 2, 4] as const).map((s) => (
+                  <button
+                    key={s}
+                    onClick={() => {
+                      if (!isMuted) playClickSound();
+                      onSetAutoPlaySpeed?.(s);
+                    }}
+                    className={`px-1 py-0.5 rounded text-[9px] font-black border border-stone-950 cursor-pointer transition-all ${
+                      autoPlaySpeed === s
+                        ? "bg-theme-primary text-stone-950 shadow-[1px_1px_0_0_#000000]"
+                        : "bg-stone-900 text-stone-300 hover:bg-stone-800"
+                    }`}
+                  >
+                    {s}×
+                  </button>
+                ))}
+              </div>
+
+              <div className="w-px h-4 bg-stone-800 mx-0.5" />
+
+              <button
+                title="Exit Auto Mode"
+                onClick={() => {
+                  if (!isMuted) playClickSound();
+                  onStopAutoPlay?.();
+                }}
+                className="neo-brutalism-button bg-red-500 border-stone-950 text-stone-950 px-1.5 h-7 rounded-lg text-[9px] font-black cursor-pointer whitespace-nowrap"
+              >
+                ✕ Exit
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Right — toolbar */}
