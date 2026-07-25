@@ -244,9 +244,15 @@ export function SolverPanel({
                 </span>
               ) : gameMode === "coop" ? (
                 <span className="text-theme-primary font-bold text-xs">
-                  ✨ {remainingCoopTreasures && remainingCoopTreasures.length > 0
-                    ? "Closest Treasure (Auto)"
-                    : "Home Corner (Auto)"}
+                  ✨ {remainingCoopTreasures && remainingCoopTreasures.length > 0 ? (
+                    currentTargetId ? (
+                      `Closest: ${TREASURES.find(t => t.id === currentTargetId)?.name ?? currentTargetId} (Auto)`
+                    ) : (
+                      "Closest Treasure (Auto)"
+                    )
+                  ) : (
+                    "Home Corner (Auto)"
+                  )}
                 </span>
               ) : (
                 <span className="text-stone-550 text-xs italic">Click any board tile to select target</span>
