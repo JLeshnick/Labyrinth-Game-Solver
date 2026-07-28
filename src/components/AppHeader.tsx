@@ -393,9 +393,10 @@ export function AppHeader({
                             onMouseEnter={() => {
                               if (onHoverHistory) onHoverHistory(targetIdx);
                             }}
-                            className="text-left text-[11px] px-2 py-1.5 rounded hover:bg-theme-primary/20 hover:text-theme-primary transition-colors cursor-pointer truncate"
+                            className="text-left text-[11px] px-2 py-1.5 rounded hover:bg-theme-primary/20 hover:text-theme-primary transition-all duration-200 cursor-pointer truncate flex items-center gap-2 group hover:translate-x-1"
                           >
-                            {label}
+                            <span className="opacity-0 w-0 -ml-2 group-hover:opacity-100 group-hover:w-auto group-hover:ml-0 transition-all duration-200 shrink-0">→</span>
+                            <span className="truncate">{label}</span>
                           </button>
                         );
                       })}
@@ -451,9 +452,10 @@ export function AppHeader({
                             onMouseEnter={() => {
                               if (onHoverHistory) onHoverHistory(targetIdx);
                             }}
-                            className="text-left text-[11px] px-2 py-1.5 rounded hover:bg-theme-primary/20 hover:text-theme-primary transition-colors cursor-pointer truncate"
+                            className="text-left text-[11px] px-2 py-1.5 rounded hover:bg-theme-primary/20 hover:text-theme-primary transition-all duration-200 cursor-pointer truncate flex items-center gap-2 group hover:translate-x-1"
                           >
-                            {label}
+                            <span className="opacity-0 w-0 -ml-2 group-hover:opacity-100 group-hover:w-auto group-hover:ml-0 transition-all duration-200 shrink-0">→</span>
+                            <span className="truncate">{label}</span>
                           </button>
                         );
                       })}
