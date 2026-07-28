@@ -27,18 +27,25 @@ export const Tile: React.FC<TileProps> = ({
   isCurrentTarget = false,
   is3D = false,
 }) => {
-  // Smoothly fade out overlay elements (banner & lock) during board rotation transitions
+  // Smoothly fade out overlay elements (banner & lock) in place, then fade them back in at new orientation
   const [isRotating, setIsRotating] = React.useState(false);
+  const [displayRotation, setDisplayRotation] = React.useState(boardRotation);
   const prevBoardRotationRef = React.useRef(boardRotation);
 
   React.useEffect(() => {
     if (prevBoardRotationRef.current !== boardRotation) {
-      prevBoardRotationRef.current = boardRotation;
+      const targetRotation = boardRotation;
       setIsRotating(true);
-      const timer = setTimeout(() => {
+
+      // Phase 1: Rapidly fade out (150ms) while keeping displayRotation locked to old angle
+      const fadeOutTimer = setTimeout(() => {
+        setDisplayRotation(targetRotation);
+        prevBoardRotationRef.current = targetRotation;
+        // Phase 2: Fade back in at new angle
         setIsRotating(false);
-      }, 450); // Matches the board rotation transition duration
-      return () => clearTimeout(timer);
+      }, 200);
+
+      return () => clearTimeout(fadeOutTimer);
     }
   }, [boardRotation]);
   // Paths rendering logic — styled as a unified, continuous corridor with a thick Brutalist outline
@@ -209,10 +216,10 @@ export const Tile: React.FC<TileProps> = ({
       {/* Counter-rotating overlay container for screen-upright elements (Lock badge & Treasure banner) */}
       <div
         className={cn(
-          "absolute inset-0 pointer-events-none z-10 transform-gpu transition-all duration-200 ease-out",
+          "absolute inset-0 pointer-events-none z-10 transform-gpu transition-all duration-150 ease-out",
           isRotating ? "opacity-0 scale-90" : "opacity-100 scale-100"
         )}
-        style={{ transform: `rotate(${-boardRotation}deg)` }}
+        style={{ transform: `rotate(${-displayRotation}deg)` }}
       >
         {/* Fixed tile lock badge — anchored to top-right of screen-oriented tile */}
         {tile.isFixed && (
