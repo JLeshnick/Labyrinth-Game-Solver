@@ -196,9 +196,9 @@ export const Tile: React.FC<TileProps> = ({
       {tile.isFixed && (() => {
         const normRot = ((boardRotation % 360) + 360) % 360;
         let lockPosClass = "top-1 right-1";
-        if (normRot === 90) lockPosClass = "bottom-1 right-1";
+        if (normRot === 90) lockPosClass = "top-1 left-1";
         else if (normRot === 180) lockPosClass = "bottom-1 left-1";
-        else if (normRot === 270) lockPosClass = "top-1 left-1";
+        else if (normRot === 270) lockPosClass = "bottom-1 right-1";
 
         return (
           <Tooltip content="Permanently fixed preset tile (glued to board)" side="top" containerClassName={cn("absolute z-[100]", lockPosClass)}>
@@ -215,13 +215,13 @@ export const Tile: React.FC<TileProps> = ({
       {/* Treasure name banner — stays mounted to the physical bottom edge of tile facing the user */}
       {tile.treasure && (() => {
         const normRot = ((boardRotation % 360) + 360) % 360;
-        let positionClass = "bottom-0 inset-x-0 h-5 border-t-2 rounded-b-[14px]";
+        let positionClass = "bottom-0 inset-x-0 h-3.5 border-t border-stone-950 rounded-b-[14px]";
         if (normRot === 90) {
-          positionClass = "right-0 inset-y-0 w-5 border-l-2 rounded-r-[14px]";
+          positionClass = "right-0 inset-y-0 w-3.5 border-l border-stone-950 rounded-r-[14px]";
         } else if (normRot === 180) {
-          positionClass = "top-0 inset-x-0 h-5 border-b-2 rounded-t-[14px]";
+          positionClass = "top-0 inset-x-0 h-3.5 border-b border-stone-950 rounded-t-[14px]";
         } else if (normRot === 270) {
-          positionClass = "left-0 inset-y-0 w-5 border-r-2 rounded-l-[14px]";
+          positionClass = "left-0 inset-y-0 w-3.5 border-r border-stone-950 rounded-l-[14px]";
         }
 
         return (
@@ -240,7 +240,7 @@ export const Tile: React.FC<TileProps> = ({
             <span
               style={boardRotation ? { transform: `rotate(${-boardRotation}deg)` } : undefined}
               className={cn(
-                "text-[9px] sm:text-[10px] font-black text-stone-950 leading-none text-center select-none uppercase tracking-tight inline-block whitespace-nowrap px-0.5",
+                "text-[8px] sm:text-[9px] font-black text-stone-950 leading-none text-center select-none uppercase tracking-tighter inline-block whitespace-nowrap px-0.5",
                 isObtainedTreasure && "line-through opacity-70"
               )}
             >
