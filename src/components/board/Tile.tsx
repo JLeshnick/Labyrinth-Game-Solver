@@ -215,13 +215,13 @@ export const Tile: React.FC<TileProps> = ({
       {/* Treasure name banner — stays mounted to the physical bottom edge of tile facing the user */}
       {tile.treasure && (() => {
         const normRot = ((boardRotation % 360) + 360) % 360;
-        let positionClass = "bottom-0 inset-x-0 border-t-2 rounded-b-[14px]";
+        let positionClass = "bottom-0 inset-x-0 h-5 border-t-2 rounded-b-[14px]";
         if (normRot === 90) {
-          positionClass = "right-0 inset-y-0 w-[1.35rem] border-l-2 rounded-r-[14px]";
+          positionClass = "right-0 inset-y-0 w-5 border-l-2 rounded-r-[14px]";
         } else if (normRot === 180) {
-          positionClass = "bottom-0 inset-x-0 border-t-2 rounded-b-[14px]";
+          positionClass = "top-0 inset-x-0 h-5 border-b-2 rounded-t-[14px]";
         } else if (normRot === 270) {
-          positionClass = "left-0 inset-y-0 w-[1.35rem] border-r-2 rounded-l-[14px]";
+          positionClass = "left-0 inset-y-0 w-5 border-r-2 rounded-l-[14px]";
         }
 
         return (
