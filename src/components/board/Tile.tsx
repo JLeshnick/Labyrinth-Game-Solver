@@ -27,6 +27,20 @@ export const Tile: React.FC<TileProps> = ({
   isCurrentTarget = false,
   is3D = false,
 }) => {
+  // Smoothly fade out overlay elements (banner & lock) during board rotation transitions
+  const [isRotating, setIsRotating] = React.useState(false);
+  const prevBoardRotationRef = React.useRef(boardRotation);
+
+  React.useEffect(() => {
+    if (prevBoardRotationRef.current !== boardRotation) {
+      prevBoardRotationRef.current = boardRotation;
+      setIsRotating(true);
+      const timer = setTimeout(() => {
+        setIsRotating(false);
+      }, 450); // Matches the board rotation transition duration
+      return () => clearTimeout(timer);
+    }
+  }, [boardRotation]);
   // Paths rendering logic — styled as a unified, continuous corridor with a thick Brutalist outline
   const getPathSVG = () => {
     const fillClass = "tile-corridor-fill";
@@ -195,8 +209,8 @@ export const Tile: React.FC<TileProps> = ({
       {/* Counter-rotating overlay container for screen-upright elements (Lock badge & Treasure banner) */}
       <div
         className={cn(
-          "absolute inset-0 pointer-events-none z-10 transform-gpu",
-          !disableRotationTransition && "transition-transform duration-500 ease-in-out"
+          "absolute inset-0 pointer-events-none z-10 transform-gpu transition-all duration-200 ease-out",
+          isRotating ? "opacity-0 scale-90" : "opacity-100 scale-100"
         )}
         style={{ transform: `rotate(${-boardRotation}deg)` }}
       >
