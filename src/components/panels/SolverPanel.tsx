@@ -400,32 +400,41 @@ export function SolverPanel({
                             <Tooltip
                               content={
                                 <div className="text-left text-[11px] space-y-1 p-0.5">
-                                  <div className="font-bold border-b border-stone-700 pb-1 text-theme-primary">
-                                    Algorithm Score: {algScoreValue}/100
+                                  <div className="font-bold border-b border-stone-700 pb-1 text-theme-primary flex items-center justify-between">
+                                    <span>Algorithm Score</span>
+                                    <span className="font-mono text-stone-100">{algScoreValue}/100</span>
                                   </div>
                                   <div className="font-mono text-[10px] space-y-0.5 text-stone-300">
-                                    <div>Reachability: +{sol.scoreBreakdown?.reachabilityScore ?? 0} (max 50)</div>
-                                    <div>Fixed Tile Bonus: +{sol.scoreBreakdown?.fixedSpaceBonus ?? 0} (max 15)</div>
-                                    <div>Tile Exits: +{sol.scoreBreakdown?.tileExitsBonus ?? 0} (max 15)</div>
-                                    <div>Walk Efficiency: +{sol.scoreBreakdown?.walkBonus ?? 0} (max 10)</div>
+                                    <div>• Reachability: +{sol.scoreBreakdown?.reachabilityScore ?? 0}</div>
+                                    <div>• Fixed Space Bonus: +{sol.scoreBreakdown?.fixedSpaceBonus ?? 0}</div>
+                                    <div>• Tile Exits Bonus: +{sol.scoreBreakdown?.tileExitsBonus ?? 0}</div>
+                                    <div>• Walk Efficiency: +{sol.scoreBreakdown?.walkBonus ?? 0}</div>
                                     {(sol.scoreBreakdown?.wrapPenalty ?? 0) > 0 && (
-                                      <div className="text-red-400">Board Wrap Penalty: -{sol.scoreBreakdown?.wrapPenalty}</div>
+                                      <div className="text-red-400">• Board Wrap Penalty: -{sol.scoreBreakdown?.wrapPenalty}</div>
                                     )}
                                     {(sol.scoreBreakdown?.turnsPenalty ?? 0) > 0 && (
-                                      <div className="text-red-400">Extra Turns Penalty: -{sol.scoreBreakdown?.turnsPenalty}</div>
+                                      <div className="text-red-400">• Extra Turns Penalty: -{sol.scoreBreakdown?.turnsPenalty}</div>
                                     )}
                                   </div>
                                 </div>
                               }
                               side="bottom-left"
+                              containerClassName="z-[100]"
                             >
-                              <span className={`px-1.5 py-0.5 rounded-lg text-stone-950 text-[10px] font-black border-2 border-stone-950 shadow-[1px_1px_0_0_#000000] flex items-center leading-none whitespace-nowrap cursor-help ${
-                                algScoreValue >= 80
-                                  ? "bg-emerald-400"
-                                  : algScoreValue >= 40
-                                  ? "bg-amber-400"
-                                  : "bg-red-500"
-                              }`}>
+                              <span
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setHoveredSolution(sol);
+                                }}
+                                className={`px-1.5 py-0.5 rounded-lg text-stone-950 text-[10px] font-black border-2 border-stone-950 shadow-[1px_1px_0_0_#000000] flex items-center leading-none whitespace-nowrap cursor-pointer transition-transform hover:scale-105 active:scale-95 ${
+                                  algScoreValue >= 80
+                                    ? "bg-emerald-400"
+                                    : algScoreValue >= 40
+                                    ? "bg-amber-400"
+                                    : "bg-red-500"
+                                }`}
+                                title="Click to view move details on board"
+                              >
                                 {algScoreValue}/100
                               </span>
                             </Tooltip>
