@@ -49,6 +49,8 @@ export interface AppGameState {
   gameMode?: "standard" | "coop" | "auto";
   remainingCoopTreasures?: string[];
   coopObtainedTreasures?: string[];
+  history?: any[];
+  historyIndex?: number;
 }
 
 export interface BoardScanCell {

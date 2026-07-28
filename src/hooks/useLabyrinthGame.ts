@@ -57,7 +57,7 @@ export function useLabyrinthGame({
   onToast,
 }: UseLabyrinthGameOptions) {
   // ── Internal sub-hooks ───────────────────────────────────────────────────────
-  const { history, historyIndex, pushStateToHistory, resetHistory, undo, redo, jumpToHistory, canUndo, canRedo } =
+  const { history, historyIndex, pushStateToHistory, resetHistory, hydrateHistory, undo, redo, jumpToHistory, canUndo, canRedo } =
     useLabyrinthHistory(null);
 
   const { saveAutosave, loadAutosave } = useLabyrinthStorage();
@@ -172,6 +172,11 @@ export function useLabyrinthGame({
     remainingCoopTreasures,
     coopObtainedTreasures,
   ]);
+
+  // Sync history and historyIndex to autosave whenever they change
+  useEffect(() => {
+    saveAutosave({ history, historyIndex });
+  }, [history, historyIndex, saveAutosave]);
 
   // ── Solver adapter helpers ───────────────────────────────────────────────────
   const getSolverFormattedBoard = useCallback(
@@ -317,19 +322,23 @@ export function useLabyrinthGame({
       setCustomTargetCoords(null);
       totalShiftsRef.current = 0;
 
-      resetHistory({
-        board: saved.board ?? [],
-        spareTile: saved.spareTile ?? fallbackSpare,
-        lastShiftArrowId: saved.lastShiftArrowId || null,
-        activePawn: saved.activePawn || "red",
-        playerHands: saved.playerHands || EMPTY_PLAYER_HANDS,
-        playerActiveTargets: saved.playerActiveTargets || EMPTY_PLAYER_TARGETS,
-        obtainedTreasures: saved.obtainedTreasures || EMPTY_OBTAINED_TREASURES,
-        pawnPositions: saved.pawnPositions,
-        gameMode: saved.gameMode || "standard",
-        remainingCoopTreasures: saved.remainingCoopTreasures || [],
-        coopObtainedTreasures: saved.coopObtainedTreasures || [],
-      });
+      if (saved.history && saved.historyIndex !== undefined) {
+        hydrateHistory(saved.history, saved.historyIndex);
+      } else {
+        resetHistory({
+          board: saved.board ?? [],
+          spareTile: saved.spareTile ?? fallbackSpare,
+          lastShiftArrowId: saved.lastShiftArrowId || null,
+          activePawn: saved.activePawn || "red",
+          playerHands: saved.playerHands || EMPTY_PLAYER_HANDS,
+          playerActiveTargets: saved.playerActiveTargets || EMPTY_PLAYER_TARGETS,
+          obtainedTreasures: saved.obtainedTreasures || EMPTY_OBTAINED_TREASURES,
+          pawnPositions: saved.pawnPositions,
+          gameMode: saved.gameMode || "standard",
+          remainingCoopTreasures: saved.remainingCoopTreasures || [],
+          coopObtainedTreasures: saved.coopObtainedTreasures || [],
+        });
+      }
     },
     [resetHistory]
   );

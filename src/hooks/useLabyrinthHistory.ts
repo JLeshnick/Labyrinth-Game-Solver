@@ -120,6 +120,12 @@ export function useLabyrinthHistory(initialState: HistoryRecord | null) {
     [history]
   );
 
+  const hydrateHistory = useCallback((newHistory: HistoryRecord[], newIndex: number) => {
+    setHistory(newHistory);
+    setHistoryIndex(newIndex);
+    historyIndexRef.current = newIndex;
+  }, []);
+
   const canUndo = historyIndex > 0;
   const canRedo = historyIndex < history.length - 1;
 
@@ -127,6 +133,7 @@ export function useLabyrinthHistory(initialState: HistoryRecord | null) {
     history,
     pushStateToHistory,
     resetHistory,
+    hydrateHistory,
     undo,
     redo,
     jumpToHistory,

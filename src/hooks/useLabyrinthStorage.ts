@@ -6,7 +6,10 @@ export const AUTOSAVE_KEY = "labyrinth_strategist_state";
 export function useLabyrinthStorage() {
   const saveAutosave = useCallback((stateData: Partial<AppGameState>) => {
     try {
-      localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(stateData));
+      const existing = localStorage.getItem(AUTOSAVE_KEY);
+      const existingState = existing ? JSON.parse(existing) : {};
+      const newState = { ...existingState, ...stateData };
+      localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(newState));
     } catch (e) {
       console.warn("Autosave failed (storage may be full or blocked):", e);
     }
