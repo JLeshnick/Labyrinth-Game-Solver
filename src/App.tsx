@@ -139,6 +139,17 @@ export default function App() {
   const [solutions, setSolutions] = useState<SolverSolution[]>([]);
   const [hoveredSolutionIndex, setHoveredSolutionIndex] = useState<number | null>(null);
   const [hoveredHistoryIndex, setHoveredHistoryIndex] = useState<number | null>(null);
+
+  const handleHoverHistory = useCallback((idx: number | null) => {
+    // Attempt smooth crossfade transition if browser supports it
+    if (document.startViewTransition) {
+      document.startViewTransition(() => {
+        setHoveredHistoryIndex(idx);
+      });
+    } else {
+      setHoveredHistoryIndex(idx);
+    }
+  }, []);
   const [lockedScoreBreakdownSolution, setLockedScoreBreakdownSolution] = useState<SolverSolution | null>(null);
   const hoveredSolution = (hoveredSolutionIndex !== null && solutions && hoveredSolutionIndex < solutions.length) ? solutions[hoveredSolutionIndex] : null;
 
@@ -896,7 +907,7 @@ export default function App() {
         history={game.history}
         historyIndex={game.historyIndex}
         onJumpToHistory={game.handleJumpToHistory}
-        onHoverHistory={setHoveredHistoryIndex}
+        onHoverHistory={handleHoverHistory}
         isMuted={isMuted}
         showStats={showStats}
         baseTheme={baseTheme}
