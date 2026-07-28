@@ -393,10 +393,10 @@ export function AppHeader({
                             onMouseEnter={() => {
                               if (onHoverHistory) onHoverHistory(targetIdx);
                             }}
-                            className="text-left text-[11px] px-2 py-1.5 rounded hover:bg-theme-primary/20 hover:text-theme-primary transition-all duration-200 cursor-pointer truncate flex items-center gap-2 group hover:translate-x-1"
+                            className="text-left text-[11px] px-2 py-1.5 rounded hover:bg-theme-primary/20 hover:text-theme-primary transition-all duration-200 cursor-pointer relative group overflow-hidden"
                           >
-                            <span className="opacity-0 w-0 -ml-2 group-hover:opacity-100 group-hover:w-auto group-hover:ml-0 transition-all duration-200 shrink-0">→</span>
-                            <span className="truncate">{label}</span>
+                            <span className="absolute left-2 top-1/2 -translate-y-1/2 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-200">→</span>
+                            <span className="block truncate transition-transform duration-200 group-hover:translate-x-4">{label}</span>
                           </button>
                         );
                       })}
@@ -452,10 +452,10 @@ export function AppHeader({
                             onMouseEnter={() => {
                               if (onHoverHistory) onHoverHistory(targetIdx);
                             }}
-                            className="text-left text-[11px] px-2 py-1.5 rounded hover:bg-theme-primary/20 hover:text-theme-primary transition-all duration-200 cursor-pointer truncate flex items-center gap-2 group hover:translate-x-1"
+                            className="text-left text-[11px] px-2 py-1.5 rounded hover:bg-theme-primary/20 hover:text-theme-primary transition-all duration-200 cursor-pointer relative group overflow-hidden"
                           >
-                            <span className="opacity-0 w-0 -ml-2 group-hover:opacity-100 group-hover:w-auto group-hover:ml-0 transition-all duration-200 shrink-0">→</span>
-                            <span className="truncate">{label}</span>
+                            <span className="absolute left-2 top-1/2 -translate-y-1/2 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-200">→</span>
+                            <span className="block truncate transition-transform duration-200 group-hover:translate-x-4">{label}</span>
                           </button>
                         );
                       })}
