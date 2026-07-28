@@ -26,14 +26,14 @@ export function Tooltip({ content, children, side = "bottom", className, contain
     /* bottom */              "top-full mt-2 left-1/2 -translate-x-1/2";
 
   return (
-    <div className={cn("relative group inline-flex", containerClassName)} style={style}>
+    <div className={cn("relative group/tooltip inline-flex", containerClassName)} style={style}>
       {children}
       <div
         role="tooltip"
         className={cn(
-          "absolute z-[9999] px-2.5 py-1.5 rounded-lg text-[11px] font-bold max-w-xs min-w-max whitespace-nowrap text-center leading-tight shadow-xl",
+          "absolute z-[99999] px-2.5 py-1.5 rounded-lg text-[11px] font-bold max-w-xs min-w-max whitespace-nowrap text-center leading-tight shadow-xl",
           "app-dialog-panel neo-brutalism-card text-stone-200 border-2 border-stone-950 bg-stone-900",
-          "invisible opacity-0 group-hover:visible group-hover:opacity-100",
+          "invisible opacity-0 group-hover/tooltip:visible group-hover/tooltip:opacity-100",
           "transition-opacity duration-150 pointer-events-none",
           posClass,
           className

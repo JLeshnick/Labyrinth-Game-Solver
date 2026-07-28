@@ -116,15 +116,36 @@ export function WelcomeGuide({ open, onOpenChange, onDismiss }: WelcomeGuideProp
                   </p>
                 </div>
               </div>
-              <div className="pl-3 border-l-2 border-theme-primary flex flex-col gap-1.5 bg-stone-900/60 p-2.5 rounded-lg border border-stone-800">
-                <div className="font-bold text-stone-100 text-xs">Algorithm Score Formula (0 - 100):</div>
-                <div className="font-mono text-[11px] text-stone-300 space-y-1">
-                  <div><span className="text-emerald-400 font-semibold">+ Reachability (max 50)</span>: Average reachable tiles after candidate slide</div>
-                  <div><span className="text-emerald-400 font-semibold">+ Fixed Tile Bonus (15)</span>: Pawn lands on non-shiftable fixed tile</div>
-                  <div><span className="text-emerald-400 font-semibold">+ Exit Openness (10-15)</span>: Extra corridor exits on landing tile</div>
-                  <div><span className="text-emerald-400 font-semibold">+ Walk Efficiency (max 10)</span>: Bonus for shorter step distances</div>
-                  <div><span className="text-red-400 font-semibold">- Wrap Penalty (max 10)</span>: Deducted if slide wraps pawn off board edge</div>
-                  <div><span className="text-red-400 font-semibold">- Turn Penalty (15/turn)</span>: Penalty per extra turn beyond 1 turn</div>
+              <div className="p-3 app-surface border-2 border-stone-950 shadow-[2px_2px_0_0_#000000] flex flex-col gap-2 rounded-xl">
+                <div className="font-black text-theme-primary text-xs uppercase tracking-wider flex items-center justify-between border-b border-stone-800 pb-1.5">
+                  <span>Algorithm Score Breakdown</span>
+                  <span className="text-[10px] text-stone-400 font-mono font-normal">Range: 0 – 100</span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] leading-snug font-mono text-stone-300">
+                  <div className="p-1.5 rounded-lg bg-stone-950/40 border border-stone-800/80">
+                    <span className="text-emerald-400 font-bold">+ Reachability</span> (max 50)
+                    <div className="text-[10px] text-stone-400 font-sans mt-0.5">Average reachable tiles across board after slide</div>
+                  </div>
+                  <div className="p-1.5 rounded-lg bg-stone-950/40 border border-stone-800/80">
+                    <span className="text-emerald-400 font-bold">+ Fixed Tile Bonus</span> (+15)
+                    <div className="text-[10px] text-stone-400 font-sans mt-0.5">Pawn lands on a glued fixed corner/row tile</div>
+                  </div>
+                  <div className="p-1.5 rounded-lg bg-stone-950/40 border border-stone-800/80">
+                    <span className="text-emerald-400 font-bold">+ Exit Openness</span> (+10 to 15)
+                    <div className="text-[10px] text-stone-400 font-sans mt-0.5">Extra corridor connections on landing tile</div>
+                  </div>
+                  <div className="p-1.5 rounded-lg bg-stone-950/40 border border-stone-800/80">
+                    <span className="text-emerald-400 font-bold">+ Walk Efficiency</span> (max 10)
+                    <div className="text-[10px] text-stone-400 font-sans mt-0.5">Bonus for shorter step paths taken by pawn</div>
+                  </div>
+                  <div className="p-1.5 rounded-lg bg-stone-950/40 border border-stone-800/80">
+                    <span className="text-red-400 font-bold">- Wrap Penalty</span> (max 10)
+                    <div className="text-[10px] text-stone-400 font-sans mt-0.5">Deducted if candidate slide wraps pawn off edge</div>
+                  </div>
+                  <div className="p-1.5 rounded-lg bg-stone-950/40 border border-stone-800/80">
+                    <span className="text-red-400 font-bold">- Turn Penalty</span> (-15 / turn)
+                    <div className="text-[10px] text-stone-400 font-sans mt-0.5">Deducted per extra turn required beyond turn 1</div>
+                  </div>
                 </div>
               </div>
               <div className="pl-3 border-l-2 border-stone-800 flex flex-col gap-1">
