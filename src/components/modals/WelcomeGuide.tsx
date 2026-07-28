@@ -116,35 +116,68 @@ export function WelcomeGuide({ open, onOpenChange, onDismiss }: WelcomeGuideProp
                   </p>
                 </div>
               </div>
-              <div className="p-3 app-surface border-2 border-stone-950 shadow-[2px_2px_0_0_#000000] flex flex-col gap-2 rounded-xl">
+              <div className="p-3 app-surface border-2 border-stone-950 shadow-[2px_2px_0_0_#000000] flex flex-col gap-2.5 rounded-xl">
                 <div className="font-black text-theme-primary text-xs uppercase tracking-wider flex items-center justify-between border-b border-stone-800 pb-1.5">
-                  <span>Algorithm Score Breakdown</span>
-                  <span className="text-[10px] text-stone-400 font-mono font-normal">Range: 0 – 100</span>
+                  <span>Algorithm Score Formula (0 – 100)</span>
+                  <span className="text-[10px] text-stone-400 font-mono font-normal">Higher = Safer & More Efficient</span>
                 </div>
+                
+                <p className="text-[11px] text-stone-300 leading-normal">
+                  The score measures how <span className="font-bold text-stone-100">efficient</span> and <span className="font-bold text-stone-100">safe</span> a move is. It starts with board open-ness, adds bonuses for landing safety, and subtracts penalties for risk:
+                </p>
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] leading-snug font-mono text-stone-300">
-                  <div className="p-1.5 rounded-lg bg-stone-950/40 border border-stone-800/80">
-                    <span className="text-emerald-400 font-bold">+ Reachability</span> (max 50)
-                    <div className="text-[10px] text-stone-400 font-sans mt-0.5">Average reachable tiles across board after slide</div>
+                  <div className="p-2 rounded-lg bg-stone-950/40 border border-stone-800/80 flex flex-col gap-0.5">
+                    <span className="text-emerald-400 font-bold">1. Reachability (+0 to 50 pts)</span>
+                    <div className="text-[10px] text-stone-400 font-sans leading-relaxed">
+                      Flood-fills the board from your landing tile. If you can reach 15+ out of 49 total tiles after sliding, you get the max +50 points.
+                    </div>
                   </div>
-                  <div className="p-1.5 rounded-lg bg-stone-950/40 border border-stone-800/80">
-                    <span className="text-emerald-400 font-bold">+ Fixed Tile Bonus</span> (+15)
-                    <div className="text-[10px] text-stone-400 font-sans mt-0.5">Pawn lands on a glued fixed corner/row tile</div>
+                  <div className="p-2 rounded-lg bg-stone-950/40 border border-stone-800/80 flex flex-col gap-0.5">
+                    <span className="text-emerald-400 font-bold">2. Fixed Tile Safety (+15 pts)</span>
+                    <div className="text-[10px] text-stone-400 font-sans leading-relaxed">
+                      +15 bonus if your pawn lands on a glued, un-movable board tile (even row/col). Opponents can never push you off!
+                    </div>
                   </div>
-                  <div className="p-1.5 rounded-lg bg-stone-950/40 border border-stone-800/80">
-                    <span className="text-emerald-400 font-bold">+ Exit Openness</span> (+10 to 15)
-                    <div className="text-[10px] text-stone-400 font-sans mt-0.5">Extra corridor connections on landing tile</div>
+                  <div className="p-2 rounded-lg bg-stone-950/40 border border-stone-800/80 flex flex-col gap-0.5">
+                    <span className="text-emerald-400 font-bold">3. Exit Openness (+10 to 15 pts)</span>
+                    <div className="text-[10px] text-stone-400 font-sans leading-relaxed">
+                      +15 for landing on a T-junction (3 corridor exits), +10 for Corners/Straights (2 exits). More exits = more future escape routes.
+                    </div>
                   </div>
-                  <div className="p-1.5 rounded-lg bg-stone-950/40 border border-stone-800/80">
-                    <span className="text-emerald-400 font-bold">+ Walk Efficiency</span> (max 10)
-                    <div className="text-[10px] text-stone-400 font-sans mt-0.5">Bonus for shorter step paths taken by pawn</div>
+                  <div className="p-2 rounded-lg bg-stone-950/40 border border-stone-800/80 flex flex-col gap-0.5">
+                    <span className="text-emerald-400 font-bold">4. Walk Distance (+0 to 10 pts)</span>
+                    <div className="text-[10px] text-stone-400 font-sans leading-relaxed">
+                      Short walks get a bonus (<span className="text-stone-200">10 - stepCount</span>). Walking 2 spaces awards +8 bonus points.
+                    </div>
                   </div>
-                  <div className="p-1.5 rounded-lg bg-stone-950/40 border border-stone-800/80">
-                    <span className="text-red-400 font-bold">- Wrap Penalty</span> (max 10)
-                    <div className="text-[10px] text-stone-400 font-sans mt-0.5">Deducted if candidate slide wraps pawn off edge</div>
+                  <div className="p-2 rounded-lg bg-stone-950/40 border border-stone-800/80 flex flex-col gap-0.5">
+                    <span className="text-red-400 font-bold">5. Wrap Penalty (-0 to 10 pts)</span>
+                    <div className="text-[10px] text-stone-400 font-sans leading-relaxed">
+                      Deducts up to -10 points if sliding the row/col causes your pawn to wrap around from one edge of the board to the other.
+                    </div>
                   </div>
-                  <div className="p-1.5 rounded-lg bg-stone-950/40 border border-stone-800/80">
-                    <span className="text-red-400 font-bold">- Turn Penalty</span> (-15 / turn)
-                    <div className="text-[10px] text-stone-400 font-sans mt-0.5">Deducted per extra turn required beyond turn 1</div>
+                  <div className="p-2 rounded-lg bg-stone-950/40 border border-stone-800/80 flex flex-col gap-0.5">
+                    <span className="text-red-400 font-bold">6. Extra Turns (-15 pts / turn)</span>
+                    <div className="text-[10px] text-stone-400 font-sans leading-relaxed">
+                      1-turn direct moves lose 0 pts. Multi-turn solutions deduct -15 points per extra setup turn required.
+                    </div>
+                  </div>
+                </div>
+
+                {/* Worked Example Box */}
+                <div className="mt-1 p-2.5 rounded-lg bg-stone-950/80 border border-stone-700/80 text-[11px] font-mono leading-relaxed">
+                  <div className="text-amber-400 font-bold font-sans text-xs mb-1">💡 Visual Worked Example (98 / 100 Score):</div>
+                  <div className="text-stone-300 text-[10px] space-y-0.5">
+                    <div>• Reachability (15+ tiles open) ➔ <span className="text-emerald-400">+50</span></div>
+                    <div>• Fixed Tile Landing (Glued tile) ➔ <span className="text-emerald-400">+15</span></div>
+                    <div>• Landing Tile (T-Junction, 3 exits) ➔ <span className="text-emerald-400">+15</span></div>
+                    <div>• Short Walk Path (2 steps) ➔ <span className="text-emerald-400">+8</span></div>
+                    <div>• 1-Turn Direct Solution ➔ <span className="text-stone-400">-0</span></div>
+                    <div className="border-t border-stone-700 pt-1 font-bold text-stone-100 flex items-center justify-between font-sans">
+                      <span>Total Calculated Score:</span>
+                      <span className="text-emerald-400 bg-emerald-950/60 px-1.5 py-0.5 rounded border border-emerald-500/50">50 + 15 + 15 + 8 = 88 ➔ (clamped 0-100)</span>
+                    </div>
                   </div>
                 </div>
               </div>
