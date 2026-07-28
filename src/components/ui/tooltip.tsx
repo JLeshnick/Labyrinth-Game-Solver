@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 interface TooltipProps {
   content: React.ReactNode;
   children: React.ReactElement;
-  side?: "top" | "bottom" | "bottom-left" | "bottom-right" | "left" | "right" | "left-start" | "right-start" | "left-end" | "right-end";
+  side?: "top" | "top-left" | "top-right" | "bottom" | "bottom-left" | "bottom-right" | "left" | "right" | "left-start" | "right-start" | "left-end" | "right-end";
   className?: string;
   containerClassName?: string;
   style?: React.CSSProperties;
@@ -15,6 +15,8 @@ export function Tooltip({ content, children, side = "bottom", className, contain
 
   const posClass =
     side === "top"          ? "bottom-full mb-2 left-1/2 -translate-x-1/2" :
+    side === "top-left"     ? "bottom-full mb-2 left-0" :
+    side === "top-right"    ? "bottom-full mb-2 right-0" :
     side === "left"         ? "right-full mr-2 top-1/2 -translate-y-1/2" :
     side === "left-start"   ? "right-full mr-2 top-0" :
     side === "left-end"     ? "right-full mr-2 bottom-0" :

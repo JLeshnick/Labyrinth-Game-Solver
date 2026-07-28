@@ -418,7 +418,7 @@ export function SolverPanel({
                                   </div>
                                 </div>
                               }
-                              side="bottom-left"
+                              side="top-left"
                               containerClassName="z-[100]"
                             >
                               <span

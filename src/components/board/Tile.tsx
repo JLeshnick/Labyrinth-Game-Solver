@@ -15,6 +15,7 @@ interface TileProps {
   isObtainedTreasure?: boolean;
   isCurrentTarget?: boolean;
   is3D?: boolean;
+  scoreBadge?: { text: string; type: "positive" | "negative" | "neutral" };
 }
 
 export const Tile: React.FC<TileProps> = ({
@@ -26,6 +27,7 @@ export const Tile: React.FC<TileProps> = ({
   isObtainedTreasure = false,
   isCurrentTarget = false,
   is3D = false,
+  scoreBadge,
 }) => {
   // Smoothly fade out overlay elements (banner & lock) in place, wait for board rotation animation to finish (500ms), then fade back in at new position
   const [isRotating, setIsRotating] = React.useState(false);
@@ -222,6 +224,24 @@ export const Tile: React.FC<TileProps> = ({
         )}
         style={{ transform: `rotate(${-displayRotation}deg)` }}
       >
+        {/* Mathematical score breakdown badge pill (when score breakdown mode is active) */}
+        {scoreBadge && (
+          <div className="absolute top-1 left-1 z-[120] animate-bounce-subtle pointer-events-none">
+            <span
+              className={cn(
+                "px-1.5 py-0.5 rounded-md text-[10px] sm:text-[11px] font-black border-2 border-stone-950 shadow-[1.5px_1.5px_0_0_#000000] inline-block leading-none uppercase tracking-tight",
+                scoreBadge.type === "positive"
+                  ? "bg-emerald-400 text-stone-950"
+                  : scoreBadge.type === "negative"
+                  ? "bg-red-500 text-white"
+                  : "bg-amber-400 text-stone-950"
+              )}
+            >
+              {scoreBadge.text}
+            </span>
+          </div>
+        )}
+
         {/* Fixed tile lock badge — anchored to top-right of screen-oriented tile */}
         {tile.isFixed && (
           <Tooltip content="Permanently fixed preset tile (glued to board)" side="top" containerClassName="absolute top-1 right-1 z-[100]">

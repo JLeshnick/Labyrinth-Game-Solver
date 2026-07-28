@@ -980,6 +980,7 @@ export default function App() {
                     : stagedArrow || null
                 }
                 boardRotation={boardRotation}
+                scoreBreakdownSolution={hoveredSolution}
                 customTargetCoords={game.customTargetCoords}
                 activeTargetCoords={activeTargetCoords}
                 reachableCells={reachableCells}

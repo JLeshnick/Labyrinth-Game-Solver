@@ -1,6 +1,6 @@
 import React from "react";
 import { useDroppable } from "@dnd-kit/core";
-import type { TileData } from "../../types";
+import type { TileData, SolverSolution } from "../../types";
 import { SHIFT_ARROWS } from "../../constants";
 import { isOppositeArrow } from "../../solver";
 import { Tile, DraggableTile } from "./Tile";
@@ -28,6 +28,7 @@ interface BoardSpaceProps {
   isObtainedTreasure?: boolean;
   isCurrentTarget?: boolean;
   is3D?: boolean;
+  scoreBadge?: { text: string; type: "positive" | "negative" | "neutral" };
 }
 
 const BoardSpace: React.FC<BoardSpaceProps> = ({
@@ -50,6 +51,7 @@ const BoardSpace: React.FC<BoardSpaceProps> = ({
   isObtainedTreasure,
   isCurrentTarget,
   is3D = false,
+  scoreBadge,
 }) => {
   const isFixedSpace = x % 2 === 0 && y % 2 === 0;
   const id = `board_${x}_${y}`;
@@ -118,6 +120,7 @@ const BoardSpace: React.FC<BoardSpaceProps> = ({
           isObtainedTreasure={isObtainedTreasure}
           isCurrentTarget={isCurrentTarget}
           is3D={is3D}
+          scoreBadge={scoreBadge}
           className="w-full h-full absolute inset-0"
         />
       ) : (
@@ -198,6 +201,7 @@ interface BoardProps {
   activePawn?: string;
   allObtainedTreasures?: string[];
   activeTargetTreasureId?: string | null;
+  scoreBreakdownSolution?: SolverSolution | null;
   travelingPawn?: {
     color: string;
     path: { r: number; c: number }[];
@@ -234,6 +238,7 @@ export const Board: React.FC<BoardProps> = ({
   onTreasureClick,
   allObtainedTreasures,
   activeTargetTreasureId,
+  scoreBreakdownSolution,
   is3D = false,
   activePawn = "red",
   travelingPawn,
@@ -383,6 +388,27 @@ export const Board: React.FC<BoardProps> = ({
               }
             }
  
+            // Calculate math breakdown badges if a solution score pill is hovered/active
+            let cellScoreBadge: { text: string; type: "positive" | "negative" | "neutral" } | undefined = undefined;
+            if (scoreBreakdownSolution && scoreBreakdownSolution.length > 0) {
+              const breakdown = (scoreBreakdownSolution.scoreBreakdown || {}) as Record<string, number>;
+              const turn1 = scoreBreakdownSolution[0];
+              const landingPos = turn1?.pawnPath ? turn1.pawnPath[turn1.pawnPath.length - 1] : null;
+              const isFixedCell = r % 2 === 0 && c % 2 === 0;
+
+              if (landingPos && landingPos.r === r && landingPos.c === c) {
+                const reach = breakdown.reachabilityScore ?? 0;
+                const fixedBonus = breakdown.fixedSpaceBonus ?? 0;
+                const exitsBonus = breakdown.tileExitsBonus ?? 0;
+                cellScoreBadge = { 
+                  text: `+${reach + fixedBonus + exitsBonus} pts`, 
+                  type: "positive" 
+                };
+              } else if (isFixedCell && (breakdown.fixedSpaceBonus ?? 0) > 0) {
+                cellScoreBadge = { text: `+15 Fixed`, type: "neutral" };
+              }
+            }
+ 
             return (
               <BoardSpace
                 key={`${r}-${c}`}
@@ -405,6 +431,7 @@ export const Board: React.FC<BoardProps> = ({
                 isCurrentTarget={isCurrentTarget}
                 isReachable={isReachable}
                 is3D={is3D}
+                scoreBadge={cellScoreBadge}
               />
             );
           })
