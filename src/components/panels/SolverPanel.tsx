@@ -362,7 +362,7 @@ export function SolverPanel({
                       key={index}
                       onMouseEnter={() => setHoveredSolution(sol)}
                       onMouseLeave={() => setHoveredSolution(null)}
-                      className={`relative p-2.5 pl-10 rounded-xl transition-all flex items-start justify-between cursor-pointer group gap-2 ${
+                      className={`relative p-2.5 pl-10 rounded-xl transition-all flex items-start justify-between cursor-pointer group gap-2 hover:z-30 ${
                         index === 0 && !isFallback
                           ? "app-surface-accent hover:border-theme-primary"
                           : "app-surface hover:border-theme-primary-40"
@@ -417,7 +417,7 @@ export function SolverPanel({
                                   </div>
                                 </div>
                               }
-                              side="top"
+                              side="bottom-left"
                             >
                               <span className={`px-1.5 py-0.5 rounded-lg text-stone-950 text-[10px] font-black border-2 border-stone-950 shadow-[1px_1px_0_0_#000000] flex items-center leading-none whitespace-nowrap cursor-help ${
                                 algScoreValue >= 80
