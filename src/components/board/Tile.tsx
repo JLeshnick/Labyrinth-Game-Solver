@@ -27,7 +27,7 @@ export const Tile: React.FC<TileProps> = ({
   isCurrentTarget = false,
   is3D = false,
 }) => {
-  // Smoothly fade out overlay elements (banner & lock) in place, then fade them back in at new orientation
+  // Smoothly fade out overlay elements (banner & lock) in place, wait for board rotation animation to finish (500ms), then fade back in at new position
   const [isRotating, setIsRotating] = React.useState(false);
   const [displayRotation, setDisplayRotation] = React.useState(boardRotation);
   const prevBoardRotationRef = React.useRef(boardRotation);
@@ -37,15 +37,17 @@ export const Tile: React.FC<TileProps> = ({
       const targetRotation = boardRotation;
       setIsRotating(true);
 
-      // Phase 1: Rapidly fade out (150ms) while keeping displayRotation locked to old angle
-      const fadeOutTimer = setTimeout(() => {
+      // Keep hidden while board is rotating (500ms CSS duration)
+      const timer = setTimeout(() => {
         setDisplayRotation(targetRotation);
         prevBoardRotationRef.current = targetRotation;
-        // Phase 2: Fade back in at new angle
-        setIsRotating(false);
-      }, 200);
+        // Small delay to allow DOM to apply new displayRotation while hidden before fading back in
+        requestAnimationFrame(() => {
+          setIsRotating(false);
+        });
+      }, 500);
 
-      return () => clearTimeout(fadeOutTimer);
+      return () => clearTimeout(timer);
     }
   }, [boardRotation]);
   // Paths rendering logic — styled as a unified, continuous corridor with a thick Brutalist outline
