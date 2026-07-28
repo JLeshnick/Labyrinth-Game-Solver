@@ -218,8 +218,8 @@ export const Tile: React.FC<TileProps> = ({
       {/* Counter-rotating overlay container for screen-upright elements (Lock badge & Treasure banner) */}
       <div
         className={cn(
-          "absolute inset-0 pointer-events-none z-10 transform-gpu transition-all duration-150 ease-out",
-          isRotating ? "opacity-0 scale-90" : "opacity-100 scale-100"
+          "absolute inset-0 pointer-events-none z-10 transform-gpu transition-opacity duration-200 ease-out",
+          isRotating ? "opacity-0" : "opacity-100"
         )}
         style={{ transform: `rotate(${-displayRotation}deg)` }}
       >
