@@ -77,10 +77,10 @@ export function MiniBoardSnapshot({ board, pawnPositions, activePlayers, movedPa
 
   return (
     <svg
-      width={TOTAL}
-      height={TOTAL}
+      width="100%"
+      height="100%"
       viewBox={`0 0 ${TOTAL} ${TOTAL}`}
-      className="rounded overflow-hidden shrink-0"
+      className="rounded overflow-hidden shrink-0 w-full h-full"
       aria-hidden="true"
     >
       {allRects.map((r, i) => (

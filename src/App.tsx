@@ -101,6 +101,7 @@ export default function App() {
     () => localStorage.getItem("labyrinth_welcome_dismissed") !== "true"
   );
   const [isResumeDialogOpen, setIsResumeDialogOpen] = useState(false);
+  const [pendingResumeState, setPendingResumeState] = useState<any>(null);
 
   // Check for saved game state on boot
   useEffect(() => {
@@ -109,6 +110,7 @@ export default function App() {
       if (saved) {
         const parsed = JSON.parse(saved);
         if (parsed && (parsed.isGameStarted || (parsed.board && parsed.board.some((r: any) => r.some((c: any) => c !== null))))) {
+          setPendingResumeState(parsed);
           setIsResumeDialogOpen(true);
         }
       }
@@ -136,6 +138,7 @@ export default function App() {
   // ── Solver worker ─────────────────────────────────────────────────────────────
   const [solutions, setSolutions] = useState<SolverSolution[]>([]);
   const [hoveredSolutionIndex, setHoveredSolutionIndex] = useState<number | null>(null);
+  const [hoveredHistoryIndex, setHoveredHistoryIndex] = useState<number | null>(null);
   const [lockedScoreBreakdownSolution, setLockedScoreBreakdownSolution] = useState<SolverSolution | null>(null);
   const hoveredSolution = (hoveredSolutionIndex !== null && solutions && hoveredSolutionIndex < solutions.length) ? solutions[hoveredSolutionIndex] : null;
 
@@ -371,8 +374,12 @@ export default function App() {
         return;
       }
       if (turnPhase === "slide") {
-        // In slide phase, clicking a cell sets it as custom target (any cell, not just treasures)
         game.setCustomTargetCoords({ r, c });
+        if (game.playerActiveTargets[game.activePawn]) {
+          game.handleSelectTargetTreasure(game.activePawn, null);
+          // Restore custom target since handleSelectTargetTreasure clears it
+          game.setCustomTargetCoords({ r, c });
+        }
         return;
       }
       if (turnPhase !== "move") return;
@@ -820,7 +827,13 @@ export default function App() {
     stagedPreviewState,
   ]);
 
-  const effectivePreview = previewState || stagedPreviewState;
+  const effectivePreview = hoveredHistoryIndex !== null && game.history && game.history[hoveredHistoryIndex]
+    ? {
+        grid: game.history[hoveredHistoryIndex].board,
+        pawnPositions: game.history[hoveredHistoryIndex].pawnPositions || game.pawnPositions,
+        spareTile: game.history[hoveredHistoryIndex].spareTile || game.spareTile,
+      }
+    : previewState || stagedPreviewState;
 
   const isActivePawnHome = useMemo(() => {
     const pawnPos = game.pawnPositions[game.activePawn];
@@ -880,6 +893,10 @@ export default function App() {
         isGameStarted={game.isGameStarted}
         canUndo={game.canUndo}
         canRedo={game.canRedo}
+        history={game.history}
+        historyIndex={game.historyIndex}
+        onJumpToHistory={game.handleJumpToHistory}
+        onHoverHistory={setHoveredHistoryIndex}
         isMuted={isMuted}
         showStats={showStats}
         baseTheme={baseTheme}
@@ -1020,7 +1037,7 @@ export default function App() {
                   setActivePawn={game.setActivePawn}
                   activePlayers={game.activePlayers}
                   isMuted={isMuted}
-                  spareTile={previewState ? previewState.spareTile : game.spareTile}
+                  spareTile={effectivePreview ? effectivePreview.spareTile : game.spareTile}
                   customTargetCoords={game.customTargetCoords}
                   setCustomTargetCoords={game.setCustomTargetCoords}
                   onExecuteSolution={handleExecuteSolutionWithAnimation}
@@ -1120,7 +1137,7 @@ export default function App() {
                     setActivePawn={game.setActivePawn}
                     activePlayers={game.activePlayers}
                     isMuted={isMuted}
-                    spareTile={previewState ? previewState.spareTile : game.spareTile}
+                    spareTile={effectivePreview ? effectivePreview.spareTile : game.spareTile}
                     customTargetCoords={game.customTargetCoords}
                     setCustomTargetCoords={game.setCustomTargetCoords}
                     onExecuteSolution={handleExecuteSolutionWithAnimation}
@@ -1369,7 +1386,13 @@ export default function App() {
 
       <ResumeGameDialog
         isOpen={isResumeDialogOpen}
-        onResume={() => setIsResumeDialogOpen(false)}
+        onResume={() => {
+          setIsResumeDialogOpen(false);
+          if (pendingResumeState) {
+            game.hydrateFromSaved(pendingResumeState, game.spareTile);
+            setPendingResumeState(null);
+          }
+        }}
         onNewGame={() => {
           setIsResumeDialogOpen(false);
           game.resetAllDefaults();
