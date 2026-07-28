@@ -37,15 +37,14 @@ export const Tile: React.FC<TileProps> = ({
       const targetRotation = boardRotation;
       setIsRotating(true);
 
-      // Keep hidden while board is rotating (500ms CSS duration)
+      // Keep hidden while board is rotating (switch displayRotation near end of spin)
       const timer = setTimeout(() => {
         setDisplayRotation(targetRotation);
         prevBoardRotationRef.current = targetRotation;
-        // Small delay to allow DOM to apply new displayRotation while hidden before fading back in
         requestAnimationFrame(() => {
           setIsRotating(false);
         });
-      }, 500);
+      }, 420);
 
       return () => clearTimeout(timer);
     }
@@ -218,7 +217,7 @@ export const Tile: React.FC<TileProps> = ({
       {/* Counter-rotating overlay container for screen-upright elements (Lock badge & Treasure banner) */}
       <div
         className={cn(
-          "absolute inset-0 pointer-events-none z-10 transform-gpu transition-opacity duration-200 ease-out",
+          "absolute inset-0 pointer-events-none z-10 transform-gpu transition-opacity duration-400 ease-in-out",
           isRotating ? "opacity-0" : "opacity-100"
         )}
         style={{ transform: `rotate(${-displayRotation}deg)` }}
