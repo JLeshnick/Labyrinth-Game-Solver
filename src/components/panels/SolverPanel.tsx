@@ -39,11 +39,13 @@ interface SolverPanelProps {
   onToggleStats?: () => void;
   gameMode?: "standard" | "coop" | "auto";
   remainingCoopTreasures?: string[];
+  grid?: (TileData | null)[][];
 }
  
 export function SolverPanel({
   solutions,
   isLoadingSolutions,
+  hoveredSolution: _hoveredSolution,
   setHoveredSolution,
   activePawn,
   setActivePawn,
@@ -69,6 +71,7 @@ export function SolverPanel({
   onToggleStats,
   gameMode = "standard",
   remainingCoopTreasures = [],
+  grid = [],
 }: SolverPanelProps) {
   const [showAllSuggestions, setShowAllSuggestions] = useState(false);
 
@@ -76,10 +79,15 @@ export function SolverPanel({
     customTargetCoords.r === DEFAULT_PAWN_POSITIONS[activePawn]?.r &&
     customTargetCoords.c === DEFAULT_PAWN_POSITIONS[activePawn]?.c);
 
-  const topSolution = solutions[0];
-  const currentTargetId = playerActiveTargets[activePawn] || (topSolution ? (topSolution as any).cardId : null);
+  // Filter solutions to only show the active target (unless no target is set, then show all)
+  const currentTargetId = playerActiveTargets[activePawn] || (solutions[0] ? (solutions[0] as any).cardId : null);
+  const filteredSolutions = currentTargetId
+    ? solutions.filter((sol) => (sol as any).cardId === currentTargetId)
+    : solutions;
+  const topSolution = filteredSolutions[0];
+
   // Key changes whenever new solutions arrive so the list re-mounts and plays the fade animation
-  const solutionsKey = solutions.length + "-" + ((topSolution as any)?.cardId ?? "") + "-" + activePawn;
+  const solutionsKey = filteredSolutions.length + "-" + (currentTargetId ?? "") + "-" + activePawn;
 
   if (compact) {
     return (
@@ -243,7 +251,7 @@ export function SolverPanel({
                   🎯 {customTargetCoords.r === DEFAULT_PAWN_POSITIONS[activePawn]?.r &&
                   customTargetCoords.c === DEFAULT_PAWN_POSITIONS[activePawn]?.c
                     ? "Home Corner"
-                    : `Custom Target (${customTargetCoords.r}, ${customTargetCoords.c})`}
+                    : `(${customTargetCoords.r}, ${customTargetCoords.c})${grid[customTargetCoords.r]?.[customTargetCoords.c]?.treasure ? ` — ${grid[customTargetCoords.r][customTargetCoords.c]!.treasure!.name}` : ""}`}
                   <button onClick={() => setCustomTargetCoords(null)} className="text-stone-500 hover:text-stone-300 text-[10px] ml-1 underline cursor-pointer" title="Clear Custom Target">(clear)</button>
                 </span>
               ) : playerActiveTargets[activePawn] ? (
@@ -322,9 +330,9 @@ export function SolverPanel({
             <div className="animate-spin h-5 w-5 border-2 border-stone-950 border-t-theme-primary rounded-sm" />
             Computing paths...
           </div>
-        ) : solutions.length > 0 ? (
+        ) : filteredSolutions.length > 0 ? (
           (() => {
-            const visibleSolutions = showAllSuggestions ? solutions : solutions.slice(0, 5);
+            const visibleSolutions = showAllSuggestions ? filteredSolutions : filteredSolutions.slice(0, 5);
             return (
               <div className="flex flex-col gap-2 animate-fade-in">
                 <div className="text-[10px] text-stone-550 px-1 mb-1 italic flex items-center justify-between flex-wrap gap-2">
@@ -337,7 +345,7 @@ export function SolverPanel({
                         : "bg-card text-stone-400 hover:text-stone-200"
                     }`}
                   >
-                    {showAllSuggestions ? "Show Top 5" : `Show All (${solutions.length})`}
+                    {showAllSuggestions ? "Show Top 5" : `Show All (${filteredSolutions.length})`}
                   </button>
                 </div>
                 {visibleSolutions.map((sol, index) => {
@@ -346,7 +354,8 @@ export function SolverPanel({
                   for (const step of sol) {
                     if (step.pawnPath) walkDist += step.pawnPath.length - 1;
                   }
-                  const safetyScoreValue = sol.safetyScore !== undefined ? Math.round(sol.safetyScore) : null;
+                  const algScoreValue = sol.algorithmScore !== undefined ? Math.round(sol.algorithmScore) : (sol.safetyScore !== undefined ? Math.round(sol.safetyScore) : null);
+
                   return (
                     <div
                       key={index}
@@ -386,15 +395,15 @@ export function SolverPanel({
                           <span className="px-1.5 py-0.5 rounded-lg bg-card text-stone-100 text-[10px] font-black border-2 border-stone-950 shadow-[1px_1px_0_0_#000000] flex items-center leading-none whitespace-nowrap">
                             {walkDist}sp
                           </span>
-                          {safetyScoreValue !== null && (
+                          {algScoreValue !== null && (
                             <span className={`px-1.5 py-0.5 rounded-lg text-stone-950 text-[10px] font-black border-2 border-stone-950 shadow-[1px_1px_0_0_#000000] flex items-center leading-none whitespace-nowrap ${
-                              safetyScoreValue >= 80
+                              algScoreValue >= 80
                                 ? "bg-emerald-400"
-                                : safetyScoreValue >= 40
+                                : algScoreValue >= 40
                                 ? "bg-amber-400"
                                 : "bg-red-500"
                             }`}>
-                              {safetyScoreValue}/100
+                              Alg: {algScoreValue}/100
                             </span>
                           )}
                         </div>

@@ -26,7 +26,7 @@ export const TREASURES: Treasure[] = [
   // Movable Straight Corridor Treasures (6)
   { id: "bat", name: "Bat" },
   { id: "dragon", name: "Dragon" },
-  { id: "ghost_bottle", name: "Ghost (Bottle)" },
+  { id: "ghost_bottle", name: "Genie" },
   { id: "ghost_waving", name: "Ghost (Waving)" },
   { id: "lady_pig", name: "Lady Pig" },
   { id: "sorceress", name: "Witch" }
@@ -61,8 +61,8 @@ export const TREASURE_SHORT_NAMES: Record<string, string> = {
   spider:       "Spider",
   bat:          "Bat",
   dragon:       "Dragon",
-  ghost_bottle: "Ghost (Bottle)",
-  ghost_waving: "Ghost (Waving)",
+  ghost_bottle: "Genie",
+  ghost_waving: "Ghost",
   lady_pig:     "Lady Pig",
   sorceress:    "Witch",
 };

@@ -600,8 +600,8 @@ const TREASURE_NAMES = {
   spider: "Spider",
   bat: "Bat",
   dragon: "Dragon",
-  ghost_bottle: "Ghost (Bottle)",
-  ghost_waving: "Ghost (Waving)",
+  ghost_bottle: "Genie",
+  ghost_waving: "Ghost",
   lady_pig: "Lady Pig",
   sorceress: "Witch",
   custom_target: "Custom Target"
@@ -716,29 +716,75 @@ function calculateSafetyScore(board, spareTile, pawnPos, playerShiftArrowId = nu
   }
   
   const average = totalReachable / count;
-  // Heuristic 1: Reachability size (up to 70 points)
-  let score = Math.min(70, Math.round((average / 15) * 70));
+  // Heuristic 1: Reachability size (up to 50 points)
+  const reachabilityScore = Math.min(50, Math.round((average / 15) * 50));
   
-  // Heuristic 2: Fixed space bonus (up to 15 points)
+  // Heuristic 2: Fixed space bonus (15 points)
   const isFixedSpace = pawnPos.r % 2 === 0 && pawnPos.c % 2 === 0;
-  if (isFixedSpace) {
-    score += 15;
-  }
+  const fixedSpaceBonus = isFixedSpace ? 15 : 0;
   
-  // Heuristic 3: Exits of the landing tile (up to 15 points)
+  // Heuristic 3: Exits of the landing tile (10-15 points)
   const landingTile = board[pawnPos.r]?.[pawnPos.c];
+  let exits = 2;
   if (landingTile) {
-    let exits = 2;
     if (landingTile.shape === 'T') exits = 3;
     else if (landingTile.shape === 'I' || landingTile.shape === 'L') exits = 2;
-    score += (exits === 3) ? 15 : 10;
   }
+  const tileExitsBonus = (exits === 3) ? 15 : 10;
   
-  // Heuristic 4: Wrap penalty (if opponent slides often push us off)
+  // Heuristic 4: Wrap penalty (up to 10 points deducted)
   const wrapRate = wrapsCount / count;
-  score -= Math.round(wrapRate * 10);
+  const wrapPenalty = Math.round(wrapRate * 10);
   
-  return Math.max(0, Math.min(100, score));
+  let score = reachabilityScore + fixedSpaceBonus + tileExitsBonus - wrapPenalty;
+  
+  const totalScore = Math.max(0, Math.min(100, score));
+  
+  return {
+    safetyScore: totalScore,
+    scoreBreakdown: {
+      reachabilityScore,
+      fixedSpaceBonus,
+      tileExitsBonus,
+      wrapPenalty,
+      walkBonus: 0,
+      turnsPenalty: 0,
+      totalScore
+    }
+  };
+}
+
+/**
+ * Calculates full algorithm score for a solution path incorporating turn count, walk distance, and positional safety.
+ */
+function calculateAlgorithmScore(path, safetyRes) {
+  const breakdown = { ...(safetyRes.scoreBreakdown || {}) };
+  const numTurns = path.length;
+  
+  // Penalty for extra turns needed: 0 penalty for 1 turn, -15 per extra turn
+  const turnsPenalty = (numTurns - 1) * 15;
+  breakdown.turnsPenalty = turnsPenalty;
+  
+  // Bonus for concise walk paths: up to 10 bonus points for short walks
+  let walkDist = 0;
+  for (const step of path) {
+    if (step.pawnPath) walkDist += Math.max(0, step.pawnPath.length - 1);
+  }
+  const walkBonus = Math.max(0, 10 - walkDist);
+  breakdown.walkBonus = walkBonus;
+  
+  let total = (breakdown.reachabilityScore || 0) + 
+              (breakdown.fixedSpaceBonus || 0) + 
+              (breakdown.tileExitsBonus || 0) + 
+              walkBonus - 
+              (breakdown.wrapPenalty || 0) - 
+              turnsPenalty;
+              
+  breakdown.totalScore = Math.max(0, Math.min(100, total));
+  return {
+    algorithmScore: breakdown.totalScore,
+    scoreBreakdown: breakdown
+  };
 }
 
 /**
@@ -783,11 +829,24 @@ function solveAllHand(board, spareTile, startPawnPos, handCards, lastShiftArrowI
          const slideResult = executeSlideInGrid(tempBoard, tempSpare, type, index, dir);
          const nextSpare = slideResult.newSpare;
         
-         const safety = calculateSafetyScore(tempBoard, nextSpare, step1.endPos, step1.arrowId);
+         const safetyRes = calculateSafetyScore(tempBoard, nextSpare, step1.endPos, step1.arrowId);
+         const algRes = calculateAlgorithmScore(path, safetyRes);
         
-         path.safetyScore = safety;
+         path.safetyScore = safetyRes.safetyScore;
+         path.algorithmScore = algRes.algorithmScore;
+         path.scoreBreakdown = algRes.scoreBreakdown;
        } else {
          path.safetyScore = 100;
+         path.algorithmScore = 100;
+         path.scoreBreakdown = {
+           reachabilityScore: 50,
+           fixedSpaceBonus: 15,
+           tileExitsBonus: 15,
+           wrapPenalty: 0,
+           walkBonus: 10,
+           turnsPenalty: 0,
+           totalScore: 100
+         };
        }
      }
      

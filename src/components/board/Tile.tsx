@@ -174,16 +174,16 @@ export const Tile: React.FC<TileProps> = ({
         bgClass,
         borderClass,
         isObtainedTreasure && "after:absolute after:inset-0 after:bg-stone-950/30 after:rounded-2xl after:pointer-events-none",
-        is3D 
-          ? "tile-3d" 
-          : "shadow-[4px_4px_0_0_#000000] dark:shadow-[4px_4px_0_0_#000000] hover:translate-x-[-1.5px] hover:translate-y-[-1.5px] hover:shadow-[5.5px_5.5px_0_0_#000000] active:translate-x-[1px] active:translate-y-[1px] active:shadow-[2px_2px_0_0_#000000]",
+        is3D
+          ? "tile-3d"
+          : "shadow-[4px_4px_0_0_#000000] dark:shadow-[4px_4px_0_0_#292524] hover:translate-x-[-1.5px] hover:translate-y-[-1.5px] hover:shadow-[5.5px_5.5px_0_0_#44403c] active:translate-x-[1px] active:translate-y-[1px] active:shadow-[2px_2px_0_0_#292524]",
         className
       )}
       style={is3D ? { ...shadowStyle, transformStyle: "preserve-3d" } : undefined}
     >
       {/* Inner container with overflow-hidden to cleanly clip the SVG paths */}
       <div className="absolute inset-0 rounded-[14px] overflow-hidden" style={{ transformStyle: is3D ? "preserve-3d" : "flat" }}>
-        {/* Rotation wrapper */}
+        {/* Path rotation wrapper */}
         <div
           className={cn("absolute inset-0", !disableRotationTransition && "transition-transform duration-200")}
           style={{ transform: `rotate(${tile.rotation}deg)`, transformStyle: is3D ? "preserve-3d" : "flat" }}
@@ -192,47 +192,63 @@ export const Tile: React.FC<TileProps> = ({
         </div>
       </div>
 
+      {/* Fixed tile lock badge — stays at physical top-right corner of tile relative to screen */}
+      {tile.isFixed && (() => {
+        const normRot = ((boardRotation % 360) + 360) % 360;
+        let lockPosClass = "top-1 right-1";
+        if (normRot === 90) lockPosClass = "bottom-1 right-1";
+        else if (normRot === 180) lockPosClass = "bottom-1 left-1";
+        else if (normRot === 270) lockPosClass = "top-1 left-1";
 
-      {/* Fixed tile lock badge */}
-      {tile.isFixed && (
-        <Tooltip content="Permanently fixed preset tile (glued to board)" side="top" containerClassName="absolute top-1 right-1 z-[100]">
+        return (
+          <Tooltip content="Permanently fixed preset tile (glued to board)" side="top" containerClassName={cn("absolute z-[100]", lockPosClass)}>
+            <div className="p-0.5 bg-stone-950 border-2 border-stone-950 rounded-md text-amber-400 shadow-[2px_2px_0_0_#000000] pointer-events-auto cursor-help">
+              <Lock
+                className="w-2.5 h-2.5 sm:w-3 sm:h-3"
+                style={boardRotation ? { transform: `rotate(${-boardRotation}deg)` } : undefined}
+              />
+            </div>
+          </Tooltip>
+        );
+      })()}
+
+      {/* Treasure name banner — stays mounted to the physical bottom edge of tile facing the user */}
+      {tile.treasure && (() => {
+        const normRot = ((boardRotation % 360) + 360) % 360;
+        let positionClass = "bottom-0 inset-x-0 border-t-2 rounded-b-[14px]";
+        if (normRot === 90) {
+          positionClass = "right-0 inset-y-0 w-[1.35rem] border-l-2 rounded-r-[14px]";
+        } else if (normRot === 180) {
+          positionClass = "bottom-0 inset-x-0 border-t-2 rounded-b-[14px]";
+        } else if (normRot === 270) {
+          positionClass = "left-0 inset-y-0 w-[1.35rem] border-r-2 rounded-l-[14px]";
+        }
+
+        return (
           <div
-            className="p-0.5 bg-stone-950 border-2 border-stone-950 rounded-md text-amber-400 shadow-[2px_2px_0_0_#000000] pointer-events-auto cursor-help"
-            style={
-              is3D
-                ? { transform: `rotateZ(${30 - boardRotation}deg) rotateX(-45deg) translateZ(8px)` }
-                : { transform: `rotate(${-boardRotation}deg)` }
-            }
-          >
-            <Lock className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
-          </div>
-        </Tooltip>
-      )}
-
-      {/* Treasure name banner — sits across the bottom of the tile */}
-      {tile.treasure && (
-        <div
-          className={cn(
-            "absolute bottom-0 inset-x-0 z-10 flex items-center justify-center px-1 py-0.5 border-t-2 border-stone-950 transition-all duration-300 pointer-events-none rounded-b-[14px]",
-            isObtainedTreasure
-              ? "bg-stone-600 opacity-50"
-              : isCurrentTarget
-              ? "bg-amber-400"
-              : "bg-amber-300"
-          )}
-          title={tile.treasure.name}
-        >
-          <span
-            style={boardRotation ? { transform: `rotate(${-boardRotation}deg)` } : undefined}
             className={cn(
-              "text-[9px] sm:text-[10px] font-black text-stone-950 leading-tight text-center select-none uppercase tracking-tight inline-block transition-transform duration-300",
-              isObtainedTreasure && "line-through opacity-70"
+              "absolute z-10 flex items-center justify-center pointer-events-none transition-all duration-300 overflow-hidden",
+              positionClass,
+              isObtainedTreasure
+                ? "bg-stone-600 opacity-50"
+                : isCurrentTarget
+                ? "bg-theme-primary text-stone-950"
+                : "bg-amber-300"
             )}
+            title={tile.treasure.name}
           >
-            {TREASURE_SHORT_NAMES[tile.treasure.id] ?? tile.treasure.name}
-          </span>
-        </div>
-      )}
+            <span
+              style={boardRotation ? { transform: `rotate(${-boardRotation}deg)` } : undefined}
+              className={cn(
+                "text-[9px] sm:text-[10px] font-black text-stone-950 leading-none text-center select-none uppercase tracking-tight inline-block whitespace-nowrap px-0.5",
+                isObtainedTreasure && "line-through opacity-70"
+              )}
+            >
+              {TREASURE_SHORT_NAMES[tile.treasure.id] ?? tile.treasure.name}
+            </span>
+          </div>
+        );
+      })()}
     </div>
   );
 };

@@ -41,6 +41,8 @@ import {
   ChevronDown as ChevronDownIcon,
   Clock,
 } from "lucide-react";
+import { ResumeGameDialog } from "./components/modals/ResumeGameDialog";
+import { AUTOSAVE_KEY } from "./hooks/useLabyrinthStorage";
 import { cn } from "./lib/utils";
 
 // Default solver depth. Can be overridden via the Advanced settings panel.
@@ -98,6 +100,20 @@ export default function App() {
   const [showWelcomeGuide, setShowWelcomeGuide] = useState(
     () => localStorage.getItem("labyrinth_welcome_dismissed") !== "true"
   );
+  const [isResumeDialogOpen, setIsResumeDialogOpen] = useState(false);
+
+  // Check for saved game state on boot
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(AUTOSAVE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed && (parsed.isGameStarted || (parsed.board && parsed.board.some((r: any) => r.some((c: any) => c !== null))))) {
+          setIsResumeDialogOpen(true);
+        }
+      }
+    } catch {}
+  }, []);
 
   const [is3D, setIs3D] = useState(() => {
     try {
@@ -1028,6 +1044,7 @@ export default function App() {
                   isActivePawnHome={isActivePawnHome}
                   gameMode={game.gameMode}
                   remainingCoopTreasures={game.remainingCoopTreasures}
+                  grid={game.grid}
                 />
               ) : (
                 <SetupPanel
@@ -1127,6 +1144,7 @@ export default function App() {
                     onToggleStats={() => setShowStats((prev) => !prev)}
                     gameMode={game.gameMode}
                     remainingCoopTreasures={game.remainingCoopTreasures}
+                    grid={game.grid}
                   />
                 ) : (
                   <SetupPanel
@@ -1345,6 +1363,16 @@ export default function App() {
           <span className="text-[9px] font-medium">{isMuted ? "Unmute" : "Mute"}</span>
         </Button>
       </div>
+
+      <ResumeGameDialog
+        isOpen={isResumeDialogOpen}
+        onResume={() => setIsResumeDialogOpen(false)}
+        onNewGame={() => {
+          setIsResumeDialogOpen(false);
+          game.resetAllDefaults();
+          showToast("Started new game session.");
+        }}
+      />
     </div>
   );
 }

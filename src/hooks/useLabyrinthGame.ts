@@ -656,6 +656,8 @@ export function useLabyrinthGame({
         let nr = pos.r,
           nc = pos.c;
         if (arrow.type === "row" && arrow.index === pos.r) {
+          // dir === "left" means arrow pushing right (spare inserts at c=0, tile slides right: c -> c+1, 6 wraps to 0)
+          // dir === "right" means arrow pushing left (spare inserts at c=6, tile slides left: c -> c-1, 0 wraps to 6)
           nc =
             arrow.dir === "left"
               ? pos.c === 6
@@ -665,6 +667,8 @@ export function useLabyrinthGame({
               ? 6
               : pos.c - 1;
         } else if (arrow.type === "col" && arrow.index === pos.c) {
+          // dir === "top" means arrow pushing down (spare inserts at r=0, tile slides down: r -> r+1, 6 wraps to 0)
+          // dir === "bottom" means arrow pushing up (spare inserts at r=6, tile slides up: r -> r-1, 0 wraps to 6)
           nr =
             arrow.dir === "top"
               ? pos.r === 6

@@ -63,6 +63,16 @@ export interface BoardScanCell {
 
 export type BoardScanResult = BoardScanCell[];
 
+export interface ScoreBreakdown {
+  reachabilityScore: number;
+  fixedSpaceBonus: number;
+  tileExitsBonus: number;
+  wrapPenalty: number;
+  walkBonus: number;
+  turnsPenalty: number;
+  totalScore: number;
+}
+
 export interface SolverSolutionStep {
   arrowId: string;
   rotation: number;
@@ -74,6 +84,8 @@ export interface SolverSolutionStep {
     safety: string;
   };
   safetyScore?: number;
+  algorithmScore?: number;
+  scoreBreakdown?: ScoreBreakdown;
 }
 
 export interface SolverSolution extends Array<SolverSolutionStep> {
@@ -83,5 +95,7 @@ export interface SolverSolution extends Array<SolverSolutionStep> {
     safety: string;
   };
   safetyScore: number;
+  algorithmScore?: number;
+  scoreBreakdown?: ScoreBreakdown;
   isFallback?: boolean;
 }

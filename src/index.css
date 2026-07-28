@@ -693,23 +693,39 @@
 /* ── Neo-Brutalism Theme Utility Classes ──────────────────────────── */
 .neo-brutalism-card {
   border: 3px solid #000000;
-  box-shadow: 6px 6px 0px 0px #000000;
+  box-shadow: 6px 6px 0px 0px #292524;
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+[data-theme="light"] .neo-brutalism-card {
+  box-shadow: 6px 6px 0px 0px #000000;
 }
 
 .neo-brutalism-button {
   border: 2px solid #000000;
-  box-shadow: 3px 3px 0px 0px #000000;
+  box-shadow: 3px 3px 0px 0px #292524;
   transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+[data-theme="light"] .neo-brutalism-button {
+  box-shadow: 3px 3px 0px 0px #000000;
 }
 
 .neo-brutalism-button:hover:not(:disabled) {
   transform: translate(-1px, -1px);
+  box-shadow: 4px 4px 0px 0px #44403c;
+}
+
+[data-theme="light"] .neo-brutalism-button:hover:not(:disabled) {
   box-shadow: 4px 4px 0px 0px #000000;
 }
 
 .neo-brutalism-button:active:not(:disabled) {
   transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0px 0px #292524;
+}
+
+[data-theme="light"] .neo-brutalism-button:active:not(:disabled) {
   box-shadow: 1px 1px 0px 0px #000000;
 }
 
@@ -737,3 +753,20 @@
   from { stroke-dashoffset: 0; }
   to   { stroke-dashoffset: 100; }
 }
+
+/* ── Mobile Touch Optimization & Sheet Gestures ──────────────────── */
+@media (max-width: 767px) {
+  button, [role="button"] {
+    min-height: 40px;
+    touch-action: manipulation;
+  }
+
+  .neo-brutalism-button {
+    box-shadow: 2px 2px 0px 0px #292524;
+  }
+
+  [data-theme="light"] .neo-brutalism-button {
+    box-shadow: 2px 2px 0px 0px #000000;
+  }
+}
+

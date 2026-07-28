@@ -156,7 +156,7 @@ export function AppHeader({
             className="shrink-0 neo-brutalism-card px-2.5 py-1 rounded-lg bg-card hover:bg-stone-200 hover:text-stone-950 transition-colors cursor-pointer"
           >
             <span className="text-xs sm:text-sm font-black tracking-tight text-foreground uppercase select-none">
-              <span className="hidden sm:inline">Labyrinth Solver</span>
+              <span className="hidden sm:inline">Labyrinth <span className="text-theme-primary">Solver</span></span>
               <span className="sm:hidden">Labyrinth</span>
             </span>
           </a>
