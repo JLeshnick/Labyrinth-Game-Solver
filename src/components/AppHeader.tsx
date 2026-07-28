@@ -393,10 +393,10 @@ export function AppHeader({
                             onMouseEnter={() => {
                               if (onHoverHistory) onHoverHistory(targetIdx);
                             }}
-                            className="text-left text-[11px] px-2 py-1.5 rounded hover:bg-theme-primary/20 hover:text-theme-primary transition-all duration-200 cursor-pointer flex items-center group w-full"
+                            className="text-left text-[11px] px-2 py-1.5 rounded hover:bg-theme-primary/20 hover:text-theme-primary transition-all duration-200 cursor-pointer flex items-center gap-1.5 group w-full"
                           >
-                            <span className="opacity-0 -ml-3 w-0 group-hover:w-3 group-hover:ml-0 group-hover:opacity-100 group-hover:mr-1 transition-all duration-200 shrink-0">→</span>
-                            <span className="truncate flex-1 min-w-0">{label}</span>
+                            <span className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 shrink-0">→</span>
+                            <span className="whitespace-nowrap">{label}</span>
                           </button>
                         );
                       })}
@@ -452,10 +452,10 @@ export function AppHeader({
                             onMouseEnter={() => {
                               if (onHoverHistory) onHoverHistory(targetIdx);
                             }}
-                            className="text-left text-[11px] px-2 py-1.5 rounded hover:bg-theme-primary/20 hover:text-theme-primary transition-all duration-200 cursor-pointer flex items-center group w-full"
+                            className="text-left text-[11px] px-2 py-1.5 rounded hover:bg-theme-primary/20 hover:text-theme-primary transition-all duration-200 cursor-pointer flex items-center gap-1.5 group w-full"
                           >
-                            <span className="opacity-0 -ml-3 w-0 group-hover:w-3 group-hover:ml-0 group-hover:opacity-100 group-hover:mr-1 transition-all duration-200 shrink-0">→</span>
-                            <span className="truncate flex-1 min-w-0">{label}</span>
+                            <span className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 shrink-0">→</span>
+                            <span className="whitespace-nowrap">{label}</span>
                           </button>
                         );
                       })}
