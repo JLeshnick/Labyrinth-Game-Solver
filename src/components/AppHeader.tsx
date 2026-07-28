@@ -393,10 +393,11 @@ export function AppHeader({
                             onMouseEnter={() => {
                               if (onHoverHistory) onHoverHistory(targetIdx);
                             }}
-                            className="text-left text-[11px] px-2 py-1.5 rounded hover:bg-theme-primary/20 hover:text-theme-primary transition-all duration-200 cursor-pointer flex items-center gap-1.5 group w-full"
+                            className="text-left text-[11px] px-2 py-1.5 rounded transition-all duration-200 cursor-pointer flex items-center gap-1.5 relative overflow-hidden group w-full text-stone-300 hover:text-theme-primary"
                           >
-                            <span className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 shrink-0">→</span>
-                            <span className="whitespace-nowrap">{label}</span>
+                            <div className="absolute inset-y-0 left-0 bg-theme-primary/20 w-0 group-hover:w-full transition-all duration-300 ease-out z-0 rounded"></div>
+                            <span className="relative z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 shrink-0">→</span>
+                            <span className="relative z-10 whitespace-nowrap transition-transform duration-300 ease-out group-hover:translate-x-0.5">{label}</span>
                           </button>
                         );
                       })}
@@ -452,10 +453,11 @@ export function AppHeader({
                             onMouseEnter={() => {
                               if (onHoverHistory) onHoverHistory(targetIdx);
                             }}
-                            className="text-left text-[11px] px-2 py-1.5 rounded hover:bg-theme-primary/20 hover:text-theme-primary transition-all duration-200 cursor-pointer flex items-center gap-1.5 group w-full"
+                            className="text-left text-[11px] px-2 py-1.5 rounded transition-all duration-200 cursor-pointer flex items-center gap-1.5 relative overflow-hidden group w-full text-stone-300 hover:text-theme-primary"
                           >
-                            <span className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 shrink-0">→</span>
-                            <span className="whitespace-nowrap">{label}</span>
+                            <div className="absolute inset-y-0 left-0 bg-theme-primary/20 w-0 group-hover:w-full transition-all duration-300 ease-out z-0 rounded"></div>
+                            <span className="relative z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 shrink-0">→</span>
+                            <span className="relative z-10 whitespace-nowrap transition-transform duration-300 ease-out group-hover:translate-x-0.5">{label}</span>
                           </button>
                         );
                       })}
