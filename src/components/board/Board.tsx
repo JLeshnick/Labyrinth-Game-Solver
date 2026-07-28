@@ -28,7 +28,7 @@ interface BoardSpaceProps {
   isObtainedTreasure?: boolean;
   isCurrentTarget?: boolean;
   is3D?: boolean;
-  scoreBadge?: { text: string; type: "positive" | "negative" | "neutral" };
+  scoreBadges?: { text: string; type: "positive" | "negative" | "neutral" }[];
 }
 
 const BoardSpace: React.FC<BoardSpaceProps> = ({
@@ -51,7 +51,7 @@ const BoardSpace: React.FC<BoardSpaceProps> = ({
   isObtainedTreasure,
   isCurrentTarget,
   is3D = false,
-  scoreBadge,
+  scoreBadges,
 }) => {
   const isFixedSpace = x % 2 === 0 && y % 2 === 0;
   const id = `board_${x}_${y}`;
@@ -120,7 +120,7 @@ const BoardSpace: React.FC<BoardSpaceProps> = ({
           isObtainedTreasure={isObtainedTreasure}
           isCurrentTarget={isCurrentTarget}
           is3D={is3D}
-          scoreBadge={scoreBadge}
+
           className="w-full h-full absolute inset-0"
         />
       ) : (
@@ -173,6 +173,25 @@ const BoardSpace: React.FC<BoardSpaceProps> = ({
           );
         })}
       </div>
+
+      {/* Mathematical score breakdown badge pill (when score breakdown mode is active) */}
+      {scoreBadges && scoreBadges.length > 0 && (
+        <div className="absolute top-1 left-1 z-[120] pointer-events-none flex flex-col gap-1">
+          {scoreBadges.map((badge, i) => (
+            <span
+              key={i}
+              className={cn(
+                "px-1 py-[2px] rounded text-[9px] font-black leading-none whitespace-nowrap shadow-[1px_1px_0_rgba(0,0,0,0.8)] border border-stone-950 animate-bounce-subtle",
+                badge.type === "positive" ? "bg-emerald-400 text-stone-950" :
+                badge.type === "negative" ? "bg-red-400 text-stone-950" :
+                "bg-stone-100 text-stone-950"
+              )}
+            >
+              {badge.text}
+            </span>
+          ))}
+        </div>
+      )}
     </div>
   );
 };
@@ -389,23 +408,62 @@ export const Board: React.FC<BoardProps> = ({
             }
  
             // Calculate math breakdown badges if a solution score pill is hovered/active
-            let cellScoreBadge: { text: string; type: "positive" | "negative" | "neutral" } | undefined = undefined;
+            let cellScoreBadges: { text: string; type: "positive" | "negative" | "neutral" }[] | undefined = undefined;
             if (scoreBreakdownSolution && scoreBreakdownSolution.length > 0) {
               const breakdown = (scoreBreakdownSolution.scoreBreakdown || {}) as Record<string, number>;
-              const turn1 = scoreBreakdownSolution[0];
-              const landingPos = turn1?.pawnPath ? turn1.pawnPath[turn1.pawnPath.length - 1] : null;
-              const isFixedCell = r % 2 === 0 && c % 2 === 0;
+              const reach = breakdown.reachabilityScore ?? 0;
+              const fixedBonus = breakdown.fixedSpaceBonus ?? 0;
+              const exitsBonus = breakdown.tileExitsBonus ?? 0;
+              const walkBonus = breakdown.walkBonus ?? 0;
+              const wrapPenalty = breakdown.wrapPenalty ?? 0;
+              const turnsPenalty = breakdown.turnsPenalty ?? 0;
+              
+              const lastTurn = scoreBreakdownSolution[scoreBreakdownSolution.length - 1];
+              const finalLandingPos = lastTurn?.pawnPath ? lastTurn.pawnPath[lastTurn.pawnPath.length - 1] : null;
+              const startPos = scoreBreakdownSolution[0]?.pawnPath ? scoreBreakdownSolution[0].pawnPath[0] : null;
+              
+              // Find the middle of the path for walk bonus
+              const pathLength = lastTurn?.pawnPath ? lastTurn.pawnPath.length : 0;
+              const midPos = pathLength > 2 && lastTurn?.pawnPath ? lastTurn.pawnPath[Math.floor(pathLength / 2)] : startPos;
 
-              if (landingPos && landingPos.r === r && landingPos.c === c) {
-                const reach = breakdown.reachabilityScore ?? 0;
-                const fixedBonus = breakdown.fixedSpaceBonus ?? 0;
-                const exitsBonus = breakdown.tileExitsBonus ?? 0;
-                cellScoreBadge = { 
-                  text: `+${reach + fixedBonus + exitsBonus} pts`, 
-                  type: "positive" 
-                };
-              } else if (isFixedCell && (breakdown.fixedSpaceBonus ?? 0) > 0) {
-                cellScoreBadge = { text: `+15 Fixed`, type: "neutral" };
+              cellScoreBadges = [];
+
+              // 1. Wrap Penalty on Start Pos
+              if (startPos && startPos.r === r && startPos.c === c) {
+                if (wrapPenalty > 0) cellScoreBadges.push({ text: `-${wrapPenalty} Board Wrap Penalty`, type: "negative" });
+              }
+
+              // 2. Walk Bonus in the middle of the walk path
+              if (midPos && midPos.r === r && midPos.c === c) {
+                if (walkBonus > 0) cellScoreBadges.push({ text: `+${walkBonus} Walk Efficiency`, type: "positive" });
+              }
+
+              // 3. Turns penalty on intermediate turns (or start pos if none)
+              if (turnsPenalty > 0) {
+                if (scoreBreakdownSolution.length > 1) {
+                  // Put a turns penalty badge on the intermediate landings
+                  for (let i = 0; i < scoreBreakdownSolution.length - 1; i++) {
+                    const step = scoreBreakdownSolution[i];
+                    const intermediatePos = step?.pawnPath ? step.pawnPath[step.pawnPath.length - 1] : null;
+                    if (intermediatePos && intermediatePos.r === r && intermediatePos.c === c) {
+                      cellScoreBadges.push({ text: `-15 Extra Turns Penalty`, type: "negative" });
+                    }
+                  }
+                } else if (startPos && startPos.r === r && startPos.c === c) {
+                  cellScoreBadges.push({ text: `-${turnsPenalty} Extra Turns Penalty`, type: "negative" });
+                }
+              }
+              
+              // 4. Reach, Fixed, Exits on Final Landing Pos
+              if (finalLandingPos && finalLandingPos.r === r && finalLandingPos.c === c) {
+                if (reach > 0) cellScoreBadges.push({ text: `+${reach} Reachability`, type: "positive" });
+                
+                if (fixedBonus > 0) cellScoreBadges.push({ text: `+${fixedBonus} Fixed Space Bonus`, type: "positive" });
+                if (exitsBonus > 0) cellScoreBadges.push({ text: `+${exitsBonus} Tile Exits Bonus`, type: "positive" });
+              }
+              
+              if (cellScoreBadges.length === 0) {
+                cellScoreBadges = undefined;
               }
             }
  
@@ -431,7 +489,7 @@ export const Board: React.FC<BoardProps> = ({
                 isCurrentTarget={isCurrentTarget}
                 isReachable={isReachable}
                 is3D={is3D}
-                scoreBadge={cellScoreBadge}
+                scoreBadges={cellScoreBadges}
               />
             );
           })

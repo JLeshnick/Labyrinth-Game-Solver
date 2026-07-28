@@ -136,6 +136,7 @@ export default function App() {
   // ── Solver worker ─────────────────────────────────────────────────────────────
   const [solutions, setSolutions] = useState<SolverSolution[]>([]);
   const [hoveredSolutionIndex, setHoveredSolutionIndex] = useState<number | null>(null);
+  const [lockedScoreBreakdownSolution, setLockedScoreBreakdownSolution] = useState<SolverSolution | null>(null);
   const hoveredSolution = (hoveredSolutionIndex !== null && solutions && hoveredSolutionIndex < solutions.length) ? solutions[hoveredSolutionIndex] : null;
 
   const handleSetHoveredSolution = useCallback((sol: SolverSolution | null) => {
@@ -703,15 +704,6 @@ export default function App() {
     game.getSolverFormattedSpare,
   ]);
 
-  const overlaySuggestedPath = useMemo(() => {
-    if (
-      !hoveredSolution ||
-      (hoveredSolution as { pawnPath: { r: number; c: number }[] }[]).length === 0
-    )
-      return null;
-    return (hoveredSolution as { pawnPath: { r: number; c: number }[] }[])[0].pawnPath;
-  }, [hoveredSolution]);
-
   const activeTargetCoords = useMemo(() => {
     const targetId = game.playerActiveTargets[game.activePawn];
     if (!targetId) return null;
@@ -957,30 +949,34 @@ export default function App() {
                   : "max-w-[min(100vw-2rem,calc(100svh-120px))]"
               )}
             >
+              {(() => {
+                const activeHoveredSolution = hoveredSolution || lockedScoreBreakdownSolution;
+                const overlaySuggestedPath = activeHoveredSolution ? activeHoveredSolution.flatMap((turn) => turn.pawnPath || []) : null;
+                return (
+                  <Board
+                    grid={effectivePreview ? effectivePreview.grid : game.grid}
+                    originalGrid={game.grid}
+                    pawnPositions={
+                      effectivePreview
+                        ? effectivePreview.pawnPositions
+                        : pawnPositionOverride
+                        ? { ...game.pawnPositions, ...pawnPositionOverride }
+                        : game.pawnPositions
+                    }
+                    onCellClick={handleManualCellClick}
+                    onTileClick={game.handleTileClick}
+                    isGameStarted={game.isGameStarted}
+                    lastShiftArrowId={game.lastShiftArrowId}
+                    onArrowClick={handleArrowClick}
+                    hoveredPath={overlaySuggestedPath}
+                    hoveredSolutionArrow={
+                      activeHoveredSolution
+                        ? (activeHoveredSolution as { arrowId: string }[])[0].arrowId
+                        : stagedArrow || null
+                    }
 
-              <Board
-                grid={effectivePreview ? effectivePreview.grid : game.grid}
-                originalGrid={game.grid}
-                pawnPositions={
-                  effectivePreview
-                    ? effectivePreview.pawnPositions
-                    : pawnPositionOverride
-                    ? { ...game.pawnPositions, ...pawnPositionOverride }
-                    : game.pawnPositions
-                }
-                onCellClick={handleManualCellClick}
-                onTileClick={game.handleTileClick}
-                isGameStarted={game.isGameStarted}
-                lastShiftArrowId={game.lastShiftArrowId}
-                onArrowClick={handleArrowClick}
-                hoveredPath={overlaySuggestedPath}
-                hoveredSolutionArrow={
-                  hoveredSolution
-                    ? (hoveredSolution as { arrowId: string }[])[0].arrowId
-                    : stagedArrow || null
-                }
-                boardRotation={boardRotation}
-                scoreBreakdownSolution={hoveredSolution}
+                    boardRotation={boardRotation}
+                    scoreBreakdownSolution={lockedScoreBreakdownSolution}
                 customTargetCoords={game.customTargetCoords}
                 activeTargetCoords={activeTargetCoords}
                 reachableCells={reachableCells}
@@ -1004,7 +1000,9 @@ export default function App() {
                 activePawn={game.activePawn}
                 travelingPawn={travelingPawn}
               />
-            </div>
+                );
+              })()}
+          </div>
           </div>
 
           {/* Tablet & desktop side panel (md+) */}
@@ -1016,6 +1014,8 @@ export default function App() {
                   isLoadingSolutions={isLoadingSolutions}
                   hoveredSolution={hoveredSolution}
                   setHoveredSolution={handleSetHoveredSolution}
+                  lockedScoreBreakdownSolution={lockedScoreBreakdownSolution}
+                  setLockedScoreBreakdownSolution={setLockedScoreBreakdownSolution}
                   activePawn={game.activePawn}
                   setActivePawn={game.setActivePawn}
                   activePlayers={game.activePlayers}
@@ -1114,6 +1114,8 @@ export default function App() {
                     isLoadingSolutions={isLoadingSolutions}
                     hoveredSolution={hoveredSolution}
                     setHoveredSolution={handleSetHoveredSolution}
+                    lockedScoreBreakdownSolution={lockedScoreBreakdownSolution}
+                    setLockedScoreBreakdownSolution={setLockedScoreBreakdownSolution}
                     activePawn={game.activePawn}
                     setActivePawn={game.setActivePawn}
                     activePlayers={game.activePlayers}

@@ -16,6 +16,8 @@ interface SolverPanelProps {
   isLoadingSolutions: boolean;
   hoveredSolution: SolverSolution | null;
   setHoveredSolution: (sol: SolverSolution | null) => void;
+  lockedScoreBreakdownSolution?: SolverSolution | null;
+  setLockedScoreBreakdownSolution?: (sol: SolverSolution | null) => void;
   activePawn: string;
   setActivePawn: (p: string) => void;
   activePlayers: string[];
@@ -48,6 +50,8 @@ export function SolverPanel({
   isLoadingSolutions,
   hoveredSolution: _hoveredSolution,
   setHoveredSolution,
+  lockedScoreBreakdownSolution,
+  setLockedScoreBreakdownSolution,
   activePawn,
   setActivePawn,
   activePlayers,
@@ -361,7 +365,12 @@ export function SolverPanel({
                     <div
                       key={index}
                       onMouseEnter={() => setHoveredSolution(sol)}
-                      onMouseLeave={() => setHoveredSolution(null)}
+                      onMouseLeave={() => {
+                        setHoveredSolution(null);
+                        if (setLockedScoreBreakdownSolution && lockedScoreBreakdownSolution === sol) {
+                          setLockedScoreBreakdownSolution(null);
+                        }
+                      }}
                       className={`relative p-2.5 pl-10 rounded-xl transition-all flex items-start justify-between cursor-pointer group gap-2 hover:z-30 ${
                         index === 0 && !isFallback
                           ? "app-surface-accent hover:border-theme-primary"
@@ -379,7 +388,7 @@ export function SolverPanel({
                         {index + 1}
                       </span>
                       <div className="flex-1 min-w-0">
-                        <div className="text-xs font-semibold flex items-center gap-1 flex-wrap">
+                        <div className="text-xs font-semibold flex items-center gap-2 flex-wrap">
                           {isFallback ? (
                             <span className="px-1.5 py-0.5 rounded-lg bg-amber-400 text-stone-950 text-[10px] font-black border-2 border-stone-950 shadow-[1px_1px_0_0_#000000] flex items-center leading-none whitespace-nowrap">
                               Fallback ({sol.length}t)
@@ -416,6 +425,9 @@ export function SolverPanel({
                                       <div className="text-red-400">• Extra Turns Penalty: -{sol.scoreBreakdown?.turnsPenalty}</div>
                                     )}
                                   </div>
+                                  <div className="text-stone-400 italic text-[9px] pt-1 border-t border-stone-700/50 mt-1">
+                                    Click pill to pin math to the board
+                                  </div>
                                 </div>
                               }
                               side="top-left"
@@ -424,16 +436,19 @@ export function SolverPanel({
                               <span
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  setHoveredSolution(sol);
+                                  if (setLockedScoreBreakdownSolution) {
+                                    setLockedScoreBreakdownSolution(lockedScoreBreakdownSolution === sol ? null : sol);
+                                  }
                                 }}
-                                className={`px-1.5 py-0.5 rounded-lg text-stone-950 text-[10px] font-black border-2 border-stone-950 shadow-[1px_1px_0_0_#000000] flex items-center leading-none whitespace-nowrap cursor-pointer transition-transform hover:scale-105 active:scale-95 ${
+                                className={`px-1.5 py-0.5 rounded-lg text-stone-950 text-[10px] font-black border-2 border-stone-950 shadow-[1px_1px_0_0_#000000] flex items-center leading-none whitespace-nowrap cursor-pointer transition-transform hover:scale-105 active:scale-95 relative ${
+                                  lockedScoreBreakdownSolution === sol ? "ring-2 ring-white ring-offset-2 ring-offset-stone-950 z-10" : "z-0"
+                                } ${
                                   algScoreValue >= 80
                                     ? "bg-emerald-400"
                                     : algScoreValue >= 40
                                     ? "bg-amber-400"
                                     : "bg-red-500"
                                 }`}
-                                title="Click to view move details on board"
                               >
                                 {algScoreValue}/100
                               </span>
