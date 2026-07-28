@@ -378,7 +378,7 @@ export function AppHeader({
                   {(!history || historyIndex === undefined || historyIndex <= 0) ? (
                     <div className="text-stone-500 italic text-[10px] py-1">Nothing to undo</div>
                   ) : (
-                    <div className="flex flex-col max-h-[150px] overflow-y-auto mt-0.5">
+                    <div className="flex flex-col max-h-[150px] overflow-y-auto overflow-x-hidden mt-0.5 w-full">
                       {Array.from({ length: Math.min(5, historyIndex) }).map((_, i) => {
                         const targetIdx = historyIndex - 1 - i;
                         const actionRecord = history[historyIndex - i];
@@ -393,10 +393,10 @@ export function AppHeader({
                             onMouseEnter={() => {
                               if (onHoverHistory) onHoverHistory(targetIdx);
                             }}
-                            className="text-left text-[11px] px-2 py-1.5 rounded hover:bg-theme-primary/20 hover:text-theme-primary transition-all duration-200 cursor-pointer relative group overflow-hidden"
+                            className="text-left text-[11px] px-2 py-1.5 rounded hover:bg-theme-primary/20 hover:text-theme-primary transition-all duration-200 cursor-pointer flex items-center group w-full"
                           >
-                            <span className="absolute left-2 top-1/2 -translate-y-1/2 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-200">→</span>
-                            <span className="block truncate transition-transform duration-200 group-hover:translate-x-4">{label}</span>
+                            <span className="opacity-0 -ml-3 w-0 group-hover:w-3 group-hover:ml-0 group-hover:opacity-100 group-hover:mr-1 transition-all duration-200 shrink-0">→</span>
+                            <span className="truncate flex-1 min-w-0">{label}</span>
                           </button>
                         );
                       })}
@@ -437,7 +437,7 @@ export function AppHeader({
                   {(!history || historyIndex === undefined || historyIndex >= history.length - 1) ? (
                     <div className="text-stone-500 italic text-[10px] py-1">Nothing to redo</div>
                   ) : (
-                    <div className="flex flex-col max-h-[150px] overflow-y-auto mt-0.5">
+                    <div className="flex flex-col max-h-[150px] overflow-y-auto overflow-x-hidden mt-0.5 w-full">
                       {Array.from({ length: Math.min(5, history.length - 1 - historyIndex) }).map((_, i) => {
                         const targetIdx = historyIndex + 1 + i;
                         const actionRecord = history[targetIdx];
@@ -452,10 +452,10 @@ export function AppHeader({
                             onMouseEnter={() => {
                               if (onHoverHistory) onHoverHistory(targetIdx);
                             }}
-                            className="text-left text-[11px] px-2 py-1.5 rounded hover:bg-theme-primary/20 hover:text-theme-primary transition-all duration-200 cursor-pointer relative group overflow-hidden"
+                            className="text-left text-[11px] px-2 py-1.5 rounded hover:bg-theme-primary/20 hover:text-theme-primary transition-all duration-200 cursor-pointer flex items-center group w-full"
                           >
-                            <span className="absolute left-2 top-1/2 -translate-y-1/2 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-200">→</span>
-                            <span className="block truncate transition-transform duration-200 group-hover:translate-x-4">{label}</span>
+                            <span className="opacity-0 -ml-3 w-0 group-hover:w-3 group-hover:ml-0 group-hover:opacity-100 group-hover:mr-1 transition-all duration-200 shrink-0">→</span>
+                            <span className="truncate flex-1 min-w-0">{label}</span>
                           </button>
                         );
                       })}
