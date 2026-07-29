@@ -95,7 +95,6 @@ export function SolverPanel({
   const filteredSolutions = currentTargetId
     ? solutions.filter((sol) => (sol as any).cardId === currentTargetId)
     : solutions;
-  const topSolution = filteredSolutions[0];
 
   // Key changes whenever new solutions arrive so the list re-mounts and plays the fade animation
   const solutionsKey = filteredSolutions.length + "-" + (currentTargetId ?? "") + "-" + activePawn;
@@ -135,11 +134,6 @@ export function SolverPanel({
             )}
           </div>
         </div>
-        {topSolution?.explanation?.slide && (
-          <div className="text-[11px] text-stone-400 truncate font-mono">
-            {topSolution.explanation.slide}
-          </div>
-        )}
       </div>
     );
   }
@@ -482,9 +476,6 @@ export function SolverPanel({
                               </span>
                             </Tooltip>
                           )}
-                        </div>
-                        <div className="text-xs font-medium text-stone-100 mt-1 font-mono leading-relaxed">
-                          {sol.explanation?.slide}
                         </div>
                       </div>
                       <Button

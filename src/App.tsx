@@ -161,7 +161,7 @@ export default function App() {
 
   const handleSetHoveredSolution = useCallback((sol: SolverSolution | null) => {
     if (sol === null) {
-      setHoveredSolutionIndex(null);
+      setHoveredSolutionIndex(0);
     } else {
       const idx = solutions.indexOf(sol);
       if (idx !== -1) {
@@ -458,8 +458,10 @@ export default function App() {
           solutions: SolverSolution[];
           error: string;
         };
-        if (success) setSolutions(computed || []);
-        else {
+        if (success) {
+          setSolutions(computed || []);
+          setHoveredSolutionIndex(0);
+        } else {
           console.error("Worker solver failed:", error);
           showToast("Solver error — try adjusting targets or reducing max turns.");
         }
