@@ -988,7 +988,7 @@ export default function App() {
               {(() => {
                 const activeHoveredSolution = hoveredSolution || lockedScoreBreakdownSolution;
                 const overlaySuggestedPath = activeHoveredSolution 
-                  ? activeHoveredSolution.flatMap((turn) => turn.pawnPath || []) 
+                  ? activeHoveredSolution[0]?.pawnPath || []
                   : (effectivePreview as any)?.pawnPath || null;
                 if (overlaySuggestedPath && !activeHoveredSolution && (effectivePreview as any)?.movedPawn) {
                   (overlaySuggestedPath as any).pawnColor = (effectivePreview as any).movedPawn;

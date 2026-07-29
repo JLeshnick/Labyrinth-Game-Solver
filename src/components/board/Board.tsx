@@ -92,8 +92,8 @@ const BoardSpace: React.FC<BoardSpaceProps> = ({
       className={cn(
         "relative w-full h-full aspect-square rounded-lg flex items-center justify-center transition-all cursor-pointer hover:z-50",
         isFixedSpace
-          ? "bg-stone-900/40 border border-stone-800/20"
-          : "border border-dashed border-stone-800/40 bg-stone-950/30 hover:bg-stone-900/10 shadow-inner",
+          ? "bg-stone-900/40 border border-stone-800/20 dark:bg-stone-800/40 dark:border-stone-700/50"
+          : "border border-dashed border-stone-800/40 bg-stone-950/30 hover:bg-stone-900/10 shadow-inner dark:border-stone-600/50 dark:bg-stone-800/30 dark:hover:bg-stone-700/40",
         isOver && !tile ? "bg-theme-primary-10" : "",
         previewSlideClass,
         isReachable ? "bg-green-900/20 hover:bg-green-900/30 cursor-pointer" : "",
