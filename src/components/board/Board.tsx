@@ -217,6 +217,7 @@ interface BoardProps {
   onTreasureClick?: (treasureId: string, alreadyObtained: boolean) => void;
   isTargetCoords?: boolean;
   is3D?: boolean;
+  isStaticHoveredPath?: boolean;
   activePawn?: string;
   allObtainedTreasures?: string[];
   activeTargetTreasureId?: string | null;
@@ -259,6 +260,7 @@ export const Board: React.FC<BoardProps> = ({
   activeTargetTreasureId,
   scoreBreakdownSolution,
   is3D = false,
+  isStaticHoveredPath = false,
   activePawn = "red",
   travelingPawn,
 }) => {
@@ -539,23 +541,23 @@ export const Board: React.FC<BoardProps> = ({
                 points={pts}
                 fill="none"
                 stroke="#000000"
-                strokeWidth="0.10"
-                strokeDasharray="0.18,0.12"
+                strokeWidth={isStaticHoveredPath ? "0.08" : "0.10"}
+                strokeDasharray={isStaticHoveredPath ? undefined : "0.18,0.12"}
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                opacity="0.45"
-                className="animate-path-crawl"
+                opacity={isStaticHoveredPath ? "0.6" : "0.45"}
+                className={isStaticHoveredPath ? "" : "animate-path-crawl"}
               />
               <polyline
                 points={pts}
                 fill="none"
                 stroke={strokeColor}
-                strokeWidth="0.06"
-                strokeDasharray="0.18,0.12"
+                strokeWidth={isStaticHoveredPath ? "0.04" : "0.06"}
+                strokeDasharray={isStaticHoveredPath ? undefined : "0.18,0.12"}
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                opacity="0.85"
-                className="animate-path-crawl"
+                opacity={isStaticHoveredPath ? "1" : "0.85"}
+                className={isStaticHoveredPath ? "" : "animate-path-crawl"}
               />
               <circle cx={tc(s.c)} cy={tc(s.r)} r="0.13" fill="#000000" />
               <circle cx={tc(s.c)} cy={tc(s.r)} r="0.08" fill={strokeColor} />

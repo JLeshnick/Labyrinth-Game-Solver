@@ -849,6 +849,8 @@ export default function App() {
         grid: game.history[hoveredHistoryIndex].board,
         pawnPositions: game.history[hoveredHistoryIndex].pawnPositions || game.pawnPositions,
         spareTile: game.history[hoveredHistoryIndex].spareTile || game.spareTile,
+        pawnPath: game.history[hoveredHistoryIndex].pawnPath,
+        movedPawn: game.history[hoveredHistoryIndex].movedPawn,
       }
     : previewState || stagedPreviewState;
 
@@ -985,7 +987,12 @@ export default function App() {
             >
               {(() => {
                 const activeHoveredSolution = hoveredSolution || lockedScoreBreakdownSolution;
-                const overlaySuggestedPath = activeHoveredSolution ? activeHoveredSolution.flatMap((turn) => turn.pawnPath || []) : null;
+                const overlaySuggestedPath = activeHoveredSolution 
+                  ? activeHoveredSolution.flatMap((turn) => turn.pawnPath || []) 
+                  : (effectivePreview as any)?.pawnPath || null;
+                if (overlaySuggestedPath && !activeHoveredSolution && (effectivePreview as any)?.movedPawn) {
+                  (overlaySuggestedPath as any).pawnColor = (effectivePreview as any).movedPawn;
+                }
                 return (
                   <div
                     className="relative w-full h-full transition-opacity duration-150 ease-in-out"
@@ -1007,6 +1014,7 @@ export default function App() {
                       lastShiftArrowId={game.lastShiftArrowId}
                       onArrowClick={handleArrowClick}
                       hoveredPath={overlaySuggestedPath}
+                      isStaticHoveredPath={!!effectivePreview && !activeHoveredSolution}
                       hoveredSolutionArrow={
                         activeHoveredSolution
                           ? (activeHoveredSolution as { arrowId: string }[])[0].arrowId
