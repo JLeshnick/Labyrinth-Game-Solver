@@ -891,9 +891,10 @@ export default function App() {
 
         const uniqueEmptyCoords = new Set();
         for (const sol of emptySols) {
-          if (sol[0] && sol[0].endPos) {
-            if (sol[0].endPos.r === pawnPos.r && sol[0].endPos.c === pawnPos.c) continue;
-            uniqueEmptyCoords.add(`${sol[0].endPos.r},${sol[0].endPos.c}`);
+          if (sol[0] && sol[0].targetCoord) {
+            // Check if the target tile's original location matches the pawn's current location
+            if (sol[0].targetCoord.r === pawnPos.r && sol[0].targetCoord.c === pawnPos.c) continue;
+            uniqueEmptyCoords.add(`${sol[0].targetCoord.r},${sol[0].targetCoord.c}`);
           }
         }
 

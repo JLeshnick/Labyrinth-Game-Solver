@@ -327,22 +327,27 @@ function solveLabyrinth(board, spareTile, startPawnPos, targetTreasure, lastShif
           }
           if (targetTreasure && targetTreasure.startsWith("coord:")) {
             const [r, c] = targetTreasure.substring(6).split(",").map(Number);
-            return cell.r === r && cell.c === c;
+            const tile = nextBoard[cell.r][cell.c];
+            return tile && tile.r === r && tile.c === c;
           }
           return nextBoard[cell.r][cell.c].treasure === targetTreasure;
         });
       if (targetTreasure === "__ALL_EMPTY__") {
         for (const cell of reach.cells) {
           if (!nextBoard[cell.r][cell.c].treasure) {
-            solutions.push([
-              {
-                arrowId: arrowId,
-                rotation: rot,
-                pawnPath: reconstructPath(reach.parentMap, cell),
-                startPos: { ...newPawnPos },
-                endPos: { r: cell.r, c: cell.c }
-              }
-            ]);
+            const tile = nextBoard[cell.r][cell.c];
+            if (tile && tile.r !== undefined && tile.c !== undefined) {
+              solutions.push([
+                {
+                  arrowId: arrowId,
+                  rotation: rot,
+                  pawnPath: reconstructPath(reach.parentMap, cell),
+                  startPos: { ...newPawnPos },
+                  endPos: { r: cell.r, c: cell.c },
+                  targetCoord: { r: tile.r, c: tile.c }
+                }
+              ]);
+            }
           }
         }
       } else if (targetCell) {
@@ -431,6 +436,11 @@ function solveLabyrinth(board, spareTile, startPawnPos, targetTreasure, lastShif
             const color = targetTreasure.substring(5);
             const home = HOME_POSITIONS[color];
             return home && cell.r === home.r && cell.c === home.c;
+          }
+          if (targetTreasure && targetTreasure.startsWith("coord:")) {
+            const [r, c] = targetTreasure.substring(6).split(",").map(Number);
+            const tile = nextBoard[cell.r][cell.c];
+            return tile && tile.r === r && tile.c === c;
           }
           return nextBoard[cell.r][cell.c].treasure === targetTreasure;
         });
@@ -931,9 +941,9 @@ function solveAllHand(board, spareTile, startPawnPos, handCards, lastShiftArrowI
      if (path.length > 0) {
        const step1 = path[0];
        const normalizedRot = getNormalizedRotation(spareTile.shape, step1.rotation);
-       // For __ALL_EMPTY__, we want to return all possible empty cells, so include the end position in the deduplication key
+       // For __ALL_EMPTY__, we want to return all possible empty cells, so include the target tile coordinates in the deduplication key
        const actionKey = path.cardId === "__ALL_EMPTY__" 
-         ? `${step1.arrowId}-${normalizedRot}-${step1.endPos?.r}-${step1.endPos?.c}`
+         ? `${step1.arrowId}-${normalizedRot}-${step1.targetCoord?.r}-${step1.targetCoord?.c}`
          : `${step1.arrowId}-${normalizedRot}`;
        if (!seenAction.has(actionKey)) {
          seenAction.add(actionKey);
