@@ -175,7 +175,9 @@ export function useLabyrinthGame({
 
   // Sync history and historyIndex to autosave whenever they change
   useEffect(() => {
-    saveAutosave({ history, historyIndex });
+    if (history.length > 0) {
+      saveAutosave({ history, historyIndex });
+    }
   }, [history, historyIndex, saveAutosave]);
 
   // ── Solver adapter helpers ───────────────────────────────────────────────────

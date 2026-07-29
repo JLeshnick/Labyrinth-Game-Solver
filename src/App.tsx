@@ -139,9 +139,22 @@ export default function App() {
   const [solutions, setSolutions] = useState<SolverSolution[]>([]);
   const [hoveredSolutionIndex, setHoveredSolutionIndex] = useState<number | null>(null);
   const [hoveredHistoryIndex, setHoveredHistoryIndex] = useState<number | null>(null);
+  const [boardOpacity, setBoardOpacity] = useState(1);
+  const transitionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const handleHoverHistory = useCallback((idx: number | null) => {
-    setHoveredHistoryIndex(idx);
+    setHoveredHistoryIndex((prev) => {
+      if (prev === idx) return prev;
+      
+      setBoardOpacity(0.6);
+      if (transitionTimeoutRef.current) clearTimeout(transitionTimeoutRef.current);
+      
+      transitionTimeoutRef.current = setTimeout(() => {
+        setBoardOpacity(1);
+      }, 150);
+      
+      return idx;
+    });
   }, []);
   const [lockedScoreBreakdownSolution, setLockedScoreBreakdownSolution] = useState<SolverSolution | null>(null);
   const hoveredSolution = (hoveredSolutionIndex !== null && solutions && hoveredSolutionIndex < solutions.length) ? solutions[hoveredSolutionIndex] : null;
@@ -974,99 +987,56 @@ export default function App() {
                 const activeHoveredSolution = hoveredSolution || lockedScoreBreakdownSolution;
                 const overlaySuggestedPath = activeHoveredSolution ? activeHoveredSolution.flatMap((turn) => turn.pawnPath || []) : null;
                 return (
-                  <div className="relative w-full h-full">
-                    {/* BASE BOARD */}
-                    <div className={cn("absolute inset-0 transition-opacity duration-300", effectivePreview ? "opacity-30 blur-sm pointer-events-none" : "opacity-100")}>
-                      <Board
-                        grid={game.grid}
-                        originalGrid={game.grid}
-                        pawnPositions={pawnPositionOverride ? { ...game.pawnPositions, ...pawnPositionOverride } : game.pawnPositions}
-                        onCellClick={handleManualCellClick}
-                        onTileClick={game.handleTileClick}
-                        isGameStarted={game.isGameStarted}
-                        lastShiftArrowId={game.lastShiftArrowId}
-                        onArrowClick={handleArrowClick}
-                        hoveredPath={overlaySuggestedPath}
-                        hoveredSolutionArrow={
-                          activeHoveredSolution
-                            ? (activeHoveredSolution as { arrowId: string }[])[0].arrowId
-                            : stagedArrow || null
+                  <div
+                    className="relative w-full h-full transition-opacity duration-150 ease-in-out"
+                    style={{ opacity: boardOpacity }}
+                  >
+                    <Board
+                      grid={effectivePreview ? effectivePreview.grid : game.grid}
+                      originalGrid={game.grid}
+                      pawnPositions={
+                        effectivePreview
+                          ? effectivePreview.pawnPositions
+                          : pawnPositionOverride
+                          ? { ...game.pawnPositions, ...pawnPositionOverride }
+                          : game.pawnPositions
+                      }
+                      onCellClick={handleManualCellClick}
+                      onTileClick={game.handleTileClick}
+                      isGameStarted={game.isGameStarted}
+                      lastShiftArrowId={game.lastShiftArrowId}
+                      onArrowClick={handleArrowClick}
+                      hoveredPath={overlaySuggestedPath}
+                      hoveredSolutionArrow={
+                        activeHoveredSolution
+                          ? (activeHoveredSolution as { arrowId: string }[])[0].arrowId
+                          : stagedArrow || null
+                      }
+                      boardRotation={boardRotation}
+                      scoreBreakdownSolution={lockedScoreBreakdownSolution}
+                      customTargetCoords={game.customTargetCoords}
+                      activeTargetCoords={activeTargetCoords}
+                      reachableCells={reachableCells}
+                      turnPhase={turnPhase}
+                      stagedArrow={stagedArrow}
+                      onTreasureClick={(treasureId, alreadyObtained) => {
+                        if (turnPhase === "move") return;
+                        game.handleSelectTargetTreasure(game.activePawn, treasureId);
+                        if (alreadyObtained) {
+                          showToast(
+                            `⚠️ ${
+                              TREASURES.find((t) => t.id === treasureId)?.name ?? treasureId
+                            } already obtained — solving anyway`
+                          );
                         }
-                        boardRotation={boardRotation}
-                        scoreBreakdownSolution={lockedScoreBreakdownSolution}
-                        customTargetCoords={game.customTargetCoords}
-                        activeTargetCoords={activeTargetCoords}
-                        reachableCells={reachableCells}
-                        turnPhase={turnPhase}
-                        stagedArrow={stagedArrow}
-                        onTreasureClick={(treasureId, alreadyObtained) => {
-                          if (turnPhase === "move") return;
-                          game.handleSelectTargetTreasure(game.activePawn, treasureId);
-                          if (alreadyObtained) {
-                            showToast(
-                              `⚠️ ${
-                                TREASURES.find((t) => t.id === treasureId)?.name ?? treasureId
-                              } already obtained — solving anyway`
-                            );
-                          }
-                        }}
-                        allObtainedTreasures={game.gameMode === "coop" || game.gameMode === "auto" ? game.coopObtainedTreasures : Object.values(game.obtainedTreasures).flat()}
-                        activeTargetTreasureId={game.playerActiveTargets[game.activePawn]}
-                        activePlayers={game.activePlayers}
-                        is3D={is3D}
-                        activePawn={game.activePawn}
-                        travelingPawn={travelingPawn}
-                      />
-                    </div>
-                    {/* PREVIEW BOARD */}
-                    <div className={cn("absolute inset-0 transition-opacity duration-300 pointer-events-none", effectivePreview ? "opacity-100 z-10" : "opacity-0 -z-10")}>
-                      <Board
-                        grid={effectivePreview ? effectivePreview.grid : game.grid}
-                        originalGrid={game.grid}
-                        pawnPositions={
-                          effectivePreview
-                            ? effectivePreview.pawnPositions
-                            : pawnPositionOverride
-                            ? { ...game.pawnPositions, ...pawnPositionOverride }
-                            : game.pawnPositions
-                        }
-                        onCellClick={handleManualCellClick}
-                        onTileClick={game.handleTileClick}
-                        isGameStarted={game.isGameStarted}
-                        lastShiftArrowId={game.lastShiftArrowId}
-                        onArrowClick={handleArrowClick}
-                        hoveredPath={overlaySuggestedPath}
-                        hoveredSolutionArrow={
-                          activeHoveredSolution
-                            ? (activeHoveredSolution as { arrowId: string }[])[0].arrowId
-                            : stagedArrow || null
-                        }
-                        boardRotation={boardRotation}
-                        scoreBreakdownSolution={lockedScoreBreakdownSolution}
-                        customTargetCoords={game.customTargetCoords}
-                        activeTargetCoords={activeTargetCoords}
-                        reachableCells={reachableCells}
-                        turnPhase={turnPhase}
-                        stagedArrow={stagedArrow}
-                        onTreasureClick={(treasureId, alreadyObtained) => {
-                          if (turnPhase === "move") return;
-                          game.handleSelectTargetTreasure(game.activePawn, treasureId);
-                          if (alreadyObtained) {
-                            showToast(
-                              `⚠️ ${
-                                TREASURES.find((t) => t.id === treasureId)?.name ?? treasureId
-                              } already obtained — solving anyway`
-                            );
-                          }
-                        }}
-                        allObtainedTreasures={game.gameMode === "coop" || game.gameMode === "auto" ? game.coopObtainedTreasures : Object.values(game.obtainedTreasures).flat()}
-                        activeTargetTreasureId={game.playerActiveTargets[game.activePawn]}
-                        activePlayers={game.activePlayers}
-                        is3D={is3D}
-                        activePawn={game.activePawn}
-                        travelingPawn={travelingPawn}
-                      />
-                    </div>
+                      }}
+                      allObtainedTreasures={game.gameMode === "coop" || game.gameMode === "auto" ? game.coopObtainedTreasures : Object.values(game.obtainedTreasures).flat()}
+                      activeTargetTreasureId={game.playerActiveTargets[game.activePawn]}
+                      activePlayers={game.activePlayers}
+                      is3D={is3D}
+                      activePawn={game.activePawn}
+                      travelingPawn={travelingPawn}
+                    />
                   </div>
                 );
               })()}
