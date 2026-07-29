@@ -566,11 +566,17 @@ export function useLabyrinthGame({
           ? `${activePawn[0].toUpperCase()}${activePawn.slice(1)} found ${landedTreasure.name}`
           : `${activePawn[0].toUpperCase()}${activePawn.slice(1)} → (${r},${c})`;
 
+        let nextPawn = activePawn;
+        if (gameMode === "coop" || !claimed) {
+          const currentIndex = activePlayers.indexOf(activePawn);
+          nextPawn = activePlayers[(currentIndex + 1) % activePlayers.length] || activePawn;
+        }
+
         pushStateToHistory(
           grid,
           spareTile,
           lastShiftArrowId,
-          activePawn,
+          nextPawn,
           nextPlayerHands,
           nextPlayerActiveTargets,
           nextObtainedTreasures,
@@ -587,7 +593,7 @@ export function useLabyrinthGame({
           board: grid,
           looseTiles: [],
           spareTile,
-          activePawn,
+          activePawn: nextPawn,
           playerHands: nextPlayerHands,
           playerActiveTargets: nextPlayerActiveTargets,
           obtainedTreasures: nextObtainedTreasures,
@@ -1123,11 +1129,15 @@ export function useLabyrinthGame({
         : `${pawnToMove[0].toUpperCase()}${pawnToMove.slice(1)} → (${turn1.endPos.r},${turn1.endPos.c})`;
       const execPath = (turn1 as { pawnPath?: { r: number; c: number }[] }).pawnPath ?? [pawnPositions[pawnToMove], turn1.endPos];
 
+      let nextPawnForSave = pawnToMove;
+      const currentIndex = activePlayers.indexOf(pawnToMove);
+      nextPawnForSave = activePlayers[(currentIndex + 1) % activePlayers.length] || pawnToMove;
+
       pushStateToHistory(
         nextGrid,
         nextSpare,
         turn1.arrowId,
-        pawnToMove,
+        nextPawnForSave,
         nextPlayerHands,
         nextPlayerActiveTargets,
         nextObtainedTreasures,
@@ -1144,7 +1154,7 @@ export function useLabyrinthGame({
         board: nextGrid,
         looseTiles: [],
         spareTile: nextSpare,
-        activePawn: pawnToMove,
+        activePawn: nextPawnForSave,
         playerHands: nextPlayerHands,
         playerActiveTargets: nextPlayerActiveTargets,
         obtainedTreasures: nextObtainedTreasures,

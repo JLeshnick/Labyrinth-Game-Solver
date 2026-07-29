@@ -8,7 +8,7 @@ export function useLabyrinthStorage() {
     try {
       const existing = localStorage.getItem(AUTOSAVE_KEY);
       const existingState = existing ? JSON.parse(existing) : {};
-      const newState = { ...existingState, ...stateData };
+      const newState = { ...existingState, ...stateData, lastSavedAt: Date.now() };
       localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(newState));
     } catch (e) {
       console.warn("Autosave failed (storage may be full or blocked):", e);

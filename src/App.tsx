@@ -1415,6 +1415,7 @@ export default function App() {
 
       <ResumeGameDialog
         isOpen={isResumeDialogOpen}
+        lastSavedAt={pendingResumeState?.lastSavedAt}
         onResume={() => {
           setIsResumeDialogOpen(false);
           if (pendingResumeState) {

@@ -51,6 +51,7 @@ export interface AppGameState {
   coopObtainedTreasures?: string[];
   history?: any[];
   historyIndex?: number;
+  lastSavedAt?: number;
 }
 
 export interface BoardScanCell {
