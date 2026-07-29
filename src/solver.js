@@ -333,8 +333,13 @@ function solveLabyrinth(board, spareTile, startPawnPos, targetTreasure, lastShif
           return nextBoard[cell.r][cell.c].treasure === targetTreasure;
         });
       if (targetTreasure === "__ALL_EMPTY__") {
+        const parentKeys = new Set();
+        for (const key in reach.parentMap) {
+          const p = reach.parentMap[key];
+          parentKeys.add(`${p.r},${p.c}`);
+        }
         for (const cell of reach.cells) {
-          if (!nextBoard[cell.r][cell.c].treasure) {
+          if (!parentKeys.has(`${cell.r},${cell.c}`) && !nextBoard[cell.r][cell.c].treasure) {
             const tile = nextBoard[cell.r][cell.c];
             if (tile && tile.r !== undefined && tile.c !== undefined) {
               solutions.push([

@@ -393,15 +393,14 @@ export function SolverPanel({
                           setLockedScoreBreakdownSolution(null);
                         }
                       }}
-                      className={`relative p-2.5 pl-10 rounded-xl transition-all flex items-start justify-between cursor-pointer group gap-2 hover:z-30 ${
+                      className={`relative p-2.5 pl-10 rounded-xl transition-all flex items-center justify-between cursor-pointer group gap-2 hover:z-30 ${
                         index === 0 && !isFallback
                           ? "app-surface-accent hover:border-theme-primary"
                           : "app-surface hover:border-theme-primary-40"
                       } ${isFallback ? "opacity-75 hover:opacity-100" : ""}`}
                     >
-                      {/* Rank chip */}
                       <span
-                        className={`absolute left-2.5 top-2.5 w-6 h-6 rounded-lg flex items-center justify-center text-xs font-black border-2 border-stone-950 shadow-[1.5px_1.5px_0_0_#000000] z-10 ${
+                        className={`absolute left-2.5 top-1/2 -translate-y-1/2 w-6 h-6 rounded-lg flex items-center justify-center text-xs font-black border-2 border-stone-950 shadow-[1.5px_1.5px_0_0_#000000] z-10 ${
                           index === 0 && !isFallback
                             ? "bg-theme-primary text-stone-950"
                             : "bg-card text-stone-100"
