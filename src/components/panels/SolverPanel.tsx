@@ -89,7 +89,9 @@ export function SolverPanel({
     customTargetCoords.c === DEFAULT_PAWN_POSITIONS[activePawn]?.c);
 
   // Filter solutions to only show the active target (unless no target is set, then show all)
-  const currentTargetId = playerActiveTargets[activePawn] || (solutions[0] ? (solutions[0] as any).cardId : null);
+  const currentTargetId = customTargetCoords 
+    ? `coord:${customTargetCoords.r},${customTargetCoords.c}`
+    : (playerActiveTargets[activePawn] || (solutions[0] ? (solutions[0] as any).cardId : null));
   const filteredSolutions = currentTargetId
     ? solutions.filter((sol) => (sol as any).cardId === currentTargetId)
     : solutions;

@@ -892,6 +892,7 @@ export default function App() {
         const uniqueEmptyCoords = new Set();
         for (const sol of emptySols) {
           if (sol[0] && sol[0].endPos) {
+            if (sol[0].endPos.r === pawnPos.r && sol[0].endPos.c === pawnPos.c) continue;
             uniqueEmptyCoords.add(`${sol[0].endPos.r},${sol[0].endPos.c}`);
           }
         }
