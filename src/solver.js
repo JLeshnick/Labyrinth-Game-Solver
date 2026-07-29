@@ -931,7 +931,10 @@ function solveAllHand(board, spareTile, startPawnPos, handCards, lastShiftArrowI
      if (path.length > 0) {
        const step1 = path[0];
        const normalizedRot = getNormalizedRotation(spareTile.shape, step1.rotation);
-       const actionKey = `${step1.arrowId}-${normalizedRot}`;
+       // For __ALL_EMPTY__, we want to return all possible empty cells, so include the end position in the deduplication key
+       const actionKey = path.cardId === "__ALL_EMPTY__" 
+         ? `${step1.arrowId}-${normalizedRot}-${step1.endPos?.r}-${step1.endPos?.c}`
+         : `${step1.arrowId}-${normalizedRot}`;
        if (!seenAction.has(actionKey)) {
          seenAction.add(actionKey);
          uniquePaths.push(path);
