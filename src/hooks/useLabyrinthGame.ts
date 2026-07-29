@@ -139,6 +139,7 @@ export function useLabyrinthGame({
       return;
     }
     if (isGameStarted) return;
+    if (grid.length === 0) return; // Do not clobber existing save with an empty mount state
     saveAutosave({
       board: grid,
       looseTiles,
