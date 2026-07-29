@@ -95,6 +95,7 @@ export function useLabyrinthGame({
   const [gameMode, setGameMode] = useState<"standard" | "coop" | "auto">("standard");
   const [remainingCoopTreasures, setRemainingCoopTreasures] = useState<string[]>([]);
   const [coopObtainedTreasures, setCoopObtainedTreasures] = useState<string[]>([]);
+  const [showEmptyTiles, setShowEmptyTiles] = useState(false);
   const [customTargetCoords, setCustomTargetCoords] = useState<{
     r: number;
     c: number;
@@ -845,9 +846,14 @@ export function useLabyrinthGame({
 
   const handleSelectTargetTreasure = useCallback(
     (pawnColor: string, treasureId: string | null) => {
-      setPlayerActiveTargets((prev) => ({ ...prev, [pawnColor]: treasureId }));
-      setPlayerHands((prev) => ({ ...prev, [pawnColor]: treasureId ? [treasureId] : [] }));
-      setCustomTargetCoords(null);
+      if (treasureId && treasureId.startsWith("coord:")) {
+        const [r, c] = treasureId.substring(6).split(",").map(Number);
+        setCustomTargetCoords({ r, c });
+      } else {
+        setPlayerActiveTargets((prev) => ({ ...prev, [pawnColor]: treasureId }));
+        setPlayerHands((prev) => ({ ...prev, [pawnColor]: treasureId ? [treasureId] : [] }));
+        setCustomTargetCoords(null);
+      }
     },
     []
   );
@@ -1268,6 +1274,8 @@ export function useLabyrinthGame({
     pawnStats,
     customTargetCoords,
     setCustomTargetCoords,
+    showEmptyTiles,
+    setShowEmptyTiles,
     setupTab,
     setSetupTab,
     totalShiftsRef,

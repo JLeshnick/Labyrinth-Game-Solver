@@ -43,6 +43,8 @@ interface SolverPanelProps {
   gameMode?: "standard" | "coop" | "auto";
   remainingCoopTreasures?: string[];
   grid?: (TileData | null)[][];
+  showEmptyTiles?: boolean;
+  setShowEmptyTiles?: (show: boolean) => void;
 }
  
 export function SolverPanel({
@@ -77,6 +79,8 @@ export function SolverPanel({
   gameMode = "standard",
   remainingCoopTreasures = [],
   grid = [],
+  showEmptyTiles = false,
+  setShowEmptyTiles,
 }: SolverPanelProps) {
   const [showAllSuggestions, setShowAllSuggestions] = useState(false);
 
@@ -193,8 +197,23 @@ export function SolverPanel({
 
       {showOneMoveTargets && (
         <div className="flex flex-col gap-1.5 shrink-0">
-          <div className="text-[10px] font-bold text-stone-500 uppercase tracking-widest">
-            Reachable in 1 Turn ({oneMoveTargets.length})
+          <div className="flex items-center justify-between">
+            <div className="text-[10px] font-bold text-stone-500 uppercase tracking-widest">
+              Reachable in 1 Turn ({oneMoveTargets.length})
+            </div>
+            {setShowEmptyTiles && (
+              <button
+                onClick={() => setShowEmptyTiles(!showEmptyTiles)}
+                className={`text-[9px] px-2 py-0.5 min-h-6 neo-brutalism-button rounded-md cursor-pointer font-semibold transition-all ${
+                  showEmptyTiles
+                    ? "bg-emerald-400 border-stone-950 text-stone-950 translate-x-[1px] translate-y-[1px] shadow-[1px_1px_0_0_#000000]"
+                    : "border-stone-950 bg-card text-stone-400 hover:text-stone-200"
+                }`}
+                title="Show all navigable empty tiles"
+              >
+                {showEmptyTiles ? "Hide Navigable Empty Tiles" : "Show Navigable Empty Tiles"}
+              </button>
+            )}
           </div>
           {oneMoveTargets.length === 0 ? (
             <p className="text-[10px] text-stone-600 italic">None found with current board state</p>
@@ -259,10 +278,16 @@ export function SolverPanel({
                     : `(${customTargetCoords.r}, ${customTargetCoords.c})${grid[customTargetCoords.r]?.[customTargetCoords.c]?.treasure ? ` — ${grid[customTargetCoords.r][customTargetCoords.c]!.treasure!.name}` : ""}`}
                   <button onClick={() => setCustomTargetCoords(null)} className="text-stone-500 hover:text-stone-300 text-[10px] ml-1 underline cursor-pointer" title="Clear Custom Target">(clear)</button>
                 </span>
-              ) : playerActiveTargets[activePawn] ? (
+              ) : currentTargetId ? (
                 <span className="text-theme-primary font-bold text-xs flex items-center gap-1">
-                  🏆 {TREASURES.find(t => t.id === playerActiveTargets[activePawn])?.name ?? playerActiveTargets[activePawn]}
-                  <button onClick={() => onSelectTargetTreasure(activePawn, null)} className="text-stone-500 hover:text-stone-300 text-[10px] ml-1 underline cursor-pointer" title="Clear target">(clear)</button>
+                  {currentTargetId.startsWith("coord:") ? "🎯" : "🏆"} {currentTargetId.startsWith("coord:") ? `Cell (${currentTargetId.substring(6)})` : (TREASURES.find(t => t.id === currentTargetId)?.name ?? currentTargetId)}
+                  <button onClick={() => {
+                    if (setCustomTargetCoords && customTargetCoords) {
+                      setCustomTargetCoords(null);
+                    } else {
+                      onSelectTargetTreasure(activePawn, null);
+                    }
+                  }} className="text-stone-500 hover:text-stone-300 text-[10px] ml-1 underline cursor-pointer" title="Clear target">(clear)</button>
                 </span>
               ) : gameMode === "coop" || gameMode === "auto" ? (
                 <span className="text-theme-primary font-bold text-xs">
@@ -341,6 +366,7 @@ export function SolverPanel({
             return (
               <div className="flex flex-col gap-2 animate-fade-in">
                 <div className="text-[10px] text-stone-550 px-1 mb-1 italic flex items-center justify-between flex-wrap gap-2">
+                  
                   <span>Ranked by: Turn depth, walk spaces, safety</span>
                   <button
                     onClick={() => { if (!isMuted) playClickSound(); setShowAllSuggestions(!showAllSuggestions); }}

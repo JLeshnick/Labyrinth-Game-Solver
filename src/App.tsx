@@ -28,7 +28,7 @@ import { useLabyrinthGame } from "./hooks/useLabyrinthGame";
 import { useStopwatch } from "./hooks/useStopwatch";
 import { playClickSound } from "./utils/audio";
 import { fromSolverGrid } from "./lib/solverAdapter";
-import { executeSlideInGrid, getReachableCells, quickSolveMinTurns } from "./solver";
+import { executeSlideInGrid, getReachableCells, quickSolveMinTurns, solveAllHand } from "./solver";
 import type { Rotation } from "./types";
 import {
   Sparkles,
@@ -502,7 +502,7 @@ export default function App() {
     const isCoop = game.gameMode === "coop" || game.gameMode === "auto";
     const currentPawnCoord = game.pawnPositions[game.activePawn];
     const handCards = game.customTargetCoords
-      ? ["custom_target"]
+      ? [`coord:${game.customTargetCoords.r},${game.customTargetCoords.c}`]
       : game.playerHands[game.activePawn] || [];
 
     if (!isCoop && (!currentPawnCoord || handCards.length === 0)) {
@@ -518,15 +518,7 @@ export default function App() {
     let solverBoard = game.getSolverFormattedBoard(game.grid, game.pawnPositions);
     const solverSpare = game.getSolverFormattedSpare(game.spareTile);
 
-    if (game.customTargetCoords) {
-      solverBoard = solverBoard.map((row, r) =>
-        row.map((cell, c) =>
-          r === game.customTargetCoords!.r && c === game.customTargetCoords!.c
-            ? { ...cell, treasure: "custom_target" }
-            : cell
-        )
-      );
-    }
+    
 
     let isCoopSolve = isCoop;
     let coopTarget = null;
@@ -534,7 +526,7 @@ export default function App() {
       isCoopSolve = false; // Solve as a standard single target using solveLabyrinth
       const activeHome = DEFAULT_PAWN_POSITIONS[game.activePawn];
       const isHomeSelected = activeHome && game.customTargetCoords.r === activeHome.r && game.customTargetCoords.c === activeHome.c;
-      coopTarget = isHomeSelected ? `home_${game.activePawn}` : "custom_target";
+      coopTarget = isHomeSelected ? `home_${game.activePawn}` : `coord:${game.customTargetCoords.r},${game.customTargetCoords.c}`;
     }
 
     // In coop mode, if a specific target card is selected, solve only for that card. In auto mode or unselected coop, solve globally for all remaining treasures.
@@ -570,6 +562,7 @@ export default function App() {
     game.gameMode,
     game.activePlayers,
     game.remainingCoopTreasures,
+    game.showEmptyTiles,
   ]);
 
   // ── Autoplay: when in auto mode, auto-execute the top solver suggestion ────────
@@ -869,7 +862,7 @@ export default function App() {
     try {
       const solverBoard = game.getSolverFormattedBoard(game.grid, game.pawnPositions);
       const solverSpare = game.getSolverFormattedSpare(game.spareTile);
-      return TREASURES.filter((t) => {
+      const targets = TREASURES.filter((t) => {
         if (allObtained.includes(t.id)) return false;
         try {
           const turns = quickSolveMinTurns(
@@ -885,6 +878,34 @@ export default function App() {
           return false;
         }
       });
+
+      if (game.showEmptyTiles) {
+        const emptySols = solveAllHand(
+          solverBoard.map((row) => row.map((c) => ({ ...c }))),
+          { ...solverSpare },
+          pawnPos,
+          ["__ALL_EMPTY__"],
+          game.lastShiftArrowId,
+          1
+        );
+
+        const uniqueEmptyCoords = new Set();
+        for (const sol of emptySols) {
+          if (sol[0] && sol[0].endPos) {
+            uniqueEmptyCoords.add(`${sol[0].endPos.r},${sol[0].endPos.c}`);
+          }
+        }
+
+        for (const coord of uniqueEmptyCoords) {
+          const [r, c] = (coord as string).split(",");
+          targets.push({
+            id: `coord:${r},${c}`,
+            name: `Cell (${r}, ${c})`
+          });
+        }
+      }
+
+      return targets;
     } catch {
       return [];
     }
@@ -895,13 +916,14 @@ export default function App() {
     game.grid,
     game.pawnPositions,
     game.activePawn,
-    game.spareTile,
-    game.obtainedTreasures,
-    game.coopObtainedTreasures,
     game.gameMode,
+    game.coopObtainedTreasures,
+    game.obtainedTreasures,
+    game.spareTile,
     game.lastShiftArrowId,
     game.getSolverFormattedBoard,
     game.getSolverFormattedSpare,
+    game.showEmptyTiles
   ]);
 
   // ── Render ────────────────────────────────────────────────────────────────────
@@ -1069,6 +1091,8 @@ export default function App() {
                   spareTile={effectivePreview ? effectivePreview.spareTile : game.spareTile}
                   customTargetCoords={game.customTargetCoords}
                   setCustomTargetCoords={game.setCustomTargetCoords}
+                  showEmptyTiles={game.showEmptyTiles}
+                  setShowEmptyTiles={game.setShowEmptyTiles}
                   onExecuteSolution={handleExecuteSolutionWithAnimation}
                   playerActiveTargets={game.playerActiveTargets}
                   onSelectTargetTreasure={game.handleSelectTargetTreasure}
@@ -1169,6 +1193,8 @@ export default function App() {
                     spareTile={effectivePreview ? effectivePreview.spareTile : game.spareTile}
                     customTargetCoords={game.customTargetCoords}
                     setCustomTargetCoords={game.setCustomTargetCoords}
+                    showEmptyTiles={game.showEmptyTiles}
+                    setShowEmptyTiles={game.setShowEmptyTiles}
                     onExecuteSolution={handleExecuteSolutionWithAnimation}
                     playerActiveTargets={game.playerActiveTargets}
                     onSelectTargetTreasure={game.handleSelectTargetTreasure}

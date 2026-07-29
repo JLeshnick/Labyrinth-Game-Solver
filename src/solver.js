@@ -320,14 +320,32 @@ function solveLabyrinth(board, spareTile, startPawnPos, targetTreasure, lastShif
       const reach = getReachableCells(nextBoard, newPawnPos.r, newPawnPos.c);
       
       const targetCell = reach.cells.find(cell => {
-        if (targetTreasure && targetTreasure.startsWith("home_")) {
-          const color = targetTreasure.substring(5);
-          const home = HOME_POSITIONS[color];
-          return home && cell.r === home.r && cell.c === home.c;
+          if (targetTreasure && targetTreasure.startsWith("home_")) {
+            const color = targetTreasure.substring(5);
+            const home = HOME_POSITIONS[color];
+            return home && cell.r === home.r && cell.c === home.c;
+          }
+          if (targetTreasure && targetTreasure.startsWith("coord:")) {
+            const [r, c] = targetTreasure.substring(6).split(",").map(Number);
+            return cell.r === r && cell.c === c;
+          }
+          return nextBoard[cell.r][cell.c].treasure === targetTreasure;
+        });
+      if (targetTreasure === "__ALL_EMPTY__") {
+        for (const cell of reach.cells) {
+          if (!nextBoard[cell.r][cell.c].treasure) {
+            solutions.push([
+              {
+                arrowId: arrowId,
+                rotation: rot,
+                pawnPath: reconstructPath(reach.parentMap, cell),
+                startPos: { ...newPawnPos },
+                endPos: { r: cell.r, c: cell.c }
+              }
+            ]);
+          }
         }
-        return nextBoard[cell.r][cell.c].treasure === targetTreasure;
-      });
-      if (targetCell) {
+      } else if (targetCell) {
         solutions.push([
           {
             arrowId: arrowId,
@@ -340,7 +358,7 @@ function solveLabyrinth(board, spareTile, startPawnPos, targetTreasure, lastShif
       }
       
       // Enqueue states for Turn 2+
-      if (maxTurns > 1) {
+      if (maxTurns > 1 && targetTreasure !== "__ALL_EMPTY__") {
         const boardHash = hashBoard(nextBoard, nextSpare);
         for (const cell of reach.cells) {
           const stateKey = `${boardHash}|${cell.r},${cell.c}`;
@@ -512,6 +530,10 @@ function getFallbackSuggestions(board, spareTile, startPawnPos, targetTreasure, 
         const color = targetTreasure.substring(5);
         targetPos = HOME_POSITIONS[color] || null;
       } else {
+        if (targetTreasure && targetTreasure.startsWith("coord:")) {
+        const [r, c] = targetTreasure.substring(6).split(",").map(Number);
+        targetPos = { r, c };
+      } else {
         for (let r = 0; r < 7; r++) {
           for (let c = 0; c < 7; c++) {
             if (nextBoard[r][c].treasure === targetTreasure) {
@@ -520,6 +542,7 @@ function getFallbackSuggestions(board, spareTile, startPawnPos, targetTreasure, 
             }
           }
         }
+      }
       }
       
       // Calculate min distance from any reachable cell to target
@@ -613,7 +636,12 @@ function generateActionExplanation(board, spareTile, path) {
   const { type, index, dir } = parseArrowId(step1.arrowId);
   const targetId = path.cardId;
   let targetName = "Target";
-  if (targetId && targetId.startsWith("home_")) {
+  if (targetId === "__ALL_EMPTY__") {
+    targetName = `empty cell (${path[path.length - 1].endPos.r}, ${path[path.length - 1].endPos.c})`;
+  } else if (targetId && targetId.startsWith("coord:")) {
+    const [r, c] = targetId.substring(6).split(",");
+    targetName = `cell (${r}, ${c})`;
+  } else if (targetId && targetId.startsWith("home_")) {
     targetName = "Home Corner";
   } else {
     targetName = TREASURE_NAMES[targetId] || "Target";
