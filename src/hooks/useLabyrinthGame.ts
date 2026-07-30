@@ -99,6 +99,7 @@ export function useLabyrinthGame({
   const [customTargetCoords, setCustomTargetCoords] = useState<{
     r: number;
     c: number;
+    type?: "coord" | "empty";
   } | null>(null);
   const totalShiftsRef = useRef(0);
 
@@ -615,7 +616,7 @@ export function useLabyrinthGame({
           setCustomTargetCoords(null);
           onToast("Cleared custom target");
         } else {
-          setCustomTargetCoords({ r, c });
+          setCustomTargetCoords({ r, c, type: "coord" });
           onToast(`Custom target set at (${r}, ${c}). Solving path...`);
         }
       }
@@ -846,9 +847,11 @@ export function useLabyrinthGame({
 
   const handleSelectTargetTreasure = useCallback(
     (pawnColor: string, treasureId: string | null) => {
-      if (treasureId && treasureId.startsWith("coord:")) {
-        const [r, c] = treasureId.substring(6).split(",").map(Number);
-        setCustomTargetCoords({ r, c });
+      if (treasureId && (treasureId.startsWith("coord:") || treasureId.startsWith("empty:"))) {
+        const prefixLen = treasureId.indexOf(":") + 1;
+        const type = treasureId.substring(0, prefixLen - 1) as "coord" | "empty";
+        const [r, c] = treasureId.substring(prefixLen).split(",").map(Number);
+        setCustomTargetCoords({ r, c, type });
       } else {
         setPlayerActiveTargets((prev) => ({ ...prev, [pawnColor]: treasureId }));
         setPlayerHands((prev) => ({ ...prev, [pawnColor]: treasureId ? [treasureId] : [] }));

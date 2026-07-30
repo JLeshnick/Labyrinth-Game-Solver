@@ -504,7 +504,7 @@ export default function App() {
     const isCoop = game.gameMode === "coop" || game.gameMode === "auto";
     const currentPawnCoord = game.pawnPositions[game.activePawn];
     const handCards = game.customTargetCoords
-      ? [`coord:${game.customTargetCoords.r},${game.customTargetCoords.c}`]
+      ? [`${game.customTargetCoords.type || "coord"}:${game.customTargetCoords.r},${game.customTargetCoords.c}`]
       : game.playerHands[game.activePawn] || [];
 
     if (!isCoop && (!currentPawnCoord || handCards.length === 0)) {
@@ -528,7 +528,7 @@ export default function App() {
       isCoopSolve = false; // Solve as a standard single target using solveLabyrinth
       const activeHome = DEFAULT_PAWN_POSITIONS[game.activePawn];
       const isHomeSelected = activeHome && game.customTargetCoords.r === activeHome.r && game.customTargetCoords.c === activeHome.c;
-      coopTarget = isHomeSelected ? `home_${game.activePawn}` : `coord:${game.customTargetCoords.r},${game.customTargetCoords.c}`;
+      coopTarget = isHomeSelected ? `home_${game.activePawn}` : `${game.customTargetCoords.type || "coord"}:${game.customTargetCoords.r},${game.customTargetCoords.c}`;
     }
 
     // In coop mode, if a specific target card is selected, solve only for that card. In auto mode or unselected coop, solve globally for all remaining treasures.
@@ -903,7 +903,7 @@ export default function App() {
         for (const coord of uniqueEmptyCoords) {
           const [r, c] = (coord as string).split(",");
           targets.push({
-            id: `coord:${r},${c}`,
+            id: `empty:${r},${c}`,
             name: `Cell (${r}, ${c})`
           });
         }

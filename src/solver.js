@@ -325,10 +325,26 @@ function solveLabyrinth(board, spareTile, startPawnPos, targetTreasure, lastShif
             const home = HOME_POSITIONS[color];
             return home && cell.r === home.r && cell.c === home.c;
           }
-          if (targetTreasure && targetTreasure.startsWith("coord:")) {
-            const [r, c] = targetTreasure.substring(6).split(",").map(Number);
+          if (targetTreasure && (targetTreasure.startsWith("coord:") || targetTreasure.startsWith("empty:"))) {
+            const prefixLen = targetTreasure.indexOf(":") + 1;
+            const [r, c] = targetTreasure.substring(prefixLen).split(",").map(Number);
             const tile = nextBoard[cell.r][cell.c];
-            return tile && tile.r === r && tile.c === c;
+            if (!(tile && tile.r === r && tile.c === c)) return false;
+
+            if (targetTreasure.startsWith("empty:")) {
+              let degree = 0;
+              for (const delta of DELTAS) {
+                const nr = cell.r + delta.r;
+                const nc = cell.c + delta.c;
+                if (nr >= 0 && nr < 7 && nc >= 0 && nc < 7) {
+                  if (areConnected(nextBoard, cell.r, cell.c, nr, nc)) {
+                    degree++;
+                  }
+                }
+              }
+              if (degree > 1) return false;
+            }
+            return true;
           }
           return nextBoard[cell.r][cell.c].treasure === targetTreasure;
         });
@@ -447,10 +463,26 @@ function solveLabyrinth(board, spareTile, startPawnPos, targetTreasure, lastShif
             const home = HOME_POSITIONS[color];
             return home && cell.r === home.r && cell.c === home.c;
           }
-          if (targetTreasure && targetTreasure.startsWith("coord:")) {
-            const [r, c] = targetTreasure.substring(6).split(",").map(Number);
+          if (targetTreasure && (targetTreasure.startsWith("coord:") || targetTreasure.startsWith("empty:"))) {
+            const prefixLen = targetTreasure.indexOf(":") + 1;
+            const [r, c] = targetTreasure.substring(prefixLen).split(",").map(Number);
             const tile = nextBoard[cell.r][cell.c];
-            return tile && tile.r === r && tile.c === c;
+            if (!(tile && tile.r === r && tile.c === c)) return false;
+
+            if (targetTreasure.startsWith("empty:")) {
+              let degree = 0;
+              for (const delta of DELTAS) {
+                const nr = cell.r + delta.r;
+                const nc = cell.c + delta.c;
+                if (nr >= 0 && nr < 7 && nc >= 0 && nc < 7) {
+                  if (areConnected(nextBoard, cell.r, cell.c, nr, nc)) {
+                    degree++;
+                  }
+                }
+              }
+              if (degree > 1) return false;
+            }
+            return true;
           }
           return nextBoard[cell.r][cell.c].treasure === targetTreasure;
         });
@@ -550,8 +582,9 @@ function getFallbackSuggestions(board, spareTile, startPawnPos, targetTreasure, 
         const color = targetTreasure.substring(5);
         targetPos = HOME_POSITIONS[color] || null;
       } else {
-        if (targetTreasure && targetTreasure.startsWith("coord:")) {
-        const [r, c] = targetTreasure.substring(6).split(",").map(Number);
+        if (targetTreasure && (targetTreasure.startsWith("coord:") || targetTreasure.startsWith("empty:"))) {
+        const prefixLen = targetTreasure.indexOf(":") + 1;
+        const [r, c] = targetTreasure.substring(prefixLen).split(",").map(Number);
         targetPos = { r, c };
       } else {
         for (let r = 0; r < 7; r++) {
@@ -658,9 +691,10 @@ function generateActionExplanation(board, spareTile, path) {
   let targetName = "Target";
   if (targetId === "__ALL_EMPTY__") {
     targetName = `empty cell (${path[path.length - 1].endPos.r}, ${path[path.length - 1].endPos.c})`;
-  } else if (targetId && targetId.startsWith("coord:")) {
-    const [r, c] = targetId.substring(6).split(",");
-    targetName = `cell (${r}, ${c})`;
+  } else if (targetId && (targetId.startsWith("coord:") || targetId.startsWith("empty:"))) {
+    const prefixLen = targetId.indexOf(":") + 1;
+    const [r, c] = targetId.substring(prefixLen).split(",");
+    targetName = targetId.startsWith("empty:") ? `empty cell (${r}, ${c})` : `cell (${r}, ${c})`;
   } else if (targetId && targetId.startsWith("home_")) {
     targetName = "Home Corner";
   } else {
