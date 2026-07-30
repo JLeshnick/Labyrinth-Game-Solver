@@ -116,6 +116,75 @@ export function WelcomeGuide({ open, onOpenChange, onDismiss }: WelcomeGuideProp
                   </p>
                 </div>
               </div>
+              <div className="p-3 app-surface flex flex-col gap-3">
+                <div className="font-bold text-theme-primary text-xs uppercase tracking-wider flex items-center justify-between border-b border-stone-800 pb-1.5">
+                  <span>How the Algorithm Score is Calculated (0 to 100)</span>
+                  <span className="text-[10px] text-stone-400 font-mono font-normal">Final Score Clamped 0 – 100</span>
+                </div>
+
+                <p className="text-[11px] text-stone-300 leading-relaxed">
+                  Every move candidate starts at <span className="font-bold text-stone-100 font-mono">0 points</span>. Points are added for safety & efficiency, and subtracted for risk or extra turns:
+                </p>
+
+                {/* Step-by-Step Point Rules */}
+                <div className="flex flex-col gap-2 text-[11px] leading-relaxed">
+                  <div className="p-2.5 app-surface flex flex-col gap-1 border-l-2 border-emerald-400">
+                    <div className="font-bold text-emerald-400 text-xs font-mono">+ Point Addition Rules:</div>
+                    <ul className="list-disc pl-4 space-y-1 text-stone-300 text-[11px]">
+                      <li>
+                        <span className="font-bold text-stone-100">Reachability Score (0 to +50 pts)</span>: The engine simulates floating your pawn on the new tile and counts how many total board tiles you can reach. Reaching 15+ tiles awards the full <span className="text-emerald-400 font-mono">+50 pts</span> (calculated as <span className="font-mono text-stone-200">(reachableTiles / 15) * 50</span>).
+                      </li>
+                      <li>
+                        <span className="font-bold text-stone-100">Fixed Corner/Tile Bonus (+15 pts)</span>: If your pawn ends on one of the 16 glued fixed board tiles (even row & even column), you get <span className="text-emerald-400 font-mono">+15 pts</span> because opponents can never push a fixed tile.
+                      </li>
+                      <li>
+                        <span className="font-bold text-stone-100">Tile Exits Bonus (+10 or +15 pts)</span>: Landing on a T-junction tile (3 corridor exits) grants <span className="text-emerald-400 font-mono">+15 pts</span>. Landing on a Straight or Corner (2 exits) grants <span className="text-emerald-400 font-mono">+10 pts</span>.
+                      </li>
+                      <li>
+                        <span className="font-bold text-stone-100">Walk Efficiency Bonus (0 to +10 pts)</span>: Rewards short walking paths (<span className="font-mono text-stone-200">10 - stepDistance</span>). For example, walking 2 steps gives <span className="text-emerald-400 font-mono">+8 pts</span> (10 - 2).
+                      </li>
+                    </ul>
+                  </div>
+
+                  <div className="p-2.5 app-surface flex flex-col gap-1 border-l-2 border-red-400">
+                    <div className="font-bold text-red-400 text-xs font-mono">- Point Subtraction Penalties:</div>
+                    <ul className="list-disc pl-4 space-y-1 text-stone-300 text-[11px]">
+                      <li>
+                        <span className="font-bold text-stone-100">Board Wrap Penalty (0 to -10 pts)</span>: Deducts up to <span className="text-red-400 font-mono">-10 pts</span> if the slide forces your pawn off the board edge to wrap around onto the opposite side.
+                      </li>
+                      <li>
+                        <span className="font-bold text-stone-100">Extra Turn Penalty (-15 pts / turn)</span>: Direct 1-turn moves lose <span className="font-mono text-stone-400">0 pts</span>. Multi-turn solutions deduct <span className="text-red-400 font-mono">-15 pts</span> for every extra setup turn required (e.g. 2 turns = <span className="text-red-400 font-mono">-15 pts</span>, 3 turns = <span className="text-red-400 font-mono">-30 pts</span>).
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+
+                {/* Explicit Addition Calculation Box */}
+                <div className="p-3 app-surface flex flex-col gap-2 text-[11px] leading-relaxed border-l-2 border-amber-400">
+                  <div className="text-amber-400 font-bold text-xs flex items-center justify-between">
+                    <span>📐 Complete Addition Formula & Concrete Example:</span>
+                  </div>
+                  <div className="text-stone-200 text-[11px] font-mono leading-relaxed space-y-1.5">
+                    <div className="bg-stone-950/60 p-2 rounded border border-stone-800 text-stone-300">
+                      <span className="text-stone-100 font-bold">Total Score</span> = Reachability + FixedBonus + ExitBonus + WalkBonus - WrapPenalty - TurnPenalty
+                    </div>
+                    <div className="text-stone-300 text-[11px] space-y-1 pt-1">
+                      <div>1. Player lands on glued T-Junction tile after walking 2 spaces in 1 turn (with 15 open tiles):</div>
+                      <div className="pl-3 text-stone-400">
+                        • Reachability (15 open tiles) = <span className="text-emerald-400 font-bold">50</span><br />
+                        • Fixed Tile Bonus (Glued space) = <span className="text-emerald-400 font-bold">15</span><br />
+                        • Exit Bonus (T-Junction) = <span className="text-emerald-400 font-bold">15</span><br />
+                        • Walk Bonus (10 - 2 steps) = <span className="text-emerald-400 font-bold">8</span><br />
+                        • Wrap Penalty = <span className="text-stone-400">0</span>, Turn Penalty (1 turn) = <span className="text-stone-400">0</span>
+                      </div>
+                      <div className="border-t border-stone-800 pt-1.5 font-bold text-stone-100 flex items-center justify-between font-sans text-xs">
+                        <span>Final Sum:</span>
+                        <span className="text-emerald-400 font-mono text-sm">50 + 15 + 15 + 8 = 88 / 100</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
               <div className="pl-3 border-l-2 border-stone-800 flex flex-col gap-1">
                 <p>
                   <span className="font-bold text-amber-400">Fallback Strategy:</span> If a treasure is unreachable, the solver searches for slides that position your pawn closest (Manhattan distance) to set up future routes.

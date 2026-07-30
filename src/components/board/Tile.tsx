@@ -27,6 +27,28 @@ export const Tile: React.FC<TileProps> = ({
   isCurrentTarget = false,
   is3D = false,
 }) => {
+  // Smoothly fade out overlay elements (banner & lock) in place, wait for board rotation animation to finish (500ms), then fade back in at new position
+  const [isRotating, setIsRotating] = React.useState(false);
+  const [displayRotation, setDisplayRotation] = React.useState(boardRotation);
+  const prevBoardRotationRef = React.useRef(boardRotation);
+
+  React.useEffect(() => {
+    if (prevBoardRotationRef.current !== boardRotation) {
+      const targetRotation = boardRotation;
+      setIsRotating(true);
+
+      // Keep hidden while board is rotating (switch displayRotation near end of spin)
+      const timer = setTimeout(() => {
+        setDisplayRotation(targetRotation);
+        prevBoardRotationRef.current = targetRotation;
+        requestAnimationFrame(() => {
+          setIsRotating(false);
+        });
+      }, 420);
+
+      return () => clearTimeout(timer);
+    }
+  }, [boardRotation]);
   // Paths rendering logic — styled as a unified, continuous corridor with a thick Brutalist outline
   const getPathSVG = () => {
     const fillClass = "tile-corridor-fill";
@@ -192,43 +214,28 @@ export const Tile: React.FC<TileProps> = ({
         </div>
       </div>
 
-      {/* Fixed tile lock badge — stays at physical top-right corner of tile relative to screen */}
-      {tile.isFixed && (() => {
-        const normRot = ((boardRotation % 360) + 360) % 360;
-        let lockPosClass = "top-1 right-1";
-        if (normRot === 90) lockPosClass = "bottom-1 right-1";
-        else if (normRot === 180) lockPosClass = "bottom-1 left-1";
-        else if (normRot === 270) lockPosClass = "top-1 left-1";
-
-        return (
-          <Tooltip content="Permanently fixed preset tile (glued to board)" side="top" containerClassName={cn("absolute z-[100]", lockPosClass)}>
+      {/* Counter-rotating overlay container for screen-upright elements (Lock badge & Treasure banner) */}
+      <div
+        className={cn(
+          "absolute inset-0 pointer-events-none z-10 transform-gpu transition-opacity duration-400 ease-in-out",
+          isRotating ? "opacity-0" : "opacity-100"
+        )}
+        style={{ transform: `rotate(${-displayRotation}deg)` }}
+      >
+        {/* Fixed tile lock badge — anchored to top-right of screen-oriented tile */}
+        {tile.isFixed && (
+          <Tooltip content="Permanently fixed preset tile (glued to board)" side="top" containerClassName="absolute top-1 right-1 z-[100]">
             <div className="p-0.5 bg-stone-950 border-2 border-stone-950 rounded-md text-amber-400 shadow-[2px_2px_0_0_#000000] pointer-events-auto cursor-help">
-              <Lock
-                className="w-2.5 h-2.5 sm:w-3 sm:h-3"
-                style={boardRotation ? { transform: `rotate(${-boardRotation}deg)` } : undefined}
-              />
+              <Lock className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
             </div>
           </Tooltip>
-        );
-      })()}
+        )}
 
-      {/* Treasure name banner — stays mounted to the physical bottom edge of tile facing the user */}
-      {tile.treasure && (() => {
-        const normRot = ((boardRotation % 360) + 360) % 360;
-        let positionClass = "bottom-0 inset-x-0 border-t-2 rounded-b-[14px]";
-        if (normRot === 90) {
-          positionClass = "right-0 inset-y-0 w-[1.35rem] border-l-2 rounded-r-[14px]";
-        } else if (normRot === 180) {
-          positionClass = "bottom-0 inset-x-0 border-t-2 rounded-b-[14px]";
-        } else if (normRot === 270) {
-          positionClass = "left-0 inset-y-0 w-[1.35rem] border-r-2 rounded-l-[14px]";
-        }
-
-        return (
+        {/* Treasure name banner — anchored to bottom edge facing the user */}
+        {tile.treasure && (
           <div
             className={cn(
-              "absolute z-10 flex items-center justify-center pointer-events-none transition-all duration-300 overflow-hidden",
-              positionClass,
+              "absolute bottom-0 inset-x-0 h-3.5 border-t border-stone-950 rounded-b-[14px] flex items-center justify-center pointer-events-none overflow-hidden",
               isObtainedTreasure
                 ? "bg-stone-600 opacity-50"
                 : isCurrentTarget
@@ -238,17 +245,16 @@ export const Tile: React.FC<TileProps> = ({
             title={tile.treasure.name}
           >
             <span
-              style={boardRotation ? { transform: `rotate(${-boardRotation}deg)` } : undefined}
               className={cn(
-                "text-[9px] sm:text-[10px] font-black text-stone-950 leading-none text-center select-none uppercase tracking-tight inline-block whitespace-nowrap px-0.5",
+                "text-[8px] sm:text-[9px] font-black text-stone-950 leading-none text-center select-none uppercase tracking-tighter inline-block whitespace-nowrap px-0.5",
                 isObtainedTreasure && "line-through opacity-70"
               )}
             >
               {TREASURE_SHORT_NAMES[tile.treasure.id] ?? tile.treasure.name}
             </span>
           </div>
-        );
-      })()}
+        )}
+      </div>
     </div>
   );
 };

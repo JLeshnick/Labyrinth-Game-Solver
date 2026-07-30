@@ -1,6 +1,6 @@
 import React from "react";
 import { useDroppable } from "@dnd-kit/core";
-import type { TileData } from "../../types";
+import type { TileData, SolverSolution } from "../../types";
 import { SHIFT_ARROWS } from "../../constants";
 import { isOppositeArrow } from "../../solver";
 import { Tile, DraggableTile } from "./Tile";
@@ -28,6 +28,7 @@ interface BoardSpaceProps {
   isObtainedTreasure?: boolean;
   isCurrentTarget?: boolean;
   is3D?: boolean;
+  scoreBadges?: { text: string; type: "positive" | "negative" | "neutral" }[];
 }
 
 const BoardSpace: React.FC<BoardSpaceProps> = ({
@@ -50,6 +51,7 @@ const BoardSpace: React.FC<BoardSpaceProps> = ({
   isObtainedTreasure,
   isCurrentTarget,
   is3D = false,
+  scoreBadges,
 }) => {
   const isFixedSpace = x % 2 === 0 && y % 2 === 0;
   const id = `board_${x}_${y}`;
@@ -90,8 +92,8 @@ const BoardSpace: React.FC<BoardSpaceProps> = ({
       className={cn(
         "relative w-full h-full aspect-square rounded-lg flex items-center justify-center transition-all cursor-pointer hover:z-50",
         isFixedSpace
-          ? "bg-stone-900/40 border border-stone-800/20"
-          : "border border-dashed border-stone-800/40 bg-stone-950/30 hover:bg-stone-900/10 shadow-inner",
+          ? "bg-stone-900/40 border border-stone-800/20 dark:bg-stone-800/40 dark:border-stone-700/50"
+          : "border border-dashed border-stone-800/40 bg-stone-950/30 hover:bg-stone-900/10 shadow-inner dark:border-stone-600/50 dark:bg-stone-800/30 dark:hover:bg-stone-700/40",
         isOver && !tile ? "bg-theme-primary-10" : "",
         previewSlideClass,
         isReachable ? "bg-green-900/20 hover:bg-green-900/30 cursor-pointer" : "",
@@ -118,6 +120,7 @@ const BoardSpace: React.FC<BoardSpaceProps> = ({
           isObtainedTreasure={isObtainedTreasure}
           isCurrentTarget={isCurrentTarget}
           is3D={is3D}
+
           className="w-full h-full absolute inset-0"
         />
       ) : (
@@ -170,6 +173,25 @@ const BoardSpace: React.FC<BoardSpaceProps> = ({
           );
         })}
       </div>
+
+      {/* Mathematical score breakdown badge pill (when score breakdown mode is active) */}
+      {scoreBadges && scoreBadges.length > 0 && (
+        <div className="absolute top-1 left-1 z-[120] pointer-events-none flex flex-col gap-1">
+          {scoreBadges.map((badge, i) => (
+            <span
+              key={i}
+              className={cn(
+                "px-1 py-[2px] rounded text-[9px] font-black leading-none whitespace-nowrap shadow-[1px_1px_0_rgba(0,0,0,0.8)] border border-stone-950 animate-bounce-subtle",
+                badge.type === "positive" ? "bg-emerald-400 text-stone-950" :
+                badge.type === "negative" ? "bg-red-400 text-stone-950" :
+                "bg-stone-100 text-stone-950"
+              )}
+            >
+              {badge.text}
+            </span>
+          ))}
+        </div>
+      )}
     </div>
   );
 };
@@ -195,9 +217,11 @@ interface BoardProps {
   onTreasureClick?: (treasureId: string, alreadyObtained: boolean) => void;
   isTargetCoords?: boolean;
   is3D?: boolean;
+  isStaticHoveredPath?: boolean;
   activePawn?: string;
   allObtainedTreasures?: string[];
   activeTargetTreasureId?: string | null;
+  scoreBreakdownSolution?: SolverSolution | null;
   travelingPawn?: {
     color: string;
     path: { r: number; c: number }[];
@@ -234,7 +258,9 @@ export const Board: React.FC<BoardProps> = ({
   onTreasureClick,
   allObtainedTreasures,
   activeTargetTreasureId,
+  scoreBreakdownSolution,
   is3D = false,
+  isStaticHoveredPath = false,
   activePawn = "red",
   travelingPawn,
 }) => {
@@ -383,6 +409,66 @@ export const Board: React.FC<BoardProps> = ({
               }
             }
  
+            // Calculate math breakdown badges if a solution score pill is hovered/active
+            let cellScoreBadges: { text: string; type: "positive" | "negative" | "neutral" }[] | undefined = undefined;
+            if (scoreBreakdownSolution && scoreBreakdownSolution.length > 0) {
+              const breakdown = (scoreBreakdownSolution.scoreBreakdown || {}) as Record<string, number>;
+              const reach = breakdown.reachabilityScore ?? 0;
+              const fixedBonus = breakdown.fixedSpaceBonus ?? 0;
+              const exitsBonus = breakdown.tileExitsBonus ?? 0;
+              const walkBonus = breakdown.walkBonus ?? 0;
+              const wrapPenalty = breakdown.wrapPenalty ?? 0;
+              const turnsPenalty = breakdown.turnsPenalty ?? 0;
+              
+              const lastTurn = scoreBreakdownSolution[scoreBreakdownSolution.length - 1];
+              const finalLandingPos = lastTurn?.pawnPath ? lastTurn.pawnPath[lastTurn.pawnPath.length - 1] : null;
+              const startPos = scoreBreakdownSolution[0]?.pawnPath ? scoreBreakdownSolution[0].pawnPath[0] : null;
+              
+              // Find the middle of the path for walk bonus
+              const pathLength = lastTurn?.pawnPath ? lastTurn.pawnPath.length : 0;
+              const midPos = pathLength > 2 && lastTurn?.pawnPath ? lastTurn.pawnPath[Math.floor(pathLength / 2)] : startPos;
+
+              cellScoreBadges = [];
+
+              // 1. Wrap Penalty on Start Pos
+              if (startPos && startPos.r === r && startPos.c === c) {
+                if (wrapPenalty > 0) cellScoreBadges.push({ text: `-${wrapPenalty} Board Wrap Penalty`, type: "negative" });
+              }
+
+              // 2. Walk Bonus in the middle of the walk path
+              if (midPos && midPos.r === r && midPos.c === c) {
+                if (walkBonus > 0) cellScoreBadges.push({ text: `+${walkBonus} Walk Efficiency`, type: "positive" });
+              }
+
+              // 3. Turns penalty on intermediate turns (or start pos if none)
+              if (turnsPenalty > 0) {
+                if (scoreBreakdownSolution.length > 1) {
+                  // Put a turns penalty badge on the intermediate landings
+                  for (let i = 0; i < scoreBreakdownSolution.length - 1; i++) {
+                    const step = scoreBreakdownSolution[i];
+                    const intermediatePos = step?.pawnPath ? step.pawnPath[step.pawnPath.length - 1] : null;
+                    if (intermediatePos && intermediatePos.r === r && intermediatePos.c === c) {
+                      cellScoreBadges.push({ text: `-15 Extra Turns Penalty`, type: "negative" });
+                    }
+                  }
+                } else if (startPos && startPos.r === r && startPos.c === c) {
+                  cellScoreBadges.push({ text: `-${turnsPenalty} Extra Turns Penalty`, type: "negative" });
+                }
+              }
+              
+              // 4. Reach, Fixed, Exits on Final Landing Pos
+              if (finalLandingPos && finalLandingPos.r === r && finalLandingPos.c === c) {
+                if (reach > 0) cellScoreBadges.push({ text: `+${reach} Reachability`, type: "positive" });
+                
+                if (fixedBonus > 0) cellScoreBadges.push({ text: `+${fixedBonus} Fixed Space Bonus`, type: "positive" });
+                if (exitsBonus > 0) cellScoreBadges.push({ text: `+${exitsBonus} Tile Exits Bonus`, type: "positive" });
+              }
+              
+              if (cellScoreBadges.length === 0) {
+                cellScoreBadges = undefined;
+              }
+            }
+ 
             return (
               <BoardSpace
                 key={`${r}-${c}`}
@@ -405,6 +491,7 @@ export const Board: React.FC<BoardProps> = ({
                 isCurrentTarget={isCurrentTarget}
                 isReachable={isReachable}
                 is3D={is3D}
+                scoreBadges={cellScoreBadges}
               />
             );
           })
@@ -454,23 +541,23 @@ export const Board: React.FC<BoardProps> = ({
                 points={pts}
                 fill="none"
                 stroke="#000000"
-                strokeWidth="0.10"
-                strokeDasharray="0.18,0.12"
+                strokeWidth={isStaticHoveredPath ? "0.08" : "0.10"}
+                strokeDasharray={isStaticHoveredPath ? undefined : "0.18,0.12"}
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                opacity="0.45"
-                className="animate-path-crawl"
+                opacity={isStaticHoveredPath ? "0.6" : "0.45"}
+                className={isStaticHoveredPath ? "" : "animate-path-crawl"}
               />
               <polyline
                 points={pts}
                 fill="none"
                 stroke={strokeColor}
-                strokeWidth="0.06"
-                strokeDasharray="0.18,0.12"
+                strokeWidth={isStaticHoveredPath ? "0.04" : "0.06"}
+                strokeDasharray={isStaticHoveredPath ? undefined : "0.18,0.12"}
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                opacity="0.85"
-                className="animate-path-crawl"
+                opacity={isStaticHoveredPath ? "1" : "0.85"}
+                className={isStaticHoveredPath ? "" : "animate-path-crawl"}
               />
               <circle cx={tc(s.c)} cy={tc(s.r)} r="0.13" fill="#000000" />
               <circle cx={tc(s.c)} cy={tc(s.r)} r="0.08" fill={strokeColor} />

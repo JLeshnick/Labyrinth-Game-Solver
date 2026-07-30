@@ -50,6 +50,10 @@ export interface AppHeaderProps {
   onCloseSettings: () => void;
   onUndo: () => void;
   onRedo: () => void;
+  history?: any[];
+  historyIndex?: number;
+  onJumpToHistory?: (index: number) => void;
+  onHoverHistory?: (index: number | null) => void;
   onOpenHistory?: () => void;
   onRotateBoard: () => void;
   onStartGame: () => void;
@@ -107,6 +111,10 @@ export function AppHeader({
   onCloseSettings,
   onUndo,
   onRedo,
+  history,
+  historyIndex,
+  onJumpToHistory,
+  onHoverHistory,
   onOpenHistory,
   onRotateBoard,
   onStartGame,
@@ -355,7 +363,55 @@ export function AppHeader({
 
           {/* Tablet/desktop actions toolbar — visible at md+ */}
           <div className="hidden md:flex items-center gap-1.5">
-            <Tooltip content="Undo (Ctrl+Z)" side="bottom">
+            <Tooltip
+              content={
+                <div 
+                  className="flex flex-col min-w-[140px] pointer-events-auto"
+                  onMouseLeave={() => {
+                    if (onHoverHistory) onHoverHistory(null);
+                  }}
+                >
+                  <div className="font-bold border-b border-stone-700 pb-1 mb-1 text-stone-200 flex justify-between items-center gap-4">
+                    <span>Undo</span>
+                    <span className="text-stone-500 font-normal text-[9px]">Ctrl+Z</span>
+                  </div>
+                  {(!history || historyIndex === undefined || historyIndex <= 0) ? (
+                    <div className="text-stone-500 italic text-[10px] py-1">Nothing to undo</div>
+                  ) : (
+                    <div className="flex flex-col max-h-[150px] overflow-y-auto overflow-x-hidden mt-0.5 w-full">
+                      {Array.from({ length: Math.min(5, historyIndex) }).map((_, i) => {
+                        const targetIdx = historyIndex - 1 - i;
+                        const actionRecord = history[historyIndex - i];
+                        const label = actionRecord?.label || `Move ${historyIndex - i}`;
+                        return (
+                          <button
+                            key={targetIdx}
+                            onClick={() => {
+                              if (!isMuted) playClickSound();
+                              if (onJumpToHistory) onJumpToHistory(targetIdx);
+                            }}
+                            onMouseEnter={() => {
+                              if (onHoverHistory) onHoverHistory(targetIdx);
+                            }}
+                            className="text-left text-[11px] px-2 py-1.5 rounded transition-all duration-200 cursor-pointer flex items-center gap-1.5 relative overflow-hidden group w-full text-stone-300 hover:text-theme-primary"
+                          >
+                            <div className="absolute inset-y-0 left-0 bg-theme-primary/20 w-0 group-hover:w-full transition-all duration-300 ease-out z-0 rounded"></div>
+                            <span className="relative z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 shrink-0">→</span>
+                            <span className="relative z-10 whitespace-nowrap transition-transform duration-300 ease-out group-hover:translate-x-0.5">{label}</span>
+                          </button>
+                        );
+                      })}
+                      {historyIndex > 5 && (
+                        <div className="text-stone-500 italic text-[9px] px-2 py-1 border-t border-stone-800/50 mt-1">
+                          +{historyIndex - 5} older action(s)
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              }
+              side="bottom"
+            >
               <Button
                 variant="outline" size="icon"
                 disabled={!canUndo}
@@ -366,7 +422,56 @@ export function AppHeader({
                 <Undo2 className="w-3.5 h-3.5" />
               </Button>
             </Tooltip>
-            <Tooltip content="Redo (Ctrl+Y)" side="bottom">
+            
+            <Tooltip
+              content={
+                <div 
+                  className="flex flex-col min-w-[140px] pointer-events-auto"
+                  onMouseLeave={() => {
+                    if (onHoverHistory) onHoverHistory(null);
+                  }}
+                >
+                  <div className="font-bold border-b border-stone-700 pb-1 mb-1 text-stone-200 flex justify-between items-center gap-4">
+                    <span>Redo</span>
+                    <span className="text-stone-500 font-normal text-[9px]">Ctrl+Y</span>
+                  </div>
+                  {(!history || historyIndex === undefined || historyIndex >= history.length - 1) ? (
+                    <div className="text-stone-500 italic text-[10px] py-1">Nothing to redo</div>
+                  ) : (
+                    <div className="flex flex-col max-h-[150px] overflow-y-auto overflow-x-hidden mt-0.5 w-full">
+                      {Array.from({ length: Math.min(5, history.length - 1 - historyIndex) }).map((_, i) => {
+                        const targetIdx = historyIndex + 1 + i;
+                        const actionRecord = history[targetIdx];
+                        const label = actionRecord?.label || `Move ${targetIdx}`;
+                        return (
+                          <button
+                            key={targetIdx}
+                            onClick={() => {
+                              if (!isMuted) playClickSound();
+                              if (onJumpToHistory) onJumpToHistory(targetIdx);
+                            }}
+                            onMouseEnter={() => {
+                              if (onHoverHistory) onHoverHistory(targetIdx);
+                            }}
+                            className="text-left text-[11px] px-2 py-1.5 rounded transition-all duration-200 cursor-pointer flex items-center gap-1.5 relative overflow-hidden group w-full text-stone-300 hover:text-theme-primary"
+                          >
+                            <div className="absolute inset-y-0 left-0 bg-theme-primary/20 w-0 group-hover:w-full transition-all duration-300 ease-out z-0 rounded"></div>
+                            <span className="relative z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 shrink-0">→</span>
+                            <span className="relative z-10 whitespace-nowrap transition-transform duration-300 ease-out group-hover:translate-x-0.5">{label}</span>
+                          </button>
+                        );
+                      })}
+                      {(history.length - 1 - historyIndex) > 5 && (
+                        <div className="text-stone-500 italic text-[9px] px-2 py-1 border-t border-stone-800/50 mt-1">
+                          +{(history.length - 1 - historyIndex) - 5} newer action(s)
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              }
+              side="bottom"
+            >
               <Button
                 variant="outline" size="icon"
                 disabled={!canRedo}

@@ -320,14 +320,63 @@ function solveLabyrinth(board, spareTile, startPawnPos, targetTreasure, lastShif
       const reach = getReachableCells(nextBoard, newPawnPos.r, newPawnPos.c);
       
       const targetCell = reach.cells.find(cell => {
-        if (targetTreasure && targetTreasure.startsWith("home_")) {
-          const color = targetTreasure.substring(5);
-          const home = HOME_POSITIONS[color];
-          return home && cell.r === home.r && cell.c === home.c;
+          if (targetTreasure && targetTreasure.startsWith("home_")) {
+            const color = targetTreasure.substring(5);
+            const home = HOME_POSITIONS[color];
+            return home && cell.r === home.r && cell.c === home.c;
+          }
+          if (targetTreasure && (targetTreasure.startsWith("coord:") || targetTreasure.startsWith("empty:"))) {
+            const prefixLen = targetTreasure.indexOf(":") + 1;
+            const [r, c] = targetTreasure.substring(prefixLen).split(",").map(Number);
+            const tile = nextBoard[cell.r][cell.c];
+            if (!(tile && tile.r === r && tile.c === c)) return false;
+
+            if (targetTreasure.startsWith("empty:")) {
+              let degree = 0;
+              for (const delta of DELTAS) {
+                const nr = cell.r + delta.r;
+                const nc = cell.c + delta.c;
+                if (nr >= 0 && nr < 7 && nc >= 0 && nc < 7) {
+                  if (areConnected(nextBoard, cell.r, cell.c, nr, nc)) {
+                    degree++;
+                  }
+                }
+              }
+              if (degree > 1) return false;
+            }
+            return true;
+          }
+          return nextBoard[cell.r][cell.c].treasure === targetTreasure;
+        });
+      if (targetTreasure === "__ALL_EMPTY__") {
+        for (const cell of reach.cells) {
+          let degree = 0;
+          for (const delta of DELTAS) {
+            const nr = cell.r + delta.r;
+            const nc = cell.c + delta.c;
+            if (nr >= 0 && nr < 7 && nc >= 0 && nc < 7) {
+              if (areConnected(nextBoard, cell.r, cell.c, nr, nc)) {
+                degree++;
+              }
+            }
+          }
+          if (degree <= 1 && !nextBoard[cell.r][cell.c].treasure) {
+            const tile = nextBoard[cell.r][cell.c];
+            if (tile && tile.r !== undefined && tile.c !== undefined) {
+              solutions.push([
+                {
+                  arrowId: arrowId,
+                  rotation: rot,
+                  pawnPath: reconstructPath(reach.parentMap, cell),
+                  startPos: { ...newPawnPos },
+                  endPos: { r: cell.r, c: cell.c },
+                  targetCoord: { r: tile.r, c: tile.c }
+                }
+              ]);
+            }
+          }
         }
-        return nextBoard[cell.r][cell.c].treasure === targetTreasure;
-      });
-      if (targetCell) {
+      } else if (targetCell) {
         solutions.push([
           {
             arrowId: arrowId,
@@ -340,7 +389,7 @@ function solveLabyrinth(board, spareTile, startPawnPos, targetTreasure, lastShif
       }
       
       // Enqueue states for Turn 2+
-      if (maxTurns > 1) {
+      if (maxTurns > 1 && targetTreasure !== "__ALL_EMPTY__") {
         const boardHash = hashBoard(nextBoard, nextSpare);
         for (const cell of reach.cells) {
           const stateKey = `${boardHash}|${cell.r},${cell.c}`;
@@ -413,6 +462,27 @@ function solveLabyrinth(board, spareTile, startPawnPos, targetTreasure, lastShif
             const color = targetTreasure.substring(5);
             const home = HOME_POSITIONS[color];
             return home && cell.r === home.r && cell.c === home.c;
+          }
+          if (targetTreasure && (targetTreasure.startsWith("coord:") || targetTreasure.startsWith("empty:"))) {
+            const prefixLen = targetTreasure.indexOf(":") + 1;
+            const [r, c] = targetTreasure.substring(prefixLen).split(",").map(Number);
+            const tile = nextBoard[cell.r][cell.c];
+            if (!(tile && tile.r === r && tile.c === c)) return false;
+
+            if (targetTreasure.startsWith("empty:")) {
+              let degree = 0;
+              for (const delta of DELTAS) {
+                const nr = cell.r + delta.r;
+                const nc = cell.c + delta.c;
+                if (nr >= 0 && nr < 7 && nc >= 0 && nc < 7) {
+                  if (areConnected(nextBoard, cell.r, cell.c, nr, nc)) {
+                    degree++;
+                  }
+                }
+              }
+              if (degree > 1) return false;
+            }
+            return true;
           }
           return nextBoard[cell.r][cell.c].treasure === targetTreasure;
         });
@@ -512,6 +582,11 @@ function getFallbackSuggestions(board, spareTile, startPawnPos, targetTreasure, 
         const color = targetTreasure.substring(5);
         targetPos = HOME_POSITIONS[color] || null;
       } else {
+        if (targetTreasure && (targetTreasure.startsWith("coord:") || targetTreasure.startsWith("empty:"))) {
+        const prefixLen = targetTreasure.indexOf(":") + 1;
+        const [r, c] = targetTreasure.substring(prefixLen).split(",").map(Number);
+        targetPos = { r, c };
+      } else {
         for (let r = 0; r < 7; r++) {
           for (let c = 0; c < 7; c++) {
             if (nextBoard[r][c].treasure === targetTreasure) {
@@ -520,6 +595,7 @@ function getFallbackSuggestions(board, spareTile, startPawnPos, targetTreasure, 
             }
           }
         }
+      }
       }
       
       // Calculate min distance from any reachable cell to target
@@ -613,7 +689,13 @@ function generateActionExplanation(board, spareTile, path) {
   const { type, index, dir } = parseArrowId(step1.arrowId);
   const targetId = path.cardId;
   let targetName = "Target";
-  if (targetId && targetId.startsWith("home_")) {
+  if (targetId === "__ALL_EMPTY__") {
+    targetName = `empty cell (${path[path.length - 1].endPos.r}, ${path[path.length - 1].endPos.c})`;
+  } else if (targetId && (targetId.startsWith("coord:") || targetId.startsWith("empty:"))) {
+    const prefixLen = targetId.indexOf(":") + 1;
+    const [r, c] = targetId.substring(prefixLen).split(",");
+    targetName = targetId.startsWith("empty:") ? `empty cell (${r}, ${c})` : `cell (${r}, ${c})`;
+  } else if (targetId && targetId.startsWith("home_")) {
     targetName = "Home Corner";
   } else {
     targetName = TREASURE_NAMES[targetId] || "Target";
@@ -903,7 +985,10 @@ function solveAllHand(board, spareTile, startPawnPos, handCards, lastShiftArrowI
      if (path.length > 0) {
        const step1 = path[0];
        const normalizedRot = getNormalizedRotation(spareTile.shape, step1.rotation);
-       const actionKey = `${step1.arrowId}-${normalizedRot}`;
+       // For __ALL_EMPTY__, we want to return all possible empty cells, so include the target tile coordinates in the deduplication key
+       const actionKey = path.cardId === "__ALL_EMPTY__" 
+         ? `${step1.arrowId}-${normalizedRot}-${step1.targetCoord?.r}-${step1.targetCoord?.c}`
+         : `${step1.arrowId}-${normalizedRot}`;
        if (!seenAction.has(actionKey)) {
          seenAction.add(actionKey);
          uniquePaths.push(path);

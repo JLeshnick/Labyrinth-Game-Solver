@@ -5,6 +5,7 @@
 import { useState } from "react";
 import { Sparkles, ArrowRightCircle, MousePointer2, RotateCw, Home, Gauge } from "lucide-react";
 import { Button } from "../ui/button";
+import { Tooltip } from "../ui/tooltip";
 import { Tile } from "../board/Tile";
 import { PAWNS, TREASURES, DEFAULT_PAWN_POSITIONS } from "../../constants";
 import { playClickSound } from "../../utils/audio";
@@ -15,6 +16,8 @@ interface SolverPanelProps {
   isLoadingSolutions: boolean;
   hoveredSolution: SolverSolution | null;
   setHoveredSolution: (sol: SolverSolution | null) => void;
+  lockedScoreBreakdownSolution?: SolverSolution | null;
+  setLockedScoreBreakdownSolution?: (sol: SolverSolution | null) => void;
   activePawn: string;
   setActivePawn: (p: string) => void;
   activePlayers: string[];
@@ -40,6 +43,8 @@ interface SolverPanelProps {
   gameMode?: "standard" | "coop" | "auto";
   remainingCoopTreasures?: string[];
   grid?: (TileData | null)[][];
+  showEmptyTiles?: boolean;
+  setShowEmptyTiles?: (show: boolean) => void;
 }
  
 export function SolverPanel({
@@ -47,6 +52,8 @@ export function SolverPanel({
   isLoadingSolutions,
   hoveredSolution: _hoveredSolution,
   setHoveredSolution,
+  lockedScoreBreakdownSolution,
+  setLockedScoreBreakdownSolution,
   activePawn,
   setActivePawn,
   activePlayers,
@@ -72,6 +79,8 @@ export function SolverPanel({
   gameMode = "standard",
   remainingCoopTreasures = [],
   grid = [],
+  showEmptyTiles = false,
+  setShowEmptyTiles,
 }: SolverPanelProps) {
   const [showAllSuggestions, setShowAllSuggestions] = useState(false);
 
@@ -80,11 +89,12 @@ export function SolverPanel({
     customTargetCoords.c === DEFAULT_PAWN_POSITIONS[activePawn]?.c);
 
   // Filter solutions to only show the active target (unless no target is set, then show all)
-  const currentTargetId = playerActiveTargets[activePawn] || (solutions[0] ? (solutions[0] as any).cardId : null);
+  const currentTargetId = customTargetCoords 
+    ? `coord:${customTargetCoords.r},${customTargetCoords.c}`
+    : (playerActiveTargets[activePawn] || (solutions[0] ? (solutions[0] as any).cardId : null));
   const filteredSolutions = currentTargetId
     ? solutions.filter((sol) => (sol as any).cardId === currentTargetId)
     : solutions;
-  const topSolution = filteredSolutions[0];
 
   // Key changes whenever new solutions arrive so the list re-mounts and plays the fade animation
   const solutionsKey = filteredSolutions.length + "-" + (currentTargetId ?? "") + "-" + activePawn;
@@ -124,11 +134,6 @@ export function SolverPanel({
             )}
           </div>
         </div>
-        {topSolution?.explanation?.slide && (
-          <div className="text-[11px] text-stone-400 truncate font-mono">
-            {topSolution.explanation.slide}
-          </div>
-        )}
       </div>
     );
   }
@@ -188,8 +193,23 @@ export function SolverPanel({
 
       {showOneMoveTargets && (
         <div className="flex flex-col gap-1.5 shrink-0">
-          <div className="text-[10px] font-bold text-stone-500 uppercase tracking-widest">
-            Reachable in 1 Turn ({oneMoveTargets.length})
+          <div className="flex items-center justify-between">
+            <div className="text-[10px] font-bold text-stone-500 uppercase tracking-widest">
+              Reachable in 1 Turn ({oneMoveTargets.length})
+            </div>
+            {setShowEmptyTiles && (
+              <button
+                onClick={() => setShowEmptyTiles(!showEmptyTiles)}
+                className={`text-[9px] px-2 py-0.5 min-h-6 neo-brutalism-button rounded-md cursor-pointer font-semibold transition-all ${
+                  showEmptyTiles
+                    ? "bg-emerald-400 border-stone-950 text-stone-950 translate-x-[1px] translate-y-[1px] shadow-[1px_1px_0_0_#000000]"
+                    : "border-stone-950 bg-card text-stone-400 hover:text-stone-200"
+                }`}
+                title="Show all navigable empty tiles"
+              >
+                {showEmptyTiles ? "Hide Navigable Empty Tiles" : "Show Navigable Empty Tiles"}
+              </button>
+            )}
           </div>
           {oneMoveTargets.length === 0 ? (
             <p className="text-[10px] text-stone-600 italic">None found with current board state</p>
@@ -254,10 +274,16 @@ export function SolverPanel({
                     : `(${customTargetCoords.r}, ${customTargetCoords.c})${grid[customTargetCoords.r]?.[customTargetCoords.c]?.treasure ? ` — ${grid[customTargetCoords.r][customTargetCoords.c]!.treasure!.name}` : ""}`}
                   <button onClick={() => setCustomTargetCoords(null)} className="text-stone-500 hover:text-stone-300 text-[10px] ml-1 underline cursor-pointer" title="Clear Custom Target">(clear)</button>
                 </span>
-              ) : playerActiveTargets[activePawn] ? (
+              ) : currentTargetId ? (
                 <span className="text-theme-primary font-bold text-xs flex items-center gap-1">
-                  🏆 {TREASURES.find(t => t.id === playerActiveTargets[activePawn])?.name ?? playerActiveTargets[activePawn]}
-                  <button onClick={() => onSelectTargetTreasure(activePawn, null)} className="text-stone-500 hover:text-stone-300 text-[10px] ml-1 underline cursor-pointer" title="Clear target">(clear)</button>
+                  {currentTargetId.startsWith("coord:") ? "🎯" : "🏆"} {currentTargetId.startsWith("coord:") ? `Cell (${currentTargetId.substring(6)})` : (TREASURES.find(t => t.id === currentTargetId)?.name ?? currentTargetId)}
+                  <button onClick={() => {
+                    if (setCustomTargetCoords && customTargetCoords) {
+                      setCustomTargetCoords(null);
+                    } else {
+                      onSelectTargetTreasure(activePawn, null);
+                    }
+                  }} className="text-stone-500 hover:text-stone-300 text-[10px] ml-1 underline cursor-pointer" title="Clear target">(clear)</button>
                 </span>
               ) : gameMode === "coop" || gameMode === "auto" ? (
                 <span className="text-theme-primary font-bold text-xs">
@@ -336,6 +362,7 @@ export function SolverPanel({
             return (
               <div className="flex flex-col gap-2 animate-fade-in">
                 <div className="text-[10px] text-stone-550 px-1 mb-1 italic flex items-center justify-between flex-wrap gap-2">
+                  
                   <span>Ranked by: Turn depth, walk spaces, safety</span>
                   <button
                     onClick={() => { if (!isMuted) playClickSound(); setShowAllSuggestions(!showAllSuggestions); }}
@@ -360,16 +387,20 @@ export function SolverPanel({
                     <div
                       key={index}
                       onMouseEnter={() => setHoveredSolution(sol)}
-                      onMouseLeave={() => setHoveredSolution(null)}
-                      className={`relative p-2.5 pl-10 rounded-xl transition-all flex items-start justify-between cursor-pointer group gap-2 ${
+                      onMouseLeave={() => {
+                        setHoveredSolution(null);
+                        if (setLockedScoreBreakdownSolution && lockedScoreBreakdownSolution === sol) {
+                          setLockedScoreBreakdownSolution(null);
+                        }
+                      }}
+                      className={`relative p-2.5 pl-10 rounded-xl transition-all flex items-center justify-between cursor-pointer group gap-2 hover:z-30 ${
                         index === 0 && !isFallback
                           ? "app-surface-accent hover:border-theme-primary"
                           : "app-surface hover:border-theme-primary-40"
                       } ${isFallback ? "opacity-75 hover:opacity-100" : ""}`}
                     >
-                      {/* Rank chip */}
                       <span
-                        className={`absolute left-2.5 top-2.5 w-6 h-6 rounded-lg flex items-center justify-center text-xs font-black border-2 border-stone-950 shadow-[1.5px_1.5px_0_0_#000000] z-10 ${
+                        className={`absolute left-2.5 top-1/2 -translate-y-1/2 w-6 h-6 rounded-lg flex items-center justify-center text-xs font-black border-2 border-stone-950 shadow-[1.5px_1.5px_0_0_#000000] z-10 ${
                           index === 0 && !isFallback
                             ? "bg-theme-primary text-stone-950"
                             : "bg-card text-stone-100"
@@ -378,7 +409,7 @@ export function SolverPanel({
                         {index + 1}
                       </span>
                       <div className="flex-1 min-w-0">
-                        <div className="text-xs font-semibold flex items-center gap-1 flex-wrap">
+                        <div className="text-xs font-semibold flex items-center gap-2 flex-wrap">
                           {isFallback ? (
                             <span className="px-1.5 py-0.5 rounded-lg bg-amber-400 text-stone-950 text-[10px] font-black border-2 border-stone-950 shadow-[1px_1px_0_0_#000000] flex items-center leading-none whitespace-nowrap">
                               Fallback ({sol.length}t)
@@ -396,19 +427,54 @@ export function SolverPanel({
                             {walkDist}sp
                           </span>
                           {algScoreValue !== null && (
-                            <span className={`px-1.5 py-0.5 rounded-lg text-stone-950 text-[10px] font-black border-2 border-stone-950 shadow-[1px_1px_0_0_#000000] flex items-center leading-none whitespace-nowrap ${
-                              algScoreValue >= 80
-                                ? "bg-emerald-400"
-                                : algScoreValue >= 40
-                                ? "bg-amber-400"
-                                : "bg-red-500"
-                            }`}>
-                              Alg: {algScoreValue}/100
-                            </span>
+                            <Tooltip
+                              content={
+                                <div className="text-left text-[11px] space-y-1 p-0.5">
+                                  <div className="font-bold border-b border-stone-700 pb-1 text-theme-primary flex items-center justify-between">
+                                    <span>Algorithm Score</span>
+                                    <span className="font-mono text-stone-100">{algScoreValue}/100</span>
+                                  </div>
+                                  <div className="font-mono text-[10px] space-y-0.5 text-stone-300">
+                                    <div>• Reachability: +{sol.scoreBreakdown?.reachabilityScore ?? 0}</div>
+                                    <div>• Fixed Space Bonus: +{sol.scoreBreakdown?.fixedSpaceBonus ?? 0}</div>
+                                    <div>• Tile Exits Bonus: +{sol.scoreBreakdown?.tileExitsBonus ?? 0}</div>
+                                    <div>• Walk Efficiency: +{sol.scoreBreakdown?.walkBonus ?? 0}</div>
+                                    {(sol.scoreBreakdown?.wrapPenalty ?? 0) > 0 && (
+                                      <div className="text-red-400">• Board Wrap Penalty: -{sol.scoreBreakdown?.wrapPenalty}</div>
+                                    )}
+                                    {(sol.scoreBreakdown?.turnsPenalty ?? 0) > 0 && (
+                                      <div className="text-red-400">• Extra Turns Penalty: -{sol.scoreBreakdown?.turnsPenalty}</div>
+                                    )}
+                                  </div>
+                                  <div className="text-stone-400 italic text-[9px] pt-1 border-t border-stone-700/50 mt-1">
+                                    Click pill to pin math to the board
+                                  </div>
+                                </div>
+                              }
+                              side="top-left"
+                              containerClassName="z-[100]"
+                            >
+                              <span
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (setLockedScoreBreakdownSolution) {
+                                    setLockedScoreBreakdownSolution(lockedScoreBreakdownSolution === sol ? null : sol);
+                                  }
+                                }}
+                                className={`px-1.5 py-0.5 rounded-lg text-stone-950 text-[10px] font-black border-2 border-stone-950 shadow-[1px_1px_0_0_#000000] flex items-center leading-none whitespace-nowrap cursor-pointer transition-transform hover:scale-105 active:scale-95 relative ${
+                                  lockedScoreBreakdownSolution === sol ? "ring-2 ring-white ring-offset-2 ring-offset-stone-950 z-10" : "z-0"
+                                } ${
+                                  algScoreValue >= 80
+                                    ? "bg-emerald-400"
+                                    : algScoreValue >= 40
+                                    ? "bg-amber-400"
+                                    : "bg-red-500"
+                                }`}
+                              >
+                                {algScoreValue}/100
+                              </span>
+                            </Tooltip>
                           )}
-                        </div>
-                        <div className="text-xs font-medium text-stone-100 mt-1 font-mono leading-relaxed">
-                          {sol.explanation?.slide}
                         </div>
                       </div>
                       <Button

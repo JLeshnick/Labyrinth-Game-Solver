@@ -34,7 +34,7 @@ export function MoveHistoryDialog({ open, onClose, history, historyIndex, active
 
   if (history.length === 0) return null;
 
-  const dialog = (
+  return (
     <Dialog open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
       <DialogContent className="max-w-md text-stone-100 p-0 flex flex-col max-h-[85svh] rounded-xl">
         <DialogHeader className="px-4 pt-4 pb-3 border-b border-stone-800 shrink-0">
@@ -76,7 +76,7 @@ export function MoveHistoryDialog({ open, onClose, history, historyIndex, active
                 {/* Mini board thumbnail — click to zoom */}
                 <button
                   onClick={() => setZoomed({ record, label })}
-                  className="shrink-0 rounded overflow-hidden hover:ring-2 hover:ring-theme-primary/60 transition-all relative group"
+                  className="w-[70px] h-[70px] shrink-0 rounded overflow-hidden hover:ring-2 hover:ring-theme-primary/60 transition-all relative group border-2 border-stone-800"
                   title="Click to enlarge"
                   aria-label="Enlarge board snapshot"
                 >
@@ -134,43 +134,36 @@ export function MoveHistoryDialog({ open, onClose, history, historyIndex, active
             Close
           </Button>
         </div>
+        {/* Zoom overlay */}
+        {zoomed && (
+          <div
+            className="fixed inset-0 z-[60] bg-black/80 flex items-center justify-center p-4"
+            onClick={() => setZoomed(null)}
+          >
+            <div
+              className="app-surface bg-card p-4 flex flex-col items-center gap-4 max-w-sm w-full rounded-2xl shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between w-full">
+                <span className="text-base font-bold text-stone-100">{zoomed.label}</span>
+                <button type="button" onClick={() => setZoomed(null)} className="text-stone-400 hover:text-stone-100 p-1 bg-stone-800 rounded-full hover:bg-stone-700 transition-colors cursor-pointer">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <div className="w-full max-w-[280px] aspect-square rounded-xl shadow-[4px_4px_0_0_#000000] border-2 border-stone-950 overflow-hidden bg-stone-900">
+                <MiniBoardSnapshot
+                  board={zoomed.record.board}
+                  pawnPositions={(zoomed.record.pawnPositions ?? DEFAULT_PAWN_POSITIONS) as PawnPositions}
+                  activePlayers={activePlayers}
+                  movedPawn={zoomed.record.movedPawn}
+                  pawnPath={zoomed.record.pawnPath}
+                />
+              </div>
+              <p className="text-xs font-semibold text-stone-500 text-center mt-2 uppercase tracking-widest">Tap outside to close</p>
+            </div>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
-  );
-
-  return (
-    <>
-      {dialog}
-      {/* Zoom overlay */}
-      {zoomed && (
-        <div
-          className="fixed inset-0 z-[60] bg-black/70 flex items-center justify-center p-4"
-          onClick={() => setZoomed(null)}
-        >
-          <div
-            className="app-surface bg-card p-4 flex flex-col items-center gap-3 max-w-xs w-full rounded-xl"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between w-full">
-              <span className="text-sm font-semibold text-stone-200">{zoomed.label}</span>
-              <button onClick={() => setZoomed(null)} className="text-stone-500 hover:text-stone-200 cursor-pointer">
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-            <div style={{ transform: "scale(3)", transformOrigin: "center", width: 70, height: 70 }}>
-              <MiniBoardSnapshot
-                board={zoomed.record.board}
-                pawnPositions={(zoomed.record.pawnPositions ?? DEFAULT_PAWN_POSITIONS) as PawnPositions}
-                activePlayers={activePlayers}
-                movedPawn={zoomed.record.movedPawn}
-                pawnPath={zoomed.record.pawnPath}
-              />
-            </div>
-            <div style={{ height: 140 }} />
-            <p className="text-[11px] text-stone-500 text-center">Tap outside to close</p>
-          </div>
-        </div>
-      )}
-    </>
   );
 }

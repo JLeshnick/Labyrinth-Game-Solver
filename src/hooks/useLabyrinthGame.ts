@@ -57,7 +57,7 @@ export function useLabyrinthGame({
   onToast,
 }: UseLabyrinthGameOptions) {
   // ── Internal sub-hooks ───────────────────────────────────────────────────────
-  const { history, historyIndex, pushStateToHistory, resetHistory, undo, redo, jumpToHistory, canUndo, canRedo } =
+  const { history, historyIndex, pushStateToHistory, resetHistory, hydrateHistory, undo, redo, jumpToHistory, canUndo, canRedo } =
     useLabyrinthHistory(null);
 
   const { saveAutosave, loadAutosave } = useLabyrinthStorage();
@@ -95,9 +95,11 @@ export function useLabyrinthGame({
   const [gameMode, setGameMode] = useState<"standard" | "coop" | "auto">("standard");
   const [remainingCoopTreasures, setRemainingCoopTreasures] = useState<string[]>([]);
   const [coopObtainedTreasures, setCoopObtainedTreasures] = useState<string[]>([]);
+  const [showEmptyTiles, setShowEmptyTiles] = useState(false);
   const [customTargetCoords, setCustomTargetCoords] = useState<{
     r: number;
     c: number;
+    type?: "coord" | "empty";
   } | null>(null);
   const totalShiftsRef = useRef(0);
 
@@ -139,6 +141,7 @@ export function useLabyrinthGame({
       return;
     }
     if (isGameStarted) return;
+    if (grid.length === 0) return; // Do not clobber existing save with an empty mount state
     saveAutosave({
       board: grid,
       looseTiles,
@@ -172,6 +175,13 @@ export function useLabyrinthGame({
     remainingCoopTreasures,
     coopObtainedTreasures,
   ]);
+
+  // Sync history and historyIndex to autosave whenever they change
+  useEffect(() => {
+    if (history.length > 0) {
+      saveAutosave({ history, historyIndex });
+    }
+  }, [history, historyIndex, saveAutosave]);
 
   // ── Solver adapter helpers ───────────────────────────────────────────────────
   const getSolverFormattedBoard = useCallback(
@@ -317,19 +327,23 @@ export function useLabyrinthGame({
       setCustomTargetCoords(null);
       totalShiftsRef.current = 0;
 
-      resetHistory({
-        board: saved.board ?? [],
-        spareTile: saved.spareTile ?? fallbackSpare,
-        lastShiftArrowId: saved.lastShiftArrowId || null,
-        activePawn: saved.activePawn || "red",
-        playerHands: saved.playerHands || EMPTY_PLAYER_HANDS,
-        playerActiveTargets: saved.playerActiveTargets || EMPTY_PLAYER_TARGETS,
-        obtainedTreasures: saved.obtainedTreasures || EMPTY_OBTAINED_TREASURES,
-        pawnPositions: saved.pawnPositions,
-        gameMode: saved.gameMode || "standard",
-        remainingCoopTreasures: saved.remainingCoopTreasures || [],
-        coopObtainedTreasures: saved.coopObtainedTreasures || [],
-      });
+      if (saved.history && saved.historyIndex !== undefined) {
+        hydrateHistory(saved.history, saved.historyIndex);
+      } else {
+        resetHistory({
+          board: saved.board ?? [],
+          spareTile: saved.spareTile ?? fallbackSpare,
+          lastShiftArrowId: saved.lastShiftArrowId || null,
+          activePawn: saved.activePawn || "red",
+          playerHands: saved.playerHands || EMPTY_PLAYER_HANDS,
+          playerActiveTargets: saved.playerActiveTargets || EMPTY_PLAYER_TARGETS,
+          obtainedTreasures: saved.obtainedTreasures || EMPTY_OBTAINED_TREASURES,
+          pawnPositions: saved.pawnPositions,
+          gameMode: saved.gameMode || "standard",
+          remainingCoopTreasures: saved.remainingCoopTreasures || [],
+          coopObtainedTreasures: saved.coopObtainedTreasures || [],
+        });
+      }
     },
     [resetHistory]
   );
@@ -554,11 +568,17 @@ export function useLabyrinthGame({
           ? `${activePawn[0].toUpperCase()}${activePawn.slice(1)} found ${landedTreasure.name}`
           : `${activePawn[0].toUpperCase()}${activePawn.slice(1)} → (${r},${c})`;
 
+        let nextPawn = activePawn;
+        if (gameMode === "coop" || !claimed) {
+          const currentIndex = activePlayers.indexOf(activePawn);
+          nextPawn = activePlayers[(currentIndex + 1) % activePlayers.length] || activePawn;
+        }
+
         pushStateToHistory(
           grid,
           spareTile,
           lastShiftArrowId,
-          activePawn,
+          nextPawn,
           nextPlayerHands,
           nextPlayerActiveTargets,
           nextObtainedTreasures,
@@ -575,7 +595,7 @@ export function useLabyrinthGame({
           board: grid,
           looseTiles: [],
           spareTile,
-          activePawn,
+          activePawn: nextPawn,
           playerHands: nextPlayerHands,
           playerActiveTargets: nextPlayerActiveTargets,
           obtainedTreasures: nextObtainedTreasures,
@@ -596,7 +616,7 @@ export function useLabyrinthGame({
           setCustomTargetCoords(null);
           onToast("Cleared custom target");
         } else {
-          setCustomTargetCoords({ r, c });
+          setCustomTargetCoords({ r, c, type: "coord" });
           onToast(`Custom target set at (${r}, ${c}). Solving path...`);
         }
       }
@@ -827,9 +847,16 @@ export function useLabyrinthGame({
 
   const handleSelectTargetTreasure = useCallback(
     (pawnColor: string, treasureId: string | null) => {
-      setPlayerActiveTargets((prev) => ({ ...prev, [pawnColor]: treasureId }));
-      setPlayerHands((prev) => ({ ...prev, [pawnColor]: treasureId ? [treasureId] : [] }));
-      setCustomTargetCoords(null);
+      if (treasureId && (treasureId.startsWith("coord:") || treasureId.startsWith("empty:"))) {
+        const prefixLen = treasureId.indexOf(":") + 1;
+        const type = treasureId.substring(0, prefixLen - 1) as "coord" | "empty";
+        const [r, c] = treasureId.substring(prefixLen).split(",").map(Number);
+        setCustomTargetCoords({ r, c, type });
+      } else {
+        setPlayerActiveTargets((prev) => ({ ...prev, [pawnColor]: treasureId }));
+        setPlayerHands((prev) => ({ ...prev, [pawnColor]: treasureId ? [treasureId] : [] }));
+        setCustomTargetCoords(null);
+      }
     },
     []
   );
@@ -1111,11 +1138,15 @@ export function useLabyrinthGame({
         : `${pawnToMove[0].toUpperCase()}${pawnToMove.slice(1)} → (${turn1.endPos.r},${turn1.endPos.c})`;
       const execPath = (turn1 as { pawnPath?: { r: number; c: number }[] }).pawnPath ?? [pawnPositions[pawnToMove], turn1.endPos];
 
+      let nextPawnForSave = pawnToMove;
+      const currentIndex = activePlayers.indexOf(pawnToMove);
+      nextPawnForSave = activePlayers[(currentIndex + 1) % activePlayers.length] || pawnToMove;
+
       pushStateToHistory(
         nextGrid,
         nextSpare,
         turn1.arrowId,
-        pawnToMove,
+        nextPawnForSave,
         nextPlayerHands,
         nextPlayerActiveTargets,
         nextObtainedTreasures,
@@ -1132,7 +1163,7 @@ export function useLabyrinthGame({
         board: nextGrid,
         looseTiles: [],
         spareTile: nextSpare,
-        activePawn: pawnToMove,
+        activePawn: nextPawnForSave,
         playerHands: nextPlayerHands,
         playerActiveTargets: nextPlayerActiveTargets,
         obtainedTreasures: nextObtainedTreasures,
@@ -1246,6 +1277,8 @@ export function useLabyrinthGame({
     pawnStats,
     customTargetCoords,
     setCustomTargetCoords,
+    showEmptyTiles,
+    setShowEmptyTiles,
     setupTab,
     setSetupTab,
     totalShiftsRef,

@@ -7,12 +7,14 @@ interface ResumeGameDialogProps {
   isOpen: boolean;
   onResume: () => void;
   onNewGame: () => void;
+  lastSavedAt?: number;
 }
 
 export const ResumeGameDialog: React.FC<ResumeGameDialogProps> = ({
   isOpen,
   onResume,
   onNewGame,
+  lastSavedAt,
 }) => {
   return (
     <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onResume(); }}>
@@ -22,10 +24,15 @@ export const ResumeGameDialog: React.FC<ResumeGameDialogProps> = ({
             <AlertCircle className="w-6 h-6" />
           </div>
           <DialogTitle className="text-lg font-black uppercase tracking-wide text-stone-100">
-            Resume Saved Game?
+            Resume Game?
           </DialogTitle>
-          <DialogDescription className="text-xs text-stone-400 leading-relaxed max-w-sm">
-            We found a previously saved game session in your browser. Would you like to continue playing or start fresh?
+          <DialogDescription className="text-stone-300">
+            It looks like you have a saved session from previously. Do you want to continue where you left off, or start a new game?
+            {lastSavedAt && (
+              <div className="mt-2 text-xs text-stone-400">
+                Last saved: {new Date(lastSavedAt).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}
+              </div>
+            )}
           </DialogDescription>
         </DialogHeader>
 
