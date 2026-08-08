@@ -79,6 +79,42 @@ public enum SetupTab: String, Codable, CaseIterable, Identifiable, Sendable {
     }
 }
 
+// MARK: - App Color Scheme & Accent Theme
+
+public enum AppColorScheme: String, Codable, CaseIterable, Identifiable, Sendable {
+    case system = "system"
+    case light  = "light"
+    case dark   = "dark"
+
+    public var id: String { rawValue }
+
+    public var displayName: String {
+        switch self {
+        case .system: return "System Default"
+        case .light:  return "Light Mode ☀️"
+        case .dark:   return "Dark Mode 🌙"
+        }
+    }
+}
+
+public enum AppAccentTheme: String, Codable, CaseIterable, Identifiable, Sendable {
+    case gold     = "gold"
+    case sapphire = "sapphire"
+    case emerald  = "emerald"
+    case purple   = "purple"
+
+    public var id: String { rawValue }
+
+    public var displayName: String {
+        switch self {
+        case .gold:     return "Amber Gold"
+        case .sapphire: return "Sapphire Blue"
+        case .emerald:  return "Emerald Green"
+        case .purple:   return "Royal Purple"
+        }
+    }
+}
+
 // MARK: - Tile Rotation
 
 public enum TileRotation: Int, Codable, CaseIterable, Sendable {

@@ -1,9 +1,10 @@
 import SwiftUI
+import UniformTypeIdentifiers
 #if canImport(LabyrinthSolverCore)
 import LabyrinthSolverCore
 #endif
 
-// MARK: - Board Setup View (Modern Native iOS Setup Screen)
+// MARK: - Board Setup View (Modern Native iOS Setup Screen with Drag & Drop)
 
 struct BoardSetupView: View {
     @Bindable var vm: GameViewModel
@@ -48,11 +49,11 @@ struct BoardSetupView: View {
         VStack(spacing: 12) {
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Board Layout & Game Setup")
+                    Text("Board Layout & Setup")
                         .font(.system(size: 18, weight: .bold, design: .rounded))
                         .foregroundColor(.primary)
 
-                    let statusText = vm.canStartGame ? "Ready to play! All 33 movable tiles placed." : "Place remaining movable tiles on the board."
+                    let statusText = vm.canStartGame ? "Ready to play! All 33 movable tiles placed." : "Drag tiles from the pool or tap to place."
                     Text(statusText)
                         .font(.system(size: 12, design: .rounded))
                         .foregroundColor(.secondary)
@@ -446,7 +447,7 @@ struct BoardSetupView: View {
     }
 }
 
-// MARK: - Setup Board Grid View (Interactive 7x7 Grid supporting Start From Scratch)
+// MARK: - Setup Board Grid View (Interactive Drag & Drop 7x7 Grid)
 
 struct SetupBoardGridView: View {
     @Bindable var vm: GameViewModel
@@ -462,21 +463,13 @@ struct SetupBoardGridView: View {
                 ForEach(0..<7, id: \.self) { r in
                     HStack(spacing: gap) {
                         ForEach(0..<7, id: \.self) { c in
-                            let maybeTile = grid[r][c]
-
-                            ZStack {
-                                if let tile = maybeTile {
-                                    TileView(tile: tile)
-                                } else {
-                                    // Empty slot placeholder (Start from scratch)
-                                    emptySlotPlaceholder(tileSize: tileSize)
-                                }
-                            }
-                            .frame(width: tileSize, height: tileSize)
-                            .contentShape(Rectangle())
-                            .onTapGesture {
-                                vm.tapSetupCell(row: r, col: c)
-                            }
+                            SetupGridCellView(
+                                vm: vm,
+                                row: r,
+                                col: c,
+                                tile: grid[r][c],
+                                tileSize: tileSize
+                            )
                         }
                     }
                 }
@@ -488,8 +481,67 @@ struct SetupBoardGridView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
     }
+}
 
-    private func emptySlotPlaceholder(tileSize: CGFloat) -> some View {
+// MARK: - Setup Grid Cell (with Drag & Drop Target Support)
+
+struct SetupGridCellView: View {
+    @Bindable var vm: GameViewModel
+    let row: Int
+    let col: Int
+    let tile: TileData?
+    let tileSize: CGFloat
+
+    @State private var isTargeted: Bool = false
+
+    var body: some View {
+        ZStack {
+            if let tile = tile {
+                TileView(tile: tile)
+                    .onDrag {
+                        if !tile.isFixed {
+                            // Select this tile for drag & drop
+                            vm.selectLooseTile(id: tile.id)
+                            return NSItemProvider(object: tile.id as NSString)
+                        }
+                        return NSItemProvider()
+                    }
+            } else {
+                // Empty slot placeholder
+                emptySlotPlaceholder
+            }
+
+            if isTargeted {
+                RoundedRectangle(cornerRadius: tileSize * 0.14)
+                    .fill(Color.accentColor.opacity(0.35))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: tileSize * 0.14)
+                            .strokeBorder(Color.accentColor, lineWidth: 2)
+                    )
+            }
+        }
+        .frame(width: tileSize, height: tileSize)
+        .contentShape(Rectangle())
+        .onTapGesture {
+            vm.tapSetupCell(row: row, col: col)
+        }
+        .onDrop(of: [.text], isTargeted: $isTargeted) { providers in
+            if let provider = providers.first {
+                _ = provider.loadObject(ofClass: String.self) { id, _ in
+                    if let tileId = id {
+                        DispatchQueue.main.async {
+                            vm.selectLooseTile(id: tileId)
+                            vm.tapSetupCell(row: row, col: col)
+                        }
+                    }
+                }
+                return true
+            }
+            return false
+        }
+    }
+
+    private var emptySlotPlaceholder: some View {
         RoundedRectangle(cornerRadius: tileSize * 0.14)
             .fill(Color.appSecondaryGroupedBg)
             .overlay(
@@ -509,7 +561,7 @@ struct SetupBoardGridView: View {
     }
 }
 
-// MARK: - Loose Tiles Pool Drawer
+// MARK: - Loose Tiles Pool Drawer (with Native Drag Support)
 
 struct LooseTilesPoolView: View {
     @Bindable var vm: GameViewModel
@@ -528,7 +580,7 @@ struct LooseTilesPoolView: View {
                         .font(.system(size: 11, weight: .bold, design: .rounded))
                         .foregroundColor(.green)
                 } else {
-                    Text("Tap to select tile")
+                    Text("Drag tile onto board or tap to select")
                         .font(.system(size: 11, design: .rounded))
                         .foregroundColor(.secondary)
                 }
@@ -553,6 +605,10 @@ struct LooseTilesPoolView: View {
                                         .offset(x: 14, y: -14)
                                 }
                             }
+                        }
+                        .onDrag {
+                            vm.selectLooseTile(id: tile.id)
+                            return NSItemProvider(object: tile.id as NSString)
                         }
                     }
 

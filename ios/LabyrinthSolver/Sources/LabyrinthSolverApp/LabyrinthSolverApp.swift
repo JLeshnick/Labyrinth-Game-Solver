@@ -479,105 +479,104 @@ struct SettingsSheet: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                Color(red: 0.07, green: 0.09, blue: 0.13).ignoresSafeArea()
+                Color.appGroupedBg.ignoresSafeArea()
 
-                ScrollView {
-                    VStack(spacing: 16) {
-                        // Pawn positions section
-                        VStack(alignment: .leading, spacing: 12) {
-                            sectionLabel("PAWN POSITIONS", icon: "person.fill")
-                            VStack(spacing: 8) {
-                                ForEach(PawnColor.allCases, id: \.id) { pawn in
-                                    let pos = vm.pawnPositions[pawn]
-                                    HStack {
-                                        PawnToken(color: pawn, isActive: false, size: 24)
-                                        Text(pawn.displayName)
-                                            .font(.system(size: 14, weight: .semibold, design: .rounded))
-                                            .foregroundColor(.white)
-                                        Spacer()
-                                        Text("R\(pos.row) C\(pos.col)")
-                                            .font(.system(size: 12, design: .monospaced))
-                                            .foregroundColor(.white.opacity(0.4))
-                                    }
-                                    .padding(.horizontal, 12)
-                                    .padding(.vertical, 8)
-                                    .background(RoundedRectangle(cornerRadius: 10).fill(Color.white.opacity(0.06)))
-                                }
+                Form {
+                    // Appearance Section
+                    Section(header: Text("APPEARANCE & THEME")) {
+                        Picker("Theme Mode", selection: $vm.appColorScheme) {
+                            ForEach(AppColorScheme.allCases) { scheme in
+                                Text(scheme.displayName).tag(scheme)
                             }
                         }
-                        .padding(14)
-                        .background(cardBackground)
 
-                        // Game actions
-                        VStack(alignment: .leading, spacing: 12) {
-                            sectionLabel("GAME ACTIONS", icon: "gamecontroller.fill")
-                            VStack(spacing: 8) {
-                                actionButton(icon: "arrow.counterclockwise", title: "Reset Board",
-                                             subtitle: "Return to standard starting layout",
-                                             color: Color(red: 0.95, green: 0.35, blue: 0.25)) {
-                                    vm.resetBoard(); dismiss()
-                                }
-                                actionButton(icon: "house.fill", title: "Back to Setup",
-                                             subtitle: "Return to the welcome screen",
-                                             color: Color.amber) {
-                                    dismiss()
-                                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { onSetup() }
-                                }
+                        Picker("Accent Theme", selection: $vm.appAccentTheme) {
+                            ForEach(AppAccentTheme.allCases) { theme in
+                                Text(theme.displayName).tag(theme)
                             }
                         }
-                        .padding(14)
-                        .background(cardBackground)
-
-                        Spacer(minLength: 20)
                     }
-                    .padding(16)
+
+                    // Audio & Feedback Section
+                    Section(header: Text("AUDIO & FEEDBACK")) {
+                        Toggle("Sound Effects 🔊", isOn: $vm.enableSound)
+                        Toggle("Haptic Feedback 📳", isOn: $vm.enableHaptics)
+                    }
+
+                    // Solver Configuration
+                    Section(header: Text("SOLVER CONFIGURATION")) {
+                        Picker("Search Depth", selection: $vm.solverDepth) {
+                            Text("Quick (1 Turn)").tag(1)
+                            Text("Standard (2 Turns)").tag(2)
+                            Text("Deep (3 Turns)").tag(3)
+                        }
+                    }
+
+                    // Board Layout Actions
+                    Section(header: Text("BOARD LAYOUT & PRESETS")) {
+                        Button(action: {
+                            dismiss()
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { onSetup() }
+                        }) {
+                            Label("Board Setup Screen", systemImage: "slider.horizontal.3")
+                                .foregroundColor(Color.accentColor)
+                        }
+
+                        Button(action: {
+                            vm.startFromScratch()
+                            dismiss()
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { onSetup() }
+                        }) {
+                            Label("Start from Scratch (Clear Board)", systemImage: "square.dashed")
+                                .foregroundColor(.red)
+                        }
+
+                        Button(action: {
+                            vm.randomizeBoard()
+                            vm.showToast("Board Randomized ✨")
+                        }) {
+                            Label("Randomize Board Layout", systemImage: "sparkles")
+                        }
+
+                        Button(action: {
+                            vm.resetBoard()
+                            vm.showToast("Board Reset to Standard ↺")
+                        }) {
+                            Label("Reset to Standard Layout", systemImage: "arrow.counterclockwise")
+                        }
+                    }
+
+                    // Active Pawn Positions Info
+                    Section(header: Text("PAWN STARTING POSITIONS")) {
+                        ForEach(PawnColor.allCases, id: \.id) { pawn in
+                            let pos = vm.pawnPositions[pawn]
+                            HStack {
+                                PawnToken(color: pawn, isActive: vm.activePawn == pawn, size: 22)
+                                Text(pawn.displayName)
+                                    .font(.system(size: 14, weight: .semibold, design: .rounded))
+                                Spacer()
+                                Text("Row \(pos.row), Col \(pos.col)")
+                                    .font(.system(size: 12, design: .monospaced))
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+                    }
                 }
             }
             .navigationTitle("Settings")
             #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
-            .toolbarBackground(Color(red: 0.07, green: 0.09, blue: 0.13), for: .navigationBar)
-            .toolbarColorScheme(.dark, for: .navigationBar)
             #endif
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Done") { dismiss() }
-                        .foregroundColor(Color.amber)
+                        .font(.system(size: 16, weight: .bold))
                 }
             }
         }
-        .preferredColorScheme(.dark)
-    }
-
-    private var cardBackground: some View {
-        RoundedRectangle(cornerRadius: 16)
-            .fill(.ultraThinMaterial)
-            .overlay(RoundedRectangle(cornerRadius: 16).strokeBorder(Color.white.opacity(0.12), lineWidth: 1))
-    }
-
-    private func sectionLabel(_ text: String, icon: String) -> some View {
-        Label(text, systemImage: icon)
-            .font(.system(size: 11, weight: .bold, design: .rounded))
-            .foregroundColor(.white.opacity(0.4))
-            .tracking(1.5)
-    }
-
-    private func actionButton(icon: String, title: String, subtitle: String, color: Color, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            HStack(spacing: 12) {
-                ZStack {
-                    RoundedRectangle(cornerRadius: 8).fill(color.opacity(0.2)).frame(width: 36, height: 36)
-                    Image(systemName: icon).font(.system(size: 15, weight: .semibold)).foregroundColor(color)
-                }
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(title).font(.system(size: 14, weight: .semibold, design: .rounded)).foregroundColor(.white)
-                    Text(subtitle).font(.system(size: 11, design: .rounded)).foregroundColor(.white.opacity(0.4))
-                }
-                Spacer()
-                Image(systemName: "chevron.right").font(.system(size: 11)).foregroundColor(.white.opacity(0.2))
-            }
-            .padding(.horizontal, 12).padding(.vertical, 10)
-            .background(RoundedRectangle(cornerRadius: 12).fill(Color.white.opacity(0.06)))
-        }
+        .preferredColorScheme(
+            vm.appColorScheme == .light ? .light :
+            vm.appColorScheme == .dark  ? .dark  : nil
+        )
     }
 }

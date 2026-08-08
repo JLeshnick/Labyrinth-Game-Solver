@@ -13,13 +13,19 @@ import LabyrinthSolverCore
 @MainActor
 final class GameViewModel {
 
-    // MARK: - Setup State
+    // MARK: - Setup & App Settings State
 
     var setupTab: SetupTab = .tiles
     var gameMode: GameMode = .standard
     var looseTiles: [TileData] = []
     var selectedLooseTileId: String? = nil
     var setupGrid: [[TileData?]]? = nil
+
+    var appColorScheme: AppColorScheme = .system
+    var appAccentTheme: AppAccentTheme = .gold
+    var enableSound: Bool = true
+    var enableHaptics: Bool = true
+    var solverDepth: Int = 2
 
     // MARK: - Board State
 
