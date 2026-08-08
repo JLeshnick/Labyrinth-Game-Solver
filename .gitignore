@@ -28,3 +28,27 @@ release/
 # Release notes
 release_notes.md
 
+# ── iOS / Swift ──────────────────────────────────────────────────────────────
+# Swift Package Manager build artifacts (thousands of generated files)
+ios/**/.build/
+ios/**/SourcePackages/
+
+# Xcode build artifacts & user-specific settings
+ios/**/DerivedData/
+ios/**/*.xcodeproj/xcuserdata/
+ios/**/*.xcworkspace/xcuserdata/
+ios/**/*.xcworkspace/xcshareddata/swiftpm/
+ios/**/*.xcuserstate
+ios/**/*.moved-aside
+ios/**/.swiftpm/xcode/xcuserdata/
+ios/**/.swiftpm/configuration/
+
+# Xcode generated files
+ios/**/build/
+ios/**/*.ipa
+ios/**/*.dSYM.zip
+ios/**/*.dSYM
+
+# Simulator crash logs
+ios/**/timeline.xctimeline
+ios/**/*.xccheckout

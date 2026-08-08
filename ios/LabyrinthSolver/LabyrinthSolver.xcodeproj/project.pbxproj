@@ -1,0 +1,288 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		B1000001 /* LabyrinthSolverApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1000001 /* LabyrinthSolverApp.swift */; };
+		B1000002 /* LabyrinthBoardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1000002 /* LabyrinthBoardView.swift */; };
+		B1000003 /* TileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1000003 /* TileView.swift */; };
+		B1000004 /* LabyrinthModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1000004 /* LabyrinthModels.swift */; };
+		B1000005 /* GameConstants.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1000005 /* GameConstants.swift */; };
+		B1000006 /* SolverEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1000006 /* SolverEngine.swift */; };
+		B1000007 /* GameViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1000007 /* GameViewModel.swift */; };
+		B1000008 /* SupportingViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1000008 /* SupportingViews.swift */; };
+		B1000009 /* BoardSetupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1000009 /* BoardSetupView.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		P1000001 /* LabyrinthSolver.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = LabyrinthSolver.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		F1000001 /* LabyrinthSolverApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/LabyrinthSolverApp/LabyrinthSolverApp.swift; sourceTree = "<group>"; };
+		F1000002 /* LabyrinthBoardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/LabyrinthSolverApp/Views/LabyrinthBoardView.swift; sourceTree = "<group>"; };
+		F1000003 /* TileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/LabyrinthSolverApp/Views/TileView.swift; sourceTree = "<group>"; };
+		F1000004 /* LabyrinthModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/LabyrinthSolverCore/Models/LabyrinthModels.swift; sourceTree = "<group>"; };
+		F1000005 /* GameConstants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/LabyrinthSolverCore/Constants/GameConstants.swift; sourceTree = "<group>"; };
+		F1000006 /* SolverEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/LabyrinthSolverCore/Solver/SolverEngine.swift; sourceTree = "<group>"; };
+		F1000007 /* GameViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/LabyrinthSolverApp/GameViewModel.swift; sourceTree = "<group>"; };
+		F1000008 /* SupportingViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/LabyrinthSolverApp/Views/SupportingViews.swift; sourceTree = "<group>"; };
+		F1000009 /* BoardSetupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/LabyrinthSolverApp/Views/BoardSetupView.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		F2000001 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		A10000000000000000000002 = {
+			isa = PBXGroup;
+			children = (
+				G1000001 /* Sources */,
+				G1000002 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		G1000001 /* Sources */ = {
+			isa = PBXGroup;
+			children = (
+				F1000001 /* LabyrinthSolverApp.swift */,
+				F1000002 /* LabyrinthBoardView.swift */,
+				F1000003 /* TileView.swift */,
+				F1000004 /* LabyrinthModels.swift */,
+				F1000005 /* GameConstants.swift */,
+				F1000006 /* SolverEngine.swift */,
+				F1000007 /* GameViewModel.swift */,
+				F1000008 /* SupportingViews.swift */,
+				F1000009 /* BoardSetupView.swift */,
+			);
+			sourceTree = "<group>";
+		};
+		G1000002 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				P1000001 /* LabyrinthSolver.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		A10000000000000000000001 /* LabyrinthSolver */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = C1000001 /* Build configuration list for PBXNativeTarget "LabyrinthSolver" */;
+			buildPhases = (
+				S2000001 /* Sources */,
+				F2000001 /* Frameworks */,
+				R2000001 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = LabyrinthSolver;
+			productName = LabyrinthSolver;
+			productReference = P1000001 /* LabyrinthSolver.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		A10000000000000000000000 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1500;
+				LastUpgradeCheck = 1500;
+				TargetAttributes = {
+					A10000000000000000000001 = {
+						CreatedOnToolsVersion = 15.0;
+					};
+				};
+			};
+			buildConfigurationList = C1000002 /* Build configuration list for PBXProject "LabyrinthSolver" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = A10000000000000000000002;
+			productRefGroup = G1000002 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				A10000000000000000000001 /* LabyrinthSolver */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		R2000001 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		S2000001 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B1000001 /* LabyrinthSolverApp.swift in Sources */,
+				B1000002 /* LabyrinthBoardView.swift in Sources */,
+				B1000003 /* TileView.swift in Sources */,
+				B1000004 /* LabyrinthModels.swift in Sources */,
+				B1000005 /* GameConstants.swift in Sources */,
+				B1000006 /* SolverEngine.swift in Sources */,
+				B1000007 /* GameViewModel.swift in Sources */,
+				B1000008 /* SupportingViews.swift in Sources */,
+				B1000009 /* BoardSetupView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		C1000003 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.labyrinth.solver;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		C1000004 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.labyrinth.solver;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		C1000005 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_PROTOS = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		C1000006 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				COPY_PHASE_STRIP = YES;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_PROTOS = YES;
+				MTL_FAST_MATH = YES;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		C1000001 /* Build configuration list for PBXNativeTarget "LabyrinthSolver" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				C1000003 /* Debug */,
+				C1000004 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		C1000002 /* Build configuration list for PBXProject "LabyrinthSolver" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				C1000005 /* Debug */,
+				C1000006 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = A10000000000000000000000 /* Project object */;
+}
