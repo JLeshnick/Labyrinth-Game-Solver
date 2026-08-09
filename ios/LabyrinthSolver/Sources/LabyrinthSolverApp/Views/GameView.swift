@@ -47,7 +47,8 @@ struct GameView: View {
                     vm: vm,
                     onOpenTargetPicker: { showTargetPicker = true }
                 )
-                .padding(.vertical, 10)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 8)
                 .liquidGlassCard(cornerRadius: 18)
                 .padding(.horizontal, 12)
                 .padding(.bottom, 6)

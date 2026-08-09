@@ -83,11 +83,14 @@ struct CommandHeader: View {
                     Text(vm.formattedTime)
                         .font(.system(size: 10, weight: .bold, design: .monospaced))
                         .foregroundColor(.primary)
+                    Image(systemName: "chart.bar.fill")
+                        .font(.system(size: 9, weight: .heavy))
+                        .foregroundColor(Color.accentForTheme(vm.appAccentTheme))
                 }
                 .padding(.horizontal, 7)
                 .frame(height: 30)
                 .background(Color.appTertiaryGroupedBg, in: Capsule())
-                .overlay(Capsule().strokeBorder(Color.white.opacity(0.08), lineWidth: 1.0))
+                .overlay(Capsule().strokeBorder(Color.white.opacity(0.12), lineWidth: 1.0))
             }
             .buttonStyle(.plain)
 
