@@ -137,7 +137,7 @@ final class GameViewModel {
         }
         reachableTreasures = treasures.sorted { $0.name < $1.name }
         
-        // Compute 1-turn reachable treasures & position keys
+        // Compute 1-turn reachable treasures & position keys (un-shifted to map to current board tiles)
         var oneTurnTreasures = Set<String>()
         var oneTurnKeys = Set<PawnPositionKey>()
 
@@ -149,7 +149,9 @@ final class GameViewModel {
                     let (simGrid, _, simPawns) = SolverEngine.simulateSlide(grid: board, spareTile: rotatedSpare, arrowId: arrow, pawnPositions: pawnPositions)
                     let reachable = SolverEngine.findReachablePositions(grid: simGrid, start: simPawns[myColor])
                     for key in reachable {
-                        oneTurnKeys.insert(key)
+                        let simPos = PawnPosition(row: key.row, col: key.col)
+                        let origPos = SolverEngine.unshiftedPosition(of: simPos, under: arrow)
+                        oneTurnKeys.insert(PawnPositionKey(origPos))
                         if let t = simGrid[key.row][key.col].treasure {
                             oneTurnTreasures.insert(t.id)
                         }

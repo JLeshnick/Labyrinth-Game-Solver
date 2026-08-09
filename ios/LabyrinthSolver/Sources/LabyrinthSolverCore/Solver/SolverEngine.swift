@@ -402,6 +402,29 @@ public struct SolverEngine {
         return PawnPosition(row: r, col: c)
     }
 
+    /// Calculates the original coordinate (r, c) on the unslid board that shifted into `simPos` under `arrowId`.
+    public static func unshiftedPosition(of simPos: PawnPosition, under arrowId: String) -> PawnPosition {
+        let parts = arrowId.split(separator: "_")
+        guard parts.count == 2, let idx = Int(parts[1]) else { return simPos }
+        let dir = parts[0]
+        var r = simPos.row
+        var c = simPos.col
+
+        switch dir {
+        case "top":
+            if c == idx { r = (r == 0) ? 6 : r - 1 }
+        case "bottom":
+            if c == idx { r = (r == 6) ? 0 : r + 1 }
+        case "left":
+            if r == idx { c = (c == 0) ? 6 : c - 1 }
+        case "right":
+            if r == idx { c = (c == 6) ? 0 : c + 1 }
+        default:
+            break
+        }
+        return PawnPosition(row: r, col: c)
+    }
+
     private static func firstTurnCandidates(
         grid: [[TileData]],
         spareTile: TileData,
