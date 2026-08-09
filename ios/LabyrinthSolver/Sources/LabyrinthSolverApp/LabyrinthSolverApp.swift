@@ -36,11 +36,12 @@ struct RootView: View {
                     ))
             }
         }
-        .animation(.easeInOut(duration: 0.4), value: showWelcome)
+        .animation(.spring(response: 0.38, dampingFraction: 0.8), value: showWelcome)
         .preferredColorScheme(
             vm.appColorScheme == .light ? .light :
             vm.appColorScheme == .dark  ? .dark  : nil
         )
+        .tint(Color.accentForTheme(vm.appAccentTheme))
     }
 }
 
@@ -65,420 +66,299 @@ struct GameView: View {
     @Bindable var vm: GameViewModel
     let onSetup: () -> Void
 
-    @State private var showSolverSheet = false
     @State private var showSettingsSheet = false
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
-        ZStack(alignment: .bottom) {
-            Color.appGroupedBg
+        ZStack {
+            // Background
+            (colorScheme == .dark ? Color.boardBg : Color(red: 0.94, green: 0.95, blue: 0.97))
                 .ignoresSafeArea()
 
             VStack(spacing: 0) {
-                // ── Compact top bar ──
-                topBar
+                // ── Top Floating Status Pill ──
+                topStatusPill
+                    .padding(.top, 8)
+                    .padding(.horizontal, 16)
+                    .zIndex(2)
 
-                // ── Board fills remaining space ──
+                Spacer(minLength: 16)
+
+                // ── Board Area ──
                 GeometryReader { geo in
                     let availableHeight = geo.size.height
                     let availableWidth  = geo.size.width
                     let boardAreaSize = min(availableWidth, availableHeight)
 
                     VStack(spacing: 0) {
+                        Spacer(minLength: 0)
                         LabyrinthBoardView(vm: vm)
                             .frame(width: boardAreaSize, height: boardAreaSize)
                             .frame(maxWidth: .infinity)
-
+                            .shadow(color: .black.opacity(colorScheme == .dark ? 0.3 : 0.1), radius: 24, y: 12)
                         Spacer(minLength: 0)
                     }
                 }
+                .zIndex(1)
 
-                Spacer(minLength: 80) // Space for floating bottom liquid control bar
+                Spacer(minLength: 16)
+
+                // ── AI Insight Panel ──
+                if let aiMove = vm.stagedAiMove {
+                    aiInsightPanel(aiMove)
+                        .padding(.horizontal, 16)
+                        .padding(.bottom, 8)
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                        .zIndex(3)
+                }
+
+                // ── Floating Liquid Control Bar ──
+                bottomControlBar
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, 24)
+                    .zIndex(2)
             }
 
-            // ── Floating Liquid Control Bar ──
-            bottomControlStrip
-                .padding(.horizontal, 16)
-                .padding(.bottom, 10)
-
-            // ── Toast ──
+            // ── Toast Notification ──
             if let msg = vm.toastMessage {
-                ToastView(message: msg)
-                    .padding(.bottom, 96)
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
-                    .zIndex(100)
+                VStack {
+                    Spacer()
+                    ToastView(message: msg)
+                        .padding(.bottom, vm.stagedAiMove != nil ? 180 : 120)
+                }
+                .zIndex(100)
+            }
+
+            // ── AI Solver Overlay ──
+            if vm.isSolving {
+                Color.black.opacity(0.3)
+                    .ignoresSafeArea()
+                    .overlay(
+                        VStack(spacing: 16) {
+                            ProgressView()
+                                .scaleEffect(1.5)
+                                .tint(.white)
+                            Text("AI is exploring routes...")
+                                .font(.system(size: 16, weight: .bold, design: .rounded))
+                                .foregroundColor(.white)
+                        }
+                        .padding(32)
+                        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+                    )
+                    .zIndex(50)
             }
         }
-        .animation(.spring(response: 0.3), value: vm.toastMessage)
-        .sheet(isPresented: $showSolverSheet) {
-            SolverSheet(vm: vm)
-        }
+        .animation(.spring(response: 0.35, dampingFraction: 0.8), value: vm.toastMessage)
+        .animation(.spring(response: 0.4, dampingFraction: 0.8), value: vm.stagedAiMove)
+        .animation(.easeInOut(duration: 0.2), value: vm.isSolving)
         .sheet(isPresented: $showSettingsSheet) {
             SettingsSheet(vm: vm, onSetup: onSetup)
+                .presentationDetents([.large])
+                .presentationDragIndicator(.visible)
         }
     }
 
-    // MARK: - Top Bar
+    // MARK: - AI Insight Panel
+    private func aiInsightPanel(_ move: MoveOption) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 8) {
+                Image(systemName: move.isTargetReached ? "star.circle.fill" : "point.topleft.down.curvedto.point.bottomright.up.fill")
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundColor(move.isTargetReached ? Color.amberGold : Color.solverPurple)
 
-    private var topBar: some View {
-        HStack(spacing: 12) {
-            // Undo / Redo
-            HStack(spacing: 4) {
-                toolbarButton(icon: "arrow.uturn.backward", enabled: vm.canUndo) { vm.undo() }
-                toolbarButton(icon: "arrow.uturn.forward",  enabled: vm.canRedo) { vm.redo() }
-            }
-
-            Spacer()
-
-            // Title + turn phase pill
-            VStack(spacing: 2) {
-                Text("LABYRINTH")
-                    .font(.system(size: 13, weight: .bold, design: .rounded))
-                    .foregroundColor(Color.accentColor)
-                    .tracking(2)
-
-                // Turn phase indicator
-                HStack(spacing: 5) {
-                    Circle()
-                        .fill(vm.turnPhase == .slide ? Color.orange : Color.green)
-                        .frame(width: 6, height: 6)
-                    Text(vm.turnPhase == .slide ? "Slide a tile" : "Move pawn")
-                        .font(.system(size: 11, weight: .bold, design: .rounded))
-                        .foregroundColor(vm.turnPhase == .slide ? Color.orange : Color.green)
+                Text(move.isTargetReached ? "TARGET REACHABLE" : "OPTIMAL ROUTE")
+                    .font(.system(size: 12, weight: .black, design: .rounded))
+                    .foregroundColor(move.isTargetReached ? Color.amberGold : Color.solverPurple)
+                    .tracking(1.0)
+                
+                Spacer()
+                
+                Button(action: {
+                    Haptics.selection()
+                    vm.cancelStage()
+                }) {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 18))
+                        .foregroundColor(.secondary.opacity(0.5))
                 }
             }
 
-            Spacer()
+            Text(move.summaryText)
+                .font(.system(size: 14, weight: .medium, design: .rounded))
+                .foregroundColor(.primary)
 
-            // Solver
-            toolbarButton(icon: "sparkles", enabled: true, tint: .accentColor) {
-                showSolverSheet = true
-            }
-        }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 10)
-        .background(.ultraThinMaterial)
-    }
-
-    @ViewBuilder
-    private func toolbarButton(icon: String, enabled: Bool, tint: Color = .primary, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Image(systemName: icon)
-                .font(.system(size: 15, weight: .semibold))
-                .foregroundColor(enabled ? tint : tint.opacity(0.3))
-                .frame(width: 36, height: 36)
-                .background(Color.appTertiaryGroupedBg)
-                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-        }
-        .disabled(!enabled)
-    }
-
-    // MARK: - Floating Liquid Control Strip
-
-    private var bottomControlStrip: some View {
-        HStack(spacing: 8) {
-            // Active pawn selector
-            HStack(spacing: 4) {
-                ForEach(vm.activePlayers) { pawn in
-                    let isSelected = vm.activePawn == pawn
-                    Button(action: { vm.activePawn = pawn; vm.refreshReachable() }) {
-                        VStack(spacing: 2) {
-                            PawnToken(color: pawn, isActive: isSelected, size: 24)
-                            Text(pawn.displayName.prefix(1))
-                                .font(.system(size: 9, weight: .bold, design: .rounded))
-                                .foregroundColor(isSelected ? .primary : .secondary)
-                        }
-                        .frame(maxWidth: .infinity, minHeight: 44)
-                        .background(isSelected ? Color.appSecondaryGroupedBg : Color.clear)
-                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                    }
-                }
-            }
-            .padding(3)
-            .background(Color.appTertiaryGroupedBg)
-            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-
-            Divider().frame(height: 32)
-
-            // Spare tile + rotate
-            Button(action: { vm.rotateSpareTile() }) {
+            if !move.reachableTreasures.isEmpty {
                 HStack(spacing: 6) {
-                    TileView(tile: vm.spareTile)
-                        .frame(width: 32, height: 32)
-                    VStack(alignment: .leading, spacing: 1) {
-                        Text("SPARE")
-                            .font(.system(size: 9, weight: .bold, design: .rounded))
-                            .foregroundColor(.secondary)
-                        Image(systemName: "rotate.right")
-                            .font(.system(size: 11, weight: .bold))
-                            .foregroundColor(Color.accentColor)
+                    Text("Also reaches:")
+                        .font(.system(size: 12, weight: .semibold, design: .rounded))
+                        .foregroundColor(.secondary)
+                    
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 6) {
+                            ForEach(move.reachableTreasures, id: \.self) { tId in
+                                if let treasure = GameConstants.treasures.first(where: { $0.id == tId }) {
+                                    Text(treasure.emoji)
+                                        .font(.system(size: 14))
+                                        .padding(4)
+                                        .background(Color.white.opacity(colorScheme == .dark ? 0.1 : 0.6), in: Circle())
+                                }
+                            }
+                        }
                     }
                 }
-                .padding(.horizontal, 8)
-                .frame(minHeight: 44)
-                .background(Color.appTertiaryGroupedBg)
-                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
             }
+        }
+        .padding(14)
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .strokeBorder(move.isTargetReached ? Color.amberGold.opacity(0.6) : Color.solverPurple.opacity(0.4), lineWidth: 1.5)
+        )
+        .shadow(color: (move.isTargetReached ? Color.amberGold : Color.solverPurple).opacity(0.15), radius: 12, y: 6)
+    }
 
-            // Confirm Slide action
-            if vm.stagedArrowId != nil {
-                Button(action: { vm.commitSlide() }) {
-                    HStack(spacing: 4) {
-                        Image(systemName: "checkmark.circle.fill")
-                            .font(.system(size: 14, weight: .bold))
-                        Text("Confirm")
-                            .font(.system(size: 12, weight: .bold, design: .rounded))
-                    }
-                    .padding(.horizontal, 12)
-                    .frame(minHeight: 44)
-                    .background(Color.green)
-                    .foregroundColor(.white)
-                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+    // MARK: - Top Status Pill
+    private var topStatusPill: some View {
+        HStack(spacing: 12) {
+            // Left: Undo/Redo
+            HStack(spacing: 4) {
+                Button(action: { vm.undo() }) {
+                    Image(systemName: "arrow.uturn.backward")
+                        .font(.system(size: 16, weight: .bold))
+                        .foregroundColor(vm.canUndo ? .primary : .secondary.opacity(0.3))
+                        .frame(width: 40, height: 40)
+                        .contentShape(Circle())
                 }
+                .disabled(!vm.canUndo)
+
+                Button(action: { vm.redo() }) {
+                    Image(systemName: "arrow.uturn.forward")
+                        .font(.system(size: 16, weight: .bold))
+                        .foregroundColor(vm.canRedo ? .primary : .secondary.opacity(0.3))
+                        .frame(width: 40, height: 40)
+                        .contentShape(Circle())
+                }
+                .disabled(!vm.canRedo)
             }
 
-            Divider().frame(height: 32)
+            Spacer()
 
-            // Settings button in floating control bar
+            // Center: Turn Phase
+            HStack(spacing: 6) {
+                Circle()
+                    .fill(vm.turnPhase == .slide ? Color.amberGold : Color.neonGreen)
+                    .frame(width: 8, height: 8)
+                    .shadow(color: (vm.turnPhase == .slide ? Color.amberGold : Color.neonGreen).opacity(0.8), radius: 4)
+
+                Text(vm.turnPhase == .slide ? "Slide a tile" : "\(vm.activePawn.displayName)'s turn")
+                    .font(.system(size: 13, weight: .bold, design: .rounded))
+                    .foregroundColor(.primary)
+            }
+
+            Spacer()
+
+            // Right: Settings
             Button(action: { showSettingsSheet = true }) {
                 Image(systemName: "gearshape.fill")
                     .font(.system(size: 16, weight: .bold))
-                    .foregroundColor(Color.accentColor)
-                    .frame(width: 36, height: 36)
-                    .background(Color.appTertiaryGroupedBg)
-                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                    .foregroundColor(.primary)
+                    .frame(width: 40, height: 40)
+                    .contentShape(Circle())
             }
         }
-        .padding(6)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .strokeBorder(Color.white.opacity(0.2), lineWidth: 1)
-        )
-        .shadow(color: Color.black.opacity(0.2), radius: 12, y: 4)
+        .padding(.horizontal, 6)
+        .padding(.vertical, 6)
+        .background(.ultraThinMaterial, in: Capsule())
+        .overlay(Capsule().strokeBorder(Color.white.opacity(colorScheme == .dark ? 0.1 : 0.5), lineWidth: 1))
+        .shadow(color: .black.opacity(0.1), radius: 10, y: 4)
     }
-}
 
-// MARK: - Solver Sheet (full-screen bottom drawer)
-
-struct SolverSheet: View {
-    @Bindable var vm: GameViewModel
-    @Environment(\.dismiss) private var dismiss
-    let allTreasures = GameConstants.treasures
-
-    var body: some View {
-        NavigationStack {
-            ZStack {
-                Color(red: 0.07, green: 0.09, blue: 0.13).ignoresSafeArea()
-
-                ScrollView {
-                    VStack(spacing: 16) {
-                        // Target treasure picker
-                        VStack(alignment: .leading, spacing: 10) {
-                            sectionLabel("TARGET TREASURE", icon: "target")
-
-                            LazyVGrid(columns: [GridItem(.adaptive(minimum: 90), spacing: 8)], spacing: 8) {
-                                ForEach(allTreasures, id: \.id) { t in
-                                    let isTarget = vm.activeTargetId == t.id
-                                    Button(action: {
-                                        if isTarget {
-                                            vm.clearActiveTarget()
-                                        } else {
-                                            vm.setActiveTarget(treasureId: t.id)
-                                        }
-                                    }) {
-                                        VStack(spacing: 4) {
-                                            Text(t.emoji)
-                                                .font(.system(size: 22))
-                                            Text(t.shortName)
-                                                .font(.system(size: 10, weight: .semibold, design: .rounded))
-                                                .foregroundColor(isTarget ? .black : .white.opacity(0.7))
-                                                .lineLimit(1)
-                                                .minimumScaleFactor(0.6)
-                                        }
-                                        .frame(maxWidth: .infinity, minHeight: 60)
-                                        .background(
-                                            RoundedRectangle(cornerRadius: 10)
-                                                .fill(isTarget ? Color.amber : Color.white.opacity(0.07))
-                                                .overlay(
-                                                    RoundedRectangle(cornerRadius: 10)
-                                                        .strokeBorder(isTarget ? Color.amber.opacity(0.8) : Color.clear, lineWidth: 1.5)
-                                                )
-                                        )
-                                        .foregroundColor(isTarget ? .black : .white)
-                                    }
-                                }
-                            }
-                        }
-                        .padding(14)
-                        .background(cardBackground)
-
-                        // Solve button
-                        Button(action: { vm.runSolver() }) {
-                            HStack(spacing: 8) {
-                                if vm.isSolving {
-                                    ProgressView().tint(.white).scaleEffect(0.85)
-                                } else {
-                                    Image(systemName: "wand.and.stars")
-                                        .font(.system(size: 16, weight: .bold))
-                                }
-                                Text(vm.isSolving ? "Calculating…" : "Find Best Move")
-                                    .font(.system(size: 16, weight: .bold, design: .rounded))
-                            }
-                            .frame(maxWidth: .infinity, minHeight: 52)
+    // MARK: - Bottom Control Bar
+    private var bottomControlBar: some View {
+        HStack(spacing: 8) {
+            // Active Players
+            HStack(spacing: 2) {
+                ForEach(vm.activePlayers) { pawn in
+                    let isSelected = vm.activePawn == pawn
+                    Button(action: {
+                        Haptics.selection()
+                        vm.activePawn = pawn
+                        vm.refreshReachable()
+                    }) {
+                        PawnToken(color: pawn, isActive: isSelected, size: 26)
+                            .frame(width: 48, height: 48)
                             .background(
-                                LinearGradient(
-                                    colors: [Color.solverPurple, Color(red: 0.35, green: 0.15, blue: 0.80)],
-                                    startPoint: .leading, endPoint: .trailing
-                                )
+                                isSelected
+                                ? Circle().fill(Color.white.opacity(colorScheme == .dark ? 0.15 : 0.5))
+                                : nil
                             )
-                            .foregroundColor(.white)
-                            .cornerRadius(14)
-                            .shadow(color: Color.solverPurple.opacity(0.4), radius: 10, y: 4)
-                        }
-                        .disabled(vm.isSolving)
-
-                        // Solver result
-                        if let move = vm.bestMove {
-                            SolverResultCard(move: move, onApply: {
-                                vm.applyBestMove()
-                                dismiss()
-                            })
-                        } else if let msg = vm.solverMessage, !vm.isSolving {
-                            Text(msg)
-                                .font(.system(size: 13, design: .rounded))
-                                .foregroundColor(.white.opacity(0.5))
-                                .multilineTextAlignment(.center)
-                                .padding()
-                        }
-
-                        Spacer(minLength: 20)
+                            .contentShape(Circle())
                     }
-                    .padding(16)
-                }
-            }
-            .navigationTitle("Solver")
-            #if os(iOS)
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbarBackground(Color(red: 0.07, green: 0.09, blue: 0.13), for: .navigationBar)
-            .toolbarColorScheme(.dark, for: .navigationBar)
-            #endif
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Done") { dismiss() }
-                        .foregroundColor(Color.amber)
-                }
-            }
-        }
-        .preferredColorScheme(.dark)
-    }
-
-    private var cardBackground: some View {
-        RoundedRectangle(cornerRadius: 16)
-            .fill(.ultraThinMaterial)
-            .overlay(RoundedRectangle(cornerRadius: 16).strokeBorder(Color.white.opacity(0.12), lineWidth: 1))
-    }
-
-    private func sectionLabel(_ text: String, icon: String) -> some View {
-        Label(text, systemImage: icon)
-            .font(.system(size: 11, weight: .bold, design: .rounded))
-            .foregroundColor(.white.opacity(0.4))
-            .tracking(1.5)
-    }
-}
-
-// MARK: - Solver Result Card
-
-struct SolverResultCard: View {
-    let move: MoveOption
-    let onApply: () -> Void
-
-    private func arrowLabel(_ id: String) -> String {
-        let parts = id.split(separator: "_")
-        guard parts.count == 2, let idx = Int(parts[1]) else { return id }
-        switch parts[0] {
-        case "top":    return "↓ Slide column \(idx) down"
-        case "bottom": return "↑ Slide column \(idx) up"
-        case "left":   return "→ Slide row \(idx) right"
-        case "right":  return "← Slide row \(idx) left"
-        default:       return id
-        }
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            // Status badge
-            HStack(spacing: 8) {
-                Image(systemName: move.isTargetReached ? "star.circle.fill" : "lightbulb.fill")
-                    .font(.system(size: 16))
-                    .foregroundColor(move.isTargetReached ? Color.amber : Color.solverPurple)
-                Text(move.isTargetReached ? "TARGET REACHABLE THIS TURN!" : "BEST AVAILABLE MOVE")
-                    .font(.system(size: 11, weight: .black, design: .rounded))
-                    .foregroundColor(move.isTargetReached ? Color.amber : Color.solverPurple)
-                    .tracking(0.5)
-            }
-
-            Divider().background(Color.white.opacity(0.1))
-
-            // Move details
-            VStack(alignment: .leading, spacing: 8) {
-                resultRow(label: "Slide",
-                          value: arrowLabel(move.arrowId),
-                          icon: "arrow.up.and.down.and.arrow.left.and.right")
-                resultRow(label: "Rotate spare",
-                          value: "\(move.tileRotation.rawValue)°",
-                          icon: "rotate.right")
-                if !move.isTargetReached {
-                    resultRow(label: "Distance to target",
-                              value: "\(move.distanceToTarget) tiles",
-                              icon: "ruler")
                 }
             }
 
-            // Apply button
-            Button(action: onApply) {
-                HStack(spacing: 8) {
-                    Image(systemName: "play.fill")
-                    Text("Apply This Move")
-                        .font(.system(size: 14, weight: .bold, design: .rounded))
-                }
-                .frame(maxWidth: .infinity, minHeight: 46)
-                .background(
-                    move.isTargetReached
-                    ? LinearGradient(colors: [Color.amber, Color(red: 0.85, green: 0.55, blue: 0.05)], startPoint: .leading, endPoint: .trailing)
-                    : LinearGradient(colors: [Color.solverPurple, Color(red: 0.35, green: 0.15, blue: 0.80)], startPoint: .leading, endPoint: .trailing)
-                )
-                .foregroundColor(move.isTargetReached ? .black : .white)
-                .cornerRadius(12)
-            }
-        }
-        .padding(16)
-        .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(Color(white: 0.10))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 16)
-                        .strokeBorder(
-                            move.isTargetReached ? Color.amber.opacity(0.4) : Color.solverPurple.opacity(0.3),
-                            lineWidth: 1.5
-                        )
-                )
-        )
-    }
-
-    private func resultRow(label: String, value: String, icon: String) -> some View {
-        HStack(spacing: 10) {
-            Image(systemName: icon)
-                .font(.system(size: 13))
-                .foregroundColor(.white.opacity(0.35))
-                .frame(width: 20)
-            Text(label)
-                .font(.system(size: 13, design: .rounded))
-                .foregroundColor(.white.opacity(0.5))
             Spacer()
-            Text(value)
-                .font(.system(size: 13, weight: .bold, design: .rounded))
-                .foregroundColor(.white)
+
+            // AI Solver Button (Magic Wand)
+            Button(action: {
+                Haptics.impact(.medium)
+                vm.runSolverAndStage()
+            }) {
+                Image(systemName: "wand.and.stars")
+                    .font(.system(size: 20, weight: .bold))
+                    .foregroundColor(.white)
+                    .frame(width: 52, height: 52)
+                    .background(
+                        LinearGradient(colors: [Color(red: 0.6, green: 0.3, blue: 0.9), Color(red: 0.4, green: 0.1, blue: 0.8)], startPoint: .topLeading, endPoint: .bottomTrailing),
+                        in: Circle()
+                    )
+                    .shadow(color: Color(red: 0.5, green: 0.2, blue: 0.8).opacity(0.6), radius: 8, y: 4)
+            }
+
+            Spacer()
+
+            // Spare Tile / Confirm Move
+            if vm.stagedArrowId != nil {
+                Button(action: {
+                    Haptics.impact(.heavy)
+                    vm.commitSlide()
+                }) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "checkmark")
+                            .font(.system(size: 16, weight: .black))
+                        Text(vm.stagedAiMove != nil ? "Play Move" : "Confirm")
+                            .font(.system(size: 15, weight: .bold, design: .rounded))
+                    }
+                    .foregroundColor(.white)
+                    .frame(height: 52)
+                    .padding(.horizontal, 20)
+                    .background(Color.green, in: Capsule())
+                    .shadow(color: Color.green.opacity(0.4), radius: 8, y: 4)
+                }
+                .transition(.scale.combined(with: .opacity))
+            } else {
+                Button(action: {
+                    Haptics.selection()
+                    vm.rotateSpareTile()
+                }) {
+                    HStack(spacing: 8) {
+                        TileView(tile: vm.spareTile)
+                            .frame(width: 36, height: 36)
+                        Image(systemName: "rotate.right")
+                            .font(.system(size: 16, weight: .bold))
+                            .foregroundColor(Color.accentForTheme(vm.appAccentTheme))
+                    }
+                    .frame(height: 52)
+                    .padding(.horizontal, 16)
+                    .background(Color.black.opacity(0.05), in: Capsule())
+                }
+            }
         }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8)
+        .background(.ultraThinMaterial, in: Capsule())
+        .overlay(Capsule().strokeBorder(Color.white.opacity(colorScheme == .dark ? 0.1 : 0.6), lineWidth: 1))
+        .shadow(color: .black.opacity(0.15), radius: 20, y: 10)
     }
 }
 
@@ -488,92 +368,81 @@ struct SettingsSheet: View {
     @Bindable var vm: GameViewModel
     let onSetup: () -> Void
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         NavigationStack {
             ZStack {
-                Color.appGroupedBg.ignoresSafeArea()
+                (colorScheme == .dark ? Color.boardBg : Color(red: 0.94, green: 0.95, blue: 0.97))
+                    .ignoresSafeArea()
 
-                Form {
-                    // Appearance Section
-                    Section(header: Text("APPEARANCE & THEME")) {
-                        Picker("Theme Mode", selection: $vm.appColorScheme) {
-                            ForEach(AppColorScheme.allCases) { scheme in
-                                Text(scheme.displayName).tag(scheme)
+                ScrollView {
+                    VStack(spacing: 24) {
+                        // Action Buttons
+                        VStack(spacing: 12) {
+                            Button(action: { dismiss(); onSetup() }) {
+                                settingsRow(icon: "slider.horizontal.3", title: "Open Board Setup Wizard", color: Color.accentForTheme(vm.appAccentTheme))
+                            }
+                            Button(action: { vm.randomizeBoard(); vm.showToast("Board Randomized ✨"); dismiss() }) {
+                                settingsRow(icon: "sparkles", title: "Randomize Board Layout", color: .purple)
+                            }
+                            Button(action: { vm.resetBoard(); vm.showToast("Board Reset ↺"); dismiss() }) {
+                                settingsRow(icon: "arrow.counterclockwise", title: "Reset Standard Layout", color: .orange)
+                            }
+                            Button(action: { vm.startFromScratch(); dismiss(); onSetup() }) {
+                                settingsRow(icon: "trash.fill", title: "Clear Board (From Scratch)", color: .red)
                             }
                         }
+                        .padding(16)
+                        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+                        .overlay(RoundedRectangle(cornerRadius: 20).strokeBorder(Color.white.opacity(0.1), lineWidth: 1))
 
-                        Picker("Accent Theme", selection: $vm.appAccentTheme) {
-                            ForEach(AppAccentTheme.allCases) { theme in
-                                Text(theme.displayName).tag(theme)
+                        // Toggles & Pickers
+                        VStack(spacing: 12) {
+                            Toggle("Sound Effects", isOn: $vm.enableSound)
+                                .font(.system(size: 16, weight: .semibold, design: .rounded))
+                                .tint(Color.accentForTheme(vm.appAccentTheme))
+                            Divider()
+                            Toggle("Haptic Feedback", isOn: $vm.enableHaptics)
+                                .font(.system(size: 16, weight: .semibold, design: .rounded))
+                                .tint(Color.accentForTheme(vm.appAccentTheme))
+                        }
+                        .padding(16)
+                        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+                        .overlay(RoundedRectangle(cornerRadius: 20).strokeBorder(Color.white.opacity(0.1), lineWidth: 1))
+
+                        // Target Treasure for Solver
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text("AI SOLVER TARGET")
+                                .font(.system(size: 12, weight: .bold, design: .rounded))
+                                .foregroundColor(.secondary)
+                            
+                            ScrollView(.horizontal, showsIndicators: false) {
+                                HStack(spacing: 8) {
+                                    Button(action: { vm.clearActiveTarget() }) {
+                                        Text("Auto")
+                                            .font(.system(size: 14, weight: .bold, design: .rounded))
+                                            .foregroundColor(vm.singleTargetId == nil ? .white : .primary)
+                                            .padding(.horizontal, 16)
+                                            .padding(.vertical, 8)
+                                            .background(vm.singleTargetId == nil ? Color.accentColor : Color.secondary.opacity(0.2), in: Capsule())
+                                    }
+                                    ForEach(GameConstants.treasures, id: \.id) { t in
+                                        Button(action: { vm.setActiveTarget(treasureId: t.id) }) {
+                                            Text(t.emoji)
+                                                .font(.system(size: 20))
+                                                .padding(8)
+                                                .background(vm.singleTargetId == t.id ? Color.amberGold : Color.secondary.opacity(0.2), in: Circle())
+                                        }
+                                    }
+                                }
                             }
                         }
+                        .padding(16)
+                        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+                        .overlay(RoundedRectangle(cornerRadius: 20).strokeBorder(Color.white.opacity(0.1), lineWidth: 1))
                     }
-
-                    // Audio & Feedback Section
-                    Section(header: Text("AUDIO & FEEDBACK")) {
-                        Toggle("Sound Effects 🔊", isOn: $vm.enableSound)
-                        Toggle("Haptic Feedback 📳", isOn: $vm.enableHaptics)
-                    }
-
-                    // Solver Configuration
-                    Section(header: Text("SOLVER CONFIGURATION")) {
-                        Picker("Search Depth", selection: $vm.solverDepth) {
-                            Text("Quick (1 Turn)").tag(1)
-                            Text("Standard (2 Turns)").tag(2)
-                            Text("Deep (3 Turns)").tag(3)
-                        }
-                    }
-
-                    // Board Layout Actions
-                    Section(header: Text("BOARD LAYOUT & PRESETS")) {
-                        Button(action: {
-                            dismiss()
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { onSetup() }
-                        }) {
-                            Label("Board Setup Screen", systemImage: "slider.horizontal.3")
-                                .foregroundColor(Color.accentColor)
-                        }
-
-                        Button(action: {
-                            vm.startFromScratch()
-                            dismiss()
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { onSetup() }
-                        }) {
-                            Label("Start from Scratch (Clear Board)", systemImage: "square.dashed")
-                                .foregroundColor(.red)
-                        }
-
-                        Button(action: {
-                            vm.randomizeBoard()
-                            vm.showToast("Board Randomized ✨")
-                        }) {
-                            Label("Randomize Board Layout", systemImage: "sparkles")
-                        }
-
-                        Button(action: {
-                            vm.resetBoard()
-                            vm.showToast("Board Reset to Standard ↺")
-                        }) {
-                            Label("Reset to Standard Layout", systemImage: "arrow.counterclockwise")
-                        }
-                    }
-
-                    // Active Pawn Positions Info
-                    Section(header: Text("PAWN STARTING POSITIONS")) {
-                        ForEach(PawnColor.allCases, id: \.id) { pawn in
-                            let pos = vm.pawnPositions[pawn]
-                            HStack {
-                                PawnToken(color: pawn, isActive: vm.activePawn == pawn, size: 22)
-                                Text(pawn.displayName)
-                                    .font(.system(size: 14, weight: .semibold, design: .rounded))
-                                Spacer()
-                                Text("Row \(pos.row), Col \(pos.col)")
-                                    .font(.system(size: 12, design: .monospaced))
-                                    .foregroundColor(.secondary)
-                            }
-                        }
-                    }
+                    .padding(16)
                 }
             }
             .navigationTitle("Settings")
@@ -581,15 +450,33 @@ struct SettingsSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             #endif
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
+                ToolbarItem(placement: .confirmationAction) {
                     Button("Done") { dismiss() }
                         .font(.system(size: 16, weight: .bold))
                 }
             }
         }
-        .preferredColorScheme(
-            vm.appColorScheme == .light ? .light :
-            vm.appColorScheme == .dark  ? .dark  : nil
-        )
+    }
+
+    private func settingsRow(icon: String, title: String, color: Color) -> some View {
+        HStack(spacing: 16) {
+            Image(systemName: icon)
+                .font(.system(size: 18, weight: .bold))
+                .foregroundColor(.white)
+                .frame(width: 36, height: 36)
+                .background(color, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+            
+            Text(title)
+                .font(.system(size: 16, weight: .semibold, design: .rounded))
+                .foregroundColor(.primary)
+            
+            Spacer()
+            
+            Image(systemName: "chevron.right")
+                .font(.system(size: 14, weight: .bold))
+                .foregroundColor(.secondary.opacity(0.5))
+        }
+        .contentShape(Rectangle())
     }
 }
+

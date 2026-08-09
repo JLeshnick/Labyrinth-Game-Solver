@@ -40,6 +40,7 @@ final class GameViewModel {
     var lastArrowId: String? = nil    // For no-reverse rule
     var stagedArrowId: String? = nil  // Arrow highlighted but not yet committed
     var stagedRotation: TileRotation = .deg0
+    var stagedAiMove: MoveOption? = nil // Stores the AI's full move to auto-execute pawn move
 
     // MARK: - Undo / Redo
 
@@ -61,9 +62,9 @@ final class GameViewModel {
 
     // MARK: - Solver State
 
-    var bestMove: MoveOption? = nil
     var isSolving: Bool = false
     var solverMessage: String? = nil
+    var solverOptions: [MoveOption] = [] // Store multiple options to show
 
     // MARK: - Reachable Positions Cache
 
@@ -110,9 +111,10 @@ final class GameViewModel {
             stagedArrowId = arrowId
             stagedRotation = spareTile.rotation
         }
+        stagedAiMove = nil // Manual staging clears AI move
     }
 
-    /// Apply the staged slide and advance turn phase to .move
+    /// Apply the staged slide and advance turn phase to .move. If an AI move is staged, auto-move the pawn.
     func commitSlide() {
         guard let arrowId = stagedArrowId else { return }
         // Enforce no-reverse rule
@@ -123,9 +125,11 @@ final class GameViewModel {
             return
         }
         pushHistory()
+        var rotatedSpare = spareTile
+        rotatedSpare.rotation = stagedRotation
         let (nextGrid, nextSpare, nextPawns) = SolverEngine.simulateSlide(
             grid: board,
-            spareTile: spareTile,
+            spareTile: rotatedSpare,
             arrowId: arrowId,
             pawnPositions: pawnPositions
         )
@@ -135,9 +139,20 @@ final class GameViewModel {
         lastArrowId    = arrowId
         stagedArrowId  = nil
         turnPhase      = .move
-        bestMove       = nil
         solverMessage  = nil
         refreshReachable()
+
+        // Auto-move pawn if this was an AI move
+        if let aiMove = stagedAiMove {
+            stagedAiMove = nil
+            let key = PawnPositionKey(aiMove.targetPosition)
+            if reachablePositions.contains(key) {
+                // Short delay so the user sees the slide complete before the pawn moves
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
+                    self?.movePawn(to: aiMove.targetPosition.row, col: aiMove.targetPosition.col)
+                }
+            }
+        }
     }
 
     /// Cancel a staged arrow without committing
@@ -161,7 +176,7 @@ final class GameViewModel {
         pawnPositions  = nextPawns
         lastArrowId    = arrowId
         turnPhase      = .move
-        bestMove       = nil
+        stagedAiMove   = nil
         refreshReachable()
     }
 
@@ -255,7 +270,7 @@ final class GameViewModel {
         lastArrowId    = entry.lastArrowId
         turnPhase      = .slide
         stagedArrowId  = nil
-        bestMove       = nil
+        stagedAiMove   = nil
         solverMessage  = nil
         refreshReachable()
     }
@@ -296,7 +311,7 @@ final class GameViewModel {
         looseTiles = scratch.looseTiles
         spareTile  = scratch.spareTile
         selectedLooseTileId = nil
-        bestMove   = nil
+        stagedAiMove = nil
         solverMessage = nil
         showToast("Board cleared! Start placing tiles from scratch.")
     }
@@ -333,7 +348,7 @@ final class GameViewModel {
         looseTiles     = [randomized.spareTile]
         setupGrid      = nil
         selectedLooseTileId = nil
-        bestMove       = nil
+        stagedAiMove   = nil
         solverMessage  = nil
         refreshReachable()
         showToast("Board layout randomized ✨")
@@ -347,7 +362,7 @@ final class GameViewModel {
         looseTiles     = [fresh.spareTile]
         setupGrid      = nil
         selectedLooseTileId = nil
-        bestMove       = nil
+        stagedAiMove   = nil
         solverMessage  = nil
         refreshReachable()
         showToast("Board layout reset to standard ↺")
@@ -538,7 +553,7 @@ final class GameViewModel {
         redoStack.removeAll()
         lastArrowId   = nil
         stagedArrowId = nil
-        bestMove      = nil
+        stagedAiMove  = nil
         solverMessage = nil
         refreshReachable()
         showToast("Game started! \(activePawn.displayName) goes first.")
@@ -546,10 +561,9 @@ final class GameViewModel {
 
     // MARK: - Solver
 
-    func runSolver() {
+    func runSolverAndStage() {
         guard !isSolving else { return }
         isSolving = true
-        solverMessage = "Calculating best move…"
 
         let board = self.board
         let spareTile = self.spareTile
@@ -557,7 +571,8 @@ final class GameViewModel {
         let targetId = self.activeTargetId
         let positions = self.pawnPositions
         let lastArrow = self.lastArrowId
-
+        // Multi-depth solver doesn't currently exist in this engine so we'll just use the fast standard search.
+        
         Task.detached(priority: .userInitiated) { [weak self] in
             let result = SolverEngine.findBestMove(
                 grid: board,
@@ -570,27 +585,25 @@ final class GameViewModel {
             await MainActor.run { [weak self] in
                 guard let self else { return }
                 self.isSolving = false
-                self.bestMove  = result
                 if let move = result {
-                    self.solverMessage = move.summaryText
+                    // Auto-stage the move on the board for instant preview!
+                    self.spareTile.rotation = move.tileRotation
+                    self.stagedArrowId = move.arrowId
+                    self.stagedRotation = move.tileRotation
+                    self.stagedAiMove = move
+                    Haptics.notification(.success)
+                    if move.isTargetReached {
+                        self.showToast("AI found a path to target!")
+                    }
                 } else {
-                    self.solverMessage = "No valid move found."
+                    Haptics.notification(.error)
+                    self.showToast("AI could not find a valid move.")
                 }
             }
         }
     }
 
-    func applyBestMove() {
-        guard let move = bestMove else { return }
-        applySlide(move.arrowId, rotation: move.tileRotation)
-        // Auto-move pawn to target if it is directly reachable
-        let targetPos = move.targetPosition
-        let key = PawnPositionKey(targetPos)
-        if reachablePositions.contains(key) {
-            movePawn(to: targetPos.row, col: targetPos.col)
-        }
-        bestMove = nil
-    }
+
 
     // MARK: - Player Hand Setup
 
@@ -605,13 +618,13 @@ final class GameViewModel {
     /// Set a quick solver target (used by SolverSheet treasure grid)
     func setActiveTarget(treasureId: String) {
         singleTargetId = treasureId
-        bestMove = nil
+        stagedAiMove = nil
         solverMessage = nil
     }
 
     func clearActiveTarget() {
         singleTargetId = nil
-        bestMove = nil
+        stagedAiMove = nil
         solverMessage = nil
     }
 
@@ -632,7 +645,7 @@ final class GameViewModel {
         turnPhase = .slide
         lastArrowId = nil
         stagedArrowId = nil
-        bestMove = nil
+        stagedAiMove = nil
         solverMessage = nil
         singleTargetId = nil
         refreshReachable()
@@ -653,17 +666,18 @@ final class GameViewModel {
 
     // MARK: - Preview (for staged move)
 
-    /// Returns the board state after applying the staged arrow (for visual preview).
-    var previewBoard: [[TileData]]? {
+    /// Returns the board state and reachable positions after applying the staged arrow (for visual preview).
+    var previewState: (grid: [[TileData]], reachable: Set<PawnPositionKey>)? {
         guard let arrowId = stagedArrowId else { return nil }
         var rotatedSpare = spareTile
         rotatedSpare.rotation = stagedRotation
-        let (previewGrid, _, _) = SolverEngine.simulateSlide(
+        let (previewGrid, _, previewPawns) = SolverEngine.simulateSlide(
             grid: board,
             spareTile: rotatedSpare,
             arrowId: arrowId,
             pawnPositions: pawnPositions
         )
-        return previewGrid
+        let reachable = SolverEngine.findReachablePositions(grid: previewGrid, start: previewPawns[activePawn])
+        return (previewGrid, reachable)
     }
 }

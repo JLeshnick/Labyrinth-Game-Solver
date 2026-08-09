@@ -7,11 +7,9 @@ import LabyrinthSolverCore
 
 extension Color {
     static let amber        = Color(red: 0.96, green: 0.78, blue: 0.25)
-    static let neonGreen    = Color(red: 0.20, green: 0.90, blue: 0.50)
-    static let boardBg      = Color(red: 0.08, green: 0.09, blue: 0.12)
-    static let tileBg       = Color(red: 0.16, green: 0.19, blue: 0.25)
-    static let tileFixed    = Color(red: 0.12, green: 0.14, blue: 0.20)
-    static let solverPurple = Color(red: 0.55, green: 0.30, blue: 0.95)
+    static let boardBg      = Color(red: 0.07, green: 0.08, blue: 0.11)
+    static let tileBg       = Color(red: 0.17, green: 0.20, blue: 0.27)
+    static let tileFixed    = Color(red: 0.12, green: 0.14, blue: 0.21)
 }
 
 // MARK: - Tile View
@@ -22,53 +20,67 @@ struct TileView: View {
     var isCurrentTarget: Bool = false
     var isStagedTarget: Bool = false
 
+    @Environment(\.colorScheme) private var colorScheme
+
     private func pawnColor(_ p: PawnColor) -> Color {
         switch p {
-        case .red:    return Color(red: 0.95, green: 0.25, blue: 0.25)
-        case .blue:   return Color(red: 0.25, green: 0.50, blue: 0.95)
-        case .green:  return Color(red: 0.20, green: 0.80, blue: 0.40)
-        case .yellow: return Color(red: 0.95, green: 0.80, blue: 0.10)
+        case .red:    return Color(red: 0.96, green: 0.26, blue: 0.26)
+        case .blue:   return Color(red: 0.24, green: 0.55, blue: 0.98)
+        case .green:  return Color(red: 0.22, green: 0.85, blue: 0.45)
+        case .yellow: return Color(red: 0.98, green: 0.82, blue: 0.12)
         }
     }
 
     var body: some View {
         GeometryReader { geo in
             let size = min(geo.size.width, geo.size.height)
-            let cornerRadius = size * 0.15
+            let cornerRadius = size * 0.16
 
             ZStack {
-                // Base Tile Card Background with bevel border
+                // Base Tile Card Background with bevel border & drop shadow
                 tileCardBackground(size: size, cornerRadius: cornerRadius)
 
-                // Pathway Canvas
-                PathCanvas(shape: tile.shape, rotation: tile.rotation, size: size)
-                    .padding(size * 0.04)
+                // High Contrast 3D Pathway Canvas
+                PathCanvas(shape: tile.shape, rotation: tile.rotation, size: size, isFixed: tile.isFixed)
+                    .padding(size * 0.03)
 
-                // Reachable Highlight Overlay
+                // Reachable Highlight Overlay (glowing neon emerald)
                 if isReachable {
                     RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                        .fill(Color.neonGreen.opacity(0.18))
+                        .fill(Color.neonGreen.opacity(colorScheme == .dark ? 0.24 : 0.30))
                     RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                        .strokeBorder(Color.neonGreen, lineWidth: max(2, size * 0.06))
+                        .strokeBorder(Color.neonGreen, lineWidth: max(2.5, size * 0.07))
+                        .shadow(color: Color.neonGreen.opacity(0.8), radius: 6)
                 }
 
-                // Current Target Highlight
+                // Current Target Treasure Highlight (pulsing golden starburst)
                 if isCurrentTarget {
                     RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                        .strokeBorder(Color.amber, lineWidth: max(2.5, size * 0.07))
+                        .strokeBorder(
+                            LinearGradient(
+                                colors: [Color.amber, Color(red: 1.0, green: 0.9, blue: 0.4)],
+                                startPoint: .topLeading, endPoint: .bottomTrailing
+                            ),
+                            lineWidth: max(3.0, size * 0.08)
+                        )
+                        .shadow(color: Color.amber.opacity(0.85), radius: 8)
                         .overlay(
                             RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                                .fill(Color.amber.opacity(0.12))
+                                .fill(Color.amber.opacity(0.16))
                         )
                 }
 
-                // Staged Move Target Highlight
+                // Staged Target Highlight
                 if isStagedTarget {
                     RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                        .fill(Color.blue.opacity(0.18))
+                        .fill(Color.blue.opacity(0.25))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                                .strokeBorder(Color.blue, lineWidth: 2)
+                        )
                 }
 
-                // Fixed Tile Golden Corner Emblems
+                // Fixed Tile Golden Corner Lock & Emblem
                 if tile.isFixed {
                     fixedTileBrackets(size: size)
                 }
@@ -81,7 +93,7 @@ struct TileView: View {
                                 .fill(pawnColor(pawn))
                                 .frame(width: size * 0.22, height: size * 0.22)
                                 .overlay(Circle().strokeBorder(Color.white, lineWidth: 1.5))
-                                .shadow(color: pawnColor(pawn).opacity(0.8), radius: 4)
+                                .shadow(color: pawnColor(pawn).opacity(0.9), radius: 4)
                             Spacer()
                         }
                         Spacer()
@@ -89,28 +101,14 @@ struct TileView: View {
                     .padding(size * 0.06)
                 }
 
-                // Treasure Emoji Badge
+                // Treasure Emoji
                 if let treasure = tile.treasure {
-                    VStack {
-                        Spacer()
-                        HStack(spacing: 2) {
-                            Text(treasure.emoji)
-                                .font(.system(size: size * 0.24))
-                            Text(treasure.shortName)
-                                .font(.system(size: size * 0.12, weight: .black, design: .rounded))
-                                .lineLimit(1)
-                                .minimumScaleFactor(0.5)
-                                .foregroundColor(isCurrentTarget ? .black : .white)
-                        }
-                        .padding(.horizontal, size * 0.07)
-                        .padding(.vertical, size * 0.04)
-                        .background(
-                            Capsule()
-                                .fill(isCurrentTarget ? Color.amber : Color.black.opacity(0.70))
-                        )
-                        .shadow(color: .black.opacity(0.3), radius: 2, y: 1)
-                    }
-                    .padding(.bottom, size * 0.05)
+                    Text(treasure.emoji)
+                        .font(.system(size: size * 0.45))
+                        .shadow(color: .black.opacity(0.4), radius: 2, y: 2)
+                        .shadow(color: isCurrentTarget ? Color.amber : .clear, radius: isCurrentTarget ? 12 : 0)
+                        .scaleEffect(isCurrentTarget ? 1.25 : 1.0)
+                        .animation(.spring(response: 0.3, dampingFraction: 0.6), value: isCurrentTarget)
                 }
             }
         }
@@ -121,47 +119,46 @@ struct TileView: View {
         ZStack {
             RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                 .fill(
-                    tile.isFixed
-                    ? LinearGradient(colors: [Color.tileFixed, Color(red: 0.09, green: 0.11, blue: 0.16)], startPoint: .topLeading, endPoint: .bottomTrailing)
-                    : LinearGradient(colors: [Color.tileBg, Color(red: 0.12, green: 0.14, blue: 0.19)], startPoint: .topLeading, endPoint: .bottomTrailing)
+                    colorScheme == .dark
+                    ? LinearGradient(colors: [Color(white: 0.20), Color(white: 0.14)], startPoint: .topLeading, endPoint: .bottomTrailing)
+                    : LinearGradient(colors: [Color.white, Color(white: 0.96)], startPoint: .topLeading, endPoint: .bottomTrailing)
                 )
+                .shadow(color: .black.opacity(colorScheme == .dark ? 0.5 : 0.15), radius: 4, y: 2)
 
-            // Bevel edge stroke
+            // Glassy border highlight
             RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                 .strokeBorder(
-                    tile.isFixed ? Color.amber.opacity(0.3) : Color.white.opacity(0.12),
+                    LinearGradient(
+                        colors: [Color.white.opacity(colorScheme == .dark ? 0.15 : 0.8), Color.white.opacity(0.0)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
                     lineWidth: 1
                 )
         }
     }
 
     private func fixedTileBrackets(size: CGFloat) -> some View {
-        VStack {
-            HStack {
-                Spacer()
-                Image(systemName: "lock.fill")
-                    .font(.system(size: size * 0.13, weight: .bold))
-                    .foregroundColor(Color.amber.opacity(0.6))
-            }
-            Spacer()
-        }
-        .padding(size * 0.06)
+        EmptyView() // Removed to declutter UI
     }
 }
 
-// MARK: - Path Canvas (Rich Crisp Corridors)
+// MARK: - Path Canvas (Rich Tactile Corridors)
 
 struct PathCanvas: View {
     let shape: TileShape
     let rotation: TileRotation
     let size: CGFloat
+    var isFixed: Bool = false
+
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         Canvas { context, cSize in
             let w = cSize.width
             let h = cSize.height
             let mid = CGPoint(x: w * 0.5, y: h * 0.5)
-            let corridorWidth: CGFloat = w * 0.38
+            let corridorWidth: CGFloat = w * 0.42
 
             var fillPath = Path()
             var strokePaths: [Path] = []
@@ -178,19 +175,31 @@ struct PathCanvas: View {
             case .corner:
                 let inR  = (w - corridorWidth) * 0.5
                 let outR = inR + corridorWidth
+                let arcCenter = CGPoint(x: w, y: 0)
+                
                 fillPath.move(to: CGPoint(x: mid.x - corridorWidth * 0.5, y: -4))
-                fillPath.addLine(to: CGPoint(x: mid.x + corridorWidth * 0.5, y: -4))
-                fillPath.addArc(center: mid, radius: outR,
-                                startAngle: .degrees(-90), endAngle: .degrees(0), clockwise: false)
+                fillPath.addLine(to: CGPoint(x: mid.x - corridorWidth * 0.5, y: 0))
+                fillPath.addArc(center: arcCenter, radius: outR, startAngle: .degrees(180), endAngle: .degrees(90), clockwise: true)
+                fillPath.addLine(to: CGPoint(x: w + 4, y: mid.y + corridorWidth * 0.5))
+                
                 fillPath.addLine(to: CGPoint(x: w + 4, y: mid.y - corridorWidth * 0.5))
-                fillPath.addArc(center: mid, radius: inR,
-                                startAngle: .degrees(0), endAngle: .degrees(-90), clockwise: true)
+                fillPath.addLine(to: CGPoint(x: w, y: mid.y - corridorWidth * 0.5))
+                fillPath.addArc(center: arcCenter, radius: inR, startAngle: .degrees(90), endAngle: .degrees(180), clockwise: false)
+                fillPath.addLine(to: CGPoint(x: mid.x + corridorWidth * 0.5, y: -4))
                 fillPath.closeSubpath()
 
                 var outerArc = Path()
-                outerArc.addArc(center: mid, radius: outR, startAngle: .degrees(-90), endAngle: .degrees(0), clockwise: false)
+                outerArc.move(to: CGPoint(x: mid.x - corridorWidth * 0.5, y: -4))
+                outerArc.addLine(to: CGPoint(x: mid.x - corridorWidth * 0.5, y: 0))
+                outerArc.addArc(center: arcCenter, radius: outR, startAngle: .degrees(180), endAngle: .degrees(90), clockwise: true)
+                outerArc.addLine(to: CGPoint(x: w + 4, y: mid.y + corridorWidth * 0.5))
+
                 var innerArc = Path()
-                innerArc.addArc(center: mid, radius: inR, startAngle: .degrees(0), endAngle: .degrees(-90), clockwise: true)
+                innerArc.move(to: CGPoint(x: mid.x + corridorWidth * 0.5, y: -4))
+                innerArc.addLine(to: CGPoint(x: mid.x + corridorWidth * 0.5, y: 0))
+                innerArc.addArc(center: arcCenter, radius: inR, startAngle: .degrees(180), endAngle: .degrees(90), clockwise: true)
+                innerArc.addLine(to: CGPoint(x: w + 4, y: mid.y - corridorWidth * 0.5))
+                
                 strokePaths = [outerArc, innerArc]
 
             case .tJunction:
@@ -227,58 +236,106 @@ struct PathCanvas: View {
                 .rotated(by: angle)
                 .translatedBy(x: -mid.x, y: -mid.y)
 
-            // Corridor fill
-            let rotatedFill = fillPath.applying(t)
-            context.fill(rotatedFill, with: .color(Color(red: 0.88, green: 0.68, blue: 0.20).opacity(0.35)))
+            // Cut-out Corridor Path Color (matches board background for depth)
+            let pathColor: Color = colorScheme == .dark
+                ? Color.boardBg
+                : Color(red: 0.85, green: 0.87, blue: 0.92)
 
-            // Corridor wall stroke
-            let lineWidth: CGFloat = max(2, w * 0.055)
+            // Corridor path fill
+            let rotatedFill = fillPath.applying(t)
+            context.fill(rotatedFill, with: .color(pathColor))
+
+            // Corridor 3D Wall Stroke (inner shadow effect)
+            let wallColor: Color = colorScheme == .dark
+                ? Color.black.opacity(0.8)
+                : Color.black.opacity(0.12)
+
+            let lineWidth: CGFloat = max(2.5, w * 0.06)
             for sp in strokePaths {
                 let rotated = sp.applying(t)
                 context.stroke(rotated,
-                                with: .color(Color.amber),
+                                with: .color(wallColor),
                                 style: StrokeStyle(lineWidth: lineWidth, lineCap: .round, lineJoin: .round))
             }
         }
     }
 }
 
-// MARK: - Pawn Token
+// MARK: - 3D Tactile Pawn Token
 
 struct PawnToken: View {
     let color: PawnColor
     let isActive: Bool
-    var size: CGFloat = 22
+    var size: CGFloat = 24
 
-    private var pawnFill: Color {
+    private var pawnGradient: [Color] {
         switch color {
-        case .red:    return Color(red: 0.95, green: 0.25, blue: 0.25)
-        case .blue:   return Color(red: 0.25, green: 0.50, blue: 0.95)
-        case .green:  return Color(red: 0.20, green: 0.80, blue: 0.40)
-        case .yellow: return Color(red: 0.95, green: 0.80, blue: 0.10)
+        case .red:
+            return [Color(red: 1.0, green: 0.40, blue: 0.40), Color(red: 0.80, green: 0.10, blue: 0.10)]
+        case .blue:
+            return [Color(red: 0.40, green: 0.70, blue: 1.0), Color(red: 0.10, green: 0.35, blue: 0.85)]
+        case .green:
+            return [Color(red: 0.35, green: 0.90, blue: 0.55), Color(red: 0.10, green: 0.65, blue: 0.25)]
+        case .yellow:
+            return [Color(red: 1.0, green: 0.90, blue: 0.30), Color(red: 0.85, green: 0.65, blue: 0.05)]
+        }
+    }
+
+    private var pawnShadowColor: Color {
+        switch color {
+        case .red:    return .red
+        case .blue:   return .blue
+        case .green:  return .green
+        case .yellow: return .orange
         }
     }
 
     var body: some View {
         ZStack {
+            // Glow aura when active
+            if isActive {
+                Circle()
+                    .fill(pawnShadowColor.opacity(0.5))
+                    .frame(width: size * 1.35, height: size * 1.35)
+                    .blur(radius: 4)
+            }
+
+            // 3D Pawn Body
             Circle()
-                .fill(pawnFill)
+                .fill(
+                    LinearGradient(
+                        colors: pawnGradient,
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
                 .frame(width: size, height: size)
                 .overlay(
-                    Circle().strokeBorder(Color.white, lineWidth: isActive ? 2.5 : 1.5)
+                    // Glossy Specular Reflection
+                    Circle()
+                        .strokeBorder(
+                            LinearGradient(
+                                colors: [Color.white.opacity(0.85), Color.white.opacity(0.20)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            ),
+                            lineWidth: isActive ? 2.5 : 1.5
+                        )
                 )
-                .shadow(color: pawnFill.opacity(0.8), radius: isActive ? 6 : 3)
+                .shadow(color: pawnShadowColor.opacity(0.6), radius: isActive ? 6 : 3, y: 2)
 
+            // Letter Icon Badge
             Text(String(color.rawValue.prefix(1)).uppercased())
-                .font(.system(size: size * 0.45, weight: .black, design: .rounded))
+                .font(.system(size: size * 0.46, weight: .black, design: .rounded))
                 .foregroundColor(color == .yellow ? .black : .white)
+                .shadow(color: .black.opacity(0.3), radius: 1, y: 1)
         }
-        .scaleEffect(isActive ? 1.15 : 1.0)
-        .animation(.spring(response: 0.3), value: isActive)
+        .scaleEffect(isActive ? 1.18 : 1.0)
+        .animation(.spring(response: 0.28, dampingFraction: 0.7), value: isActive)
     }
 }
 
-// MARK: - Pawn Overlay
+// MARK: - Pawn Overlay View
 
 struct PawnOverlayView: View {
     let row: Int
@@ -302,3 +359,4 @@ struct PawnOverlayView: View {
         }
     }
 }
+

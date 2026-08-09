@@ -3,7 +3,7 @@ import SwiftUI
 import LabyrinthSolverCore
 #endif
 
-// MARK: - Arrow Button
+// MARK: - Arrow Button (Liquid Glass Directional Controls)
 
 struct ArrowButton: View {
     let arrowId: String
@@ -12,50 +12,69 @@ struct ArrowButton: View {
     let isStaged: Bool
     let onTap: () -> Void
 
+    @Environment(\.colorScheme) private var colorScheme
+
     var body: some View {
-        Button(action: onTap) {
+        Button(action: {
+            if isAllowed {
+                Haptics.impact(.light)
+                onTap()
+            } else {
+                Haptics.notification(.warning)
+            }
+        }) {
             ZStack {
-                RoundedRectangle(cornerRadius: 8)
-                    .fill(isStaged
-                          ? Color.amber
-                          : isAllowed
-                            ? Color.white.opacity(0.10)
-                            : Color.clear)
-                    .frame(width: 32, height: 32)
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(isStaged ? AnyShapeStyle(Color.accentColor.opacity(0.85)) : AnyShapeStyle(.ultraThinMaterial))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            .strokeBorder(
+                                isStaged ? Color.white.opacity(0.6) : Color.white.opacity(colorScheme == .dark ? 0.1 : 0.5),
+                                lineWidth: isStaged ? 1.5 : 1
+                            )
+                    )
+                    .shadow(color: isStaged ? Color.accentColor.opacity(0.6) : .black.opacity(0.08), radius: isStaged ? 6 : 2, y: 1)
+                    .opacity(isAllowed ? 1.0 : 0.3)
 
                 Image(systemName: systemImage)
-                    .font(.system(size: 14, weight: .bold))
+                    .font(.system(size: 16, weight: .bold))
                     .foregroundColor(
-                        isStaged ? .black :
-                        isAllowed ? Color.amber : Color.white.opacity(0.12)
+                        isStaged ? .white : (isAllowed ? .primary : .secondary)
                     )
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .disabled(!isAllowed)
-        .scaleEffect(isStaged ? 1.10 : 1.0)
-        .animation(.spring(response: 0.2), value: isStaged)
+        .scaleEffect(isStaged ? 1.1 : 1.0)
+        .animation(.spring(response: 0.25, dampingFraction: 0.7), value: isStaged)
     }
 }
 
-// MARK: - Spare Cell (shows the spare tile in the top-left corner of arrow layout)
+// MARK: - Spare Cell (Interactive corner slot)
 
 struct SpareCell: View {
     let tile: TileData
     var size: CGFloat
+    let onTap: () -> Void
 
     var body: some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: 8)
-                .fill(Color.white.opacity(0.04))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 8)
-                        .strokeBorder(Color.amber.opacity(0.3), style: StrokeStyle(lineWidth: 1.5, dash: [4, 3]))
-                )
+        Button(action: {
+            Haptics.selection()
+            onTap()
+        }) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .fill(.ultraThinMaterial)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 10, style: .continuous)
+                            .strokeBorder(Color.amberGold.opacity(0.5), style: StrokeStyle(lineWidth: 1.5, dash: [4, 3]))
+                    )
 
-            TileView(tile: tile)
-                .padding(3)
+                TileView(tile: tile)
+                    .padding(3)
+            }
+            .frame(width: size, height: size)
         }
-        .frame(width: size, height: size)
     }
 }
 
@@ -63,12 +82,9 @@ struct SpareCell: View {
 
 struct LabyrinthBoardView: View {
     @Bindable var vm: GameViewModel
+    @Environment(\.colorScheme) private var colorScheme
 
-    // Slide animation state
-    @State private var slideOffset: CGSize = .zero
-    @State private var animatingArrow: String? = nil
-
-    private let arrowSize: CGFloat = 32
+    private let arrowSize: CGFloat = 34
     private let gap: CGFloat = 3
 
     var body: some View {
@@ -77,14 +93,24 @@ struct LabyrinthBoardView: View {
             let totalHeight = geo.size.height
             let totalSize   = min(totalWidth, totalHeight)
 
-            // tileSize: fit 9 slots (7 tiles + 2 arrows) into totalSize
+            // tileSize: fit 9 slots (7 tiles + 2 arrow margin slots) into totalSize
             let tileSize = (totalSize - arrowSize * 2 - gap * 8) / 7.0
 
             ZStack {
-                // Drop shadow backdrop
-                RoundedRectangle(cornerRadius: 16)
-                    .fill(Color.boardBg)
-                    .shadow(color: .black.opacity(0.6), radius: 16, y: 6)
+                // Board Backplate Container (Tactile Frame)
+                RoundedRectangle(cornerRadius: 22, style: .continuous)
+                    .fill(colorScheme == .dark ? Color.boardBg : Color(red: 0.90, green: 0.92, blue: 0.96))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 22, style: .continuous)
+                            .strokeBorder(
+                                LinearGradient(
+                                    colors: [Color.white.opacity(0.35), Color.black.opacity(0.20)],
+                                    startPoint: .topLeading, endPoint: .bottomTrailing
+                                ),
+                                lineWidth: 1.5
+                            )
+                    )
+                    .shadow(color: .black.opacity(0.40), radius: 18, x: 0, y: 8)
 
                 VStack(spacing: gap) {
                     topArrowRow(tileSize: tileSize)
@@ -106,15 +132,18 @@ struct LabyrinthBoardView: View {
 
     @ViewBuilder
     private func boardGrid(tileSize: CGFloat) -> some View {
-        let displayBoard = vm.previewBoard ?? vm.board
+        let preview = vm.previewState
+        let displayBoard = preview?.grid ?? vm.board
+        let currentReachable = preview?.reachable ?? vm.reachablePositions
 
         VStack(spacing: gap) {
             ForEach(0..<7, id: \.self) { r in
                 HStack(spacing: gap) {
                     ForEach(0..<7, id: \.self) { c in
                         let tile = displayBoard[r][c]
-                        let isReachable = vm.turnPhase == .move &&
-                            vm.reachablePositions.contains(PawnPositionKey(row: r, col: c))
+                        // Highlight if reachable during move phase, OR if reachable during a staged preview
+                        let isReachable = (vm.turnPhase == .move || vm.stagedArrowId != nil) &&
+                            currentReachable.contains(PawnPositionKey(row: r, col: c))
                         let isTarget = vm.activeTargetId != nil &&
                             tile.treasure?.id == vm.activeTargetId
 
@@ -125,7 +154,7 @@ struct LabyrinthBoardView: View {
                                 isCurrentTarget: isTarget
                             )
 
-                            // Pawn overlay
+                            // Pawns on this cell
                             pawnsOn(row: r, col: c, tileSize: tileSize)
                         }
                         .frame(width: tileSize, height: tileSize)
@@ -135,8 +164,8 @@ struct LabyrinthBoardView: View {
                 }
             }
         }
-        .background(Color.boardBg)
-        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .background(colorScheme == .dark ? Color.boardBg : Color(red: 0.85, green: 0.87, blue: 0.92))
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 
     // MARK: - Pawns on tile
@@ -152,7 +181,7 @@ struct LabyrinthBoardView: View {
                     PawnToken(
                         color: pawn,
                         isActive: pawn == vm.activePawn,
-                        size: tileSize * 0.38
+                        size: tileSize * 0.40
                     )
                 }
             }
@@ -165,7 +194,7 @@ struct LabyrinthBoardView: View {
     private func topArrowRow(tileSize: CGFloat) -> some View {
         HStack(spacing: gap) {
             // Spare tile in corner
-            SpareCell(tile: vm.spareTile, size: arrowSize)
+            SpareCell(tile: vm.spareTile, size: arrowSize, onTap: { vm.rotateSpareTile() })
 
             ForEach(0..<7, id: \.self) { c in
                 if [1, 3, 5].contains(c) {
@@ -177,13 +206,12 @@ struct LabyrinthBoardView: View {
                         isStaged: vm.stagedArrowId == arrowId,
                         onTap: { vm.stageOrRotateArrow(arrowId) }
                     )
-                    .frame(width: tileSize)
+                    .frame(width: tileSize, height: arrowSize)
                 } else {
                     Spacer().frame(width: tileSize, height: arrowSize)
                 }
             }
 
-            // Empty corner
             Spacer().frame(width: arrowSize, height: arrowSize)
         }
     }
@@ -203,7 +231,7 @@ struct LabyrinthBoardView: View {
                         isStaged: vm.stagedArrowId == arrowId,
                         onTap: { vm.stageOrRotateArrow(arrowId) }
                     )
-                    .frame(width: tileSize)
+                    .frame(width: tileSize, height: arrowSize)
                 } else {
                     Spacer().frame(width: tileSize, height: arrowSize)
                 }
@@ -226,7 +254,7 @@ struct LabyrinthBoardView: View {
                         isStaged: vm.stagedArrowId == arrowId,
                         onTap: { vm.stageOrRotateArrow(arrowId) }
                     )
-                    .frame(height: tileSize)
+                    .frame(width: arrowSize, height: tileSize)
                 } else {
                     Spacer().frame(width: arrowSize, height: tileSize)
                 }
@@ -248,7 +276,7 @@ struct LabyrinthBoardView: View {
                         isStaged: vm.stagedArrowId == arrowId,
                         onTap: { vm.stageOrRotateArrow(arrowId) }
                     )
-                    .frame(height: tileSize)
+                    .frame(width: arrowSize, height: tileSize)
                 } else {
                     Spacer().frame(width: arrowSize, height: tileSize)
                 }
@@ -262,16 +290,17 @@ struct LabyrinthBoardView: View {
     private func handleCellTap(_ r: Int, _ c: Int) {
         switch vm.turnPhase {
         case .slide:
-            // Nothing — use arrow buttons to slide
-            break
+            // Prompt user with a light warning if tapping board before sliding
+            Haptics.notification(.warning)
+            vm.showToast("Slide a tile using an arrow button first!")
         case .move:
             let didMove = vm.movePawn(to: r, col: c)
-            if !didMove {
-                // Light haptic to indicate non-reachable tap
-                #if os(iOS)
-                UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                #endif
+            if didMove {
+                Haptics.impact(.medium)
+            } else {
+                Haptics.notification(.error)
             }
         }
     }
 }
+

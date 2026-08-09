@@ -97,6 +97,7 @@ struct BoardSetupView: View {
     private var startGameButton: some View {
         let btnText = vm.placedTilesCount < 33 ? "Auto-Fill & Start Game" : "Start Game"
         return Button(action: {
+            Haptics.impact(.medium)
             vm.startGame()
             onStartGame()
         }) {
@@ -107,10 +108,10 @@ struct BoardSetupView: View {
                     .font(.system(size: 16, weight: .bold, design: .rounded))
             }
             .frame(maxWidth: .infinity, minHeight: 46)
-            .background(Color.accentColor)
+            .background(Color.accentForTheme(vm.appAccentTheme))
             .foregroundColor(.white)
             .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-            .shadow(color: Color.accentColor.opacity(0.3), radius: 6, y: 3)
+            .shadow(color: Color.accentForTheme(vm.appAccentTheme).opacity(0.35), radius: 6, y: 3)
         }
     }
 
