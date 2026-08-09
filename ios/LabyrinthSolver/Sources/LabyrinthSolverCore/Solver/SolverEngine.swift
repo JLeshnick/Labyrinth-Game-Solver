@@ -609,7 +609,7 @@ public struct SolverEngine {
     }
 
     /// Human-readable arrow label.
-    static func arrowDisplayName(_ arrowId: String) -> String {
+    public static func arrowDisplayName(_ arrowId: String) -> String {
         let parts = arrowId.split(separator: "_")
         guard parts.count == 2, let idx = Int(parts[1]) else { return arrowId }
         let side = String(parts[0])

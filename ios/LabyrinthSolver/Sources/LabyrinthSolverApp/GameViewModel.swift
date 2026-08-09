@@ -26,6 +26,7 @@ final class GameViewModel {
     
     // Multi-player tracking
     var currentPlayerIndex: Int = 0
+    var gameMode: GameMode = .standard
     var activePlayers: [PawnColor] = PawnColor.allCases
     
     var myColor: PawnColor {
@@ -41,9 +42,12 @@ final class GameViewModel {
     var stagedRotation: TileRotation = .deg0
     var stagedSolverMove: MoveOption? = nil
 
+    // MARK: - Player Hands
+    var playerHands: [PawnColor: PlayerHand] = GameConstants.dealDefaultHands()
+
     // MARK: - Undo / Redo
-    private var undoStack: [HistoryEntry] = []
-    private var redoStack: [HistoryEntry] = []
+    private(set) var undoStack: [HistoryEntry] = []
+    private(set) var redoStack: [HistoryEntry] = []
     var canUndo: Bool { !undoStack.isEmpty }
     var canRedo: Bool { !redoStack.isEmpty }
 

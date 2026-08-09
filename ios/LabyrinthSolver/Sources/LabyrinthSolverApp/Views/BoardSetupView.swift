@@ -14,7 +14,7 @@ struct BoardSetupView: View {
 
     var body: some View {
         ZStack(alignment: .bottom) {
-            Color(UIColor.systemGroupedBackground)
+            Color.appGroupedBg
                 .ignoresSafeArea()
 
             VStack(spacing: 0) {
@@ -48,7 +48,7 @@ struct BoardSetupView: View {
             .padding(.bottom, 16)
         }
         .sheet(isPresented: $showSettingsSheet) {
-            SettingsSheet(vm: vm, onSetup: {})
+            SettingsView(vm: vm, onSetup: {}, onShowWelcome: {})
         }
     }
 
@@ -76,7 +76,7 @@ struct BoardSetupView: View {
             startGameButton
         }
         .padding(16)
-        .background(Color(UIColor.secondarySystemGroupedBackground))
+        .background(Color.appSecondaryGroupedBg)
         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
 
@@ -94,7 +94,7 @@ struct BoardSetupView: View {
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
-        .background(Color(UIColor.tertiarySystemGroupedBackground))
+        .background(Color.appTertiaryGroupedBg)
         .clipShape(Capsule())
     }
 
@@ -150,7 +150,7 @@ struct BoardSetupView: View {
                         .font(.system(size: 13, weight: .semibold, design: .rounded))
                         .padding(.horizontal, 14)
                         .padding(.vertical, 10)
-                        .background(Color(UIColor.secondarySystemGroupedBackground))
+                        .background(Color.appSecondaryGroupedBg)
                         .foregroundColor(.primary)
                         .clipShape(Capsule())
                 }
@@ -266,7 +266,7 @@ struct SetupGridCellView: View {
 
     private var emptySlotPlaceholder: some View {
         RoundedRectangle(cornerRadius: tileSize * 0.14)
-            .fill(Color(UIColor.secondarySystemGroupedBackground))
+            .fill(Color.appSecondaryGroupedBg)
             .overlay(
                 RoundedRectangle(cornerRadius: tileSize * 0.14)
                     .strokeBorder(Color.secondary.opacity(0.4), style: StrokeStyle(lineWidth: 1.5, dash: [4, 3]))
@@ -341,7 +341,7 @@ struct LooseTilesPoolView: View {
             }
         }
         .padding(16)
-        .background(Color(UIColor.secondarySystemGroupedBackground))
+        .background(Color.appSecondaryGroupedBg)
         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
 }

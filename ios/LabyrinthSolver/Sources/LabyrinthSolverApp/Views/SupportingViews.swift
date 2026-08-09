@@ -36,68 +36,8 @@ extension Color {
     }
 }
 
-// MARK: - Liquid Glass View Modifiers
+// (Liquid glass modifiers are defined in LiquidGlassModifiers.swift)
 
-struct LiquidGlassCardModifier: ViewModifier {
-    var cornerRadius: CGFloat = 20
-    var isInteractive: Bool = false
-
-    func body(content: Content) -> some View {
-        content
-            .background(
-                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                    .fill(.ultraThinMaterial)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                    .strokeBorder(
-                        LinearGradient(
-                            colors: [
-                                Color.white.opacity(0.35),
-                                Color.white.opacity(0.10),
-                                Color.black.opacity(0.10)
-                            ],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        ),
-                        lineWidth: 1
-                    )
-            )
-            .shadow(color: Color.black.opacity(0.20), radius: isInteractive ? 12 : 8, y: isInteractive ? 6 : 3)
-    }
-}
-
-struct LiquidGlassCapsuleModifier: ViewModifier {
-    func body(content: Content) -> some View {
-        content
-            .background(.ultraThinMaterial, in: Capsule())
-            .overlay(
-                Capsule()
-                    .strokeBorder(
-                        LinearGradient(
-                            colors: [
-                                Color.white.opacity(0.40),
-                                Color.white.opacity(0.10)
-                            ],
-                            startPoint: .top,
-                            endPoint: .bottom
-                        ),
-                        lineWidth: 1
-                    )
-            )
-            .shadow(color: Color.black.opacity(0.22), radius: 10, y: 5)
-    }
-}
-
-extension View {
-    func liquidGlassCard(cornerRadius: CGFloat = 20, isInteractive: Bool = false) -> some View {
-        self.modifier(LiquidGlassCardModifier(cornerRadius: cornerRadius, isInteractive: isInteractive))
-    }
-    
-    func liquidGlassCapsule() -> some View {
-        self.modifier(LiquidGlassCapsuleModifier())
-    }
-}
 
 // MARK: - Haptic Feedback Helpers
 
@@ -165,7 +105,7 @@ struct ToastView: View {
         .padding(.horizontal, 18)
         .padding(.vertical, 11)
         .liquidGlassCapsule()
-        .transition(.move(edge: .bottom).combined(with: .opacity))
+        .transition(AnyTransition.move(edge: .bottom).combined(with: AnyTransition.opacity))
     }
 }
 

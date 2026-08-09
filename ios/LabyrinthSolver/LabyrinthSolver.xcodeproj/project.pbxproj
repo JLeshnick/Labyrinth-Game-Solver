@@ -16,6 +16,19 @@
 		B1000007 /* GameViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1000007 /* GameViewModel.swift */; };
 		B1000008 /* SupportingViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1000008 /* SupportingViews.swift */; };
 		B1000009 /* BoardSetupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1000009 /* BoardSetupView.swift */; };
+		B1000010 /* DesignTokens.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1000010 /* DesignTokens.swift */; };
+		B1000011 /* LiquidGlassModifiers.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1000011 /* LiquidGlassModifiers.swift */; };
+		B1000012 /* SoundManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1000012 /* SoundManager.swift */; };
+		B1000013 /* CommandHeader.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1000013 /* CommandHeader.swift */; };
+		B1000014 /* GameCompleteView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1000014 /* GameCompleteView.swift */; };
+		B1000015 /* GameView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1000015 /* GameView.swift */; };
+		B1000016 /* MoveHistorySheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1000016 /* MoveHistorySheet.swift */; };
+		B1000017 /* PlayerHandView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1000017 /* PlayerHandView.swift */; };
+		B1000018 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1000018 /* SettingsView.swift */; };
+		B1000019 /* SolverConsoleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1000019 /* SolverConsoleView.swift */; };
+		B1000020 /* SolverOptionCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1000020 /* SolverOptionCard.swift */; };
+		B1000021 /* TargetPickerSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1000021 /* TargetPickerSheet.swift */; };
+		B1000022 /* WelcomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1000022 /* WelcomeView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -29,6 +42,19 @@
 		F1000007 /* GameViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/LabyrinthSolverApp/GameViewModel.swift; sourceTree = "<group>"; };
 		F1000008 /* SupportingViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/LabyrinthSolverApp/Views/SupportingViews.swift; sourceTree = "<group>"; };
 		F1000009 /* BoardSetupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/LabyrinthSolverApp/Views/BoardSetupView.swift; sourceTree = "<group>"; };
+		F1000010 /* DesignTokens.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/LabyrinthSolverApp/Design/DesignTokens.swift; sourceTree = "<group>"; };
+		F1000011 /* LiquidGlassModifiers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/LabyrinthSolverApp/Design/LiquidGlassModifiers.swift; sourceTree = "<group>"; };
+		F1000012 /* SoundManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/LabyrinthSolverApp/Audio/SoundManager.swift; sourceTree = "<group>"; };
+		F1000013 /* CommandHeader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/LabyrinthSolverApp/Views/CommandHeader.swift; sourceTree = "<group>"; };
+		F1000014 /* GameCompleteView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/LabyrinthSolverApp/Views/GameCompleteView.swift; sourceTree = "<group>"; };
+		F1000015 /* GameView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/LabyrinthSolverApp/Views/GameView.swift; sourceTree = "<group>"; };
+		F1000016 /* MoveHistorySheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/LabyrinthSolverApp/Views/MoveHistorySheet.swift; sourceTree = "<group>"; };
+		F1000017 /* PlayerHandView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/LabyrinthSolverApp/Views/PlayerHandView.swift; sourceTree = "<group>"; };
+		F1000018 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/LabyrinthSolverApp/Views/SettingsView.swift; sourceTree = "<group>"; };
+		F1000019 /* SolverConsoleView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/LabyrinthSolverApp/Views/SolverConsoleView.swift; sourceTree = "<group>"; };
+		F1000020 /* SolverOptionCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/LabyrinthSolverApp/Views/SolverOptionCard.swift; sourceTree = "<group>"; };
+		F1000021 /* TargetPickerSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/LabyrinthSolverApp/Views/TargetPickerSheet.swift; sourceTree = "<group>"; };
+		F1000022 /* WelcomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/LabyrinthSolverApp/Views/WelcomeView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -62,6 +88,19 @@
 				F1000007 /* GameViewModel.swift */,
 				F1000008 /* SupportingViews.swift */,
 				F1000009 /* BoardSetupView.swift */,
+				F1000010 /* DesignTokens.swift */,
+				F1000011 /* LiquidGlassModifiers.swift */,
+				F1000012 /* SoundManager.swift */,
+				F1000013 /* CommandHeader.swift */,
+				F1000014 /* GameCompleteView.swift */,
+				F1000015 /* GameView.swift */,
+				F1000016 /* MoveHistorySheet.swift */,
+				F1000017 /* PlayerHandView.swift */,
+				F1000018 /* SettingsView.swift */,
+				F1000019 /* SolverConsoleView.swift */,
+				F1000020 /* SolverOptionCard.swift */,
+				F1000021 /* TargetPickerSheet.swift */,
+				F1000022 /* WelcomeView.swift */,
 			);
 			sourceTree = "<group>";
 		};
@@ -150,6 +189,19 @@
 				B1000007 /* GameViewModel.swift in Sources */,
 				B1000008 /* SupportingViews.swift in Sources */,
 				B1000009 /* BoardSetupView.swift in Sources */,
+				B1000010 /* DesignTokens.swift in Sources */,
+				B1000011 /* LiquidGlassModifiers.swift in Sources */,
+				B1000012 /* SoundManager.swift in Sources */,
+				B1000013 /* CommandHeader.swift in Sources */,
+				B1000014 /* GameCompleteView.swift in Sources */,
+				B1000015 /* GameView.swift in Sources */,
+				B1000016 /* MoveHistorySheet.swift in Sources */,
+				B1000017 /* PlayerHandView.swift in Sources */,
+				B1000018 /* SettingsView.swift in Sources */,
+				B1000019 /* SolverConsoleView.swift in Sources */,
+				B1000020 /* SolverOptionCard.swift in Sources */,
+				B1000021 /* TargetPickerSheet.swift in Sources */,
+				B1000022 /* WelcomeView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

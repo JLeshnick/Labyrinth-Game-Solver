@@ -156,7 +156,7 @@ struct LabyrinthBoardView: View {
                 }
             }
         }
-        .background(colorScheme == .dark ? Color.black : Color(UIColor.systemGray4))
+        .background(colorScheme == .dark ? Color.black : Color.appSystemGray4)
         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
         .overlay {
             if !vm.projectedRoute.isEmpty {
