@@ -53,11 +53,13 @@ final class GameViewModel {
 
     // MARK: - Targets
     var activeTargetId: String? = nil
+    var activeTargetPosition: PawnPosition? = nil
 
     // MARK: - Solver State
     var isSolving: Bool = false
     var solverOptions: [MoveOption] = []
     var reachablePositions: Set<PawnPositionKey> = []
+    var oneTurnReachablePositions: Set<PawnPositionKey> = []
     
     // Treasures reachable right now on the board (if rules allowed no slide)
     var reachableTreasures: [Treasure] = []
@@ -102,8 +104,10 @@ final class GameViewModel {
         }
         reachableTreasures = treasures.sorted { $0.name < $1.name }
         
-        // Compute 1-turn reachable treasures
-        var oneTurn = Set<String>()
+        // Compute 1-turn reachable treasures & position keys
+        var oneTurnTreasures = Set<String>()
+        var oneTurnKeys = Set<PawnPositionKey>()
+
         for arrow in GameConstants.validArrowIds {
             if isArrowAllowed(arrow) {
                 for rotation in TileRotation.allCases {
@@ -112,15 +116,17 @@ final class GameViewModel {
                     let (simGrid, _, simPawns) = SolverEngine.simulateSlide(grid: board, spareTile: rotatedSpare, arrowId: arrow, pawnPositions: pawnPositions)
                     let reachable = SolverEngine.findReachablePositions(grid: simGrid, start: simPawns[myColor])
                     for key in reachable {
+                        oneTurnKeys.insert(key)
                         if let t = simGrid[key.row][key.col].treasure {
-                            oneTurn.insert(t.id)
+                            oneTurnTreasures.insert(t.id)
                         }
                     }
                 }
             }
         }
         
-        self.oneTurnReachableTreasures = GameConstants.treasures.filter { oneTurn.contains($0.id) }
+        self.oneTurnReachableTreasures = GameConstants.treasures.filter { oneTurnTreasures.contains($0.id) }
+        self.oneTurnReachablePositions = oneTurnKeys
         self.projectedRoute = []
     }
 
@@ -289,6 +295,8 @@ final class GameViewModel {
         stagedSolverMove = nil
         projectedRoute = []
         solverOptions.removeAll()
+        activeTargetId = nil
+        activeTargetPosition = nil
         refreshReachable()
     }
 
@@ -555,10 +563,28 @@ final class GameViewModel {
         activeTargetId = treasureId
         stagedSolverMove = nil
         solverOptions.removeAll()
+        
+        // Find position of this treasure on current board grid
+        for r in 0..<7 {
+            for c in 0..<7 {
+                if board[r][c].treasure?.id == treasureId {
+                    activeTargetPosition = PawnPosition(row: r, col: c)
+                    return
+                }
+            }
+        }
+    }
+
+    func setActiveTargetPosition(_ pos: PawnPosition) {
+        activeTargetPosition = pos
+        activeTargetId = board[pos.row][pos.col].treasure?.id
+        stagedSolverMove = nil
+        solverOptions.removeAll()
     }
 
     func clearActiveTarget() {
         activeTargetId = nil
+        activeTargetPosition = nil
         stagedSolverMove = nil
         solverOptions.removeAll()
     }

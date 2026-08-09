@@ -55,7 +55,7 @@ struct SolverConsoleView: View {
                 // Solve Button
                 if vm.stagedArrowId == nil {
                     Button(action: {
-                        Haptics.impact(.medium)
+                        Haptics.selection()
                         SoundManager.shared.play(.solverComplete, enabled: vm.enableSound)
                         vm.runSolverAndStage()
                     }) {
@@ -185,7 +185,7 @@ struct SolverConsoleView: View {
             .buttonStyle(.plain)
 
             Button(action: {
-                Haptics.impact(.heavy)
+                Haptics.selection()
                 SoundManager.shared.play(.slideIn, enabled: vm.enableSound)
                 vm.commitSlide()
             }) {

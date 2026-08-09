@@ -17,6 +17,7 @@ extension Color {
 struct TileView: View {
     let tile: TileData
     var isReachable: Bool = false
+    var isOneTurnReachable: Bool = false
     var isCurrentTarget: Bool = false
     var isStagedTarget: Bool = false
 
@@ -43,6 +44,16 @@ struct TileView: View {
                 // High Contrast 3D Pathway Canvas
                 PathCanvas(shape: tile.shape, rotation: tile.rotation, size: size, isFixed: tile.isFixed)
                     .padding(size * 0.03)
+
+                // 1-Turn Slide Reachable Highlight (dashed neon emerald outline)
+                if !isReachable && isOneTurnReachable {
+                    RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                        .strokeBorder(
+                            Color.neonGreen.opacity(0.85),
+                            style: StrokeStyle(lineWidth: max(2.0, size * 0.06), dash: [size * 0.16, size * 0.12])
+                        )
+                        .shadow(color: Color.neonGreen.opacity(0.35), radius: 3)
+                }
 
                 // Reachable Highlight Overlay (glowing neon emerald)
                 if isReachable {

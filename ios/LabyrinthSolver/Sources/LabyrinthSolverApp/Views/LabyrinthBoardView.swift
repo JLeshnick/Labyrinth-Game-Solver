@@ -139,13 +139,16 @@ struct LabyrinthBoardView: View {
                 HStack(spacing: gap) {
                     ForEach(0..<7, id: \.self) { c in
                         let tile = displayBoard[r][c]
-                        let isReachable = currentReachable.contains(PawnPositionKey(row: r, col: c))
-                        let isTarget = vm.activeTargetId != nil && tile.treasure?.id == vm.activeTargetId
+                        let posKey = PawnPositionKey(row: r, col: c)
+                        let isReachable = currentReachable.contains(posKey)
+                        let isOneTurn = vm.oneTurnReachablePositions.contains(posKey)
+                        let isTarget = (vm.activeTargetPosition == PawnPosition(row: r, col: c)) || (vm.activeTargetId != nil && tile.treasure?.id == vm.activeTargetId)
 
                         ZStack {
                             TileView(
                                 tile: tile,
                                 isReachable: isReachable,
+                                isOneTurnReachable: isOneTurn,
                                 isCurrentTarget: isTarget
                             )
                         }
@@ -315,14 +318,13 @@ struct LabyrinthBoardView: View {
                 return
             }
         }
-        // If not move phase or move was invalid, allow setting as target
+        // Allow setting ANY tile (treasure or blank corridor) on the board as target destination!
+        Haptics.selection()
+        vm.setActiveTargetPosition(PawnPosition(row: r, col: c))
         if let treasure = vm.board[r][c].treasure {
-            Haptics.selection()
-            vm.setActiveTarget(treasureId: treasure.id)
             vm.showToast("Target set to \(treasure.name)")
         } else {
-            Haptics.notification(.warning)
-            vm.showToast("Choose a treasure target or slide a tile.")
+            vm.showToast("Target set to tile (\(r + 1), \(c + 1))")
         }
     }
 }
