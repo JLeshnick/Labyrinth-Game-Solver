@@ -4,123 +4,135 @@ import Combine
 import LabyrinthSolverCore
 #endif
 
-// MARK: - Game View Model
-
-/// Central observable state for the Labyrinth Solver app.
-/// Manages board state, turn phases, undo/redo history, pawn management,
-/// player hands, and the async solver.
 @Observable
 @MainActor
 final class GameViewModel {
 
     // MARK: - Setup & App Settings State
-
-    var setupTab: SetupTab = .tiles
-    var gameMode: GameMode = .standard
+    var isSetupMode: Bool = true
     var looseTiles: [TileData] = []
     var selectedLooseTileId: String? = nil
     var setupGrid: [[TileData?]]? = nil
 
     var appColorScheme: AppColorScheme = .system
-    var appAccentTheme: AppAccentTheme = .gold
+    var appAccentTheme: AppAccentTheme = .sapphire
     var enableSound: Bool = true
     var enableHaptics: Bool = true
     var solverDepth: Int = 2
 
     // MARK: - Board State
-
     var board: [[TileData]]
     var spareTile: TileData
+    
+    // Multi-player tracking
+    var currentPlayerIndex: Int = 0
+    var activePlayers: [PawnColor] = PawnColor.allCases
+    
+    var myColor: PawnColor {
+        activePlayers[currentPlayerIndex]
+    }
+    
     var pawnPositions: PawnPositions
 
     // MARK: - Turn Management
-
     var turnPhase: TurnPhase = .slide
-    var activePawn: PawnColor = .red
-    var lastArrowId: String? = nil    // For no-reverse rule
-    var stagedArrowId: String? = nil  // Arrow highlighted but not yet committed
+    var lastArrowId: String? = nil
+    var stagedArrowId: String? = nil
     var stagedRotation: TileRotation = .deg0
-    var stagedAiMove: MoveOption? = nil // Stores the AI's full move to auto-execute pawn move
+    var stagedSolverMove: MoveOption? = nil
 
     // MARK: - Undo / Redo
-
     private var undoStack: [HistoryEntry] = []
     private var redoStack: [HistoryEntry] = []
     var canUndo: Bool { !undoStack.isEmpty }
     var canRedo: Bool { !redoStack.isEmpty }
 
-    // MARK: - Player Hands & Treasure Tracking
-
-    var playerHands: [PawnColor: PlayerHand] = [:]
-    var activePlayers: [PawnColor] = PawnColor.allCases
-
-    /// A simple one-shot target treasure ID used by the solver sheet (independent of card hands)
-    var singleTargetId: String? = nil
-
-    // Returns the current target treasure id — prefers singleTargetId over card hand
-    var activeTargetId: String? { singleTargetId ?? playerHands[activePawn]?.currentTarget }
+    // MARK: - Targets
+    var activeTargetId: String? = nil
 
     // MARK: - Solver State
-
     var isSolving: Bool = false
-    var solverMessage: String? = nil
-    var solverOptions: [MoveOption] = [] // Store multiple options to show
-
-    // MARK: - Reachable Positions Cache
-
+    var solverOptions: [MoveOption] = []
     var reachablePositions: Set<PawnPositionKey> = []
+    
+    // Treasures reachable right now on the board (if rules allowed no slide)
+    var reachableTreasures: [Treasure] = []
+    
+    // Treasures reachable in exactly 1 turn (after a slide)
+    var oneTurnReachableTreasures: [Treasure] = []
+    
+    // Projected Route
+    var projectedRoute: [PawnPosition] = []
 
     // MARK: - Game Control
-
     var isGameStarted: Bool = false
     var moveCount: Int = 0
-
-    // MARK: - UI Feedback
-
     var toastMessage: String? = nil
     private var toastTask: Task<Void, Never>? = nil
 
-    // MARK: - Init
-
     init() {
         let initial = GameConstants.createStandardFullBoard()
-        self.board       = initial.grid
-        self.spareTile   = initial.spareTile
-        self.looseTiles  = [initial.spareTile]
-        self.pawnPositions = PawnPositions()
-        self.playerHands = [:]
+        self.board = initial.grid
+        self.spareTile = initial.spareTile
+        self.looseTiles = [initial.spareTile]
+        self.pawnPositions = PawnPositions(red: .init(row: 0, col: 0))
         refreshReachable()
     }
 
     // MARK: - Reachable Refresh
-
     func refreshReachable() {
-        let pos = pawnPositions[activePawn]
+        let pos = pawnPositions[myColor]
         reachablePositions = SolverEngine.findReachablePositions(grid: board, start: pos)
+        
+        var treasures: [Treasure] = []
+        for r in 0..<7 {
+            for c in 0..<7 {
+                if reachablePositions.contains(PawnPositionKey(row: r, col: c)) {
+                    if let t = board[r][c].treasure {
+                        treasures.append(t)
+                    }
+                }
+            }
+        }
+        reachableTreasures = treasures.sorted { $0.name < $1.name }
+        
+        // Compute 1-turn reachable treasures
+        var oneTurn = Set<String>()
+        for arrow in GameConstants.validArrowIds {
+            if isArrowAllowed(arrow) {
+                for rotation in TileRotation.allCases {
+                    var rotatedSpare = spareTile
+                    rotatedSpare.rotation = rotation
+                    let (simGrid, _, simPawns) = SolverEngine.simulateSlide(grid: board, spareTile: rotatedSpare, arrowId: arrow, pawnPositions: pawnPositions)
+                    let reachable = SolverEngine.findReachablePositions(grid: simGrid, start: simPawns[myColor])
+                    for key in reachable {
+                        if let t = simGrid[key.row][key.col].treasure {
+                            oneTurn.insert(t.id)
+                        }
+                    }
+                }
+            }
+        }
+        
+        self.oneTurnReachableTreasures = GameConstants.treasures.filter { oneTurn.contains($0.id) }
+        self.projectedRoute = []
     }
 
-    // MARK: - Slide (Commit)
-
-    /// Stage an arrow — first tap highlights it; second tap (or commit button) executes.
+    // MARK: - Staging & Sliding
     func stageOrRotateArrow(_ arrowId: String) {
         if stagedArrowId == arrowId {
-            // Already staged: rotate spare one step
             spareTile.rotation = spareTile.rotation.nextClockwise
             stagedRotation = spareTile.rotation
         } else {
             stagedArrowId = arrowId
             stagedRotation = spareTile.rotation
         }
-        stagedAiMove = nil // Manual staging clears AI move
+        stagedSolverMove = nil
     }
 
-    /// Apply the staged slide and advance turn phase to .move. If an AI move is staged, auto-move the pawn.
     func commitSlide() {
         guard let arrowId = stagedArrowId else { return }
-        // Enforce no-reverse rule
-        if let last = lastArrowId,
-           let opposite = GameConstants.oppositeArrowId(for: last),
-           arrowId == opposite {
+        if let last = lastArrowId, let opposite = GameConstants.oppositeArrowId(for: last), arrowId == opposite {
             showToast("You can't reverse the last slide!")
             return
         }
@@ -128,120 +140,148 @@ final class GameViewModel {
         var rotatedSpare = spareTile
         rotatedSpare.rotation = stagedRotation
         let (nextGrid, nextSpare, nextPawns) = SolverEngine.simulateSlide(
-            grid: board,
-            spareTile: rotatedSpare,
-            arrowId: arrowId,
-            pawnPositions: pawnPositions
+            grid: board, spareTile: rotatedSpare, arrowId: arrowId, pawnPositions: pawnPositions
         )
-        board          = nextGrid
-        spareTile      = nextSpare
-        pawnPositions  = nextPawns
-        lastArrowId    = arrowId
-        stagedArrowId  = nil
-        turnPhase      = .move
-        solverMessage  = nil
+        board = nextGrid
+        spareTile = nextSpare
+        pawnPositions = nextPawns
+        lastArrowId = arrowId
+        stagedArrowId = nil
+        turnPhase = .move
         solverOptions.removeAll()
         refreshReachable()
 
-        // Auto-move pawn if this was an AI move
-        if let aiMove = stagedAiMove {
-            stagedAiMove = nil
+        if let aiMove = stagedSolverMove {
+            stagedSolverMove = nil
             let key = PawnPositionKey(aiMove.targetPosition)
             if reachablePositions.contains(key) {
-                // Short delay so the user sees the slide complete before the pawn moves
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
-                    self?.movePawn(to: aiMove.targetPosition.row, col: aiMove.targetPosition.col)
+                let currentRoute = self.projectedRoute
+                self.projectedRoute = []
+                
+                if currentRoute.count > 1 {
+                    self.moveCount += 1
+                    self.animatePawn(along: currentRoute)
+                } else {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
+                        self?.movePawn(to: aiMove.targetPosition.row, col: aiMove.targetPosition.col)
+                    }
                 }
+            } else {
+                self.projectedRoute = []
             }
         }
     }
-
-    /// Cancel a staged arrow without committing
-    func cancelStage() {
-        stagedArrowId = nil
-        stagedAiMove = nil
+    
+    private func animatePawn(along route: [PawnPosition], currentIndex: Int = 0) {
+        guard currentIndex < route.count else {
+            if let targetId = activeTargetId, let last = route.last, board[last.row][last.col].treasure?.id == targetId {
+                showToast("🎉 Reached \(board[last.row][last.col].treasure?.name ?? targetId)!")
+                activeTargetId = nil
+            }
+            nextTurn()
+            return
+        }
+        
+        let pos = route[currentIndex]
+        
+        // Force the pawn position update. LabyrinthBoardView pawnToken has a spring animation on isActive, but to animate translation we can just rely on SwiftUI implicit animation or explicitly inject it if we wrap it, but pawnPositions isn't currently observed with an explicit withAnimation in the grid. However, setting the data triggers redraw.
+        pawnPositions[myColor] = PawnPosition(row: pos.row, col: pos.col)
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { [weak self] in
+            self?.animatePawn(along: route, currentIndex: currentIndex + 1)
+        }
     }
 
-    /// Stage a solver suggestion for preview and optional execution.
+    func cancelStage() {
+        stagedArrowId = nil
+        stagedSolverMove = nil
+        projectedRoute = []
+    }
+
     func stageSolverOption(_ move: MoveOption) {
         spareTile.rotation = move.tileRotation
         stagedArrowId = move.arrowId
         stagedRotation = move.tileRotation
-        stagedAiMove = move
+        stagedSolverMove = move
+        
+        // Compute route path
+        if let preview = previewState {
+            let start = preview.pawns[myColor]
+            projectedRoute = findRoute(grid: preview.grid, start: start, end: move.targetPosition)
+        }
     }
-
-    /// Directly slide (bypass staging) — used by the solver's "apply best move"
-    func applySlide(_ arrowId: String, rotation: TileRotation) {
-        pushHistory()
-        var rotatedSpare = spareTile
-        rotatedSpare.rotation = rotation
-        let (nextGrid, nextSpare, nextPawns) = SolverEngine.simulateSlide(
-            grid: board,
-            spareTile: rotatedSpare,
-            arrowId: arrowId,
-            pawnPositions: pawnPositions
-        )
-        board          = nextGrid
-        spareTile      = nextSpare
-        pawnPositions  = nextPawns
-        lastArrowId    = arrowId
-        turnPhase      = .move
-        stagedAiMove   = nil
-        refreshReachable()
+    
+    // BFS to find the shortest path between start and end on a given grid
+    func findRoute(grid: [[TileData]], start: PawnPosition, end: PawnPosition) -> [PawnPosition] {
+        var queue = [[start]]
+        var visited = Set<PawnPositionKey>([PawnPositionKey(start)])
+        
+        while !queue.isEmpty {
+            let path = queue.removeFirst()
+            let current = path.last!
+            
+            if current == end { return path }
+            
+            let r = current.row
+            let c = current.col
+            let tile = grid[r][c]
+            
+            let neighbors: [(r: Int, c: Int, dir: SolverEngine.Direction)] = [
+                (r - 1, c, .up), (r + 1, c, .down), (r, c - 1, .left), (r, c + 1, .right)
+            ]
+            
+            for n in neighbors {
+                guard n.r >= 0 && n.r < 7 && n.c >= 0 && n.c < 7 else { continue }
+                let key = PawnPositionKey(row: n.r, col: n.c)
+                if !visited.contains(key) {
+                    if SolverEngine.canConnect(from: tile, to: grid[n.r][n.c], direction: n.dir) {
+                        visited.insert(key)
+                        queue.append(path + [PawnPosition(row: n.r, col: n.c)])
+                    }
+                }
+            }
+        }
+        return []
     }
 
     // MARK: - Pawn Move
-
-    /// Move the active pawn to (row, col) if it is reachable.
     @discardableResult
     func movePawn(to row: Int, col: Int) -> Bool {
         let key = PawnPositionKey(row: row, col: col)
         guard reachablePositions.contains(key) else { return false }
 
-        pawnPositions[activePawn] = PawnPosition(row: row, col: col)
+        pawnPositions[myColor] = PawnPosition(row: row, col: col)
         moveCount += 1
 
-        // Check if the pawn landed on its target treasure
-        if let targetId = activeTargetId,
-           board[row][col].treasure?.id == targetId {
-            playerHands[activePawn]?.obtainedCards.append(targetId)
-            showToast("🎉 \(activePawn.displayName) collected \(board[row][col].treasure?.name ?? targetId)!")
+        if let targetId = activeTargetId, board[row][col].treasure?.id == targetId {
+            showToast("🎉 Reached \(board[row][col].treasure?.name ?? targetId)!")
+            activeTargetId = nil
         }
-
-        // Advance to next player / start new turn
-        advanceTurn()
+        
+        nextTurn()
         return true
     }
-
-    // MARK: - Spare Tile Rotation
+    
+    private func nextTurn() {
+        currentPlayerIndex = (currentPlayerIndex + 1) % activePlayers.count
+        turnPhase = .slide
+        stagedArrowId = nil
+        stagedSolverMove = nil
+        projectedRoute = []
+        solverOptions.removeAll()
+        refreshReachable()
+    }
 
     func rotateSpareTile() {
         spareTile.rotation = spareTile.rotation.nextClockwise
     }
 
-    // MARK: - Turn Advancement
-
-    private func advanceTurn() {
-        let allCases = PawnColor.allCases
-        let currentIdx = allCases.firstIndex(of: activePawn) ?? 0
-        activePawn = allCases[(currentIdx + 1) % allCases.count]
-        turnPhase  = .slide
-        stagedArrowId = nil
-        refreshReachable()
-    }
-
-    // MARK: - Arrow Validity
-
-    /// Returns true if the given arrow can legally be used (not the reverse of last slide).
     func isArrowAllowed(_ arrowId: String) -> Bool {
-        guard let last = lastArrowId,
-              let opposite = GameConstants.oppositeArrowId(for: last)
-        else { return true }
+        guard let last = lastArrowId, let opposite = GameConstants.oppositeArrowId(for: last) else { return true }
         return arrowId != opposite
     }
 
     // MARK: - Undo / Redo
-
     func undo() {
         guard let entry = undoStack.last else { return }
         undoStack.removeLast()
@@ -265,68 +305,50 @@ final class GameViewModel {
     }
 
     private func currentHistoryEntry() -> HistoryEntry {
-        HistoryEntry(
-            board: board,
-            spareTile: spareTile,
-            pawnPositions: pawnPositions,
-            lastArrowId: lastArrowId
-        )
+        HistoryEntry(board: board, spareTile: spareTile, pawnPositions: pawnPositions, lastArrowId: lastArrowId)
     }
 
     private func applyHistory(_ entry: HistoryEntry) {
-        board          = entry.board
-        spareTile      = entry.spareTile
-        pawnPositions  = entry.pawnPositions
-        lastArrowId    = entry.lastArrowId
-        turnPhase      = .slide
-        stagedArrowId  = nil
-        stagedAiMove   = nil
-        solverMessage  = nil
+        board = entry.board
+        spareTile = entry.spareTile
+        pawnPositions = entry.pawnPositions
+        lastArrowId = entry.lastArrowId
+        turnPhase = .slide
+        stagedArrowId = nil
+        stagedSolverMove = nil
         refreshReachable()
     }
 
-    // MARK: - Board Layout Setup Methods
-
-    /// Current 7x7 grid for setup mode (contains optionals for unplaced tiles).
+    // MARK: - Setup Mode Methods
     var displaySetupGrid: [[TileData?]] {
-        if let setupGrid {
-            return setupGrid
-        }
-        return board.map { row in row.map { Optional($0) } }
+        setupGrid ?? board.map { row in row.map { Optional($0) } }
     }
 
-    /// Number of placed movable tiles on the board grid.
     var placedTilesCount: Int {
         var count = 0
         let grid = displaySetupGrid
         for r in 0..<7 {
             for c in 0..<7 {
-                if let tile = grid[r][c], !tile.isFixed {
-                    count += 1
-                }
+                if let tile = grid[r][c], !tile.isFixed { count += 1 }
             }
         }
         return count
     }
 
-    /// Whether setup condition is met to start the game (all 33 movable tiles placed).
     var canStartGame: Bool {
         placedTilesCount == 33 || looseTiles.count <= 1
     }
 
-    /// Clear all 33 movable tiles from the grid back into the pool to start from scratch.
     func startFromScratch() {
         let scratch = GameConstants.createScratchBoardSetup()
-        setupGrid  = scratch.grid
+        setupGrid = scratch.grid
         looseTiles = scratch.looseTiles
-        spareTile  = scratch.spareTile
+        spareTile = scratch.spareTile
         selectedLooseTileId = nil
-        stagedAiMove = nil
-        solverMessage = nil
+        stagedSolverMove = nil
         showToast("Board cleared! Start placing tiles from scratch.")
     }
 
-    /// Fill remaining empty slots on the board randomly from the loose pool.
     func fillRemainingRandomly() {
         var grid = displaySetupGrid
         var pool = looseTiles.shuffled()
@@ -341,198 +363,99 @@ final class GameViewModel {
                 }
             }
         }
-
         setupGrid = grid
         looseTiles = pool
-        if let last = pool.last {
-            spareTile = last
-        }
+        if let last = pool.last { spareTile = last }
         showToast("Remaining slots filled randomly! ✨")
     }
 
-    /// Randomize and shuffle all 33 movable tiles on the board plus 1 spare tile.
     func randomizeBoard() {
         let randomized = GameConstants.randomizeFullBoard()
-        board          = randomized.grid
-        spareTile      = randomized.spareTile
-        looseTiles     = [randomized.spareTile]
-        setupGrid      = nil
+        board = randomized.grid
+        spareTile = randomized.spareTile
+        looseTiles = [randomized.spareTile]
+        setupGrid = nil
         selectedLooseTileId = nil
-        stagedAiMove   = nil
-        solverMessage  = nil
+        stagedSolverMove = nil
         solverOptions.removeAll()
         refreshReachable()
         showToast("Board layout randomized ✨")
     }
 
-    /// Reset board layout to the standard Ravensburger layout.
     func resetBoardLayout() {
-        let fresh      = GameConstants.createStandardFullBoard()
-        board          = fresh.grid
-        spareTile      = fresh.spareTile
-        looseTiles     = [fresh.spareTile]
-        setupGrid      = nil
+        let fresh = GameConstants.createStandardFullBoard()
+        board = fresh.grid
+        spareTile = fresh.spareTile
+        looseTiles = [fresh.spareTile]
+        setupGrid = nil
         selectedLooseTileId = nil
-        stagedAiMove   = nil
-        solverMessage  = nil
+        stagedSolverMove = nil
         solverOptions.removeAll()
         refreshReachable()
         showToast("Board layout reset to standard ↺")
     }
 
-    /// Reset all game settings, mode, active players, hands, and board layout to defaults.
-    func resetAllDefaults() {
-        resetBoardLayout()
-        gameMode      = .standard
-        activePlayers = PawnColor.allCases
-        activePawn    = .red
-        playerHands   = GameConstants.dealDefaultHands()
-        setupTab      = .tiles
-        showToast("All settings and layout reset to defaults!")
-    }
-
-    /// Select or rotate a loose tile from the setup pool.
     func selectLooseTile(id: String) {
         if selectedLooseTileId == id {
-            // Tapping again rotates the selected loose tile
-            rotateLooseTile(id: id)
+            if let idx = looseTiles.firstIndex(where: { $0.id == id }) {
+                looseTiles[idx].rotation = looseTiles[idx].rotation.nextClockwise
+            }
         } else {
             selectedLooseTileId = id
         }
     }
 
-    /// Rotate a loose tile in the pool clockwise.
-    func rotateLooseTile(id: String) {
-        if let idx = looseTiles.firstIndex(where: { $0.id == id }) {
-            looseTiles[idx].rotation = looseTiles[idx].rotation.nextClockwise
-        }
-    }
-
-    /// Rotate a placed movable tile on the board grid clockwise (during setup).
-    func rotateBoardTile(row: Int, col: Int) {
-        guard !board[row][col].isFixed else { return }
-        board[row][col].rotation = board[row][col].rotation.nextClockwise
-    }
-
-    /// Handle setup cell tap: place, swap, remove, or rotate.
     func tapSetupCell(row: Int, col: Int) {
         var grid = displaySetupGrid
-
-        // Check if fixed
         if let existing = grid[row][col], existing.isFixed {
             showToast("Fixed corner & T-junction tiles cannot be changed!")
             return
         }
 
         if let existing = grid[row][col] {
-            // Cell is occupied by a movable tile
-            if let selectedId = selectedLooseTileId,
-               let looseIdx = looseTiles.firstIndex(where: { $0.id == selectedId }) {
-                // Swap selected loose tile into cell
+            if let selectedId = selectedLooseTileId, let looseIdx = looseTiles.firstIndex(where: { $0.id == selectedId }) {
                 let looseTile = looseTiles.remove(at: looseIdx)
                 grid[row][col] = looseTile
                 looseTiles.append(existing)
                 selectedLooseTileId = nil
             } else {
-                // Remove tile from cell back to loose tiles pool
                 grid[row][col] = nil
                 looseTiles.append(existing)
-                showToast("Tile returned to pool")
             }
         } else {
-            // Cell is empty (nil)
-            if let selectedId = selectedLooseTileId,
-               let looseIdx = looseTiles.firstIndex(where: { $0.id == selectedId }) {
-                // Place selected loose tile into empty slot
+            if let selectedId = selectedLooseTileId, let looseIdx = looseTiles.firstIndex(where: { $0.id == selectedId }) {
                 let looseTile = looseTiles.remove(at: looseIdx)
                 grid[row][col] = looseTile
                 selectedLooseTileId = nil
             } else if !looseTiles.isEmpty {
-                // Place first loose tile if no specific tile was selected
                 let looseTile = looseTiles.removeFirst()
                 grid[row][col] = looseTile
             }
         }
 
         setupGrid = grid
-        if let last = looseTiles.last {
-            spareTile = last
-        }
+        if let last = looseTiles.last { spareTile = last }
     }
-
-    /// Toggle player active status.
-    func togglePlayerActive(_ pawn: PawnColor) {
-        if activePlayers.contains(pawn) {
-            guard activePlayers.count > 1 else {
-                showToast("At least one player must be active!")
-                return
-            }
-            activePlayers.removeAll(where: { $0 == pawn })
-        } else {
-            activePlayers.append(pawn)
-        }
-
-        if !activePlayers.contains(activePawn), let first = activePlayers.first {
-            activePawn = first
-        }
-    }
-
-    /// Add a card to player's hand.
-    func addCardToPlayerHand(pawn: PawnColor, treasureId: String) {
-        var current = playerHands[pawn]?.cards ?? []
-        if !current.contains(treasureId) {
-            current.append(treasureId)
-            playerHands[pawn] = PlayerHand(cards: current)
-        }
-    }
-
-    /// Remove a card from player's hand.
-    func removeCardFromPlayerHand(pawn: PawnColor, treasureId: String) {
-        var current = playerHands[pawn]?.cards ?? []
-        current.removeAll(where: { $0 == treasureId })
-        playerHands[pawn] = PlayerHand(cards: current)
-    }
-
-    /// Add all unassigned treasure cards to player's hand.
-    func addAllCardsToPlayerHand(pawn: PawnColor) {
-        let assignedOther = playerHands
-            .filter { $0.key != pawn }
-            .flatMap { $0.value.cards }
-        let available = GameConstants.treasures
-            .map { $0.id }
-            .filter { !assignedOther.contains($0) }
-        playerHands[pawn] = PlayerHand(cards: available)
-    }
-
-    /// Clear all cards from player's hand.
-    func clearPlayerHand(pawn: PawnColor) {
-        playerHands[pawn] = PlayerHand(cards: [])
-    }
-
-    // MARK: - Reset
 
     func resetBoard() {
         resetBoardLayout()
-        pawnPositions  = PawnPositions()
-        activePawn     = .red
-        turnPhase      = .slide
-        lastArrowId    = nil
-        stagedArrowId  = nil
+        pawnPositions = PawnPositions()
+        currentPlayerIndex = 0
+        turnPhase = .slide
+        lastArrowId = nil
+        stagedArrowId = nil
+        projectedRoute = []
         undoStack.removeAll()
         redoStack.removeAll()
-        moveCount      = 0
-        isGameStarted  = false
+        moveCount = 0
+        isGameStarted = false
     }
 
-    // MARK: - Start Game (Deal Cards & Launch)
-
     func startGame() {
-        // Commit setupGrid if it was being modified
         if let grid = setupGrid {
             var fullGrid: [[TileData]] = []
             var pool = looseTiles
             let rotations: [TileRotation] = [.deg0, .deg90, .deg180, .deg270]
-
             for r in 0..<7 {
                 var row: [TileData] = []
                 for c in 0..<7 {
@@ -549,38 +472,45 @@ final class GameViewModel {
                 fullGrid.append(row)
             }
             board = fullGrid
-            if let last = pool.last {
-                spareTile = last
-            }
+            if let last = pool.last { spareTile = last }
             setupGrid = nil
         }
-
-        if playerHands.isEmpty || playerHands.values.allSatisfy({ $0.cards.isEmpty }) {
-            playerHands = GameConstants.dealDefaultHands()
-        }
+        
         isGameStarted = true
-        turnPhase     = .slide
-        moveCount     = 0
+        isSetupMode = false
+        turnPhase = .slide
+        moveCount = 0
         undoStack.removeAll()
         redoStack.removeAll()
-        lastArrowId   = nil
+        lastArrowId = nil
         stagedArrowId = nil
-        stagedAiMove  = nil
-        solverMessage = nil
+        stagedSolverMove = nil
         solverOptions.removeAll()
         refreshReachable()
-        showToast("Game started! \(activePawn.displayName) goes first.")
+        showToast("Board ready! Solver initialized.")
+    }
+
+    // MARK: - Solver Target
+    func setActiveTarget(treasureId: String) {
+        activeTargetId = treasureId
+        stagedSolverMove = nil
+        solverOptions.removeAll()
+    }
+
+    func clearActiveTarget() {
+        activeTargetId = nil
+        stagedSolverMove = nil
+        solverOptions.removeAll()
     }
 
     // MARK: - Solver
-
     func runSolverAndStage() {
         guard !isSolving else { return }
         isSolving = true
 
         let board = self.board
         let spareTile = self.spareTile
-        let activePawn = self.activePawn
+        let myColor = self.myColor
         let targetId = self.activeTargetId
         let positions = self.pawnPositions
         let lastArrow = self.lastArrowId
@@ -590,7 +520,7 @@ final class GameViewModel {
             let options = SolverEngine.findBestMoves(
                 grid: board,
                 spareTile: spareTile,
-                activePawn: activePawn,
+                activePawn: myColor,
                 targetTreasureId: targetId,
                 pawnPositions: positions,
                 lastArrowId: lastArrow,
@@ -604,69 +534,13 @@ final class GameViewModel {
                 if let move = options.first {
                     self.stageSolverOption(move)
                     Haptics.notification(.success)
-                    if move.isTargetReached {
-                        self.showToast(move.turnsToTarget == 1 ? "AI found a path to target!" : "AI found a \(move.turnsToTarget)-turn route.")
-                    }
                 } else {
                     Haptics.notification(.error)
-                    self.showToast("AI could not find a valid move.")
+                    self.showToast("Solver could not find a valid route.")
                 }
             }
         }
     }
-
-
-
-    // MARK: - Player Hand Setup
-
-    func setPlayerHand(for pawn: PawnColor, treasureIds: [String]) {
-        playerHands[pawn] = PlayerHand(cards: treasureIds)
-    }
-
-    func markTreasureObtained(for pawn: PawnColor, treasureId: String) {
-        playerHands[pawn]?.obtainedCards.append(treasureId)
-    }
-
-    /// Set a quick solver target (used by SolverSheet treasure grid)
-    func setActiveTarget(treasureId: String) {
-        singleTargetId = treasureId
-        stagedAiMove = nil
-        solverMessage = nil
-        solverOptions.removeAll()
-    }
-
-    func clearActiveTarget() {
-        singleTargetId = nil
-        stagedAiMove = nil
-        solverMessage = nil
-        solverOptions.removeAll()
-    }
-
-    /// Configure the game for N players and optionally deal treasure cards.
-    func configureGame(playerCount: Int, withSolver: Bool) {
-        let pawns = Array(PawnColor.allCases.prefix(playerCount))
-        activePlayers = pawns
-        activePawn = pawns[0]
-        if withSolver {
-            playerHands = GameConstants.dealDefaultHands()
-        } else {
-            playerHands = [:]
-        }
-        isGameStarted = true
-        moveCount = 0
-        undoStack.removeAll()
-        redoStack.removeAll()
-        turnPhase = .slide
-        lastArrowId = nil
-        stagedArrowId = nil
-        stagedAiMove = nil
-        solverMessage = nil
-        singleTargetId = nil
-        refreshReachable()
-        showToast("Game started! \(activePawn.displayName) goes first 🎲")
-    }
-
-    // MARK: - Toast
 
     func showToast(_ message: String) {
         toastMessage = message
@@ -678,20 +552,14 @@ final class GameViewModel {
         }
     }
 
-    // MARK: - Preview (for staged move)
-
-    /// Returns the board state and reachable positions after applying the staged arrow (for visual preview).
-    var previewState: (grid: [[TileData]], reachable: Set<PawnPositionKey>)? {
+    var previewState: (grid: [[TileData]], reachable: Set<PawnPositionKey>, pawns: PawnPositions)? {
         guard let arrowId = stagedArrowId else { return nil }
         var rotatedSpare = spareTile
         rotatedSpare.rotation = stagedRotation
         let (previewGrid, _, previewPawns) = SolverEngine.simulateSlide(
-            grid: board,
-            spareTile: rotatedSpare,
-            arrowId: arrowId,
-            pawnPositions: pawnPositions
+            grid: board, spareTile: rotatedSpare, arrowId: arrowId, pawnPositions: pawnPositions
         )
-        let reachable = SolverEngine.findReachablePositions(grid: previewGrid, start: previewPawns[activePawn])
-        return (previewGrid, reachable)
+        let reachable = SolverEngine.findReachablePositions(grid: previewGrid, start: previewPawns[myColor])
+        return (previewGrid, reachable, previewPawns)
     }
 }

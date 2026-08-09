@@ -101,14 +101,21 @@ struct TileView: View {
                     .padding(size * 0.06)
                 }
 
-                // Treasure Emoji
+                // Treasure Name Label
                 if let treasure = tile.treasure {
-                    Text(treasure.emoji)
-                        .font(.system(size: size * 0.45))
-                        .shadow(color: .black.opacity(0.4), radius: 2, y: 2)
-                        .shadow(color: isCurrentTarget ? Color.amber : .clear, radius: isCurrentTarget ? 12 : 0)
-                        .scaleEffect(isCurrentTarget ? 1.25 : 1.0)
-                        .animation(.spring(response: 0.3, dampingFraction: 0.6), value: isCurrentTarget)
+                    VStack {
+                        Spacer()
+                        Text(treasure.shortName)
+                            .font(.system(size: size * 0.16, weight: .bold, design: .rounded))
+                            .foregroundColor(isCurrentTarget ? Color.amber : .white)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.5)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 3)
+                            .background(colorScheme == .dark ? Color.black.opacity(0.65) : Color(white: 0.1).opacity(0.80), in: Capsule())
+                            .shadow(color: isCurrentTarget ? Color.amber.opacity(0.8) : .clear, radius: isCurrentTarget ? 6 : 0)
+                            .padding(.bottom, size * 0.08)
+                    }
                 }
             }
         }
@@ -207,28 +214,33 @@ struct PathCanvas: View {
                 let x1 = mid.x + corridorWidth * 0.5
                 let y0 = mid.y - corridorWidth * 0.5
                 let y1 = mid.y + corridorWidth * 0.5
+                
+                // T-Junction opens Top, Left, Right. Bottom is closed.
                 fillPath.move(to: CGPoint(x: -4, y: y0))
                 fillPath.addLine(to: CGPoint(x: -4, y: y1))
-                fillPath.addLine(to: CGPoint(x: x0, y: y1))
-                fillPath.addLine(to: CGPoint(x: x0, y: h + 4))
-                fillPath.addLine(to: CGPoint(x: x1, y: h + 4))
-                fillPath.addLine(to: CGPoint(x: x1, y: y1))
                 fillPath.addLine(to: CGPoint(x: w + 4, y: y1))
                 fillPath.addLine(to: CGPoint(x: w + 4, y: y0))
+                fillPath.addLine(to: CGPoint(x: x1, y: y0))
+                fillPath.addLine(to: CGPoint(x: x1, y: -4))
+                fillPath.addLine(to: CGPoint(x: x0, y: -4))
+                fillPath.addLine(to: CGPoint(x: x0, y: y0))
                 fillPath.closeSubpath()
 
-                var bottomWall = Path()
-                bottomWall.move(to: CGPoint(x: -4, y: y0))
-                bottomWall.addLine(to: CGPoint(x: x0, y: y0))
-                bottomWall.addLine(to: CGPoint(x: x0, y: -4))
-                var rightWall = Path()
-                rightWall.move(to: CGPoint(x: w + 4, y: y0))
-                rightWall.addLine(to: CGPoint(x: x1, y: y0))
-                rightWall.addLine(to: CGPoint(x: x1, y: -4))
+                var topWallL = Path()
+                topWallL.move(to: CGPoint(x: -4, y: y0))
+                topWallL.addLine(to: CGPoint(x: x0, y: y0))
+                topWallL.addLine(to: CGPoint(x: x0, y: -4))
+                
+                var topWallR = Path()
+                topWallR.move(to: CGPoint(x: w + 4, y: y0))
+                topWallR.addLine(to: CGPoint(x: x1, y: y0))
+                topWallR.addLine(to: CGPoint(x: x1, y: -4))
+                
                 var bottomCap = Path()
                 bottomCap.move(to: CGPoint(x: -4, y: y1))
                 bottomCap.addLine(to: CGPoint(x: w + 4, y: y1))
-                strokePaths = [bottomWall, rightWall, bottomCap]
+                
+                strokePaths = [topWallL, topWallR, bottomCap]
             }
 
             let angle = Double(rotation.rawValue) * .pi / 180
@@ -238,8 +250,8 @@ struct PathCanvas: View {
 
             // Cut-out Corridor Path Color (matches board background for depth)
             let pathColor: Color = colorScheme == .dark
-                ? Color.boardBg
-                : Color(red: 0.85, green: 0.87, blue: 0.92)
+                ? Color(red: 0.08, green: 0.10, blue: 0.14)
+                : Color(red: 0.88, green: 0.90, blue: 0.94)
 
             // Corridor path fill
             let rotatedFill = fillPath.applying(t)

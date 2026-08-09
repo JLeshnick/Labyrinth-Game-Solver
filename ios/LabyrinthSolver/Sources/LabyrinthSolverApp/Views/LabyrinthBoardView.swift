@@ -3,7 +3,7 @@ import SwiftUI
 import LabyrinthSolverCore
 #endif
 
-// MARK: - Arrow Button (Liquid Glass Directional Controls)
+// MARK: - Arrow Button
 
 struct ArrowButton: View {
     let arrowId: String
@@ -50,7 +50,7 @@ struct ArrowButton: View {
     }
 }
 
-// MARK: - Spare Cell (Interactive corner slot)
+// MARK: - Spare Cell
 
 struct SpareCell: View {
     let tile: TileData
@@ -67,7 +67,7 @@ struct SpareCell: View {
                     .fill(.ultraThinMaterial)
                     .overlay(
                         RoundedRectangle(cornerRadius: 10, style: .continuous)
-                            .strokeBorder(Color.amberGold.opacity(0.5), style: StrokeStyle(lineWidth: 1.5, dash: [4, 3]))
+                            .strokeBorder(Color.accentColor.opacity(0.5), style: StrokeStyle(lineWidth: 1.5, dash: [4, 3]))
                     )
 
                 TileView(tile: tile)
@@ -93,18 +93,16 @@ struct LabyrinthBoardView: View {
             let totalHeight = geo.size.height
             let totalSize   = min(totalWidth, totalHeight)
 
-            // tileSize: fit 9 slots (7 tiles + 2 arrow margin slots) into totalSize
             let tileSize = (totalSize - arrowSize * 2 - gap * 8) / 7.0
 
             ZStack {
-                // Board Backplate Container (Tactile Frame)
                 RoundedRectangle(cornerRadius: 22, style: .continuous)
-                    .fill(colorScheme == .dark ? Color.boardBg : Color(red: 0.90, green: 0.92, blue: 0.96))
+                    .fill(Color.appTertiaryGroupedBg)
                     .overlay(
                         RoundedRectangle(cornerRadius: 22, style: .continuous)
                             .strokeBorder(
                                 LinearGradient(
-                                    colors: [Color.white.opacity(0.35), Color.black.opacity(0.20)],
+                                    colors: [Color.white.opacity(0.3), Color.clear],
                                     startPoint: .topLeading, endPoint: .bottomTrailing
                                 ),
                                 lineWidth: 1.5
@@ -141,11 +139,8 @@ struct LabyrinthBoardView: View {
                 HStack(spacing: gap) {
                     ForEach(0..<7, id: \.self) { c in
                         let tile = displayBoard[r][c]
-                        // Highlight if reachable during move phase, OR if reachable during a staged preview
-                        let isReachable = (vm.turnPhase == .move || vm.stagedArrowId != nil) &&
-                            currentReachable.contains(PawnPositionKey(row: r, col: c))
-                        let isTarget = vm.activeTargetId != nil &&
-                            tile.treasure?.id == vm.activeTargetId
+                        let isReachable = currentReachable.contains(PawnPositionKey(row: r, col: c))
+                        let isTarget = vm.activeTargetId != nil && tile.treasure?.id == vm.activeTargetId
 
                         ZStack {
                             TileView(
@@ -153,9 +148,6 @@ struct LabyrinthBoardView: View {
                                 isReachable: isReachable,
                                 isCurrentTarget: isTarget
                             )
-
-                            // Pawns on this cell
-                            pawnsOn(row: r, col: c, tileSize: tileSize)
                         }
                         .frame(width: tileSize, height: tileSize)
                         .contentShape(Rectangle())
@@ -164,26 +156,27 @@ struct LabyrinthBoardView: View {
                 }
             }
         }
-        .background(colorScheme == .dark ? Color.boardBg : Color(red: 0.85, green: 0.87, blue: 0.92))
+        .background(colorScheme == .dark ? Color.black : Color(UIColor.systemGray4))
         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-    }
-
-    // MARK: - Pawns on tile
-
-    @ViewBuilder
-    private func pawnsOn(row: Int, col: Int, tileSize: CGFloat) -> some View {
-        let pawnsHere = PawnColor.allCases.filter {
-            vm.pawnPositions[$0].row == row && vm.pawnPositions[$0].col == col
-        }
-        if !pawnsHere.isEmpty {
-            HStack(spacing: 1) {
-                ForEach(pawnsHere, id: \.id) { pawn in
-                    PawnToken(
-                        color: pawn,
-                        isActive: pawn == vm.activePawn,
-                        size: tileSize * 0.40
+        .overlay {
+            if !vm.projectedRoute.isEmpty {
+                RouteOverlayView(
+                    route: vm.projectedRoute,
+                    tileSize: tileSize,
+                    gap: gap,
+                    appAccentTheme: vm.appAccentTheme
+                )
+            }
+            
+            // Render all active pawns in an overlay so their position changes animate smoothly
+            ForEach(vm.activePlayers, id: \.id) { pawn in
+                let pos = vm.pawnPositions[pawn]
+                PawnToken(color: pawn, isActive: pawn == vm.myColor, size: tileSize * 0.5)
+                    .position(
+                        x: CGFloat(pos.col) * (tileSize + gap) + tileSize / 2,
+                        y: CGFloat(pos.row) * (tileSize + gap) + tileSize / 2
                     )
-                }
+                    .animation(.easeInOut(duration: 0.15), value: pos)
             }
         }
     }
@@ -193,7 +186,6 @@ struct LabyrinthBoardView: View {
     @ViewBuilder
     private func topArrowRow(tileSize: CGFloat) -> some View {
         HStack(spacing: gap) {
-            // Spare tile in corner
             SpareCell(tile: vm.spareTile, size: arrowSize, onTap: { vm.rotateSpareTile() })
 
             ForEach(0..<7, id: \.self) { c in
@@ -211,7 +203,6 @@ struct LabyrinthBoardView: View {
                     Spacer().frame(width: tileSize, height: arrowSize)
                 }
             }
-
             Spacer().frame(width: arrowSize, height: arrowSize)
         }
     }
@@ -236,7 +227,6 @@ struct LabyrinthBoardView: View {
                     Spacer().frame(width: tileSize, height: arrowSize)
                 }
             }
-
             Spacer().frame(width: arrowSize, height: arrowSize)
         }
     }
@@ -288,23 +278,76 @@ struct LabyrinthBoardView: View {
     // MARK: - Cell Tap Handler
 
     private func handleCellTap(_ r: Int, _ c: Int) {
-        switch vm.turnPhase {
-        case .slide:
-            if let treasure = vm.board[r][c].treasure {
-                Haptics.selection()
-                vm.setActiveTarget(treasureId: treasure.id)
-                vm.showToast("Target set to \(treasure.name)")
-            } else {
-                Haptics.notification(.warning)
-                vm.showToast("Choose a treasure target or slide a tile.")
-            }
-        case .move:
+        if vm.turnPhase == .move {
             let didMove = vm.movePawn(to: r, col: c)
             if didMove {
                 Haptics.impact(.medium)
-            } else {
-                Haptics.notification(.error)
+                return
             }
         }
+        // If not move phase or move was invalid, allow setting as target
+        if let treasure = vm.board[r][c].treasure {
+            Haptics.selection()
+            vm.setActiveTarget(treasureId: treasure.id)
+            vm.showToast("Target set to \(treasure.name)")
+        } else {
+            Haptics.notification(.warning)
+            vm.showToast("Choose a treasure target or slide a tile.")
+        }
+    }
+}
+
+// MARK: - Route Overlay View
+
+struct RouteOverlayView: View {
+    let route: [PawnPosition]
+    let tileSize: CGFloat
+    let gap: CGFloat
+    let appAccentTheme: AppAccentTheme
+    
+    @State private var dashPhase: CGFloat = 0
+    
+    var body: some View {
+        RoutePathShape(route: route, tileSize: tileSize, gap: gap)
+            .stroke(
+                Color.accentForTheme(appAccentTheme),
+                style: StrokeStyle(
+                    lineWidth: max(4, tileSize * 0.1),
+                    lineCap: .round,
+                    lineJoin: .round,
+                    dash: [tileSize * 0.25, tileSize * 0.25],
+                    dashPhase: dashPhase
+                )
+            )
+            .shadow(color: Color.accentForTheme(appAccentTheme).opacity(0.8), radius: 6)
+            .allowsHitTesting(false)
+            .onAppear {
+                withAnimation(.linear(duration: 0.8).repeatForever(autoreverses: false)) {
+                    dashPhase -= tileSize * 0.5
+                }
+            }
+    }
+}
+
+struct RoutePathShape: Shape {
+    let route: [PawnPosition]
+    let tileSize: CGFloat
+    let gap: CGFloat
+    
+    func path(in rect: CGRect) -> Path {
+        var p = Path()
+        guard route.count > 1 else { return p }
+        p.move(to: point(for: route[0]))
+        for i in 1..<route.count {
+            p.addLine(to: point(for: route[i]))
+        }
+        return p
+    }
+    
+    private func point(for pos: PawnPosition) -> CGPoint {
+        CGPoint(
+            x: CGFloat(pos.col) * (tileSize + gap) + tileSize / 2,
+            y: CGFloat(pos.row) * (tileSize + gap) + tileSize / 2
+        )
     }
 }
