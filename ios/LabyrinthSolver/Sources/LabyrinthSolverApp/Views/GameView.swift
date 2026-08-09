@@ -32,7 +32,6 @@ struct GameView: View {
                     onOpenHistory: { showHistorySheet = true },
                     onOpenStats: { showStatsSheet = true }
                 )
-                .padding(.horizontal, 12)
                 .padding(.vertical, 8)
                 .liquidGlassCard(cornerRadius: 18)
                 .padding(.horizontal, 12)
@@ -48,7 +47,6 @@ struct GameView: View {
                     vm: vm,
                     onOpenTargetPicker: { showTargetPicker = true }
                 )
-                .padding(.horizontal, 12)
                 .padding(.vertical, 10)
                 .liquidGlassCard(cornerRadius: 18)
                 .padding(.horizontal, 12)
