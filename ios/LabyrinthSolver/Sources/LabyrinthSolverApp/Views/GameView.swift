@@ -24,35 +24,43 @@ struct GameView: View {
             // Subtle ambient dark background
             Color.appGroupedBg.ignoresSafeArea()
 
-            VStack(spacing: 10) {
-                // Command Top Header Ribbon (Integrated player selector & toolbar)
-                CommandHeader(
-                    vm: vm,
-                    onOpenSettings: { showSettingsSheet = true },
-                    onOpenHistory: { showHistorySheet = true },
-                    onOpenStats: { showStatsSheet = true }
-                )
-                .padding(.vertical, 8)
-                .liquidGlassCard(cornerRadius: 18)
-                .padding(.horizontal, 12)
-                .zIndex(2)
+            GeometryReader { geo in
+                let sidePadding: CGFloat = 12
+                let availableWidth = geo.size.width - (sidePadding * 2)
+                let availableHeight = geo.size.height - 180
+                let boardSize = min(availableWidth, max(280, availableHeight))
 
-                // Board Stage
-                boardStage
-                    .padding(.horizontal, 12)
+                VStack(spacing: 10) {
+                    // Command Top Header Ribbon (Integrated player selector & toolbar)
+                    CommandHeader(
+                        vm: vm,
+                        onOpenSettings: { showSettingsSheet = true },
+                        onOpenHistory: { showHistorySheet = true },
+                        onOpenStats: { showStatsSheet = true }
+                    )
+                    .frame(width: boardSize)
+                    .padding(.vertical, 6)
+                    .liquidGlassCard(cornerRadius: 18)
+                    .zIndex(2)
+
+                    // Board Stage
+                    VStack(spacing: 0) {
+                        LabyrinthBoardView(vm: vm)
+                            .frame(width: boardSize, height: boardSize)
+                    }
                     .zIndex(0)
 
-                // Solver Interactive Console
-                SolverConsoleView(
-                    vm: vm,
-                    onOpenTargetPicker: { showTargetPicker = true }
-                )
-                .padding(.horizontal, 10)
-                .padding(.vertical, 8)
-                .liquidGlassCard(cornerRadius: 18)
-                .padding(.horizontal, 12)
-                .padding(.bottom, 6)
-                .zIndex(2)
+                    // Solver Interactive Console
+                    SolverConsoleView(
+                        vm: vm,
+                        onOpenTargetPicker: { showTargetPicker = true }
+                    )
+                    .frame(width: boardSize)
+                    .padding(.vertical, 6)
+                    .liquidGlassCard(cornerRadius: 18)
+                    .zIndex(2)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
             }
 
             // Toast HUD overlay (centered directly in middle of app screen)
@@ -120,20 +128,6 @@ struct GameView: View {
         }
         .sheet(isPresented: $showWelcomeSheet) {
             WelcomeView()
-        }
-    }
-
-    private var boardStage: some View {
-        GeometryReader { geo in
-            let availableWidth = geo.size.width
-            let availableHeight = geo.size.height
-            let maxBoard = min(availableWidth, availableHeight)
-            VStack(spacing: 0) {
-                LabyrinthBoardView(vm: vm)
-                    .frame(width: availableWidth, height: maxBoard)
-                Spacer(minLength: 0)
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         }
     }
 }

@@ -146,7 +146,7 @@ struct LabyrinthBoardView: View {
                 }
                 .padding(8)
             }
-            .frame(width: totalWidth, height: totalSize)
+            .frame(width: totalSize, height: totalSize)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
     }
