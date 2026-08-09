@@ -181,8 +181,9 @@ struct LabyrinthBoardView: View {
 
                         let isObtained = tile.treasure.map { vm.obtainedTreasureIds.contains($0.id) } ?? false
                         let posKey = PawnPositionKey(row: r, col: c)
-                        let isReachable = vm.reachablePositions.contains(posKey)
-                        let isOneTurn = vm.oneTurnReachablePositions.contains(posKey)
+                        let isPreviewing = (preview != nil) || vm.isAnimatingPawn || !vm.projectedRoute.isEmpty
+                        let isReachable = isPreviewing ? false : vm.reachablePositions.contains(posKey)
+                        let isOneTurn = isPreviewing ? false : vm.oneTurnReachablePositions.contains(posKey)
 
                         let pawnsHere = vm.activePlayers.filter { vm.pawnPositions[$0].row == r && vm.pawnPositions[$0].col == c }
 
@@ -376,15 +377,23 @@ struct LabyrinthBoardView: View {
 
     private func handleCellTap(_ r: Int, _ c: Int) {
         Haptics.selection()
+        let targetPos: PawnPosition
+        if let stagedArrow = vm.stagedArrowId,
+           let unshifted = SolverEngine.unshiftedPosition(of: PawnPosition(row: r, col: c), under: stagedArrow) {
+            targetPos = unshifted
+        } else {
+            targetPos = PawnPosition(row: r, col: c)
+        }
+
         if vm.turnPhase == .move {
-            let didMove = vm.movePawn(to: r, col: c)
+            let didMove = vm.movePawn(to: targetPos.row, col: targetPos.col)
             if didMove {
                 Haptics.impact(.soft)
                 return
             }
         }
         // Set target destination (supports both treasure and corridor tiles)
-        vm.setActiveTargetPosition(PawnPosition(row: r, col: c))
+        vm.setActiveTargetPosition(targetPos)
     }
 }
 
