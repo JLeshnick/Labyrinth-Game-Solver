@@ -23,8 +23,8 @@ struct CommandHeader: View {
 
     var body: some View {
         HStack(spacing: 8) {
-            // Player Selector Segmented Ribbon
-            HStack(spacing: 4) {
+            // Player Selector Segmented Control
+            HStack(spacing: 6) {
                 ForEach(vm.activePlayers, id: \.id) { pawn in
                     let isActive = vm.myColor == pawn
                     let hand = vm.playerHands[pawn] ?? PlayerHand()
@@ -39,26 +39,24 @@ struct CommandHeader: View {
                         }
                     }) {
                         HStack(spacing: 6) {
-                            PawnToken(color: pawn, isActive: isActive, size: 20)
+                            PawnToken(color: pawn, isActive: isActive, size: 18)
 
-                            if isActive {
-                                Text("\(collectedCount)/\(totalCount)")
-                                    .font(.system(size: 11, weight: .heavy, design: .monospaced))
-                                    .foregroundColor(.primary)
-                            }
+                            Text("\(collectedCount)/\(totalCount)")
+                                .font(.system(size: 11, weight: isActive ? .black : .semibold, design: .monospaced))
+                                .foregroundColor(isActive ? .primary : .secondary)
                         }
-                        .padding(.horizontal, isActive ? 10 : 6)
-                        .frame(height: 34)
+                        .padding(.horizontal, 8)
+                        .frame(height: 32)
                         .background(
                             isActive
-                                ? AnyShapeStyle(Color.accentForTheme(vm.appAccentTheme).opacity(0.22))
-                                : AnyShapeStyle(Color.clear)
+                                ? AnyShapeStyle(Color.accentForTheme(vm.appAccentTheme).opacity(0.20))
+                                : AnyShapeStyle(Color.appTertiaryGroupedBg.opacity(0.40))
                         )
                         .clipShape(Capsule())
                         .overlay(
                             Capsule()
                                 .strokeBorder(
-                                    isActive ? Color.accentForTheme(vm.appAccentTheme) : Color.white.opacity(0.10),
+                                    isActive ? Color.accentForTheme(vm.appAccentTheme) : Color.white.opacity(0.08),
                                     lineWidth: isActive ? 1.5 : 1.0
                                 )
                         )
@@ -74,7 +72,7 @@ struct CommandHeader: View {
                 Haptics.selection()
                 onOpenStats()
             }) {
-                HStack(spacing: 5) {
+                HStack(spacing: 4) {
                     Image(systemName: "stopwatch.fill")
                         .font(.system(size: 11, weight: .bold))
                         .foregroundColor(Color.accentForTheme(vm.appAccentTheme))
@@ -86,9 +84,9 @@ struct CommandHeader: View {
                         .foregroundColor(.secondary)
                 }
                 .padding(.horizontal, 8)
-                .frame(height: 34)
+                .frame(height: 32)
                 .background(Color.appTertiaryGroupedBg, in: Capsule())
-                .overlay(Capsule().strokeBorder(Color.white.opacity(0.10), lineWidth: 1.0))
+                .overlay(Capsule().strokeBorder(Color.white.opacity(0.08), lineWidth: 1.0))
             }
             .buttonStyle(.plain)
 
@@ -100,9 +98,9 @@ struct CommandHeader: View {
                 iconButton("gearshape.fill", isEnabled: true, action: onOpenSettings)
             }
         }
-        .padding(.horizontal, 8)
-        .padding(.vertical, 6)
-        .liquidGlassCard(cornerRadius: 18, isInteractive: true)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(.ultraThinMaterial)
     }
 
     private func iconButton(_ systemName: String, isEnabled: Bool, action: @escaping () -> Void) -> some View {
