@@ -165,6 +165,25 @@ public struct SolverEngine {
 
     // MARK: - Best Move Search
 
+    private struct SearchStep: Sendable {
+        let arrowId: String
+        let rotation: TileRotation
+        let landingPosition: PawnPosition
+        let reachableTreasures: [String]
+        let reachableCount: Int
+        let distanceToTarget: Int
+        let safetyScore: Int
+    }
+
+    private struct SearchNode: Sendable {
+        let grid: [[TileData]]
+        let spareTile: TileData
+        let pawnPosition: PawnPosition
+        let firstStep: SearchStep
+        let lastArrowId: String
+        let turns: Int
+    }
+
     /// Finds the single best slide + spare rotation combination that gets `activePawn`
     /// closest to the tile holding `targetTreasureId`.
     ///
@@ -180,91 +199,141 @@ public struct SolverEngine {
         pawnPositions: PawnPositions,
         lastArrowId: String? = nil
     ) -> MoveOption? {
+        findBestMoves(
+            grid: grid,
+            spareTile: spareTile,
+            activePawn: activePawn,
+            targetTreasureId: targetTreasureId,
+            pawnPositions: pawnPositions,
+            lastArrowId: lastArrowId,
+            depth: 1,
+            limit: 1
+        ).first
+    }
 
-        var bestOption: MoveOption?
-        var minDistance = Int.max
+    /// Returns ranked first-turn suggestions. With a target and depth > 1 this searches
+    /// future slide states, then recommends the first slide/walk that starts the shortest route.
+    public static func findBestMoves(
+        grid: [[TileData]],
+        spareTile: TileData,
+        activePawn: PawnColor,
+        targetTreasureId: String?,
+        pawnPositions: PawnPositions,
+        lastArrowId: String? = nil,
+        depth: Int = 1,
+        limit: Int = 5
+    ) -> [MoveOption] {
+        let boundedDepth = max(1, min(depth, 3))
+        let startPos = pawnPositions[activePawn]
+        let maxQueuedStates = 3_500
 
-        for arrow in GameConstants.validArrowIds {
-            // Enforce the no-reverse-slide rule
-            if let last = lastArrowId,
-               let opposite = GameConstants.oppositeArrowId(for: last),
-               arrow == opposite {
-                continue
+        guard targetTreasureId != nil else {
+            return fallbackMoves(
+                grid: grid,
+                spareTile: spareTile,
+                startPos: startPos,
+                targetTreasureId: nil,
+                pawnPositions: pawnPositions,
+                activePawn: activePawn,
+                lastArrowId: lastArrowId,
+                limit: limit
+            )
+        }
+
+        var solutions: [MoveOption] = []
+        var queue: [SearchNode] = []
+        var visited = Set<String>()
+
+        for candidate in firstTurnCandidates(
+            grid: grid,
+            spareTile: spareTile,
+            startPos: startPos,
+            targetTreasureId: targetTreasureId,
+            pawnPositions: pawnPositions,
+            activePawn: activePawn,
+            lastArrowId: lastArrowId
+        ) {
+            if candidate.reachesTarget {
+                solutions.append(makeMoveOption(from: candidate.firstStep, turns: 1, reached: true))
             }
 
-            for rotation in TileRotation.allCases {
-                var rotatedSpare = spareTile
-                rotatedSpare.rotation = rotation
+            guard boundedDepth > 1 else { continue }
+            for key in candidate.reachable {
+                guard queue.count < maxQueuedStates else { break }
+                let stateKey = "\(boardHash(grid: candidate.grid, spareTile: candidate.spareTile))|\(key.row),\(key.col)"
+                guard !visited.contains(stateKey) else { continue }
+                visited.insert(stateKey)
+                queue.append(SearchNode(
+                    grid: candidate.grid,
+                    spareTile: candidate.spareTile,
+                    pawnPosition: PawnPosition(row: key.row, col: key.col),
+                    firstStep: candidate.firstStep,
+                    lastArrowId: candidate.firstStep.arrowId,
+                    turns: 1
+                ))
+            }
+        }
 
-                let (simGrid, _, simPawns) = simulateSlide(
-                    grid: grid,
-                    spareTile: rotatedSpare,
-                    arrowId: arrow,
-                    pawnPositions: pawnPositions
-                )
-                let startPos  = simPawns[activePawn]
-                let reachable = findReachablePositions(grid: simGrid, start: startPos)
+        if solutions.isEmpty {
+            var index = 0
+            while index < queue.count {
+                let node = queue[index]
+                index += 1
+                guard node.turns < boundedDepth else { continue }
 
-                // Locate the target treasure on the post-slide board
-                var targetPos: PawnPosition?
-                if let targetId = targetTreasureId {
-                    outer: for r in 0..<7 {
-                        for c in 0..<7 {
-                            if simGrid[r][c].treasure?.id == targetId {
-                                targetPos = PawnPosition(row: r, col: c)
-                                break outer
-                            }
-                        }
+                for candidate in firstTurnCandidates(
+                    grid: node.grid,
+                    spareTile: node.spareTile,
+                    startPos: node.pawnPosition,
+                    targetTreasureId: targetTreasureId,
+                    pawnPositions: pawnPositions,
+                    activePawn: activePawn,
+                    lastArrowId: node.lastArrowId,
+                    includeMetrics: false
+                ) {
+                    if candidate.reachesTarget {
+                        solutions.append(makeMoveOption(from: node.firstStep, turns: node.turns + 1, reached: true))
+                    }
+
+                    guard node.turns + 1 < boundedDepth else { continue }
+                    for key in candidate.reachable {
+                        guard queue.count < maxQueuedStates else { break }
+                        let stateKey = "\(boardHash(grid: candidate.grid, spareTile: candidate.spareTile))|\(key.row),\(key.col)"
+                        guard !visited.contains(stateKey) else { continue }
+                        visited.insert(stateKey)
+                        queue.append(SearchNode(
+                            grid: candidate.grid,
+                            spareTile: candidate.spareTile,
+                            pawnPosition: PawnPosition(row: key.row, col: key.col),
+                            firstStep: node.firstStep,
+                            lastArrowId: candidate.firstStep.arrowId,
+                            turns: node.turns + 1
+                        ))
                     }
                 }
 
-                var isReached = false
-                var dist = 999
-
-                if let target = targetPos {
-                    let key = PawnPositionKey(target)
-                    if reachable.contains(key) {
-                        isReached = true
-                        dist = 0
-                    } else {
-                        for posKey in reachable {
-                            let d = abs(posKey.row - target.row) + abs(posKey.col - target.col)
-                            if d < dist { dist = d }
-                        }
-                    }
-                } else if targetTreasureId == nil {
-                    // No target — just maximise reachable area
-                    dist = 100 - reachable.count
-                }
-
-                if isReached {
-                    return MoveOption(
-                        arrowId: arrow,
-                        tileRotation: rotation,
-                        targetPosition: targetPos ?? startPos,
-                        reachableTreasures: collectReachableTreasures(reachable: reachable, grid: simGrid),
-                        distanceToTarget: 0,
-                        isTargetReached: true,
-                        summaryText: "Slide \(arrowDisplayName(arrow)) · rotate spare \(rotation.rawValue)° · TARGET REACHABLE! 🎯"
-                    )
-                }
-
-                if dist < minDistance {
-                    minDistance = dist
-                    bestOption = MoveOption(
-                        arrowId: arrow,
-                        tileRotation: rotation,
-                        targetPosition: targetPos ?? startPos,
-                        reachableTreasures: collectReachableTreasures(reachable: reachable, grid: simGrid),
-                        distanceToTarget: dist,
-                        isTargetReached: false,
-                        summaryText: "Slide \(arrowDisplayName(arrow)) · rotate spare \(rotation.rawValue)° · \(dist) moves to target"
-                    )
+                if !solutions.isEmpty,
+                   index < queue.count,
+                   queue[index].turns > node.turns {
+                    break
                 }
             }
         }
 
-        return bestOption
+        if solutions.isEmpty {
+            return fallbackMoves(
+                grid: grid,
+                spareTile: spareTile,
+                startPos: startPos,
+                targetTreasureId: targetTreasureId,
+                pawnPositions: pawnPositions,
+                activePawn: activePawn,
+                lastArrowId: lastArrowId,
+                limit: limit
+            )
+        }
+
+        return dedupeAndRank(solutions).prefix(limit).map { $0 }
     }
 
     // MARK: - Multi-Turn Lookahead
@@ -281,19 +350,252 @@ public struct SolverEngine {
         completion: @escaping @Sendable (MoveOption?) -> Void
     ) {
         Task.detached(priority: .userInitiated) {
-            let result = findBestMove(
+            let result = findBestMoves(
                 grid: grid,
                 spareTile: spareTile,
                 activePawn: activePawn,
                 targetTreasureId: targetTreasureId,
                 pawnPositions: pawnPositions,
-                lastArrowId: lastArrowId
-            )
+                lastArrowId: lastArrowId,
+                depth: depth,
+                limit: 1
+            ).first
             await MainActor.run { completion(result) }
         }
     }
 
     // MARK: - Helpers
+
+    private struct Candidate: Sendable {
+        let grid: [[TileData]]
+        let spareTile: TileData
+        let firstStep: SearchStep
+        let reachable: Set<PawnPositionKey>
+        let reachesTarget: Bool
+    }
+
+    private static func firstTurnCandidates(
+        grid: [[TileData]],
+        spareTile: TileData,
+        startPos: PawnPosition,
+        targetTreasureId: String?,
+        pawnPositions: PawnPositions,
+        activePawn: PawnColor,
+        lastArrowId: String?,
+        includeMetrics: Bool = true
+    ) -> [Candidate] {
+        var candidates: [Candidate] = []
+
+        for arrow in GameConstants.validArrowIds {
+            if let last = lastArrowId,
+               let opposite = GameConstants.oppositeArrowId(for: last),
+               arrow == opposite {
+                continue
+            }
+
+            for rotation in TileRotation.allCases {
+                var rotatedSpare = spareTile
+                rotatedSpare.rotation = rotation
+
+                var simulatedPawns = pawnPositions
+                simulatedPawns[activePawn] = startPos
+                let (simGrid, simSpare, simPawns) = simulateSlide(
+                    grid: grid,
+                    spareTile: rotatedSpare,
+                    arrowId: arrow,
+                    pawnPositions: simulatedPawns
+                )
+                let shiftedStart = simPawns[activePawn]
+                let reachable = findReachablePositions(grid: simGrid, start: shiftedStart)
+                let targetPos = findTargetPosition(targetTreasureId, in: simGrid)
+                let bestLanding = bestLandingPosition(reachable: reachable, target: targetPos, fallback: shiftedStart)
+                let distance = targetPos.map { manhattan(from: bestLanding, to: $0) } ?? max(0, 100 - reachable.count)
+                let firstStep = SearchStep(
+                    arrowId: arrow,
+                    rotation: rotation,
+                    landingPosition: bestLanding,
+                    reachableTreasures: includeMetrics ? collectReachableTreasures(reachable: reachable, grid: simGrid) : [],
+                    reachableCount: reachable.count,
+                    distanceToTarget: distance,
+                    safetyScore: includeMetrics ? calculateSafetyScore(grid: simGrid, spareTile: simSpare, pawnPos: bestLanding, lastArrowId: arrow) : 0
+                )
+
+                candidates.append(Candidate(
+                    grid: simGrid,
+                    spareTile: simSpare,
+                    firstStep: firstStep,
+                    reachable: reachable,
+                    reachesTarget: targetPos.map { reachable.contains(PawnPositionKey($0)) } ?? false
+                ))
+            }
+        }
+
+        return candidates
+    }
+
+    private static func fallbackMoves(
+        grid: [[TileData]],
+        spareTile: TileData,
+        startPos: PawnPosition,
+        targetTreasureId: String?,
+        pawnPositions: PawnPositions,
+        activePawn: PawnColor,
+        lastArrowId: String?,
+        limit: Int
+    ) -> [MoveOption] {
+        let candidates = firstTurnCandidates(
+            grid: grid,
+            spareTile: spareTile,
+            startPos: startPos,
+            targetTreasureId: targetTreasureId,
+            pawnPositions: pawnPositions,
+            activePawn: activePawn,
+            lastArrowId: lastArrowId
+        )
+
+        let options = candidates.map {
+            makeMoveOption(from: $0.firstStep, turns: 1, reached: $0.reachesTarget)
+        }
+        return dedupeAndRank(options).prefix(limit).map { $0 }
+    }
+
+    private static func makeMoveOption(from step: SearchStep, turns: Int, reached: Bool) -> MoveOption {
+        let summary: String
+        if reached && turns == 1 {
+            summary = "Slide \(arrowDisplayName(step.arrowId)) · rotate spare \(step.rotation.rawValue)° · target reachable now"
+        } else if reached {
+            summary = "Slide \(arrowDisplayName(step.arrowId)) · rotate spare \(step.rotation.rawValue)° · sets up a \(turns)-turn route"
+        } else {
+            summary = "Slide \(arrowDisplayName(step.arrowId)) · rotate spare \(step.rotation.rawValue)° · move to (\(step.landingPosition.row), \(step.landingPosition.col)), \(step.distanceToTarget) spaces from target"
+        }
+
+        return MoveOption(
+            arrowId: step.arrowId,
+            tileRotation: step.rotation,
+            targetPosition: step.landingPosition,
+            reachableTreasures: step.reachableTreasures,
+            distanceToTarget: step.distanceToTarget,
+            isTargetReached: reached,
+            turnsToTarget: turns,
+            reachableCount: step.reachableCount,
+            safetyScore: step.safetyScore,
+            summaryText: summary
+        )
+    }
+
+    private static func dedupeAndRank(_ options: [MoveOption]) -> [MoveOption] {
+        let ranked = options.sorted {
+            if $0.isTargetReached != $1.isTargetReached { return $0.isTargetReached && !$1.isTargetReached }
+            if $0.turnsToTarget != $1.turnsToTarget { return $0.turnsToTarget < $1.turnsToTarget }
+            if $0.distanceToTarget != $1.distanceToTarget { return $0.distanceToTarget < $1.distanceToTarget }
+            if $0.safetyScore != $1.safetyScore { return $0.safetyScore > $1.safetyScore }
+            return $0.reachableCount > $1.reachableCount
+        }
+
+        var seen = Set<String>()
+        var unique: [MoveOption] = []
+        for option in ranked {
+            let key = "\(option.arrowId)_\(option.tileRotation.rawValue)"
+            guard !seen.contains(key) else { continue }
+            seen.insert(key)
+            unique.append(option)
+        }
+        return unique
+    }
+
+    private static func findTargetPosition(_ targetTreasureId: String?, in grid: [[TileData]]) -> PawnPosition? {
+        guard let targetTreasureId else { return nil }
+
+        for r in 0..<grid.count {
+            for c in 0..<grid[r].count {
+                if grid[r][c].treasure?.id == targetTreasureId {
+                    return PawnPosition(row: r, col: c)
+                }
+            }
+        }
+
+        return nil
+    }
+
+    private static func bestLandingPosition(
+        reachable: Set<PawnPositionKey>,
+        target: PawnPosition?,
+        fallback: PawnPosition
+    ) -> PawnPosition {
+        guard let target else { return fallback }
+
+        var best = fallback
+        var bestDistance = Int.max
+        for key in reachable {
+            let pos = PawnPosition(row: key.row, col: key.col)
+            let distance = manhattan(from: pos, to: target)
+            if distance < bestDistance {
+                bestDistance = distance
+                best = pos
+            }
+        }
+        return best
+    }
+
+    private static func manhattan(from lhs: PawnPosition, to rhs: PawnPosition) -> Int {
+        abs(lhs.row - rhs.row) + abs(lhs.col - rhs.col)
+    }
+
+    private static func boardHash(grid: [[TileData]], spareTile: TileData) -> String {
+        var parts: [String] = []
+        for row in grid {
+            for tile in row where !tile.isFixed {
+                parts.append(tile.shape.rawValue)
+                parts.append(String(tile.rotation.rawValue))
+                parts.append(tile.treasure?.id ?? "")
+            }
+        }
+        parts.append("|")
+        parts.append(spareTile.shape.rawValue)
+        parts.append(String(spareTile.rotation.rawValue))
+        parts.append(spareTile.treasure?.id ?? "")
+        return parts.joined(separator: ",")
+    }
+
+    private static func calculateSafetyScore(
+        grid: [[TileData]],
+        spareTile: TileData,
+        pawnPos: PawnPosition,
+        lastArrowId: String?
+    ) -> Int {
+        var totalReachable = 0
+        var count = 0
+        var wrapCount = 0
+
+        for arrow in GameConstants.validArrowIds {
+            if let lastArrowId,
+               let opposite = GameConstants.oppositeArrowId(for: lastArrowId),
+               arrow == opposite {
+                continue
+            }
+
+            for rotation in TileRotation.allCases {
+                var rotatedSpare = spareTile
+                rotatedSpare.rotation = rotation
+                let pawns = PawnPositions(red: pawnPos, blue: pawnPos, green: pawnPos, yellow: pawnPos)
+                let (shiftedGrid, _, shiftedPawns) = simulateSlide(grid: grid, spareTile: rotatedSpare, arrowId: arrow, pawnPositions: pawns)
+                let shiftedPos = shiftedPawns[.red]
+                if shiftedPos != pawnPos && (abs(shiftedPos.row - pawnPos.row) > 1 || abs(shiftedPos.col - pawnPos.col) > 1) {
+                    wrapCount += 1
+                }
+                totalReachable += findReachablePositions(grid: shiftedGrid, start: shiftedPos).count
+                count += 1
+            }
+        }
+
+        guard count > 0 else { return 0 }
+        let averageReachable = Double(totalReachable) / Double(count)
+        let reachabilityScore = min(50, Int((averageReachable / 15.0 * 50.0).rounded()))
+        let fixedBonus = (pawnPos.row % 2 == 0 && pawnPos.col % 2 == 0) ? 15 : 0
+        let tileExitsBonus = grid[pawnPos.row][pawnPos.col].shape == .tJunction ? 15 : 10
+        let wrapPenalty = Int((Double(wrapCount) / Double(count) * 10.0).rounded())
+        return max(0, min(100, reachabilityScore + fixedBonus + tileExitsBonus - wrapPenalty))
+    }
 
     /// Collect IDs of all treasures reachable from the given BFS result set.
     static func collectReachableTreasures(reachable: Set<PawnPositionKey>, grid: [[TileData]]) -> [String] {

@@ -35,4 +35,42 @@ final class SolverTests: XCTestCase {
         XCTAssertEqual(board[0][0].color, .red)
         XCTAssertEqual(board[6][6].color, .blue)
     }
+
+    func testRankedSolverOptionsRespectNoReverseRule() {
+        let initial = GameConstants.createStandardFullBoard()
+
+        let options = SolverEngine.findBestMoves(
+            grid: initial.grid,
+            spareTile: initial.spareTile,
+            activePawn: .red,
+            targetTreasureId: "book",
+            pawnPositions: PawnPositions(),
+            lastArrowId: "top_1",
+            depth: 2,
+            limit: 5
+        )
+
+        XCTAssertFalse(options.isEmpty)
+        XCTAssertFalse(options.contains { $0.arrowId == "bottom_1" })
+    }
+
+    func testRankedSolverOptionsIncludeRouteMetadata() {
+        let initial = GameConstants.createStandardFullBoard()
+
+        let option = SolverEngine.findBestMoves(
+            grid: initial.grid,
+            spareTile: initial.spareTile,
+            activePawn: .red,
+            targetTreasureId: "book",
+            pawnPositions: PawnPositions(),
+            depth: 3,
+            limit: 1
+        ).first
+
+        XCTAssertNotNil(option)
+        XCTAssertGreaterThanOrEqual(option?.turnsToTarget ?? 0, 1)
+        XCTAssertGreaterThan(option?.reachableCount ?? 0, 0)
+        XCTAssertGreaterThanOrEqual(option?.safetyScore ?? -1, 0)
+        XCTAssertLessThanOrEqual(option?.safetyScore ?? 101, 100)
+    }
 }

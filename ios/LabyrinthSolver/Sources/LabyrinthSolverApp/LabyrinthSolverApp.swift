@@ -67,298 +67,469 @@ struct GameView: View {
     let onSetup: () -> Void
 
     @State private var showSettingsSheet = false
+    @State private var showTargetPicker = false
     @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         ZStack {
-            // Background
-            (colorScheme == .dark ? Color.boardBg : Color(red: 0.94, green: 0.95, blue: 0.97))
+            gameBackground
                 .ignoresSafeArea()
 
             VStack(spacing: 0) {
-                // ── Top Floating Status Pill ──
-                topStatusPill
+                commandHeader
+                    .padding(.horizontal, 16)
+                    .padding(.top, 10)
+                    .padding(.bottom, 8)
+
+                boardStage
+
+                solverConsole
+                    .padding(.horizontal, 16)
                     .padding(.top, 8)
-                    .padding(.horizontal, 16)
-                    .zIndex(2)
-
-                Spacer(minLength: 16)
-
-                // ── Board Area ──
-                GeometryReader { geo in
-                    let availableHeight = geo.size.height
-                    let availableWidth  = geo.size.width
-                    let boardAreaSize = min(availableWidth, availableHeight)
-
-                    VStack(spacing: 0) {
-                        Spacer(minLength: 0)
-                        LabyrinthBoardView(vm: vm)
-                            .frame(width: boardAreaSize, height: boardAreaSize)
-                            .frame(maxWidth: .infinity)
-                            .shadow(color: .black.opacity(colorScheme == .dark ? 0.3 : 0.1), radius: 24, y: 12)
-                        Spacer(minLength: 0)
-                    }
-                }
-                .zIndex(1)
-
-                Spacer(minLength: 16)
-
-                // ── AI Insight Panel ──
-                if let aiMove = vm.stagedAiMove {
-                    aiInsightPanel(aiMove)
-                        .padding(.horizontal, 16)
-                        .padding(.bottom, 8)
-                        .transition(.move(edge: .bottom).combined(with: .opacity))
-                        .zIndex(3)
-                }
-
-                // ── Floating Liquid Control Bar ──
-                bottomControlBar
-                    .padding(.horizontal, 16)
-                    .padding(.bottom, 24)
-                    .zIndex(2)
+                    .padding(.bottom, 12)
+                    .background(.regularMaterial)
             }
 
-            // ── Toast Notification ──
             if let msg = vm.toastMessage {
                 VStack {
                     Spacer()
                     ToastView(message: msg)
-                        .padding(.bottom, vm.stagedAiMove != nil ? 180 : 120)
+                        .padding(.bottom, 18)
                 }
                 .zIndex(100)
             }
 
-            // ── AI Solver Overlay ──
             if vm.isSolving {
-                Color.black.opacity(0.3)
+                Color.black.opacity(0.20)
                     .ignoresSafeArea()
-                    .overlay(
-                        VStack(spacing: 16) {
+                    .overlay {
+                        VStack(spacing: 14) {
                             ProgressView()
-                                .scaleEffect(1.5)
-                                .tint(.white)
-                            Text("AI is exploring routes...")
-                                .font(.system(size: 16, weight: .bold, design: .rounded))
-                                .foregroundColor(.white)
+                                .scaleEffect(1.25)
+                            Text("Finding routes")
+                                .font(.system(size: 15, weight: .semibold, design: .rounded))
                         }
-                        .padding(32)
-                        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
-                    )
+                        .padding(.horizontal, 22)
+                        .padding(.vertical, 18)
+                        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                    }
                     .zIndex(50)
             }
         }
-        .animation(.spring(response: 0.35, dampingFraction: 0.8), value: vm.toastMessage)
-        .animation(.spring(response: 0.4, dampingFraction: 0.8), value: vm.stagedAiMove)
-        .animation(.easeInOut(duration: 0.2), value: vm.isSolving)
+        .animation(.spring(response: 0.28, dampingFraction: 0.82), value: vm.stagedArrowId)
+        .animation(.easeInOut(duration: 0.16), value: vm.isSolving)
         .sheet(isPresented: $showSettingsSheet) {
             SettingsSheet(vm: vm, onSetup: onSetup)
                 .presentationDetents([.large])
                 .presentationDragIndicator(.visible)
         }
+        .sheet(isPresented: $showTargetPicker) {
+            TargetPickerSheet(vm: vm)
+                .presentationDetents([.medium, .large])
+                .presentationDragIndicator(.visible)
+        }
     }
 
-    // MARK: - AI Insight Panel
-    private func aiInsightPanel(_ move: MoveOption) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 8) {
-                Image(systemName: move.isTargetReached ? "star.circle.fill" : "point.topleft.down.curvedto.point.bottomright.up.fill")
-                    .font(.system(size: 16, weight: .bold))
-                    .foregroundColor(move.isTargetReached ? Color.amberGold : Color.solverPurple)
+    private var gameBackground: Color {
+        colorScheme == .dark ? Color(red: 0.09, green: 0.10, blue: 0.12) : Color(red: 0.95, green: 0.96, blue: 0.97)
+    }
 
-                Text(move.isTargetReached ? "TARGET REACHABLE" : "OPTIMAL ROUTE")
-                    .font(.system(size: 12, weight: .black, design: .rounded))
-                    .foregroundColor(move.isTargetReached ? Color.amberGold : Color.solverPurple)
-                    .tracking(1.0)
-                
-                Spacer()
-                
-                Button(action: {
-                    Haptics.selection()
-                    vm.cancelStage()
-                }) {
-                    Image(systemName: "xmark.circle.fill")
-                        .font(.system(size: 18))
-                        .foregroundColor(.secondary.opacity(0.5))
+    private var commandHeader: some View {
+        HStack(spacing: 10) {
+            playerMenu
+            phaseBadge
+            Spacer(minLength: 8)
+            iconButton("arrow.uturn.backward", isEnabled: vm.canUndo, action: vm.undo)
+            iconButton("arrow.uturn.forward", isEnabled: vm.canRedo, action: vm.redo)
+            iconButton("gearshape", isEnabled: true, action: { showSettingsSheet = true })
+        }
+        .padding(10)
+        .background(Color.appSecondaryGroupedBg, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+    }
+
+    private var playerMenu: some View {
+        Menu {
+            ForEach(vm.activePlayers) { pawn in
+                Button {
+                    vm.activePawn = pawn
+                    vm.refreshReachable()
+                } label: {
+                    Label(pawn.displayName, systemImage: pawn == vm.activePawn ? "checkmark.circle.fill" : "circle")
                 }
             }
+        } label: {
+            HStack(spacing: 7) {
+                PawnToken(color: vm.activePawn, isActive: true, size: 24)
+                Text(vm.activePawn.displayName)
+                    .font(.system(size: 14, weight: .bold, design: .rounded))
+                Image(systemName: "chevron.down")
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundColor(.secondary)
+            }
+            .padding(.horizontal, 10)
+            .frame(height: 38)
+            .background(Color.appTertiaryGroupedBg, in: Capsule())
+        }
+    }
 
-            Text(move.summaryText)
-                .font(.system(size: 14, weight: .medium, design: .rounded))
-                .foregroundColor(.primary)
+    private var phaseBadge: some View {
+        HStack(spacing: 7) {
+            Image(systemName: vm.turnPhase == .slide ? "arrow.left.arrow.right" : "figure.walk")
+                .font(.system(size: 12, weight: .bold))
+            Text(vm.turnPhase == .slide ? "Slide" : "Move")
+                .font(.system(size: 13, weight: .black, design: .rounded))
+        }
+        .foregroundColor(vm.turnPhase == .slide ? Color.orange : Color.green)
+        .padding(.horizontal, 11)
+        .frame(height: 38)
+        .background((vm.turnPhase == .slide ? Color.orange : Color.green).opacity(0.13), in: Capsule())
+    }
 
-            if !move.reachableTreasures.isEmpty {
-                HStack(spacing: 6) {
-                    Text("Also reaches:")
-                        .font(.system(size: 12, weight: .semibold, design: .rounded))
-                        .foregroundColor(.secondary)
-                    
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 6) {
-                            ForEach(move.reachableTreasures, id: \.self) { tId in
-                                if let treasure = GameConstants.treasures.first(where: { $0.id == tId }) {
-                                    Text(treasure.emoji)
-                                        .font(.system(size: 14))
-                                        .padding(4)
-                                        .background(Color.white.opacity(colorScheme == .dark ? 0.1 : 0.6), in: Circle())
-                                }
-                            }
+    private func iconButton(_ systemName: String, isEnabled: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: {
+            Haptics.selection()
+            action()
+        }) {
+            Image(systemName: systemName)
+                .font(.system(size: 15, weight: .bold))
+                .foregroundColor(isEnabled ? .primary : .secondary.opacity(0.35))
+                .frame(width: 38, height: 38)
+                .background(Color.appTertiaryGroupedBg, in: Circle())
+        }
+        .disabled(!isEnabled)
+    }
+
+    private var boardStage: some View {
+        GeometryReader { geo in
+            let maxBoard = min(geo.size.width - 22, geo.size.height - 8)
+            VStack(spacing: 0) {
+                Spacer(minLength: 0)
+                LabyrinthBoardView(vm: vm)
+                    .frame(width: maxBoard, height: maxBoard)
+                    .shadow(color: .black.opacity(colorScheme == .dark ? 0.30 : 0.10), radius: 18, y: 8)
+                Spacer(minLength: 0)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
+    }
+
+    private var solverConsole: some View {
+        VStack(spacing: 10) {
+            HStack(spacing: 12) {
+                Button(action: { showTargetPicker = true }) {
+                    HStack(spacing: 9) {
+                        Text(activeTargetEmoji)
+                            .font(.system(size: 24))
+                            .frame(width: 32)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Target")
+                                .font(.system(size: 10, weight: .bold, design: .rounded))
+                                .foregroundColor(.secondary)
+                            Text(activeTargetName)
+                                .font(.system(size: 14, weight: .bold, design: .rounded))
+                                .lineLimit(1)
                         }
+                        Spacer()
+                        Image(systemName: "chevron.up.chevron.down")
+                            .font(.system(size: 11, weight: .bold))
+                            .foregroundColor(.secondary)
                     }
+                    .foregroundColor(.primary)
+                    .padding(10)
+                    .frame(maxWidth: .infinity, minHeight: 58)
+                    .background(Color.appSecondaryGroupedBg, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
                 }
+
+                spareTileControl
+            }
+
+            if vm.stagedArrowId != nil {
+                stagedControls
+                    .transition(.opacity.combined(with: .move(edge: .bottom)))
+            } else {
+                solveControls
+            }
+
+            if !vm.solverOptions.isEmpty {
+                solverSuggestions
             }
         }
-        .padding(14)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .strokeBorder(move.isTargetReached ? Color.amberGold.opacity(0.6) : Color.solverPurple.opacity(0.4), lineWidth: 1.5)
-        )
-        .shadow(color: (move.isTargetReached ? Color.amberGold : Color.solverPurple).opacity(0.15), radius: 12, y: 6)
     }
 
-    // MARK: - Top Status Pill
-    private var topStatusPill: some View {
-        HStack(spacing: 12) {
-            // Left: Undo/Redo
-            HStack(spacing: 4) {
-                Button(action: { vm.undo() }) {
-                    Image(systemName: "arrow.uturn.backward")
-                        .font(.system(size: 16, weight: .bold))
-                        .foregroundColor(vm.canUndo ? .primary : .secondary.opacity(0.3))
-                        .frame(width: 40, height: 40)
-                        .contentShape(Circle())
+    private var spareTileControl: some View {
+        Button(action: {
+            Haptics.selection()
+            vm.rotateSpareTile()
+        }) {
+            VStack(spacing: 4) {
+                TileView(tile: vm.spareTile)
+                    .frame(width: 38, height: 38)
+                HStack(spacing: 3) {
+                    Image(systemName: "rotate.right")
+                        .font(.system(size: 10, weight: .bold))
+                    Text("\(vm.spareTile.rotation.rawValue)")
+                        .font(.system(size: 10, weight: .bold, design: .rounded))
                 }
-                .disabled(!vm.canUndo)
-
-                Button(action: { vm.redo() }) {
-                    Image(systemName: "arrow.uturn.forward")
-                        .font(.system(size: 16, weight: .bold))
-                        .foregroundColor(vm.canRedo ? .primary : .secondary.opacity(0.3))
-                        .frame(width: 40, height: 40)
-                        .contentShape(Circle())
-                }
-                .disabled(!vm.canRedo)
+                .foregroundColor(.secondary)
             }
-
-            Spacer()
-
-            // Center: Turn Phase
-            HStack(spacing: 6) {
-                Circle()
-                    .fill(vm.turnPhase == .slide ? Color.amberGold : Color.neonGreen)
-                    .frame(width: 8, height: 8)
-                    .shadow(color: (vm.turnPhase == .slide ? Color.amberGold : Color.neonGreen).opacity(0.8), radius: 4)
-
-                Text(vm.turnPhase == .slide ? "Slide a tile" : "\(vm.activePawn.displayName)'s turn")
-                    .font(.system(size: 13, weight: .bold, design: .rounded))
-                    .foregroundColor(.primary)
-            }
-
-            Spacer()
-
-            // Right: Settings
-            Button(action: { showSettingsSheet = true }) {
-                Image(systemName: "gearshape.fill")
-                    .font(.system(size: 16, weight: .bold))
-                    .foregroundColor(.primary)
-                    .frame(width: 40, height: 40)
-                    .contentShape(Circle())
-            }
+            .frame(width: 68, height: 58)
+            .background(Color.appSecondaryGroupedBg, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
         }
-        .padding(.horizontal, 6)
-        .padding(.vertical, 6)
-        .background(.ultraThinMaterial, in: Capsule())
-        .overlay(Capsule().strokeBorder(Color.white.opacity(colorScheme == .dark ? 0.1 : 0.5), lineWidth: 1))
-        .shadow(color: .black.opacity(0.1), radius: 10, y: 4)
     }
 
-    // MARK: - Bottom Control Bar
-    private var bottomControlBar: some View {
-        HStack(spacing: 8) {
-            // Active Players
-            HStack(spacing: 2) {
-                ForEach(vm.activePlayers) { pawn in
-                    let isSelected = vm.activePawn == pawn
-                    Button(action: {
-                        Haptics.selection()
-                        vm.activePawn = pawn
-                        vm.refreshReachable()
-                    }) {
-                        PawnToken(color: pawn, isActive: isSelected, size: 26)
-                            .frame(width: 48, height: 48)
-                            .background(
-                                isSelected
-                                ? Circle().fill(Color.white.opacity(colorScheme == .dark ? 0.15 : 0.5))
-                                : nil
-                            )
-                            .contentShape(Circle())
-                    }
-                }
-            }
-
-            Spacer()
-
-            // AI Solver Button (Magic Wand)
+    private var solveControls: some View {
+        HStack(spacing: 10) {
             Button(action: {
                 Haptics.impact(.medium)
                 vm.runSolverAndStage()
             }) {
-                Image(systemName: "wand.and.stars")
-                    .font(.system(size: 20, weight: .bold))
-                    .foregroundColor(.white)
-                    .frame(width: 52, height: 52)
-                    .background(
-                        LinearGradient(colors: [Color(red: 0.6, green: 0.3, blue: 0.9), Color(red: 0.4, green: 0.1, blue: 0.8)], startPoint: .topLeading, endPoint: .bottomTrailing),
-                        in: Circle()
-                    )
-                    .shadow(color: Color(red: 0.5, green: 0.2, blue: 0.8).opacity(0.6), radius: 8, y: 4)
+                Label("Solve Best Move", systemImage: "sparkles")
+                    .font(.system(size: 15, weight: .black, design: .rounded))
+                    .frame(maxWidth: .infinity, minHeight: 46)
+            }
+            .buttonStyle(.borderedProminent)
+            .disabled(vm.isSolving)
+
+            Button(action: {
+                Haptics.selection()
+                vm.clearActiveTarget()
+            }) {
+                Image(systemName: "scope")
+                    .font(.system(size: 16, weight: .bold))
+                    .frame(width: 44, height: 44)
+            }
+            .buttonStyle(.bordered)
+        }
+    }
+
+    private var stagedControls: some View {
+        VStack(spacing: 8) {
+            if let move = vm.stagedAiMove {
+                SolverOptionCard(
+                    move: move,
+                    rank: 1,
+                    isSelected: true,
+                    targetName: activeTargetName,
+                    onTap: {}
+                )
+            } else if let arrowId = vm.stagedArrowId {
+                HStack(spacing: 10) {
+                    Image(systemName: "arrow.right.circle.fill")
+                        .foregroundColor(Color.accentForTheme(vm.appAccentTheme))
+                    Text("Staged \(arrowDisplayName(arrowId)) at \(vm.stagedRotation.rawValue)°")
+                        .font(.system(size: 14, weight: .bold, design: .rounded))
+                    Spacer()
+                }
+                .padding(12)
+                .background(Color.appSecondaryGroupedBg, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
             }
 
-            Spacer()
+            HStack(spacing: 10) {
+                Button(action: {
+                    Haptics.selection()
+                    vm.cancelStage()
+                }) {
+                    Label("Cancel", systemImage: "xmark")
+                        .frame(maxWidth: .infinity, minHeight: 42)
+                }
+                .buttonStyle(.bordered)
 
-            // Spare Tile / Confirm Move
-            if vm.stagedArrowId != nil {
                 Button(action: {
                     Haptics.impact(.heavy)
                     vm.commitSlide()
                 }) {
-                    HStack(spacing: 6) {
-                        Image(systemName: "checkmark")
-                            .font(.system(size: 16, weight: .black))
-                        Text(vm.stagedAiMove != nil ? "Play Move" : "Confirm")
-                            .font(.system(size: 15, weight: .bold, design: .rounded))
-                    }
-                    .foregroundColor(.white)
-                    .frame(height: 52)
-                    .padding(.horizontal, 20)
-                    .background(Color.green, in: Capsule())
-                    .shadow(color: Color.green.opacity(0.4), radius: 8, y: 4)
+                    Label("Slide In", systemImage: "checkmark")
+                        .font(.system(size: 15, weight: .black, design: .rounded))
+                        .frame(maxWidth: .infinity, minHeight: 42)
                 }
-                .transition(.scale.combined(with: .opacity))
-            } else {
-                Button(action: {
-                    Haptics.selection()
-                    vm.rotateSpareTile()
-                }) {
-                    HStack(spacing: 8) {
-                        TileView(tile: vm.spareTile)
-                            .frame(width: 36, height: 36)
-                        Image(systemName: "rotate.right")
-                            .font(.system(size: 16, weight: .bold))
-                            .foregroundColor(Color.accentForTheme(vm.appAccentTheme))
-                    }
-                    .frame(height: 52)
-                    .padding(.horizontal, 16)
-                    .background(Color.black.opacity(0.05), in: Capsule())
-                }
+                .buttonStyle(.borderedProminent)
             }
         }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 8)
-        .background(.ultraThinMaterial, in: Capsule())
-        .overlay(Capsule().strokeBorder(Color.white.opacity(colorScheme == .dark ? 0.1 : 0.6), lineWidth: 1))
-        .shadow(color: .black.opacity(0.15), radius: 20, y: 10)
+    }
+
+    private var solverSuggestions: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text("Suggestions")
+                    .font(.system(size: 12, weight: .black, design: .rounded))
+                    .foregroundColor(.secondary)
+                Spacer()
+                Text("\(vm.solverOptions.count)")
+                    .font(.system(size: 11, weight: .bold, design: .monospaced))
+                    .foregroundColor(.secondary)
+            }
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    ForEach(Array(vm.solverOptions.enumerated()), id: \.element.id) { index, option in
+                        SolverOptionCard(
+                            move: option,
+                            rank: index + 1,
+                            isSelected: vm.stagedAiMove?.id == option.id,
+                            targetName: activeTargetName,
+                            onTap: {
+                                Haptics.selection()
+                                vm.stageSolverOption(option)
+                            }
+                        )
+                        .frame(width: 238)
+                    }
+                }
+                .padding(.bottom, 2)
+            }
+        }
+    }
+
+    private var activeTargetName: String {
+        guard let targetId = vm.activeTargetId else {
+            return "Auto from hand"
+        }
+        return GameConstants.treasures.first(where: { $0.id == targetId })?.name ?? targetId
+    }
+
+    private var activeTargetEmoji: String {
+        guard let targetId = vm.activeTargetId else { return "🎯" }
+        return GameConstants.treasures.first(where: { $0.id == targetId })?.emoji ?? "🎯"
+    }
+
+    private func arrowDisplayName(_ arrowId: String) -> String {
+        let parts = arrowId.split(separator: "_")
+        guard parts.count == 2, let index = Int(parts[1]) else { return arrowId }
+        switch String(parts[0]) {
+        case "top": return "column \(index + 1) down"
+        case "bottom": return "column \(index + 1) up"
+        case "left": return "row \(index + 1) right"
+        case "right": return "row \(index + 1) left"
+        default: return arrowId
+        }
+    }
+}
+
+struct SolverOptionCard: View {
+    let move: MoveOption
+    let rank: Int
+    let isSelected: Bool
+    let targetName: String
+    let onTap: () -> Void
+
+    var body: some View {
+        Button(action: onTap) {
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(spacing: 8) {
+                    Text("#\(rank)")
+                        .font(.system(size: 11, weight: .black, design: .rounded))
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 7)
+                        .padding(.vertical, 4)
+                        .background(isSelected ? Color.accentColor : Color.secondary, in: Capsule())
+
+                    Text(move.isTargetReached ? (move.turnsToTarget == 1 ? "Reach now" : "\(move.turnsToTarget)-turn route") : "Improve")
+                        .font(.system(size: 12, weight: .black, design: .rounded))
+                        .foregroundColor(move.isTargetReached ? .green : .orange)
+
+                    Spacer()
+
+                    Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                        .font(.system(size: 15, weight: .bold))
+                        .foregroundColor(isSelected ? .accentColor : .secondary)
+                }
+
+                Text(move.summaryText)
+                    .font(.system(size: 12, weight: .semibold, design: .rounded))
+                    .foregroundColor(.primary)
+                    .lineLimit(2)
+                    .multilineTextAlignment(.leading)
+
+                HStack(spacing: 6) {
+                    compactMetric("Turns", "\(move.turnsToTarget)")
+                    compactMetric("Reach", "\(move.reachableCount)")
+                    compactMetric("Safe", "\(move.safetyScore)%")
+                }
+            }
+            .padding(11)
+            .background(Color.appSecondaryGroupedBg, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .strokeBorder(isSelected ? Color.accentColor.opacity(0.65) : Color.clear, lineWidth: 1.5)
+            )
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func compactMetric(_ title: String, _ value: String) -> some View {
+        VStack(alignment: .leading, spacing: 1) {
+            Text(title)
+                .font(.system(size: 8, weight: .black, design: .rounded))
+                .foregroundColor(.secondary)
+            Text(value)
+                .font(.system(size: 11, weight: .bold, design: .rounded))
+                .foregroundColor(.primary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 7)
+        .padding(.vertical, 5)
+        .background(Color.appTertiaryGroupedBg, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+    }
+}
+
+struct TargetPickerSheet: View {
+    @Bindable var vm: GameViewModel
+    @Environment(\.dismiss) private var dismiss
+
+    private let columns = [
+        GridItem(.adaptive(minimum: 72), spacing: 10)
+    ]
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                LazyVGrid(columns: columns, spacing: 10) {
+                    Button {
+                        vm.clearActiveTarget()
+                        dismiss()
+                    } label: {
+                        targetCell(emoji: "🎯", name: "Auto", isSelected: vm.singleTargetId == nil)
+                    }
+
+                    ForEach(GameConstants.treasures, id: \.id) { treasure in
+                        Button {
+                            vm.setActiveTarget(treasureId: treasure.id)
+                            dismiss()
+                        } label: {
+                            targetCell(
+                                emoji: treasure.emoji,
+                                name: treasure.name,
+                                isSelected: vm.singleTargetId == treasure.id
+                            )
+                        }
+                    }
+                }
+                .padding(16)
+            }
+            .background(Color.appGroupedBg)
+            .navigationTitle("Choose Target")
+            #if os(iOS)
+            .navigationBarTitleDisplayMode(.inline)
+            #endif
+        }
+    }
+
+    private func targetCell(emoji: String, name: String, isSelected: Bool) -> some View {
+        VStack(spacing: 6) {
+            Text(emoji)
+                .font(.system(size: 26))
+            Text(name)
+                .font(.system(size: 11, weight: .bold, design: .rounded))
+                .foregroundColor(.primary)
+                .lineLimit(1)
+        }
+        .frame(maxWidth: .infinity, minHeight: 74)
+        .padding(8)
+        .background(Color.appSecondaryGroupedBg, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .strokeBorder(isSelected ? Color.accentColor : Color.clear, lineWidth: 2)
+        )
     }
 }
 
@@ -406,6 +577,16 @@ struct SettingsSheet: View {
                             Toggle("Haptic Feedback", isOn: $vm.enableHaptics)
                                 .font(.system(size: 16, weight: .semibold, design: .rounded))
                                 .tint(Color.accentForTheme(vm.appAccentTheme))
+                            Divider()
+                            Stepper(value: $vm.solverDepth, in: 1...3) {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("Solver Lookahead")
+                                        .font(.system(size: 16, weight: .semibold, design: .rounded))
+                                    Text("\(vm.solverDepth) \(vm.solverDepth == 1 ? "turn" : "turns")")
+                                        .font(.system(size: 12, design: .rounded))
+                                        .foregroundColor(.secondary)
+                                }
+                            }
                         }
                         .padding(16)
                         .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
@@ -479,4 +660,3 @@ struct SettingsSheet: View {
         .contentShape(Rectangle())
     }
 }
-

@@ -290,9 +290,14 @@ struct LabyrinthBoardView: View {
     private func handleCellTap(_ r: Int, _ c: Int) {
         switch vm.turnPhase {
         case .slide:
-            // Prompt user with a light warning if tapping board before sliding
-            Haptics.notification(.warning)
-            vm.showToast("Slide a tile using an arrow button first!")
+            if let treasure = vm.board[r][c].treasure {
+                Haptics.selection()
+                vm.setActiveTarget(treasureId: treasure.id)
+                vm.showToast("Target set to \(treasure.name)")
+            } else {
+                Haptics.notification(.warning)
+                vm.showToast("Choose a treasure target or slide a tile.")
+            }
         case .move:
             let didMove = vm.movePawn(to: r, col: c)
             if didMove {
@@ -303,4 +308,3 @@ struct LabyrinthBoardView: View {
         }
     }
 }
-

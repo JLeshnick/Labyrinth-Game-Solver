@@ -140,6 +140,7 @@ final class GameViewModel {
         stagedArrowId  = nil
         turnPhase      = .move
         solverMessage  = nil
+        solverOptions.removeAll()
         refreshReachable()
 
         // Auto-move pawn if this was an AI move
@@ -158,6 +159,15 @@ final class GameViewModel {
     /// Cancel a staged arrow without committing
     func cancelStage() {
         stagedArrowId = nil
+        stagedAiMove = nil
+    }
+
+    /// Stage a solver suggestion for preview and optional execution.
+    func stageSolverOption(_ move: MoveOption) {
+        spareTile.rotation = move.tileRotation
+        stagedArrowId = move.arrowId
+        stagedRotation = move.tileRotation
+        stagedAiMove = move
     }
 
     /// Directly slide (bypass staging) — used by the solver's "apply best move"
@@ -350,6 +360,7 @@ final class GameViewModel {
         selectedLooseTileId = nil
         stagedAiMove   = nil
         solverMessage  = nil
+        solverOptions.removeAll()
         refreshReachable()
         showToast("Board layout randomized ✨")
     }
@@ -364,6 +375,7 @@ final class GameViewModel {
         selectedLooseTileId = nil
         stagedAiMove   = nil
         solverMessage  = nil
+        solverOptions.removeAll()
         refreshReachable()
         showToast("Board layout reset to standard ↺")
     }
@@ -555,6 +567,7 @@ final class GameViewModel {
         stagedArrowId = nil
         stagedAiMove  = nil
         solverMessage = nil
+        solverOptions.removeAll()
         refreshReachable()
         showToast("Game started! \(activePawn.displayName) goes first.")
     }
@@ -571,29 +584,28 @@ final class GameViewModel {
         let targetId = self.activeTargetId
         let positions = self.pawnPositions
         let lastArrow = self.lastArrowId
-        // Multi-depth solver doesn't currently exist in this engine so we'll just use the fast standard search.
+        let depth = self.solverDepth
         
         Task.detached(priority: .userInitiated) { [weak self] in
-            let result = SolverEngine.findBestMove(
+            let options = SolverEngine.findBestMoves(
                 grid: board,
                 spareTile: spareTile,
                 activePawn: activePawn,
                 targetTreasureId: targetId,
                 pawnPositions: positions,
-                lastArrowId: lastArrow
+                lastArrowId: lastArrow,
+                depth: depth,
+                limit: 5
             )
             await MainActor.run { [weak self] in
                 guard let self else { return }
                 self.isSolving = false
-                if let move = result {
-                    // Auto-stage the move on the board for instant preview!
-                    self.spareTile.rotation = move.tileRotation
-                    self.stagedArrowId = move.arrowId
-                    self.stagedRotation = move.tileRotation
-                    self.stagedAiMove = move
+                self.solverOptions = options
+                if let move = options.first {
+                    self.stageSolverOption(move)
                     Haptics.notification(.success)
                     if move.isTargetReached {
-                        self.showToast("AI found a path to target!")
+                        self.showToast(move.turnsToTarget == 1 ? "AI found a path to target!" : "AI found a \(move.turnsToTarget)-turn route.")
                     }
                 } else {
                     Haptics.notification(.error)
@@ -620,12 +632,14 @@ final class GameViewModel {
         singleTargetId = treasureId
         stagedAiMove = nil
         solverMessage = nil
+        solverOptions.removeAll()
     }
 
     func clearActiveTarget() {
         singleTargetId = nil
         stagedAiMove = nil
         solverMessage = nil
+        solverOptions.removeAll()
     }
 
     /// Configure the game for N players and optionally deal treasure cards.

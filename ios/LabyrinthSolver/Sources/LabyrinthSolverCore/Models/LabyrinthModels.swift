@@ -326,6 +326,9 @@ public struct MoveOption: Codable, Equatable, Sendable, Identifiable {
     public let reachableTreasures: [String]
     public let distanceToTarget: Int
     public let isTargetReached: Bool
+    public let turnsToTarget: Int
+    public let reachableCount: Int
+    public let safetyScore: Int
     public let summaryText: String
 
     public init(
@@ -335,6 +338,9 @@ public struct MoveOption: Codable, Equatable, Sendable, Identifiable {
         reachableTreasures: [String],
         distanceToTarget: Int,
         isTargetReached: Bool,
+        turnsToTarget: Int = 1,
+        reachableCount: Int = 0,
+        safetyScore: Int = 0,
         summaryText: String
     ) {
         self.arrowId           = arrowId
@@ -343,6 +349,9 @@ public struct MoveOption: Codable, Equatable, Sendable, Identifiable {
         self.reachableTreasures = reachableTreasures
         self.distanceToTarget  = distanceToTarget
         self.isTargetReached   = isTargetReached
+        self.turnsToTarget     = turnsToTarget
+        self.reachableCount    = reachableCount
+        self.safetyScore       = safetyScore
         self.summaryText       = summaryText
     }
 }
