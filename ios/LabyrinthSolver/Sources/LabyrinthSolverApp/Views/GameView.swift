@@ -122,14 +122,14 @@ struct GameView: View {
 
     private var boardStage: some View {
         GeometryReader { geo in
-            let maxBoard = min(geo.size.width - 20, geo.size.height - 10)
+            let maxBoard = min(geo.size.width - 20, geo.size.height - 16)
             VStack(spacing: 0) {
                 LabyrinthBoardView(vm: vm)
                     .frame(width: maxBoard, height: maxBoard)
                 Spacer(minLength: 0)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-            .padding(.top, 4)
+            .padding(.top, 12)
         }
     }
 }
