@@ -14,8 +14,6 @@ struct SolverConsoleView: View {
 
     var body: some View {
         VStack(spacing: 10) {
-            reachableTreasuresBar
-
             HStack(spacing: 8) {
                 // Navigate To button
                 Button(action: {
@@ -122,95 +120,44 @@ struct SolverConsoleView: View {
         }
     }
 
-    private var reachableTreasuresBar: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack {
-                Label("Reachable in 1 Turn", systemImage: "sparkles")
-                    .font(.system(size: 11, weight: .bold, design: .rounded))
-                    .foregroundColor(.secondary)
-                Spacer()
-                if !vm.oneTurnReachableTreasures.isEmpty {
-                    Text("\(vm.oneTurnReachableTreasures.count) available")
-                        .font(.system(size: 10, weight: .bold, design: .monospaced))
-                        .foregroundColor(Color.accentForTheme(vm.appAccentTheme))
-                }
-            }
-
-            ScrollViewReader { proxy in
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 8) {
-                        if vm.oneTurnReachableTreasures.isEmpty {
-                            Text("No treasures reachable in 1 turn.")
-                                .font(.system(size: 12, design: .rounded))
-                                .foregroundColor(.secondary)
-                                .padding(.vertical, 4)
-                        } else {
-                            ForEach(vm.oneTurnReachableTreasures, id: \.id) { treasure in
-                                Button(action: {
-                                    Haptics.selection()
-                                    vm.setActiveTarget(treasureId: treasure.id)
-                                }) {
-                                    HStack(spacing: 5) {
-                                        Text(treasure.emoji)
-                                            .font(.system(size: 13))
-                                        Text(treasure.shortName)
-                                            .font(.system(size: 12, weight: .bold, design: .rounded))
-                                    }
-                                    .padding(.horizontal, 12)
-                                    .padding(.vertical, 7)
-                                    .liquidGlassCapsule(
-                                        isSelected: vm.activeTargetId == treasure.id,
-                                        tintColor: vm.activeTargetId == treasure.id ? Color.accentForTheme(vm.appAccentTheme) : nil
-                                    )
-                                    .foregroundColor(.primary)
-                                }
-                                .buttonStyle(.plain)
-                                .id(treasure.id)
-                            }
-                        }
-                    }
-                    .padding(.vertical, 4)
-                    .padding(.leading, 2)
-                    .padding(.trailing, 16)
-                }
-                .onChange(of: vm.activeTargetId) { _, targetId in
-                    if let targetId {
-                        withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
-                            proxy.scrollTo(targetId, anchor: .center)
-                        }
-                    }
-                }
-            }
-        }
-        .padding(.leading, 10)
-        .padding(.vertical, 10)
-        .padding(.trailing, 4)
-        .liquidGlassCard(cornerRadius: 16)
-    }
-
     private var stagedControls: some View {
         HStack(spacing: 8) {
             let stagedId = vm.stagedArrowId!
             let expelledId = GameConstants.oppositeArrowId(for: stagedId) ?? stagedId
-            
-            VStack(alignment: .leading, spacing: 2) {
-                HStack(spacing: 4) {
-                    Text("SLIDE STAGED")
-                        .font(.system(size: 10, weight: .black, design: .rounded))
-                        .foregroundColor(Color.accentForTheme(vm.appAccentTheme))
-                    Spacer()
-                    if let pos = vm.activeTargetPosition {
-                        Text("Target: (\(pos.row + 1), \(pos.col + 1))")
-                            .font(.system(size: 9, weight: .bold, design: .monospaced))
+            let nextSpareTile = vm.previewState?.spareTile
+
+            HStack(spacing: 8) {
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack(spacing: 4) {
+                        Text("SLIDE PREVIEW")
+                            .font(.system(size: 9, weight: .black, design: .rounded))
+                            .foregroundColor(Color.accentForTheme(vm.appAccentTheme))
+                        Spacer()
+                    }
+                    Text("In: \(SolverEngine.arrowDisplayName(stagedId)) → Out: \(SolverEngine.arrowDisplayName(expelledId))")
+                        .font(.system(size: 11, weight: .bold, design: .rounded))
+                        .foregroundColor(.primary)
+                        .lineLimit(1)
+                }
+
+                if let nextSpare = nextSpareTile {
+                    HStack(spacing: 4) {
+                        Image(systemName: "arrow.right")
+                            .font(.system(size: 10, weight: .bold))
                             .foregroundColor(.secondary)
+                        
+                        VStack(spacing: 1) {
+                            Text("New Spare")
+                                .font(.system(size: 8, weight: .bold, design: .rounded))
+                                .foregroundColor(.secondary)
+                            TileView(tile: nextSpare)
+                                .frame(width: 26, height: 26)
+                        }
                     }
                 }
-                Text("Insert: \(SolverEngine.arrowDisplayName(stagedId))  •  Expels: \(SolverEngine.arrowDisplayName(expelledId))")
-                    .font(.system(size: 11, weight: .bold, design: .rounded))
-                    .foregroundColor(.primary)
-                    .lineLimit(1)
             }
             .padding(.horizontal, 10)
+            .padding(.vertical, 4)
             .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
             .liquidGlassCard(cornerRadius: 14)
 

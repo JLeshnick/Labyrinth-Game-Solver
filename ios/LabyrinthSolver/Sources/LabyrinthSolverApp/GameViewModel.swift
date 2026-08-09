@@ -700,14 +700,14 @@ final class GameViewModel {
         }
     }
 
-    var previewState: (grid: [[TileData]], reachable: Set<PawnPositionKey>, pawns: PawnPositions)? {
+    var previewState: (grid: [[TileData]], spareTile: TileData, reachable: Set<PawnPositionKey>, pawns: PawnPositions)? {
         guard let arrowId = stagedArrowId else { return nil }
         var rotatedSpare = spareTile
         rotatedSpare.rotation = stagedRotation
-        let (previewGrid, _, previewPawns) = SolverEngine.simulateSlide(
+        let (previewGrid, previewSpare, previewPawns) = SolverEngine.simulateSlide(
             grid: board, spareTile: rotatedSpare, arrowId: arrowId, pawnPositions: pawnPositions
         )
         let reachable = SolverEngine.findReachablePositions(grid: previewGrid, start: previewPawns[myColor])
-        return (previewGrid, reachable, previewPawns)
+        return (previewGrid, previewSpare, reachable, previewPawns)
     }
 }

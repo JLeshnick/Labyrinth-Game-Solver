@@ -56,12 +56,12 @@ struct GameView: View {
                 .zIndex(2)
             }
 
-            // Toast HUD overlay (top floating capsule below header)
+            // Toast HUD overlay (floating in open space above lower console)
             if let msg = vm.toastMessage {
                 VStack {
-                    ToastView(message: msg)
-                        .padding(.top, 62)
                     Spacer()
+                    ToastView(message: msg)
+                        .padding(.bottom, 125)
                 }
                 .allowsHitTesting(false)
                 .zIndex(100)
