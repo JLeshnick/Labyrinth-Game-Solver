@@ -16,31 +16,15 @@ struct CommandHeader: View {
 
     var body: some View {
         HStack(spacing: 10) {
-            // Active Pawn Menu
-            Menu {
-                ForEach(vm.activePlayers, id: \.id) { pawn in
-                    Button {
-                        if let idx = vm.activePlayers.firstIndex(of: pawn) {
-                            vm.currentPlayerIndex = idx
-                            vm.refreshReachable()
-                        }
-                    } label: {
-                        Label(pawn.displayName, systemImage: pawn == vm.myColor ? "checkmark.circle.fill" : "circle")
-                    }
-                }
-            } label: {
-                HStack(spacing: 7) {
-                    PawnToken(color: vm.myColor, isActive: true, size: 24)
-                    Text("My Pawn")
-                        .font(.system(size: 14, weight: .bold, design: .rounded))
-                    Image(systemName: "chevron.down")
-                        .font(.system(size: 10, weight: .bold))
-                        .foregroundColor(.secondary)
-                }
-                .padding(.horizontal, 10)
-                .frame(height: 38)
-                .liquidGlassCapsule()
+            HStack(spacing: 8) {
+                Image(systemName: "map.fill")
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundColor(Color.accentForTheme(vm.appAccentTheme))
+                Text("Labyrinth")
+                    .font(.system(size: 16, weight: .black, design: .rounded))
+                    .foregroundColor(.primary)
             }
+            .padding(.leading, 6)
 
             Spacer(minLength: 4)
 

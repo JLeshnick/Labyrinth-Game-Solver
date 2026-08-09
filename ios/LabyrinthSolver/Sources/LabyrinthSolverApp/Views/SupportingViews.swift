@@ -53,14 +53,12 @@ enum HapticNotification {
 import UIKit
 
 enum Haptics {
-    static func impact(_ style: HapticImpact = .medium) {
+    static func impact(_ style: HapticImpact = .soft) {
         let generatorStyle: UIImpactFeedbackGenerator.FeedbackStyle
         switch style {
-        case .light:  generatorStyle = .light
-        case .medium: generatorStyle = .medium
-        case .heavy:  generatorStyle = .heavy
-        case .soft:   generatorStyle = .soft
-        case .rigid:  generatorStyle = .rigid
+        case .light, .medium: generatorStyle = .light
+        case .heavy, .rigid:  generatorStyle = .rigid
+        case .soft:           generatorStyle = .soft
         }
         UIImpactFeedbackGenerator(style: generatorStyle).impactOccurred()
     }

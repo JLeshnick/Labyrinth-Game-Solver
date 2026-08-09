@@ -144,16 +144,6 @@ struct BoardSetupView: View {
                         .foregroundColor(Color.accentColor)
                         .clipShape(Capsule())
                 }
-
-                Button(action: { vm.resetBoardLayout() }) {
-                    Label("Standard Board", systemImage: "arrow.counterclockwise")
-                        .font(.system(size: 13, weight: .semibold, design: .rounded))
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 10)
-                        .background(Color.appSecondaryGroupedBg)
-                        .foregroundColor(.primary)
-                        .clipShape(Capsule())
-                }
             }
             .padding(.horizontal, 16)
         }
@@ -248,10 +238,32 @@ struct SetupGridCellView: View {
         .frame(width: tileSize, height: tileSize)
         .contentShape(Rectangle())
         .onTapGesture { vm.tapSetupCell(row: row, col: col) }
-        .onDrop(of: [.text], isTargeted: $isTargeted) { providers in
+        .contextMenu {
+            if let tile = tile, !tile.isFixed {
+                Button(role: .destructive) {
+                    vm.removePlacedTile(row: row, col: col)
+                } label: {
+                    Label("Remove to Pool", systemImage: "trash")
+                }
+                Button {
+                    vm.tapSetupCell(row: row, col: col)
+                } label: {
+                    Label("Rotate 90°", systemImage: "arrow.clockwise")
+                }
+            }
+        }
+        .onDrop(of: [.plainText, .text], isTargeted: $isTargeted) { providers in
             if let provider = providers.first {
-                _ = provider.loadObject(ofClass: String.self) { id, _ in
-                    if let tileId = id {
+                _ = provider.loadItem(forTypeIdentifier: "public.plain-text", options: nil) { idData, _ in
+                    let tileId: String?
+                    if let data = idData as? Data, let str = String(data: data, encoding: .utf8) {
+                        tileId = str
+                    } else if let str = idData as? String {
+                        tileId = str
+                    } else {
+                        tileId = nil
+                    }
+                    if let tileId {
                         DispatchQueue.main.async {
                             vm.selectLooseTile(id: tileId)
                             vm.tapSetupCell(row: row, col: col)

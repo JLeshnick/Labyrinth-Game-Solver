@@ -75,10 +75,12 @@ final class GameViewModel {
     private var toastTask: Task<Void, Never>? = nil
 
     init() {
-        let initial = GameConstants.createStandardFullBoard()
-        self.board = initial.grid
-        self.spareTile = initial.spareTile
-        self.looseTiles = [initial.spareTile]
+        let scratch = GameConstants.createScratchBoardSetup()
+        self.board = scratch.grid.map { row in row.map { $0 ?? TileData(shape: .straight, isFixed: false) } }
+        self.setupGrid = scratch.grid
+        self.spareTile = scratch.spareTile
+        self.looseTiles = scratch.looseTiles
+        self.isSetupMode = true
         self.pawnPositions = PawnPositions(red: .init(row: 0, col: 0))
         refreshReachable()
     }
@@ -176,22 +178,54 @@ final class GameViewModel {
         }
     }
     
+    // MARK: - Pawn Move
+    @discardableResult
+    func movePawn(to row: Int, col: Int) -> Bool {
+        let key = PawnPositionKey(row: row, col: col)
+        guard reachablePositions.contains(key) else { return false }
+
+        let destPos = PawnPosition(row: row, col: col)
+        let currentPos = pawnPositions[myColor]
+        if currentPos == destPos { return false }
+
+        let route = findRoute(grid: board, start: currentPos, end: destPos)
+        if route.count > 1 {
+            moveCount += 1
+            animatePawn(along: route)
+            return true
+        } else {
+            pawnPositions[myColor] = destPos
+            moveCount += 1
+
+            if let targetId = activeTargetId, board[row][col].treasure?.id == targetId {
+                showToast("🎉 Reached \(board[row][col].treasure?.name ?? targetId)!")
+                activeTargetId = nil
+            }
+            
+            nextTurn()
+            return true
+        }
+    }
+    
     private func animatePawn(along route: [PawnPosition], currentIndex: Int = 0) {
         guard currentIndex < route.count else {
             if let targetId = activeTargetId, let last = route.last, board[last.row][last.col].treasure?.id == targetId {
                 showToast("🎉 Reached \(board[last.row][last.col].treasure?.name ?? targetId)!")
                 activeTargetId = nil
             }
+            SoundManager.shared.play(.pawnStep, enabled: enableSound)
             nextTurn()
             return
         }
         
         let pos = route[currentIndex]
         
-        // Force the pawn position update. LabyrinthBoardView pawnToken has a spring animation on isActive, but to animate translation we can just rely on SwiftUI implicit animation or explicitly inject it if we wrap it, but pawnPositions isn't currently observed with an explicit withAnimation in the grid. However, setting the data triggers redraw.
-        pawnPositions[myColor] = PawnPosition(row: pos.row, col: pos.col)
+        withAnimation(.spring(response: 0.22, dampingFraction: 0.8)) {
+            pawnPositions[myColor] = PawnPosition(row: pos.row, col: pos.col)
+        }
+        SoundManager.shared.play(.pawnStep, enabled: enableSound)
         
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { [weak self] in
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.16) { [weak self] in
             self?.animatePawn(along: route, currentIndex: currentIndex + 1)
         }
     }
@@ -248,24 +282,6 @@ final class GameViewModel {
         return []
     }
 
-    // MARK: - Pawn Move
-    @discardableResult
-    func movePawn(to row: Int, col: Int) -> Bool {
-        let key = PawnPositionKey(row: row, col: col)
-        guard reachablePositions.contains(key) else { return false }
-
-        pawnPositions[myColor] = PawnPosition(row: row, col: col)
-        moveCount += 1
-
-        if let targetId = activeTargetId, board[row][col].treasure?.id == targetId {
-            showToast("🎉 Reached \(board[row][col].treasure?.name ?? targetId)!")
-            activeTargetId = nil
-        }
-        
-        nextTurn()
-        return true
-    }
-    
     private func nextTurn() {
         currentPlayerIndex = (currentPlayerIndex + 1) % activePlayers.count
         turnPhase = .slide
@@ -416,29 +432,49 @@ final class GameViewModel {
             return
         }
 
-        if let existing = grid[row][col] {
+        if var existing = grid[row][col] {
             if let selectedId = selectedLooseTileId, let looseIdx = looseTiles.firstIndex(where: { $0.id == selectedId }) {
                 let looseTile = looseTiles.remove(at: looseIdx)
                 grid[row][col] = looseTile
                 looseTiles.append(existing)
                 selectedLooseTileId = nil
+                Haptics.selection()
+                SoundManager.shared.play(.slideIn, enabled: enableSound)
             } else {
-                grid[row][col] = nil
-                looseTiles.append(existing)
+                // Tapping an existing tile on the board ROTATES it 90° clockwise!
+                existing.rotation = existing.rotation.nextClockwise
+                grid[row][col] = existing
+                Haptics.selection()
+                SoundManager.shared.play(.rotateTile, enabled: enableSound)
             }
         } else {
             if let selectedId = selectedLooseTileId, let looseIdx = looseTiles.firstIndex(where: { $0.id == selectedId }) {
                 let looseTile = looseTiles.remove(at: looseIdx)
                 grid[row][col] = looseTile
                 selectedLooseTileId = nil
+                Haptics.selection()
+                SoundManager.shared.play(.slideIn, enabled: enableSound)
             } else if !looseTiles.isEmpty {
                 let looseTile = looseTiles.removeFirst()
                 grid[row][col] = looseTile
+                Haptics.selection()
+                SoundManager.shared.play(.slideIn, enabled: enableSound)
             }
         }
 
         setupGrid = grid
         if let last = looseTiles.last { spareTile = last }
+    }
+
+    func removePlacedTile(row: Int, col: Int) {
+        var grid = displaySetupGrid
+        if let existing = grid[row][col], !existing.isFixed {
+            grid[row][col] = nil
+            looseTiles.append(existing)
+            setupGrid = grid
+            Haptics.selection()
+            showToast("Tile returned to pool")
+        }
     }
 
     func resetBoard() {

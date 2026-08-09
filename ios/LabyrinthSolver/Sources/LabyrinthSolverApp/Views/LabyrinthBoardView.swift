@@ -281,7 +281,7 @@ struct LabyrinthBoardView: View {
         if vm.turnPhase == .move {
             let didMove = vm.movePawn(to: r, col: c)
             if didMove {
-                Haptics.impact(.medium)
+                Haptics.impact(.soft)
                 return
             }
         }

@@ -83,15 +83,15 @@ struct SolverConsoleView: View {
     }
 
     private var reachableTreasuresBar: some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: 6) {
             HStack {
-                Text("Reachable in 1 Turn")
+                Label("Reachable in 1 Turn", systemImage: "sparkles")
                     .font(.system(size: 11, weight: .bold, design: .rounded))
                     .foregroundColor(.secondary)
                 Spacer()
                 if !vm.oneTurnReachableTreasures.isEmpty {
-                    Text("\(vm.oneTurnReachableTreasures.count)")
-                        .font(.system(size: 10, weight: .black, design: .monospaced))
+                    Text("\(vm.oneTurnReachableTreasures.count) available")
+                        .font(.system(size: 10, weight: .bold, design: .monospaced))
                         .foregroundColor(Color.accentForTheme(vm.appAccentTheme))
                 }
             }
@@ -102,21 +102,21 @@ struct SolverConsoleView: View {
                         Text("No treasures reachable in 1 turn.")
                             .font(.system(size: 12, design: .rounded))
                             .foregroundColor(.secondary)
-                            .padding(.vertical, 2)
+                            .padding(.vertical, 4)
                     } else {
                         ForEach(vm.oneTurnReachableTreasures, id: \.id) { treasure in
                             Button(action: {
                                 Haptics.selection()
                                 vm.setActiveTarget(treasureId: treasure.id)
                             }) {
-                                HStack(spacing: 4) {
+                                HStack(spacing: 5) {
                                     Text(treasure.emoji)
-                                        .font(.system(size: 12))
+                                        .font(.system(size: 13))
                                     Text(treasure.shortName)
-                                        .font(.system(size: 11, weight: .bold, design: .rounded))
+                                        .font(.system(size: 12, weight: .bold, design: .rounded))
                                 }
-                                .padding(.horizontal, 10)
-                                .padding(.vertical, 6)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 7)
                                 .liquidGlassCapsule(
                                     isSelected: vm.activeTargetId == treasure.id,
                                     tintColor: vm.activeTargetId == treasure.id ? Color.accentForTheme(vm.appAccentTheme) : nil
@@ -127,8 +127,12 @@ struct SolverConsoleView: View {
                         }
                     }
                 }
+                .padding(.vertical, 4)
+                .padding(.horizontal, 2)
             }
         }
+        .padding(10)
+        .liquidGlassCard(cornerRadius: 16)
     }
 
     private var stagedControls: some View {

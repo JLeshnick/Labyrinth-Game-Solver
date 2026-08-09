@@ -90,11 +90,6 @@ struct SettingsView: View {
                                 vm.randomizeBoard()
                                 dismiss()
                             }
-
-                            actionButton(title: "Reset to Standard Board", icon: "arrow.counterclockwise", color: .red) {
-                                vm.resetBoardLayout()
-                                dismiss()
-                            }
                         }
                     }
 
