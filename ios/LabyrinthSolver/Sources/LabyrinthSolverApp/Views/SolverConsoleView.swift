@@ -15,44 +15,47 @@ struct SolverConsoleView: View {
     var body: some View {
         VStack(spacing: 10) {
             HStack(spacing: 8) {
-                // Navigate To target button & clear action
                 let hasTarget = vm.activeTargetId != nil || vm.activeTargetPosition != nil
-                HStack(spacing: 6) {
-                    Button(action: {
-                        Haptics.selection()
-                        onOpenTargetPicker()
-                    }) {
-                        HStack(spacing: 8) {
+                let isStaged = vm.stagedArrowId != nil
+
+                // Primary Target / Slide Status Glass Pill
+                Button(action: {
+                    Haptics.selection()
+                    onOpenTargetPicker()
+                }) {
+                    HStack(spacing: 8) {
+                        if isStaged, let stagedId = vm.stagedArrowId {
+                            let expelledId = GameConstants.oppositeArrowId(for: stagedId) ?? stagedId
+                            VStack(alignment: .leading, spacing: 1) {
+                                Text("SLIDE PREVIEW")
+                                    .font(.system(size: 9, weight: .black, design: .rounded))
+                                    .foregroundColor(Color.accentForTheme(vm.appAccentTheme))
+                                Text("In: \(SolverEngine.arrowDisplayName(stagedId)) → Out: \(SolverEngine.arrowDisplayName(expelledId))")
+                                    .font(.system(size: 11, weight: .bold, design: .rounded))
+                                    .foregroundColor(.primary)
+                                    .lineLimit(1)
+                            }
+                        } else {
                             Text(activeTargetEmoji).font(.system(size: 16))
                             Text(activeTargetName)
                                 .font(.system(size: 13, weight: .bold, design: .rounded))
                                 .foregroundColor(.primary)
                                 .lineLimit(1)
-                            Spacer(minLength: 0)
-                            if !hasTarget {
-                                Image(systemName: "chevron.up.chevron.down")
-                                    .font(.system(size: 10, weight: .bold))
-                                    .foregroundColor(.secondary)
-                            }
                         }
-                    }
-                    .buttonStyle(.plain)
 
-                    if hasTarget {
-                        Button(action: {
-                            Haptics.selection()
-                            vm.clearActiveTarget()
-                        }) {
-                            Image(systemName: "xmark.circle.fill")
-                                .font(.system(size: 16, weight: .bold))
+                        Spacer(minLength: 0)
+
+                        if !hasTarget && !isStaged {
+                            Image(systemName: "chevron.up.chevron.down")
+                                .font(.system(size: 10, weight: .bold))
                                 .foregroundColor(.secondary)
                         }
-                        .buttonStyle(.plain)
                     }
+                    .padding(.horizontal, 12)
+                    .frame(maxWidth: .infinity, minHeight: 44)
+                    .liquidGlassCard(cornerRadius: 14, isInteractive: true)
                 }
-                .padding(.horizontal, 12)
-                .frame(maxWidth: .infinity, minHeight: 44)
-                .liquidGlassCard(cornerRadius: 14, isInteractive: true)
+                .buttonStyle(.plain)
 
                 // Spare tile rotate button
                 Button(action: {
@@ -60,15 +63,57 @@ struct SolverConsoleView: View {
                     SoundManager.shared.play(.rotateTile, enabled: vm.enableSound)
                     vm.rotateSpareTile()
                 }) {
-                    TileView(tile: vm.spareTile)
+                    TileView(tile: isStaged ? (vm.previewState?.spareTile ?? vm.spareTile) : vm.spareTile)
                         .frame(width: 32, height: 32)
                         .padding(6)
                         .liquidGlassCard(cornerRadius: 14, isInteractive: true)
                 }
                 .buttonStyle(.plain)
 
-                // Solve Button
-                if vm.stagedArrowId == nil {
+                // Action Buttons: Red X (to clear/reset) & Green Check (when staged)
+                if isStaged {
+                    // Red X Button (Cancels stage and clears target/reset)
+                    Button(action: {
+                        Haptics.selection()
+                        vm.cancelStage()
+                        vm.clearActiveTarget()
+                    }) {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 15, weight: .bold))
+                            .foregroundColor(.white)
+                            .frame(width: 44, height: 44)
+                            .background(Color.red, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    }
+                    .buttonStyle(.plain)
+
+                    // Green Checkmark Button (Commits slide)
+                    Button(action: {
+                        Haptics.selection()
+                        SoundManager.shared.play(.slideIn, enabled: vm.enableSound)
+                        vm.commitSlide()
+                    }) {
+                        Image(systemName: "checkmark")
+                            .font(.system(size: 15, weight: .heavy))
+                            .foregroundColor(.white)
+                            .frame(width: 44, height: 44)
+                            .background(Color.green, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    }
+                    .buttonStyle(.plain)
+                } else if hasTarget {
+                    // Red X Button (Clears target/reset)
+                    Button(action: {
+                        Haptics.selection()
+                        vm.clearActiveTarget()
+                    }) {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 15, weight: .bold))
+                            .foregroundColor(.white)
+                            .frame(width: 44, height: 44)
+                            .background(Color.red, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    }
+                    .buttonStyle(.plain)
+                } else {
+                    // Solve Sparkles Button
                     Button(action: {
                         guard hasTarget else { return }
                         Haptics.selection()
@@ -125,82 +170,11 @@ struct SolverConsoleView: View {
                 }
             }
 
-            if vm.stagedArrowId != nil {
-                stagedControls
-                    .transition(.opacity.combined(with: .move(edge: .bottom)))
-            }
-
             solverSuggestions
         }
     }
 
-    private var stagedControls: some View {
-        HStack(spacing: 8) {
-            let stagedId = vm.stagedArrowId!
-            let expelledId = GameConstants.oppositeArrowId(for: stagedId) ?? stagedId
-            let nextSpareTile = vm.previewState?.spareTile
 
-            HStack(spacing: 8) {
-                VStack(alignment: .leading, spacing: 2) {
-                    HStack(spacing: 4) {
-                        Text("SLIDE PREVIEW")
-                            .font(.system(size: 9, weight: .black, design: .rounded))
-                            .foregroundColor(Color.accentForTheme(vm.appAccentTheme))
-                        Spacer()
-                    }
-                    Text("In: \(SolverEngine.arrowDisplayName(stagedId)) → Out: \(SolverEngine.arrowDisplayName(expelledId))")
-                        .font(.system(size: 11, weight: .bold, design: .rounded))
-                        .foregroundColor(.primary)
-                        .lineLimit(1)
-                }
-
-                if let nextSpare = nextSpareTile {
-                    HStack(spacing: 4) {
-                        Image(systemName: "arrow.right")
-                            .font(.system(size: 10, weight: .bold))
-                            .foregroundColor(.secondary)
-                        
-                        VStack(spacing: 1) {
-                            Text("New Spare")
-                                .font(.system(size: 8, weight: .bold, design: .rounded))
-                                .foregroundColor(.secondary)
-                            TileView(tile: nextSpare)
-                                .frame(width: 26, height: 26)
-                        }
-                    }
-                }
-            }
-            .padding(.horizontal, 10)
-            .padding(.vertical, 4)
-            .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
-            .liquidGlassCard(cornerRadius: 14)
-
-            Button(action: {
-                Haptics.selection()
-                vm.cancelStage()
-            }) {
-                Image(systemName: "xmark")
-                    .font(.system(size: 15, weight: .bold))
-                    .foregroundColor(.white)
-                    .frame(width: 44, height: 44)
-                    .background(Color.red, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-            }
-            .buttonStyle(.plain)
-
-            Button(action: {
-                Haptics.selection()
-                SoundManager.shared.play(.slideIn, enabled: vm.enableSound)
-                vm.commitSlide()
-            }) {
-                Image(systemName: "checkmark")
-                    .font(.system(size: 15, weight: .heavy))
-                    .foregroundColor(.white)
-                    .frame(width: 44, height: 44)
-                    .background(Color.green, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-            }
-            .buttonStyle(.plain)
-        }
-    }
 
     private var solverSuggestions: some View {
         VStack(alignment: .leading, spacing: 6) {
