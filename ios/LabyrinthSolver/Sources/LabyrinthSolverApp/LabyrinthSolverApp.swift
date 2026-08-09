@@ -37,7 +37,10 @@ struct RootView: View {
             }
         }
         .animation(.easeInOut(duration: 0.4), value: showWelcome)
-        .preferredColorScheme(.dark)
+        .preferredColorScheme(
+            vm.appColorScheme == .light ? .light :
+            vm.appColorScheme == .dark  ? .dark  : nil
+        )
     }
 }
 
@@ -49,7 +52,10 @@ struct WelcomeView: View {
 
     var body: some View {
         BoardSetupView(vm: vm, onStartGame: onStart)
-            .preferredColorScheme(.dark)
+            .preferredColorScheme(
+                vm.appColorScheme == .light ? .light :
+                vm.appColorScheme == .dark  ? .dark  : nil
+            )
     }
 }
 

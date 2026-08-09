@@ -4,12 +4,13 @@ import UniformTypeIdentifiers
 import LabyrinthSolverCore
 #endif
 
-// MARK: - Board Setup View (Modern Native iOS Setup Screen with Drag & Drop)
+// MARK: - Board Setup View (Modern Native iOS Setup Screen with Drag & Drop & Settings)
 
 struct BoardSetupView: View {
     @Bindable var vm: GameViewModel
     let onStartGame: () -> Void
 
+    @State private var showSettingsSheet = false
     @Namespace private var setupTabNamespace
 
     var body: some View {
@@ -42,12 +43,15 @@ struct BoardSetupView: View {
                 .padding(.bottom, 10)
         }
         .animation(.spring(response: 0.35, dampingFraction: 0.8), value: vm.setupTab)
+        .sheet(isPresented: $showSettingsSheet) {
+            SettingsSheet(vm: vm, onSetup: {})
+        }
     }
 
     // MARK: - Top Header & Wizard Card
     private var setupHeaderCard: some View {
         VStack(spacing: 12) {
-            HStack {
+            HStack(alignment: .center, spacing: 10) {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Board Layout & Setup")
                         .font(.system(size: 18, weight: .bold, design: .rounded))
@@ -61,7 +65,18 @@ struct BoardSetupView: View {
 
                 Spacer()
 
+                // Tile count indicator
                 statusCapsule
+
+                // Prominent Settings Button
+                Button(action: { showSettingsSheet = true }) {
+                    Image(systemName: "gearshape.fill")
+                        .font(.system(size: 16, weight: .bold))
+                        .foregroundColor(Color.accentColor)
+                        .frame(width: 38, height: 38)
+                        .background(Color.appTertiaryGroupedBg)
+                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                }
             }
 
             startGameButton
@@ -84,7 +99,7 @@ struct BoardSetupView: View {
                 .foregroundColor(.primary)
         }
         .padding(.horizontal, 10)
-        .padding(.vertical, 6)
+        .padding(.vertical, 8)
         .background(Color.appTertiaryGroupedBg)
         .clipShape(Capsule())
     }
@@ -483,7 +498,7 @@ struct SetupBoardGridView: View {
     }
 }
 
-// MARK: - Setup Grid Cell (with Drag & Drop Target Support)
+// MARK: - Setup Grid Cell (with Drag & Drop Target Support & Rotation Handle)
 
 struct SetupGridCellView: View {
     @Bindable var vm: GameViewModel
@@ -497,17 +512,36 @@ struct SetupGridCellView: View {
     var body: some View {
         ZStack {
             if let tile = tile {
-                TileView(tile: tile)
-                    .onDrag {
-                        if !tile.isFixed {
-                            // Select this tile for drag & drop
-                            vm.selectLooseTile(id: tile.id)
-                            return NSItemProvider(object: tile.id as NSString)
+                ZStack {
+                    TileView(tile: tile)
+
+                    // Rotation Handle on placed movable tile
+                    if !tile.isFixed {
+                        VStack {
+                            HStack {
+                                Spacer()
+                                Button(action: { vm.tapSetupCell(row: row, col: col) }) {
+                                    Image(systemName: "rotate.right")
+                                        .font(.system(size: tileSize * 0.22, weight: .black))
+                                        .foregroundColor(.white)
+                                        .padding(3)
+                                        .background(Circle().fill(Color.accentColor))
+                                        .shadow(color: .black.opacity(0.4), radius: 2)
+                                }
+                            }
+                            Spacer()
                         }
-                        return NSItemProvider()
+                        .padding(2)
                     }
+                }
+                .onDrag {
+                    if !tile.isFixed {
+                        vm.selectLooseTile(id: tile.id)
+                        return NSItemProvider(object: tile.id as NSString)
+                    }
+                    return NSItemProvider()
+                }
             } else {
-                // Empty slot placeholder
                 emptySlotPlaceholder
             }
 
@@ -516,7 +550,7 @@ struct SetupGridCellView: View {
                     .fill(Color.accentColor.opacity(0.35))
                     .overlay(
                         RoundedRectangle(cornerRadius: tileSize * 0.14)
-                            .strokeBorder(Color.accentColor, lineWidth: 2)
+                            .strokeBorder(Color.accentColor, lineWidth: 2.5)
                     )
             }
         }
@@ -598,8 +632,8 @@ struct LooseTilesPoolView: View {
                                 if isSelected {
                                     RoundedRectangle(cornerRadius: 8)
                                         .strokeBorder(Color.accentColor, lineWidth: 2.5)
-                                    Image(systemName: "checkmark.circle.fill")
-                                        .font(.system(size: 12))
+                                    Image(systemName: "rotate.right.circle.fill")
+                                        .font(.system(size: 14))
                                         .foregroundColor(Color.accentColor)
                                         .background(Circle().fill(Color.white))
                                         .offset(x: 14, y: -14)
