@@ -236,12 +236,24 @@ struct SolverConsoleView: View {
     }
 
     private var activeTargetName: String {
-        guard let targetId = vm.activeTargetId else { return "Select Target Treasure" }
-        return GameConstants.treasures.first(where: { $0.id == targetId })?.name ?? targetId
+        if let targetId = vm.activeTargetId,
+           let treasure = GameConstants.treasures.first(where: { $0.id == targetId }) {
+            return treasure.name
+        }
+        if let pos = vm.activeTargetPosition {
+            return "Tile (\(pos.row + 1), \(pos.col + 1))"
+        }
+        return "Select Target Tile"
     }
 
     private var activeTargetEmoji: String {
-        guard let targetId = vm.activeTargetId else { return "🎯" }
-        return GameConstants.treasures.first(where: { $0.id == targetId })?.emoji ?? "🎯"
+        if let targetId = vm.activeTargetId,
+           let treasure = GameConstants.treasures.first(where: { $0.id == targetId }) {
+            return treasure.emoji
+        }
+        if vm.activeTargetPosition != nil {
+            return "📍"
+        }
+        return "🎯"
     }
 }

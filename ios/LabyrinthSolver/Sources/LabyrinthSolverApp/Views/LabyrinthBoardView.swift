@@ -182,7 +182,7 @@ struct LabyrinthBoardView: View {
                         let isObtained = tile.treasure.map { vm.obtainedTreasureIds.contains($0.id) } ?? false
                         let posKey = PawnPositionKey(row: r, col: c)
                         let isReachable = vm.reachablePositions.contains(posKey)
-                        let isOneTurn = (preview != nil || vm.isAnimatingPawn || !vm.projectedRoute.isEmpty) ? false : vm.oneTurnReachablePositions.contains(posKey)
+                        let isOneTurn = vm.oneTurnReachablePositions.contains(posKey)
 
                         let pawnsHere = vm.activePlayers.filter { vm.pawnPositions[$0].row == r && vm.pawnPositions[$0].col == c }
 
@@ -375,6 +375,7 @@ struct LabyrinthBoardView: View {
     // MARK: - Cell Tap Handler
 
     private func handleCellTap(_ r: Int, _ c: Int) {
+        Haptics.selection()
         if vm.turnPhase == .move {
             let didMove = vm.movePawn(to: r, col: c)
             if didMove {
@@ -382,14 +383,8 @@ struct LabyrinthBoardView: View {
                 return
             }
         }
-        // Allow setting ANY tile (treasure or blank corridor) on the board as target destination!
-        Haptics.selection()
+        // Set target destination (supports both treasure and corridor tiles)
         vm.setActiveTargetPosition(PawnPosition(row: r, col: c))
-        if let treasure = vm.board[r][c].treasure {
-            vm.showToast("Target set to \(treasure.name)")
-        } else {
-            vm.showToast("Target set to tile (\(r + 1), \(c + 1))")
-        }
     }
 }
 
