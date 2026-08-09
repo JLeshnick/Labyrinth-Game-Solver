@@ -210,8 +210,8 @@ struct SolverConsoleView: View {
                         .foregroundColor(.secondary)
                 }
                 .padding(.horizontal, 14)
-                .frame(maxWidth: .infinity, minHeight: 48, alignment: .leading)
-                .liquidGlassCard(cornerRadius: 14)
+                .frame(maxWidth: .infinity, minHeight: 76, maxHeight: 76, alignment: .leading)
+                .liquidGlassCard(cornerRadius: 16)
             } else {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 8) {
