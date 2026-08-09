@@ -732,7 +732,9 @@ final class GameViewModel {
     func clearActiveTarget() {
         activeTargetId = nil
         activeTargetPosition = nil
+        stagedArrowId = nil
         stagedSolverMove = nil
+        projectedRoute = []
         solverOptions.removeAll()
     }
 

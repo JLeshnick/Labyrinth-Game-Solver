@@ -15,27 +15,44 @@ struct SolverConsoleView: View {
     var body: some View {
         VStack(spacing: 10) {
             HStack(spacing: 8) {
-                // Navigate To button
-                Button(action: {
-                    Haptics.selection()
-                    onOpenTargetPicker()
-                }) {
-                    HStack(spacing: 8) {
-                        Text(activeTargetEmoji).font(.system(size: 16))
-                        Text(activeTargetName)
-                            .font(.system(size: 13, weight: .bold, design: .rounded))
-                            .foregroundColor(.primary)
-                            .lineLimit(1)
-                        Spacer(minLength: 0)
-                        Image(systemName: "chevron.up.chevron.down")
-                            .font(.system(size: 10, weight: .bold))
-                            .foregroundColor(.secondary)
+                // Navigate To target button & clear action
+                let hasTarget = vm.activeTargetId != nil || vm.activeTargetPosition != nil
+                HStack(spacing: 6) {
+                    Button(action: {
+                        Haptics.selection()
+                        onOpenTargetPicker()
+                    }) {
+                        HStack(spacing: 8) {
+                            Text(activeTargetEmoji).font(.system(size: 16))
+                            Text(activeTargetName)
+                                .font(.system(size: 13, weight: .bold, design: .rounded))
+                                .foregroundColor(.primary)
+                                .lineLimit(1)
+                            Spacer(minLength: 0)
+                            if !hasTarget {
+                                Image(systemName: "chevron.up.chevron.down")
+                                    .font(.system(size: 10, weight: .bold))
+                                    .foregroundColor(.secondary)
+                            }
+                        }
                     }
-                    .padding(.horizontal, 12)
-                    .frame(maxWidth: .infinity, minHeight: 44)
-                    .liquidGlassCard(cornerRadius: 14, isInteractive: true)
+                    .buttonStyle(.plain)
+
+                    if hasTarget {
+                        Button(action: {
+                            Haptics.selection()
+                            vm.clearActiveTarget()
+                        }) {
+                            Image(systemName: "xmark.circle.fill")
+                                .font(.system(size: 16, weight: .bold))
+                                .foregroundColor(.secondary)
+                        }
+                        .buttonStyle(.plain)
+                    }
                 }
-                .buttonStyle(.plain)
+                .padding(.horizontal, 12)
+                .frame(maxWidth: .infinity, minHeight: 44)
+                .liquidGlassCard(cornerRadius: 14, isInteractive: true)
 
                 // Spare tile rotate button
                 Button(action: {
@@ -51,7 +68,6 @@ struct SolverConsoleView: View {
                 .buttonStyle(.plain)
 
                 // Solve Button
-                let hasTarget = vm.activeTargetId != nil || vm.activeTargetPosition != nil
                 if vm.stagedArrowId == nil {
                     Button(action: {
                         guard hasTarget else { return }

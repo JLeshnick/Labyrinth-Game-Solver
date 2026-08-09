@@ -392,6 +392,12 @@ struct LabyrinthBoardView: View {
                 return
             }
         }
+        
+        // If a target is already set, lock board selection until cleared
+        if vm.activeTargetId != nil || vm.activeTargetPosition != nil {
+            return
+        }
+
         // Set target destination (supports both treasure and corridor tiles)
         vm.setActiveTargetPosition(targetPos)
     }
