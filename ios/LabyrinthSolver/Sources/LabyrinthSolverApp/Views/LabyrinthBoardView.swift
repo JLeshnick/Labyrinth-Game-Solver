@@ -164,7 +164,7 @@ struct LabyrinthBoardView: View {
 
                         let isObtained = tile.treasure.map { vm.obtainedTreasureIds.contains($0.id) } ?? false
                         let posKey = PawnPositionKey(row: r, col: c)
-                        let isPreviewing = preview != nil
+                        let isPreviewing = (preview != nil) || vm.isAnimatingPawn || !vm.projectedRoute.isEmpty
                         let isReachable = isPreviewing ? false : vm.reachablePositions.contains(posKey)
                         let isOneTurn = isPreviewing ? false : vm.oneTurnReachablePositions.contains(posKey)
 

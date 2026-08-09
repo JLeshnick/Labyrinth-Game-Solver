@@ -67,8 +67,9 @@ final class GameViewModel {
     // Treasures reachable in exactly 1 turn (after a slide)
     var oneTurnReachableTreasures: [Treasure] = []
     
-    // Projected Route
+    // Projected Route & Pawn Animation State
     var projectedRoute: [PawnPosition] = []
+    var isAnimatingPawn: Bool = false
 
     // MARK: - Game Control & Per-Player Metrics
     var isGameStarted: Bool = false
@@ -287,10 +288,14 @@ final class GameViewModel {
     }
     
     private func animatePawn(along route: [PawnPosition], currentIndex: Int = 0) {
-        if currentIndex == 0 && route.count > 1 {
-            tilesTraversedPerPlayer[myColor, default: 0] += (route.count - 1)
+        if currentIndex == 0 {
+            isAnimatingPawn = true
+            if route.count > 1 {
+                tilesTraversedPerPlayer[myColor, default: 0] += (route.count - 1)
+            }
         }
         guard currentIndex < route.count else {
+            isAnimatingPawn = false
             if let last = route.last {
                 checkTreasureCollection(at: last, pawn: myColor)
             }
@@ -378,6 +383,7 @@ final class GameViewModel {
         stagedArrowId = nil
         stagedSolverMove = nil
         projectedRoute = []
+        isAnimatingPawn = false
         solverOptions.removeAll()
         activeTargetId = nil
         activeTargetPosition = nil
