@@ -46,19 +46,26 @@ struct TileView: View {
                 PathCanvas(shape: tile.shape, rotation: tile.rotation, size: size, isFixed: tile.isFixed)
                     .padding(size * 0.03)
 
-                // 1-Turn Slide Reachable Highlight (animated marching dashed neon emerald outline)
+                // 1-Turn Slide Reachable Highlight (continuous animated marching dashed neon emerald outline)
                 if !isReachable && isOneTurnReachable {
-                    RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                        .strokeBorder(
-                            Color.neonGreen.opacity(0.9),
-                            style: StrokeStyle(lineWidth: max(2.2, size * 0.065), dash: [size * 0.16, size * 0.12], dashPhase: dashPhase)
-                        )
-                        .shadow(color: Color.neonGreen.opacity(0.4), radius: 4)
-                        .onAppear {
-                            withAnimation(.linear(duration: 1.5).repeatForever(autoreverses: false)) {
-                                dashPhase = size * 0.28
-                            }
-                        }
+                    TimelineView(.animation) { timeline in
+                        let dashLength = size * 0.16
+                        let gapLength = size * 0.12
+                        let period = dashLength + gapLength
+                        let time = timeline.date.timeIntervalSinceReferenceDate
+                        let phase = CGFloat(time.truncatingRemainder(dividingBy: 1.5)) * (period / 1.5)
+
+                        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                            .strokeBorder(
+                                Color.neonGreen.opacity(0.88),
+                                style: StrokeStyle(
+                                    lineWidth: max(2.2, size * 0.065),
+                                    dash: [dashLength, gapLength],
+                                    dashPhase: phase
+                                )
+                            )
+                            .shadow(color: Color.neonGreen.opacity(0.45), radius: 4)
+                    }
                 }
 
                 // Reachable Highlight Overlay (glowing neon emerald)
