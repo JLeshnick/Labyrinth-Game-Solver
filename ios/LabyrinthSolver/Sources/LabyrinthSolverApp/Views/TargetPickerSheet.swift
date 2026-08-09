@@ -47,7 +47,7 @@ struct TargetPickerSheet: View {
                     .padding(.top, 12)
 
                     if !nowReachable.isEmpty {
-                        targetSection(title: "Reachable Now (No Slide)", treasures: nowReachable)
+                        targetSection(title: "Reachable This Turn (Path Open)", treasures: nowReachable)
                     }
 
                     if !oneTurnReachable.isEmpty {
@@ -84,6 +84,9 @@ struct TargetPickerSheet: View {
 
             LazyVGrid(columns: columns, spacing: 10) {
                 ForEach(treasures, id: \.id) { treasure in
+                    let collector = vm.playerHands.first(where: { $0.value.obtainedCards.contains(treasure.id) })?.key
+                    let isObtained = collector != nil
+
                     Button {
                         Haptics.selection()
                         vm.setActiveTarget(treasureId: treasure.id)
@@ -92,7 +95,9 @@ struct TargetPickerSheet: View {
                         targetCell(
                             emoji: treasure.emoji,
                             name: treasure.shortName,
-                            isSelected: vm.activeTargetId == treasure.id
+                            isSelected: vm.activeTargetId == treasure.id,
+                            isObtained: isObtained,
+                            collector: collector
                         )
                     }
                     .buttonStyle(.plain)
@@ -102,17 +107,38 @@ struct TargetPickerSheet: View {
         }
     }
 
-    private func targetCell(emoji: String, name: String, isSelected: Bool) -> some View {
-        VStack(spacing: 6) {
-            Text(emoji)
-                .font(.system(size: 26))
-            Text(name)
-                .font(.system(size: 11, weight: .bold, design: .rounded))
-                .foregroundColor(.primary)
-                .lineLimit(1)
+    private func targetCell(emoji: String, name: String, isSelected: Bool, isObtained: Bool, collector: PawnColor?) -> some View {
+        ZStack(alignment: .topTrailing) {
+            VStack(spacing: 6) {
+                Text(emoji)
+                    .font(.system(size: 26))
+                    .opacity(isObtained ? 0.45 : 1.0)
+
+                Text(name)
+                    .font(.system(size: 11, weight: .bold, design: .rounded))
+                    .foregroundColor(isObtained ? .secondary : .primary)
+                    .strikethrough(isObtained, color: .secondary)
+                    .lineLimit(1)
+            }
+            .frame(maxWidth: .infinity, minHeight: 76)
+            .padding(6)
+            .liquidGlassCard(cornerRadius: 14, isSelected: isSelected, tintColor: Color.accentForTheme(vm.appAccentTheme))
+
+            if let collector {
+                Image(systemName: "checkmark.circle.fill")
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundColor(pawnColor(collector))
+                    .padding(6)
+            }
         }
-        .frame(maxWidth: .infinity, minHeight: 76)
-        .padding(6)
-        .liquidGlassCard(cornerRadius: 14, isSelected: isSelected, tintColor: Color.accentForTheme(vm.appAccentTheme))
+    }
+
+    private func pawnColor(_ p: PawnColor) -> Color {
+        switch p {
+        case .red: return .red
+        case .blue: return .blue
+        case .green: return .green
+        case .yellow: return .yellow
+        }
     }
 }

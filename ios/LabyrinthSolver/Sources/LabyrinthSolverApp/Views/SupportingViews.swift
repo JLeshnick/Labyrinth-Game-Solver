@@ -55,17 +55,23 @@ import UIKit
 enum Haptics {
     static func impact(_ style: HapticImpact = .soft) {
         guard UserDefaults.standard.bool(forKey: "enableHapticFeedback") else { return }
-        UISelectionFeedbackGenerator().selectionChanged()
+        let generator = UIImpactFeedbackGenerator(style: .soft)
+        generator.prepare()
+        generator.impactOccurred(intensity: 0.35)
     }
 
     static func notification(_ type: HapticNotification) {
         guard UserDefaults.standard.bool(forKey: "enableHapticFeedback") else { return }
-        UINotificationFeedbackGenerator().notificationOccurred(type == .error ? .error : .success)
+        let generator = UINotificationFeedbackGenerator()
+        generator.prepare()
+        generator.notificationOccurred(type == .error ? .error : .success)
     }
 
     static func selection() {
         guard UserDefaults.standard.bool(forKey: "enableHapticFeedback") else { return }
-        UISelectionFeedbackGenerator().selectionChanged()
+        let generator = UIImpactFeedbackGenerator(style: .soft)
+        generator.prepare()
+        generator.impactOccurred(intensity: 0.25)
     }
 }
 #else
