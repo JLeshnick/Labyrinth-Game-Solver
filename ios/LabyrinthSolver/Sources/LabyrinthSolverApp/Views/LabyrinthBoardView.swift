@@ -121,10 +121,10 @@ struct LabyrinthBoardView: View {
             let tileSize = (totalSize - arrowSize * 2 - gap * 8) / 7.0
 
             ZStack {
-                RoundedRectangle(cornerRadius: 22, style: .continuous)
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
                     .fill(Color.appTertiaryGroupedBg)
                     .overlay(
-                        RoundedRectangle(cornerRadius: 22, style: .continuous)
+                        RoundedRectangle(cornerRadius: 18, style: .continuous)
                             .strokeBorder(
                                 LinearGradient(
                                     colors: [Color.white.opacity(0.3), Color.clear],
@@ -146,7 +146,7 @@ struct LabyrinthBoardView: View {
                 }
                 .padding(8)
             }
-            .frame(width: totalSize, height: totalSize)
+            .frame(width: totalWidth, height: totalSize)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
     }
