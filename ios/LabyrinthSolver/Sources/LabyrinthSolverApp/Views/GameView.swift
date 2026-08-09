@@ -24,7 +24,7 @@ struct GameView: View {
             // Subtle ambient dark background
             Color.appGroupedBg.ignoresSafeArea()
 
-            VStack(spacing: 0) {
+            VStack(spacing: 10) {
                 // Command Top Header Ribbon (Integrated player selector & toolbar)
                 CommandHeader(
                     vm: vm,
@@ -33,11 +33,11 @@ struct GameView: View {
                     onOpenStats: { showStatsSheet = true }
                 )
                 .padding(.horizontal, 12)
-                .padding(.top, 6)
                 .zIndex(2)
 
                 // Board Stage
                 boardStage
+                    .padding(.horizontal, 12)
                     .zIndex(0)
 
                 // Solver Interactive Console
@@ -45,10 +45,11 @@ struct GameView: View {
                     vm: vm,
                     onOpenTargetPicker: { showTargetPicker = true }
                 )
-                .padding(.horizontal, 14)
-                .padding(.top, 8)
-                .padding(.bottom, 10)
-                .background(.ultraThinMaterial)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 10)
+                .liquidGlassCard(cornerRadius: 18)
+                .padding(.horizontal, 12)
+                .padding(.bottom, 6)
                 .zIndex(2)
             }
 
@@ -122,14 +123,13 @@ struct GameView: View {
 
     private var boardStage: some View {
         GeometryReader { geo in
-            let maxBoard = min(geo.size.width - 20, geo.size.height - 16)
+            let maxBoard = min(geo.size.width, geo.size.height)
             VStack(spacing: 0) {
                 LabyrinthBoardView(vm: vm)
                     .frame(width: maxBoard, height: maxBoard)
                 Spacer(minLength: 0)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-            .padding(.top, 12)
         }
     }
 }
