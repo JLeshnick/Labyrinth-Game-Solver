@@ -21,6 +21,11 @@ public struct LiquidGlassCardModifier: ViewModifier {
                 ZStack {
                     RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                         .fill(.ultraThinMaterial)
+                        .shadow(
+                            color: isSelected ? (tintColor ?? Color.black).opacity(0.20) : Color.black.opacity(0.06),
+                            radius: isSelected ? 8 : 4,
+                            y: isSelected ? 3 : 2
+                        )
                     
                     if let tintColor {
                         RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
@@ -38,18 +43,13 @@ public struct LiquidGlassCardModifier: ViewModifier {
                             ] : [
                                 Color.white.opacity(0.35),
                                 Color.white.opacity(0.10),
-                                Color.black.opacity(0.10)
+                                Color.black.opacity(0.05)
                             ],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         ),
                         lineWidth: isSelected ? 2 : 1
                     )
-            )
-            .shadow(
-                color: isSelected ? (tintColor ?? Color.black).opacity(0.35) : Color.black.opacity(isInteractive ? 0.22 : 0.12),
-                radius: isSelected ? 12 : (isInteractive ? 10 : 6),
-                y: isInteractive ? 5 : 3
             )
     }
 }
@@ -69,7 +69,13 @@ public struct LiquidGlassCapsuleModifier: ViewModifier {
         content
             .background(
                 ZStack {
-                    Capsule().fill(.ultraThinMaterial)
+                    Capsule()
+                        .fill(.ultraThinMaterial)
+                        .shadow(
+                            color: isSelected ? (tintColor ?? Color.black).opacity(0.20) : Color.black.opacity(0.05),
+                            radius: isSelected ? 6 : 2,
+                            y: isSelected ? 2 : 1
+                        )
                     if let tintColor {
                         Capsule().fill(tintColor.opacity(0.14))
                     }
@@ -83,19 +89,14 @@ public struct LiquidGlassCapsuleModifier: ViewModifier {
                                 (tintColor ?? .white).opacity(0.9),
                                 (tintColor ?? .white).opacity(0.4)
                             ] : [
-                                Color.white.opacity(0.40),
-                                Color.white.opacity(0.10)
+                                Color.white.opacity(0.35),
+                                Color.white.opacity(0.08)
                             ],
                             startPoint: .top,
                             endPoint: .bottom
                         ),
-                        lineWidth: isSelected ? 2 : 1
+                        lineWidth: isSelected ? 1.5 : 1
                     )
-            )
-            .shadow(
-                color: isSelected ? (tintColor ?? Color.black).opacity(0.3) : Color.black.opacity(0.18),
-                radius: isSelected ? 10 : 6,
-                y: 3
             )
     }
 }

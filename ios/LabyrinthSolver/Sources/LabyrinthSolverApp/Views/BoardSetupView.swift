@@ -254,7 +254,7 @@ struct SetupGridCellView: View {
         }
         .onDrop(of: [.plainText, .text], isTargeted: $isTargeted) { providers in
             if let provider = providers.first {
-                _ = provider.loadItem(forTypeIdentifier: "public.plain-text", options: nil) { idData, _ in
+                provider.loadItem(forTypeIdentifier: "public.plain-text", options: nil) { idData, _ in
                     let tileId: String?
                     if let data = idData as? Data, let str = String(data: data, encoding: .utf8) {
                         tileId = str

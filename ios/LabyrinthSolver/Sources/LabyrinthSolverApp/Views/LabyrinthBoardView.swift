@@ -168,15 +168,45 @@ struct LabyrinthBoardView: View {
                 )
             }
             
-            // Render all active pawns in an overlay so their position changes animate smoothly
+            // Render all active pawns with multi-pawn offset fan-out
             ForEach(vm.activePlayers, id: \.id) { pawn in
                 let pos = vm.pawnPositions[pawn]
-                PawnToken(color: pawn, isActive: pawn == vm.myColor, size: tileSize * 0.5)
+                let offset = pawnOffset(for: pawn, tileSize: tileSize)
+                let coCount = vm.activePlayers.filter { vm.pawnPositions[$0] == pos }.count
+                let pawnSize = coCount > 1 ? tileSize * 0.42 : tileSize * 0.5
+
+                PawnToken(color: pawn, isActive: pawn == vm.myColor, size: pawnSize)
                     .position(
-                        x: CGFloat(pos.col) * (tileSize + gap) + tileSize / 2,
-                        y: CGFloat(pos.row) * (tileSize + gap) + tileSize / 2
+                        x: CGFloat(pos.col) * (tileSize + gap) + tileSize / 2 + offset.x,
+                        y: CGFloat(pos.row) * (tileSize + gap) + tileSize / 2 + offset.y
                     )
                     .animation(.easeInOut(duration: 0.15), value: pos)
+            }
+        }
+    }
+
+    private func pawnOffset(for pawn: PawnColor, tileSize: CGFloat) -> CGPoint {
+        let pos = vm.pawnPositions[pawn]
+        let coOccupants = vm.activePlayers.filter { vm.pawnPositions[$0] == pos }
+        guard coOccupants.count > 1, let index = coOccupants.firstIndex(of: pawn) else {
+            return .zero
+        }
+        let delta = tileSize * 0.18
+        switch coOccupants.count {
+        case 2:
+            return index == 0 ? CGPoint(x: -delta, y: -delta * 0.5) : CGPoint(x: delta, y: delta * 0.5)
+        case 3:
+            switch index {
+            case 0:  return CGPoint(x: -delta, y: -delta * 0.8)
+            case 1:  return CGPoint(x: delta, y: -delta * 0.8)
+            default: return CGPoint(x: 0, y: delta * 0.8)
+            }
+        default:
+            switch index {
+            case 0:  return CGPoint(x: -delta, y: -delta)
+            case 1:  return CGPoint(x: delta, y: -delta)
+            case 2:  return CGPoint(x: -delta, y: delta)
+            default: return CGPoint(x: delta, y: delta)
             }
         }
     }

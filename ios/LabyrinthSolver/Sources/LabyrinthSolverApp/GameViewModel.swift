@@ -339,6 +339,23 @@ final class GameViewModel {
         refreshReachable()
     }
 
+    // MARK: - Session Control
+    func resetGameSession() {
+        moveCount = 0
+        undoStack.removeAll()
+        redoStack.removeAll()
+        turnPhase = .slide
+        lastArrowId = nil
+        stagedArrowId = nil
+        stagedSolverMove = nil
+        stagedRotation = .deg0
+        projectedRoute = []
+        activeTargetId = nil
+        solverOptions.removeAll()
+        currentPlayerIndex = 0
+        playerHands = GameConstants.dealDefaultHands()
+    }
+
     // MARK: - Setup Mode Methods
     var displaySetupGrid: [[TileData?]] {
         setupGrid ?? board.map { row in row.map { Optional($0) } }
@@ -365,7 +382,7 @@ final class GameViewModel {
         looseTiles = scratch.looseTiles
         spareTile = scratch.spareTile
         selectedLooseTileId = nil
-        stagedSolverMove = nil
+        resetGameSession()
         showToast("Board cleared! Start placing tiles from scratch.")
     }
 
@@ -386,6 +403,7 @@ final class GameViewModel {
         setupGrid = grid
         looseTiles = pool
         if let last = pool.last { spareTile = last }
+        resetGameSession()
         showToast("Remaining slots filled randomly! ✨")
     }
 
@@ -396,8 +414,7 @@ final class GameViewModel {
         looseTiles = [randomized.spareTile]
         setupGrid = nil
         selectedLooseTileId = nil
-        stagedSolverMove = nil
-        solverOptions.removeAll()
+        resetGameSession()
         refreshReachable()
         showToast("Board layout randomized ✨")
     }
@@ -464,6 +481,7 @@ final class GameViewModel {
 
         setupGrid = grid
         if let last = looseTiles.last { spareTile = last }
+        resetGameSession()
     }
 
     func removePlacedTile(row: Int, col: Int) {
@@ -472,6 +490,7 @@ final class GameViewModel {
             grid[row][col] = nil
             looseTiles.append(existing)
             setupGrid = grid
+            resetGameSession()
             Haptics.selection()
             showToast("Tile returned to pool")
         }

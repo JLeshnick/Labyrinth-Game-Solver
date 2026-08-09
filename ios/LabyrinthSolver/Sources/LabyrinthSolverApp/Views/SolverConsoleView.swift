@@ -220,7 +220,7 @@ struct SolverConsoleView: View {
     }
 
     private var activeTargetName: String {
-        guard let targetId = vm.activeTargetId else { return "Auto (Explore)" }
+        guard let targetId = vm.activeTargetId else { return "Select Target Treasure" }
         return GameConstants.treasures.first(where: { $0.id == targetId })?.name ?? targetId
     }
 

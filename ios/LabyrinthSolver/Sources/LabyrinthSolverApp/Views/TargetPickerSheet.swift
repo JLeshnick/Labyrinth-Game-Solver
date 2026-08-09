@@ -34,51 +34,14 @@ struct TargetPickerSheet: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 20) {
-                    // Quick Action Row: Auto Explore & Go Home
-                    HStack(spacing: 10) {
-                        Button {
-                            Haptics.selection()
-                            vm.clearActiveTarget()
-                            dismiss()
-                        } label: {
-                            HStack(spacing: 8) {
-                                Text("🎯").font(.system(size: 22))
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text("Auto (Explore)")
-                                        .font(.system(size: 13, weight: .bold, design: .rounded))
-                                        .foregroundColor(.primary)
-                                    Text("Best route overall")
-                                        .font(.system(size: 10, design: .rounded))
-                                        .foregroundColor(.secondary)
-                                }
-                                Spacer(minLength: 0)
-                            }
-                            .padding(12)
-                            .liquidGlassCard(cornerRadius: 16, isSelected: vm.activeTargetId == nil, tintColor: Color.accentForTheme(vm.appAccentTheme))
-                        }
-                        .buttonStyle(.plain)
-
-                        Button {
-                            Haptics.selection()
-                            // Set target to Home Corner
-                            dismiss()
-                        } label: {
-                            HStack(spacing: 8) {
-                                Text("🏠").font(.system(size: 22))
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text("Go Home")
-                                        .font(.system(size: 13, weight: .bold, design: .rounded))
-                                        .foregroundColor(.primary)
-                                    Text("Return corner")
-                                        .font(.system(size: 10, design: .rounded))
-                                        .foregroundColor(.secondary)
-                                }
-                                Spacer(minLength: 0)
-                            }
-                            .padding(12)
-                            .liquidGlassCard(cornerRadius: 16)
-                        }
-                        .buttonStyle(.plain)
+                    // Target Selection Guide
+                    HStack {
+                        Image(systemName: "scope")
+                            .foregroundColor(Color.accentForTheme(vm.appAccentTheme))
+                        Text("Select your target treasure to solve:")
+                            .font(.system(size: 13, weight: .bold, design: .rounded))
+                            .foregroundColor(.secondary)
+                        Spacer()
                     }
                     .padding(.horizontal, 16)
                     .padding(.top, 12)
