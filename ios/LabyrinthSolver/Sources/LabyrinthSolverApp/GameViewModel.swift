@@ -4,6 +4,26 @@ import Combine
 import LabyrinthSolverCore
 #endif
 
+// MARK: - Treasure Label Style Preference
+
+enum TreasureLabelStyle: String, CaseIterable, Identifiable {
+    case emoji = "emoji"
+    case text  = "text"
+    var id: String { rawValue }
+    var displayName: String {
+        switch self {
+        case .emoji: return "Emoji Badge"
+        case .text:  return "Text Label"
+        }
+    }
+    var icon: String {
+        switch self {
+        case .emoji: return "😀"
+        case .text:  return "Aa"
+        }
+    }
+}
+
 @Observable
 @MainActor
 final class GameViewModel {
@@ -19,6 +39,7 @@ final class GameViewModel {
     var enableSound: Bool = true
     var enableHaptics: Bool = true
     var solverDepth: Int = 2
+    var treasureLabelStyle: TreasureLabelStyle = .emoji
 
     // MARK: - Board State
     var board: [[TileData]]

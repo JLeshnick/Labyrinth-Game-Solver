@@ -68,15 +68,37 @@ struct SettingsView: View {
                         }
                     }
 
-                    // Preferences (Sound & Haptics)
+                    // Preferences (Sound, Haptics & Display)
                     settingsCard(title: "Preferences", icon: "speaker.wave.2.fill", color: .blue) {
                         VStack(spacing: 12) {
                             Toggle("Sound Effects", isOn: $vm.enableSound)
                                 .font(.system(size: 14, weight: .bold, design: .rounded))
                             Toggle("Haptic Feedback", isOn: $vm.enableHaptics)
                                 .font(.system(size: 14, weight: .bold, design: .rounded))
+
+                            Divider()
+
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text("Treasure Labels")
+                                    .font(.system(size: 13, weight: .bold, design: .rounded))
+                                    .foregroundColor(.secondary)
+
+                                Picker("Treasure Labels", selection: $vm.treasureLabelStyle) {
+                                    ForEach(TreasureLabelStyle.allCases) { style in
+                                        Text(style.displayName).tag(style)
+                                    }
+                                }
+                                .pickerStyle(.segmented)
+
+                                Text(vm.treasureLabelStyle == .emoji
+                                     ? "Shows a small emoji badge in the tile corner — tile path shapes stay fully visible."
+                                     : "Shows the treasure name centered on the tile, shifting aside when a pawn is present.")
+                                    .font(.system(size: 12, design: .rounded))
+                                    .foregroundColor(.secondary)
+                            }
                         }
                     }
+
 
                     // Board Actions
                     settingsCard(title: "Board Actions", icon: "slider.horizontal.3", color: .green) {

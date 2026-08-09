@@ -21,6 +21,9 @@ struct TileView: View {
     var isCurrentTarget: Bool = false
     var isStagedTarget: Bool = false
     var isObtained: Bool = false
+    var treasureLabelStyle: TreasureLabelStyle = .emoji
+    /// Pawns currently sitting on this tile (used by text-mode to shift the label clear of tokens)
+    var pawnsOnTile: [PawnColor] = []
 
     @State private var dashPhase: CGFloat = 0
     @Environment(\.colorScheme) private var colorScheme
@@ -126,51 +129,85 @@ struct TileView: View {
                     .padding(size * 0.06)
                 }
 
-                // Treasure badge — tiny emoji in bottom-right corner so it never
-                // obstructs corridor paths on any tile shape or rotation.
-                // Full name shown only when this tile is the active gold target.
+                // Treasure indicator — style driven by user preference
                 if let treasure = tile.treasure {
-                    VStack {
-                        // Full name label floats at top-center ONLY when actively targeted,
-                        // where the golden ring already draws attention to the tile shape.
-                        if isCurrentTarget {
-                            HStack(spacing: 2) {
-                                Text(treasure.emoji)
-                                    .font(.system(size: size * 0.13))
+                    if treasureLabelStyle == .emoji {
+                        // ── EMOJI MODE: tiny corner badge, never covers path walls ──
+                        VStack {
+                            if isCurrentTarget {
+                                HStack(spacing: 2) {
+                                    Text(treasure.emoji)
+                                        .font(.system(size: size * 0.13))
+                                    Text(treasure.shortName)
+                                        .font(.system(size: size * 0.13, weight: .bold, design: .rounded))
+                                        .foregroundColor(Color.amber)
+                                        .lineLimit(1)
+                                        .minimumScaleFactor(0.5)
+                                }
+                                .padding(.horizontal, 5)
+                                .padding(.vertical, 2)
+                                .background(Color.black.opacity(0.70), in: Capsule())
+                                .shadow(color: Color.amber.opacity(0.8), radius: 6)
+                                .padding(.top, size * 0.06)
+                            }
+                            Spacer()
+                            HStack {
+                                Spacer()
+                                ZStack {
+                                    if isObtained {
+                                        Circle()
+                                            .fill(Color.green.opacity(0.85))
+                                            .frame(width: size * 0.22, height: size * 0.22)
+                                        Image(systemName: "checkmark")
+                                            .font(.system(size: size * 0.11, weight: .black))
+                                            .foregroundColor(.white)
+                                    } else {
+                                        Text(treasure.emoji)
+                                            .font(.system(size: size * 0.18))
+                                            .opacity(0.9)
+                                    }
+                                }
+                                .shadow(color: .black.opacity(0.5), radius: 2, y: 1)
+                            }
+                            .padding(.trailing, size * 0.05)
+                            .padding(.bottom, size * 0.05)
+                        }
+
+                    } else {
+                        // ── TEXT MODE: centered label, shifted vertically away from pawns ──
+                        // Pawn tokens are centered in the tile. When pawns are present we
+                        // nudge the label downward so it sits below the pawn cluster.
+                        let hasPawns = !pawnsOnTile.isEmpty
+                        // Pawn token radius ≈ 25% of tile. Shift label below pawn bottom.
+                        let verticalOffset: CGFloat = hasPawns ? size * 0.28 : 0
+
+                        VStack(spacing: 2) {
+                            HStack(spacing: 3) {
+                                if isObtained {
+                                    Image(systemName: "checkmark")
+                                        .font(.system(size: size * 0.10, weight: .bold))
+                                        .foregroundColor(.green)
+                                }
                                 Text(treasure.shortName)
                                     .font(.system(size: size * 0.13, weight: .bold, design: .rounded))
-                                    .foregroundColor(Color.amber)
+                                    .foregroundColor(isObtained ? .secondary : (isCurrentTarget ? Color.amber : .white))
+                                    .strikethrough(isObtained, color: .red)
                                     .lineLimit(1)
-                                    .minimumScaleFactor(0.5)
+                                    .minimumScaleFactor(0.4)
                             }
                             .padding(.horizontal, 5)
                             .padding(.vertical, 2)
-                            .background(Color.black.opacity(0.70), in: Capsule())
-                            .shadow(color: Color.amber.opacity(0.8), radius: 6)
-                            .padding(.top, size * 0.06)
+                            .background(
+                                colorScheme == .dark
+                                    ? Color.black.opacity(0.72)
+                                    : Color(white: 0.08).opacity(0.82),
+                                in: Capsule()
+                            )
+                            .shadow(color: isCurrentTarget ? Color.amber.opacity(0.8) : .clear,
+                                    radius: isCurrentTarget ? 6 : 0)
+                            .opacity(isObtained ? 0.65 : 1.0)
                         }
-                        Spacer()
-                        // Small corner badge — always visible, never covers paths
-                        HStack {
-                            Spacer()
-                            ZStack {
-                                if isObtained {
-                                    Circle()
-                                        .fill(Color.green.opacity(0.85))
-                                        .frame(width: size * 0.22, height: size * 0.22)
-                                    Image(systemName: "checkmark")
-                                        .font(.system(size: size * 0.11, weight: .black))
-                                        .foregroundColor(.white)
-                                } else {
-                                    Text(treasure.emoji)
-                                        .font(.system(size: size * 0.18))
-                                        .opacity(isObtained ? 0.4 : 0.9)
-                                }
-                            }
-                            .shadow(color: .black.opacity(0.5), radius: 2, y: 1)
-                        }
-                        .padding(.trailing, size * 0.05)
-                        .padding(.bottom, size * 0.05)
+                        .offset(y: verticalOffset)
                     }
                 }
 

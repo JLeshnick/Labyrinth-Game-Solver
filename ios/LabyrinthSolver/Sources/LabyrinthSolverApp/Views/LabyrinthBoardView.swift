@@ -170,13 +170,17 @@ struct LabyrinthBoardView: View {
                         let isReachable = isPreviewing ? false : vm.reachablePositions.contains(posKey)
                         let isOneTurn = isPreviewing ? false : vm.oneTurnReachablePositions.contains(posKey)
 
+                        let pawnsHere = vm.activePlayers.filter { vm.pawnPositions[$0].row == r && vm.pawnPositions[$0].col == c }
+
                         ZStack {
                             TileView(
                                 tile: tile,
                                 isReachable: isReachable,
                                 isOneTurnReachable: isOneTurn,
                                 isCurrentTarget: isTarget,
-                                isObtained: isObtained
+                                isObtained: isObtained,
+                                treasureLabelStyle: vm.treasureLabelStyle,
+                                pawnsOnTile: pawnsHere
                             )
                         }
                         .frame(width: tileSize, height: tileSize)
