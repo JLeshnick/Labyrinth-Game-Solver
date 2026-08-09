@@ -33,6 +33,9 @@ struct GameView: View {
                     onOpenStats: { showStatsSheet = true }
                 )
                 .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .liquidGlassCard(cornerRadius: 18)
+                .padding(.horizontal, 12)
                 .zIndex(2)
 
                 // Board Stage
