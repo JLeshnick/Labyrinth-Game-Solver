@@ -134,7 +134,7 @@ struct SolverConsoleView: View {
                 }
             }
 
-            if vm.turnPhase == .move && vm.stagedArrowId == nil {
+            if vm.turnPhase == .move && vm.stagedArrowId == nil && !vm.isAnimatingPawn {
                 HStack(spacing: 8) {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("MOVE PHASE")

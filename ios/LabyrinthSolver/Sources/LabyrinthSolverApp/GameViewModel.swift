@@ -237,6 +237,9 @@ final class GameViewModel {
             if reachablePositions.contains(key) {
                 let route = findRoute(grid: board, start: pawnPositions[myColor], end: destPos)
                 self.projectedRoute = []
+                self.activeTargetId = nil
+                self.activeTargetPosition = nil
+                self.solverOptions.removeAll()
                 if route.count > 1 {
                     self.moveCount += 1
                     self.animatePawn(along: route)
@@ -248,7 +251,14 @@ final class GameViewModel {
                 }
             } else {
                 self.projectedRoute = []
+                self.activeTargetId = nil
+                self.activeTargetPosition = nil
+                self.solverOptions.removeAll()
             }
+        } else {
+            self.activeTargetId = nil
+            self.activeTargetPosition = nil
+            self.solverOptions.removeAll()
         }
     }
     
