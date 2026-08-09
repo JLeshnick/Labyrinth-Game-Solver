@@ -23,6 +23,18 @@ struct CommandHeader: View {
                 Text("Labyrinth")
                     .font(.system(size: 16, weight: .black, design: .rounded))
                     .foregroundColor(.primary)
+
+                HStack(spacing: 4) {
+                    Image(systemName: "stopwatch.fill")
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundColor(Color.accentForTheme(vm.appAccentTheme))
+                    Text(vm.formattedTime)
+                        .font(.system(size: 12, weight: .bold, design: .monospaced))
+                        .foregroundColor(.primary)
+                }
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .liquidGlassCapsule()
             }
             .padding(.leading, 6)
 

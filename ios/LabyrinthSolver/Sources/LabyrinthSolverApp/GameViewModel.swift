@@ -87,6 +87,37 @@ final class GameViewModel {
         refreshReachable()
     }
 
+    // MARK: - Game Stopwatch / Timer
+    var elapsedSeconds: Int = 0
+    private var gameTimerTask: Task<Void, Never>? = nil
+
+    var formattedTime: String {
+        let mins = elapsedSeconds / 60
+        let secs = elapsedSeconds % 60
+        return String(format: "%02d:%02d", mins, secs)
+    }
+
+    func startTimer() {
+        gameTimerTask?.cancel()
+        gameTimerTask = Task { @MainActor [weak self] in
+            while !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: 1_000_000_000)
+                guard let self = self, self.isGameStarted && !self.isSetupMode else { continue }
+                self.elapsedSeconds += 1
+            }
+        }
+    }
+
+    func stopTimer() {
+        gameTimerTask?.cancel()
+        gameTimerTask = nil
+    }
+
+    func resetTimer() {
+        stopTimer()
+        elapsedSeconds = 0
+    }
+
     // MARK: - Reachable Refresh
     func refreshReachable() {
         let pos = pawnPositions[myColor]
@@ -163,20 +194,15 @@ final class GameViewModel {
         solverOptions.removeAll()
         refreshReachable()
 
-        if let aiMove = stagedSolverMove {
+        if let targetPos = activeTargetPosition ?? stagedSolverMove?.targetPosition {
             stagedSolverMove = nil
-            let key = PawnPositionKey(aiMove.targetPosition)
+            let key = PawnPositionKey(targetPos)
             if reachablePositions.contains(key) {
-                let currentRoute = self.projectedRoute
+                let route = findRoute(grid: board, start: pawnPositions[myColor], end: targetPos)
                 self.projectedRoute = []
-                
-                if currentRoute.count > 1 {
+                if route.count > 1 {
                     self.moveCount += 1
-                    self.animatePawn(along: currentRoute)
-                } else {
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
-                        self?.movePawn(to: aiMove.targetPosition.row, col: aiMove.targetPosition.col)
-                    }
+                    self.animatePawn(along: route)
                 }
             } else {
                 self.projectedRoute = []
@@ -251,7 +277,8 @@ final class GameViewModel {
         // Compute route path
         if let preview = previewState {
             let start = preview.pawns[myColor]
-            projectedRoute = findRoute(grid: preview.grid, start: start, end: move.targetPosition)
+            let dest = activeTargetPosition ?? move.targetPosition
+            projectedRoute = findRoute(grid: preview.grid, start: start, end: dest)
         }
     }
     
@@ -326,6 +353,17 @@ final class GameViewModel {
         showToast("↪ Redo")
     }
 
+    func revertToHistoryState(_ index: Int) {
+        guard index >= 0 && index < undoStack.count else { return }
+        let entry = undoStack[index]
+        let keptUndo = Array(undoStack[0...index])
+        let movedRedo = Array(undoStack[(index + 1)...].reversed())
+        undoStack = keptUndo
+        redoStack = movedRedo
+        applyHistory(entry)
+        showToast("↺ Reverted to turn #\(index + 1)")
+    }
+
     private func pushHistory() {
         undoStack.append(currentHistoryEntry())
         redoStack.removeAll()
@@ -363,6 +401,7 @@ final class GameViewModel {
         currentPlayerIndex = 0
         playerHands = GameConstants.dealDefaultHands()
         pawnPositions = PawnPositions(red: .init(row: 0, col: 0), blue: .init(row: 6, col: 6), green: .init(row: 6, col: 0), yellow: .init(row: 0, col: 6))
+        resetTimer()
     }
 
     // MARK: - Setup Mode Methods
@@ -555,6 +594,8 @@ final class GameViewModel {
         stagedSolverMove = nil
         solverOptions.removeAll()
         refreshReachable()
+        resetTimer()
+        startTimer()
         showToast("Board ready! Solver initialized.")
     }
 
@@ -598,6 +639,7 @@ final class GameViewModel {
         let spareTile = self.spareTile
         let myColor = self.myColor
         let targetId = self.activeTargetId
+        let targetPos = self.activeTargetPosition
         let positions = self.pawnPositions
         let lastArrow = self.lastArrowId
         let depth = self.solverDepth
@@ -608,6 +650,7 @@ final class GameViewModel {
                 spareTile: spareTile,
                 activePawn: myColor,
                 targetTreasureId: targetId,
+                targetPosition: targetPos,
                 pawnPositions: positions,
                 lastArrowId: lastArrow,
                 depth: depth,

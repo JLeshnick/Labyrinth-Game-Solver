@@ -21,6 +21,7 @@ struct TileView: View {
     var isCurrentTarget: Bool = false
     var isStagedTarget: Bool = false
 
+    @State private var dashPhase: CGFloat = 0
     @Environment(\.colorScheme) private var colorScheme
 
     private func pawnColor(_ p: PawnColor) -> Color {
@@ -45,14 +46,19 @@ struct TileView: View {
                 PathCanvas(shape: tile.shape, rotation: tile.rotation, size: size, isFixed: tile.isFixed)
                     .padding(size * 0.03)
 
-                // 1-Turn Slide Reachable Highlight (dashed neon emerald outline)
+                // 1-Turn Slide Reachable Highlight (animated marching dashed neon emerald outline)
                 if !isReachable && isOneTurnReachable {
                     RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                         .strokeBorder(
-                            Color.neonGreen.opacity(0.85),
-                            style: StrokeStyle(lineWidth: max(2.0, size * 0.06), dash: [size * 0.16, size * 0.12])
+                            Color.neonGreen.opacity(0.9),
+                            style: StrokeStyle(lineWidth: max(2.2, size * 0.065), dash: [size * 0.16, size * 0.12], dashPhase: dashPhase)
                         )
-                        .shadow(color: Color.neonGreen.opacity(0.35), radius: 3)
+                        .shadow(color: Color.neonGreen.opacity(0.4), radius: 4)
+                        .onAppear {
+                            withAnimation(.linear(duration: 1.5).repeatForever(autoreverses: false)) {
+                                dashPhase = size * 0.28
+                            }
+                        }
                 }
 
                 // Reachable Highlight Overlay (glowing neon emerald)

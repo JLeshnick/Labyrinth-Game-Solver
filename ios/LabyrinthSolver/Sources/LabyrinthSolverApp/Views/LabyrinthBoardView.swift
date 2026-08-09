@@ -10,6 +10,7 @@ struct ArrowButton: View {
     let systemImage: String
     let isAllowed: Bool
     let isStaged: Bool
+    var isExpelled: Bool = false
     let onTap: () -> Void
 
     @Environment(\.colorScheme) private var colorScheme
@@ -17,7 +18,7 @@ struct ArrowButton: View {
     var body: some View {
         Button(action: {
             if isAllowed {
-                Haptics.impact(.light)
+                Haptics.selection()
                 onTap()
             } else {
                 Haptics.notification(.warning)
@@ -25,28 +26,37 @@ struct ArrowButton: View {
         }) {
             ZStack {
                 RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .fill(isStaged ? AnyShapeStyle(Color.accentColor.opacity(0.85)) : AnyShapeStyle(.ultraThinMaterial))
+                    .fill(
+                        isStaged ? AnyShapeStyle(Color.accentColor.opacity(0.90)) :
+                        isExpelled ? AnyShapeStyle(Color.orange.opacity(0.85)) :
+                        AnyShapeStyle(.ultraThinMaterial)
+                    )
                     .overlay(
                         RoundedRectangle(cornerRadius: 12, style: .continuous)
                             .strokeBorder(
-                                isStaged ? Color.white.opacity(0.6) : Color.white.opacity(colorScheme == .dark ? 0.1 : 0.5),
-                                lineWidth: isStaged ? 1.5 : 1
+                                isStaged ? Color.white : (isExpelled ? Color.orange : Color.white.opacity(colorScheme == .dark ? 0.1 : 0.4)),
+                                lineWidth: (isStaged || isExpelled) ? 2 : 1
                             )
                     )
-                    .shadow(color: isStaged ? Color.accentColor.opacity(0.6) : .black.opacity(0.08), radius: isStaged ? 6 : 2, y: 1)
-                    .opacity(isAllowed ? 1.0 : 0.3)
-
-                Image(systemName: systemImage)
-                    .font(.system(size: 16, weight: .bold))
-                    .foregroundColor(
-                        isStaged ? .white : (isAllowed ? .primary : .secondary)
+                    .shadow(
+                        color: isStaged ? Color.accentColor.opacity(0.6) : (isExpelled ? Color.orange.opacity(0.6) : .black.opacity(0.05)),
+                        radius: (isStaged || isExpelled) ? 6 : 2,
+                        y: 1
                     )
+                    .opacity(isAllowed ? 1.0 : 0.35)
+
+                if isExpelled {
+                    Image(systemName: "arrow.up.right.circle.fill")
+                        .font(.system(size: 15, weight: .black))
+                        .foregroundColor(.white)
+                } else {
+                    Image(systemName: systemImage)
+                        .font(.system(size: 16, weight: .bold))
+                        .foregroundColor(isStaged ? .white : (isAllowed ? .primary : .secondary))
+                }
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-        .disabled(!isAllowed)
-        .scaleEffect(isStaged ? 1.1 : 1.0)
-        .animation(.spring(response: 0.25, dampingFraction: 0.7), value: isStaged)
+        .buttonStyle(.plain)
     }
 }
 
@@ -242,6 +252,7 @@ struct LabyrinthBoardView: View {
 
     @ViewBuilder
     private func bottomArrowRow(tileSize: CGFloat) -> some View {
+        let expelledId = vm.stagedArrowId.flatMap { GameConstants.oppositeArrowId(for: $0) }
         HStack(spacing: gap) {
             Spacer().frame(width: arrowSize, height: arrowSize)
 
@@ -253,6 +264,7 @@ struct LabyrinthBoardView: View {
                         systemImage: "chevron.up",
                         isAllowed: vm.isArrowAllowed(arrowId) && vm.turnPhase == .slide,
                         isStaged: vm.stagedArrowId == arrowId,
+                        isExpelled: expelledId == arrowId,
                         onTap: { vm.stageOrRotateArrow(arrowId) }
                     )
                     .frame(width: tileSize, height: arrowSize)
@@ -266,6 +278,7 @@ struct LabyrinthBoardView: View {
 
     @ViewBuilder
     private func leftArrowCol(tileSize: CGFloat) -> some View {
+        let expelledId = vm.stagedArrowId.flatMap { GameConstants.oppositeArrowId(for: $0) }
         VStack(spacing: gap) {
             ForEach(0..<7, id: \.self) { r in
                 if [1, 3, 5].contains(r) {
@@ -275,6 +288,7 @@ struct LabyrinthBoardView: View {
                         systemImage: "chevron.right",
                         isAllowed: vm.isArrowAllowed(arrowId) && vm.turnPhase == .slide,
                         isStaged: vm.stagedArrowId == arrowId,
+                        isExpelled: expelledId == arrowId,
                         onTap: { vm.stageOrRotateArrow(arrowId) }
                     )
                     .frame(width: arrowSize, height: tileSize)
@@ -288,6 +302,7 @@ struct LabyrinthBoardView: View {
 
     @ViewBuilder
     private func rightArrowCol(tileSize: CGFloat) -> some View {
+        let expelledId = vm.stagedArrowId.flatMap { GameConstants.oppositeArrowId(for: $0) }
         VStack(spacing: gap) {
             ForEach(0..<7, id: \.self) { r in
                 if [1, 3, 5].contains(r) {
@@ -297,6 +312,7 @@ struct LabyrinthBoardView: View {
                         systemImage: "chevron.left",
                         isAllowed: vm.isArrowAllowed(arrowId) && vm.turnPhase == .slide,
                         isStaged: vm.stagedArrowId == arrowId,
+                        isExpelled: expelledId == arrowId,
                         onTap: { vm.stageOrRotateArrow(arrowId) }
                     )
                     .frame(width: arrowSize, height: tileSize)

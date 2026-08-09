@@ -150,27 +150,29 @@ struct SolverConsoleView: View {
 
     private var stagedControls: some View {
         HStack(spacing: 8) {
-            if let move = vm.stagedSolverMove {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Top Suggestion Staged")
-                        .font(.system(size: 10, weight: .bold, design: .rounded))
+            let stagedId = vm.stagedArrowId!
+            let expelledId = GameConstants.oppositeArrowId(for: stagedId) ?? stagedId
+            
+            VStack(alignment: .leading, spacing: 2) {
+                HStack(spacing: 4) {
+                    Text("SLIDE STAGED")
+                        .font(.system(size: 10, weight: .black, design: .rounded))
                         .foregroundColor(Color.accentForTheme(vm.appAccentTheme))
-                    Text(move.summaryText)
-                        .font(.system(size: 11, weight: .semibold, design: .rounded))
-                        .foregroundColor(.primary)
-                        .lineLimit(2)
+                    Spacer()
+                    if let pos = vm.activeTargetPosition {
+                        Text("Target: (\(pos.row + 1), \(pos.col + 1))")
+                            .font(.system(size: 9, weight: .bold, design: .monospaced))
+                            .foregroundColor(.secondary)
+                    }
                 }
-                .padding(.horizontal, 10)
-                .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
-                .liquidGlassCard(cornerRadius: 14)
-            } else {
-                Text("Staged Slide: \(vm.stagedArrowId!)")
-                    .font(.system(size: 12, weight: .bold, design: .rounded))
+                Text("Insert: \(SolverEngine.arrowDisplayName(stagedId))  •  Expels: \(SolverEngine.arrowDisplayName(expelledId))")
+                    .font(.system(size: 11, weight: .bold, design: .rounded))
                     .foregroundColor(.primary)
-                    .padding(.horizontal, 10)
-                    .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
-                    .liquidGlassCard(cornerRadius: 14)
+                    .lineLimit(1)
             }
+            .padding(.horizontal, 10)
+            .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+            .liquidGlassCard(cornerRadius: 14)
 
             Button(action: {
                 Haptics.selection()

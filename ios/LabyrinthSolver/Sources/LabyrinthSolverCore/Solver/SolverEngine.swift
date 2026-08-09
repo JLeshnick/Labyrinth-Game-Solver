@@ -196,6 +196,7 @@ public struct SolverEngine {
         spareTile: TileData,
         activePawn: PawnColor,
         targetTreasureId: String?,
+        targetPosition: PawnPosition? = nil,
         pawnPositions: PawnPositions,
         lastArrowId: String? = nil
     ) -> MoveOption? {
@@ -204,6 +205,7 @@ public struct SolverEngine {
             spareTile: spareTile,
             activePawn: activePawn,
             targetTreasureId: targetTreasureId,
+            targetPosition: targetPosition,
             pawnPositions: pawnPositions,
             lastArrowId: lastArrowId,
             depth: 1,
@@ -218,6 +220,7 @@ public struct SolverEngine {
         spareTile: TileData,
         activePawn: PawnColor,
         targetTreasureId: String?,
+        targetPosition: PawnPosition? = nil,
         pawnPositions: PawnPositions,
         lastArrowId: String? = nil,
         depth: Int = 1,
@@ -227,12 +230,13 @@ public struct SolverEngine {
         let startPos = pawnPositions[activePawn]
         let maxQueuedStates = 3_500
 
-        guard targetTreasureId != nil else {
+        guard targetTreasureId != nil || targetPosition != nil else {
             return fallbackMoves(
                 grid: grid,
                 spareTile: spareTile,
                 startPos: startPos,
                 targetTreasureId: nil,
+                targetPosition: nil,
                 pawnPositions: pawnPositions,
                 activePawn: activePawn,
                 lastArrowId: lastArrowId,
@@ -249,6 +253,7 @@ public struct SolverEngine {
             spareTile: spareTile,
             startPos: startPos,
             targetTreasureId: targetTreasureId,
+            targetPosition: targetPosition,
             pawnPositions: pawnPositions,
             activePawn: activePawn,
             lastArrowId: lastArrowId
@@ -379,6 +384,7 @@ public struct SolverEngine {
         spareTile: TileData,
         startPos: PawnPosition,
         targetTreasureId: String?,
+        targetPosition: PawnPosition? = nil,
         pawnPositions: PawnPositions,
         activePawn: PawnColor,
         lastArrowId: String?,
@@ -407,7 +413,7 @@ public struct SolverEngine {
                 )
                 let shiftedStart = simPawns[activePawn]
                 let reachable = findReachablePositions(grid: simGrid, start: shiftedStart)
-                let targetPos = findTargetPosition(targetTreasureId, in: simGrid)
+                let targetPos = targetPosition ?? findTargetPosition(targetTreasureId, in: simGrid)
                 let bestLanding = bestLandingPosition(reachable: reachable, target: targetPos, fallback: shiftedStart)
                 let distance = targetPos.map { manhattan(from: bestLanding, to: $0) } ?? max(0, 100 - reachable.count)
                 let firstStep = SearchStep(
@@ -438,6 +444,7 @@ public struct SolverEngine {
         spareTile: TileData,
         startPos: PawnPosition,
         targetTreasureId: String?,
+        targetPosition: PawnPosition? = nil,
         pawnPositions: PawnPositions,
         activePawn: PawnColor,
         lastArrowId: String?,
@@ -448,6 +455,7 @@ public struct SolverEngine {
             spareTile: spareTile,
             startPos: startPos,
             targetTreasureId: targetTreasureId,
+            targetPosition: targetPosition,
             pawnPositions: pawnPositions,
             activePawn: activePawn,
             lastArrowId: lastArrowId
