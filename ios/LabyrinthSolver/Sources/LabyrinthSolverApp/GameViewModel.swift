@@ -70,9 +70,11 @@ final class GameViewModel {
     // Projected Route
     var projectedRoute: [PawnPosition] = []
 
-    // MARK: - Game Control
+    // MARK: - Game Control & Per-Player Metrics
     var isGameStarted: Bool = false
     var moveCount: Int = 0
+    var tilesTraversedPerPlayer: [PawnColor: Int] = [.red: 0, .blue: 0, .green: 0, .yellow: 0]
+    var turnsTakenPerPlayer: [PawnColor: Int] = [.red: 0, .blue: 0, .green: 0, .yellow: 0]
     var toastMessage: String? = nil
     private var toastTask: Task<Void, Never>? = nil
 
@@ -283,6 +285,9 @@ final class GameViewModel {
     }
     
     private func animatePawn(along route: [PawnPosition], currentIndex: Int = 0) {
+        if currentIndex == 0 && route.count > 1 {
+            tilesTraversedPerPlayer[myColor, default: 0] += (route.count - 1)
+        }
         guard currentIndex < route.count else {
             if let last = route.last {
                 checkTreasureCollection(at: last, pawn: myColor)
@@ -365,6 +370,7 @@ final class GameViewModel {
     }
 
     private func nextTurn() {
+        turnsTakenPerPlayer[myColor, default: 0] += 1
         currentPlayerIndex = (currentPlayerIndex + 1) % activePlayers.count
         turnPhase = .slide
         stagedArrowId = nil

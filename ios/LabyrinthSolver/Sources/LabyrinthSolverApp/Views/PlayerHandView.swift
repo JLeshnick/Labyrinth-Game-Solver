@@ -26,9 +26,16 @@ struct PlayerHandView: View {
                 }
                 .mask(
                     LinearGradient(
-                        colors: [.black, .black, .black, .black.opacity(0.8), .black.opacity(0.15)],
-                        startPoint: UnitPoint(x: 0.0, y: 0.5),
-                        endPoint: UnitPoint(x: 1.0, y: 0.5)
+                        stops: [
+                            .init(color: .black, location: 0.0),
+                            .init(color: .black, location: 0.55),
+                            .init(color: .black.opacity(0.85), location: 0.72),
+                            .init(color: .black.opacity(0.40), location: 0.85),
+                            .init(color: .black.opacity(0.10), location: 0.95),
+                            .init(color: .clear, location: 1.0)
+                        ],
+                        startPoint: .leading,
+                        endPoint: .trailing
                     )
                 )
                 .onChange(of: vm.myColor) { _, newColor in
@@ -149,9 +156,9 @@ struct GameStatsSheet: View {
                     .padding(.horizontal, 16)
                     .padding(.top, 12)
 
-                    // Player Standings & Collected Treasures
+                    // Detailed Per-Player Breakdowns
                     VStack(alignment: .leading, spacing: 12) {
-                        Text("Player Standings")
+                        Text("Per-Player Performance")
                             .font(.system(size: 14, weight: .bold, design: .rounded))
                             .foregroundColor(.secondary)
                             .padding(.horizontal, 20)
@@ -160,40 +167,58 @@ struct GameStatsSheet: View {
                             let hand = vm.playerHands[pawn] ?? PlayerHand()
                             let collectedCount = hand.obtainedCards.count
                             let totalCount = max(1, hand.cards.count)
+                            let tilesWalked = vm.tilesTraversedPerPlayer[pawn] ?? 0
+                            let turnsTaken = vm.turnsTakenPerPlayer[pawn] ?? 0
+                            let avgPerTurn = turnsTaken > 0 ? Double(tilesWalked) / Double(turnsTaken) : 0.0
 
-                            VStack(alignment: .leading, spacing: 8) {
+                            VStack(alignment: .leading, spacing: 10) {
                                 HStack {
                                     PawnToken(color: pawn, isActive: vm.myColor == pawn, size: 24)
                                     Text(pawn.displayName)
                                         .font(.system(size: 15, weight: .bold, design: .rounded))
                                     Spacer()
-                                    Text("\(collectedCount) / \(totalCount) Obtained")
+                                    Text("\(collectedCount) / \(totalCount) Cards")
                                         .font(.system(size: 13, weight: .black, design: .monospaced))
                                         .foregroundColor(Color.accentForTheme(vm.appAccentTheme))
                                 }
 
+                                // Metrics Grid
+                                HStack(spacing: 8) {
+                                    playerStatPill(title: "Tiles Walked", value: "\(tilesWalked)", icon: "figure.walk")
+                                    playerStatPill(title: "Turns Played", value: "\(turnsTaken)", icon: "dice.fill")
+                                    playerStatPill(title: "Avg/Turn", value: String(format: "%.1f", avgPerTurn), icon: "bolt.fill")
+                                }
+
+                                // Obtained Treasures List
                                 if hand.obtainedCards.isEmpty {
                                     Text("No treasures collected yet.")
-                                        .font(.system(size: 12, design: .rounded))
+                                        .font(.system(size: 11, design: .rounded))
                                         .foregroundColor(.secondary)
+                                        .padding(.top, 2)
                                 } else {
-                                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 90))], spacing: 6) {
-                                        ForEach(hand.obtainedCards, id: \.self) { tId in
-                                            if let treasure = GameConstants.treasures.first(where: { $0.id == tId }) {
-                                                HStack(spacing: 4) {
-                                                    Text(treasure.emoji).font(.system(size: 12))
-                                                    Text(treasure.shortName)
-                                                        .font(.system(size: 11, weight: .bold, design: .rounded))
-                                                        .strikethrough(true, color: .secondary)
-                                                        .foregroundColor(.secondary)
-                                                    Image(systemName: "checkmark")
-                                                        .font(.system(size: 9, weight: .bold))
-                                                        .foregroundColor(.green)
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        Text("Obtained Treasures:")
+                                            .font(.system(size: 10, weight: .bold, design: .rounded))
+                                            .foregroundColor(.secondary)
+
+                                        LazyVGrid(columns: [GridItem(.adaptive(minimum: 90))], spacing: 6) {
+                                            ForEach(hand.obtainedCards, id: \.self) { tId in
+                                                if let treasure = GameConstants.treasures.first(where: { $0.id == tId }) {
+                                                    HStack(spacing: 4) {
+                                                        Text(treasure.emoji).font(.system(size: 11))
+                                                        Text(treasure.shortName)
+                                                            .font(.system(size: 10, weight: .bold, design: .rounded))
+                                                            .strikethrough(true, color: .secondary)
+                                                            .foregroundColor(.secondary)
+                                                        Image(systemName: "checkmark")
+                                                            .font(.system(size: 8, weight: .bold))
+                                                            .foregroundColor(.green)
+                                                    }
+                                                    .padding(.horizontal, 8)
+                                                    .padding(.vertical, 4)
+                                                    .background(Color.appSecondaryGroupedBg)
+                                                    .clipShape(Capsule())
                                                 }
-                                                .padding(.horizontal, 8)
-                                                .padding(.vertical, 4)
-                                                .background(Color.appSecondaryGroupedBg)
-                                                .clipShape(Capsule())
                                             }
                                         }
                                     }
@@ -219,6 +244,27 @@ struct GameStatsSheet: View {
                 }
             }
         }
+    }
+
+    private func playerStatPill(title: String, value: String, icon: String) -> some View {
+        HStack(spacing: 4) {
+            Image(systemName: icon)
+                .font(.system(size: 10, weight: .bold))
+                .foregroundColor(Color.accentForTheme(vm.appAccentTheme))
+            VStack(alignment: .leading, spacing: 0) {
+                Text(value)
+                    .font(.system(size: 11, weight: .black, design: .monospaced))
+                    .foregroundColor(.primary)
+                Text(title)
+                    .font(.system(size: 9, weight: .semibold, design: .rounded))
+                    .foregroundColor(.secondary)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 8)
+        .padding(.vertical, 6)
+        .background(Color.appSecondaryGroupedBg)
+        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
     }
 
     private func statBox(title: String, value: String, icon: String) -> some View {
