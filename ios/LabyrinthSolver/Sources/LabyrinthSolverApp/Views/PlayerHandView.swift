@@ -13,26 +13,49 @@ struct PlayerHandView: View {
 
     var body: some View {
         HStack(spacing: 8) {
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 10) {
-                    ForEach(vm.activePlayers, id: \.id) { pawn in
-                        playerCard(pawn)
+            ScrollViewReader { proxy in
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 10) {
+                        ForEach(vm.activePlayers, id: \.id) { pawn in
+                            playerCard(pawn)
+                                .id(pawn.id)
+                        }
+                    }
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 4)
+                }
+                .mask(
+                    LinearGradient(
+                        colors: [.black, .black, .black, .black.opacity(0.8), .black.opacity(0.15)],
+                        startPoint: UnitPoint(x: 0.0, y: 0.5),
+                        endPoint: UnitPoint(x: 1.0, y: 0.5)
+                    )
+                )
+                .onChange(of: vm.myColor) { _, newColor in
+                    withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                        proxy.scrollTo(newColor.id, anchor: .center)
                     }
                 }
-                .padding(.horizontal, 14)
-                .padding(.vertical, 4)
+                .onAppear {
+                    proxy.scrollTo(vm.myColor.id, anchor: .center)
+                }
             }
 
-            // Stats Sheet Button
+            // Stats Sheet Button (aligned with player cards)
             Button(action: {
                 Haptics.selection()
                 showStatsSheet = true
             }) {
-                Image(systemName: "chart.bar.fill")
-                    .font(.system(size: 13, weight: .bold))
-                    .foregroundColor(Color.accentForTheme(vm.appAccentTheme))
-                    .padding(8)
-                    .liquidGlassCapsule()
+                HStack(spacing: 5) {
+                    Image(systemName: "chart.bar.fill")
+                        .font(.system(size: 12, weight: .bold))
+                    Text("Stats")
+                        .font(.system(size: 12, weight: .bold, design: .rounded))
+                }
+                .foregroundColor(Color.accentForTheme(vm.appAccentTheme))
+                .padding(.horizontal, 12)
+                .frame(height: 42)
+                .liquidGlassCapsule()
             }
             .padding(.trailing, 14)
             .buttonStyle(.plain)

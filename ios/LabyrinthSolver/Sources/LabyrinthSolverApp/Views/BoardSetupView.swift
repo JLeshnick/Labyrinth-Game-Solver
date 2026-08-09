@@ -174,7 +174,7 @@ struct SetupBoardGridView: View {
                 }
             }
             .padding(4)
-            .background(Color.black.opacity(0.8))
+            .background(Color.appTertiaryGroupedBg)
             .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
             .frame(width: size, height: size)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
