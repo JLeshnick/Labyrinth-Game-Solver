@@ -354,6 +354,7 @@ final class GameViewModel {
         solverOptions.removeAll()
         currentPlayerIndex = 0
         playerHands = GameConstants.dealDefaultHands()
+        pawnPositions = PawnPositions(red: .init(row: 0, col: 0), blue: .init(row: 6, col: 6), green: .init(row: 6, col: 0), yellow: .init(row: 0, col: 6))
     }
 
     // MARK: - Setup Mode Methods

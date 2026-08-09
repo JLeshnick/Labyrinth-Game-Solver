@@ -96,42 +96,55 @@ struct SolverConsoleView: View {
                 }
             }
 
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 8) {
-                    if vm.oneTurnReachableTreasures.isEmpty {
-                        Text("No treasures reachable in 1 turn.")
-                            .font(.system(size: 12, design: .rounded))
-                            .foregroundColor(.secondary)
-                            .padding(.vertical, 4)
-                    } else {
-                        ForEach(vm.oneTurnReachableTreasures, id: \.id) { treasure in
-                            Button(action: {
-                                Haptics.selection()
-                                vm.setActiveTarget(treasureId: treasure.id)
-                            }) {
-                                HStack(spacing: 5) {
-                                    Text(treasure.emoji)
-                                        .font(.system(size: 13))
-                                    Text(treasure.shortName)
-                                        .font(.system(size: 12, weight: .bold, design: .rounded))
+            ScrollViewReader { proxy in
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        if vm.oneTurnReachableTreasures.isEmpty {
+                            Text("No treasures reachable in 1 turn.")
+                                .font(.system(size: 12, design: .rounded))
+                                .foregroundColor(.secondary)
+                                .padding(.vertical, 4)
+                        } else {
+                            ForEach(vm.oneTurnReachableTreasures, id: \.id) { treasure in
+                                Button(action: {
+                                    Haptics.selection()
+                                    vm.setActiveTarget(treasureId: treasure.id)
+                                }) {
+                                    HStack(spacing: 5) {
+                                        Text(treasure.emoji)
+                                            .font(.system(size: 13))
+                                        Text(treasure.shortName)
+                                            .font(.system(size: 12, weight: .bold, design: .rounded))
+                                    }
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 7)
+                                    .liquidGlassCapsule(
+                                        isSelected: vm.activeTargetId == treasure.id,
+                                        tintColor: vm.activeTargetId == treasure.id ? Color.accentForTheme(vm.appAccentTheme) : nil
+                                    )
+                                    .foregroundColor(.primary)
                                 }
-                                .padding(.horizontal, 12)
-                                .padding(.vertical, 7)
-                                .liquidGlassCapsule(
-                                    isSelected: vm.activeTargetId == treasure.id,
-                                    tintColor: vm.activeTargetId == treasure.id ? Color.accentForTheme(vm.appAccentTheme) : nil
-                                )
-                                .foregroundColor(.primary)
+                                .buttonStyle(.plain)
+                                .id(treasure.id)
                             }
-                            .buttonStyle(.plain)
+                        }
+                    }
+                    .padding(.vertical, 4)
+                    .padding(.leading, 2)
+                    .padding(.trailing, 16)
+                }
+                .onChange(of: vm.activeTargetId) { _, targetId in
+                    if let targetId {
+                        withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                            proxy.scrollTo(targetId, anchor: .center)
                         }
                     }
                 }
-                .padding(.vertical, 4)
-                .padding(.horizontal, 2)
             }
         }
-        .padding(10)
+        .padding(.leading, 10)
+        .padding(.vertical, 10)
+        .padding(.trailing, 4)
         .liquidGlassCard(cornerRadius: 16)
     }
 
