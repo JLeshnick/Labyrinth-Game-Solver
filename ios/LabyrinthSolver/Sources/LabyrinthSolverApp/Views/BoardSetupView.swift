@@ -67,16 +67,6 @@ struct BoardSetupView: View {
 
                 // Tile count indicator
                 statusCapsule
-
-                // Prominent Settings Button
-                Button(action: { showSettingsSheet = true }) {
-                    Image(systemName: "gearshape.fill")
-                        .font(.system(size: 16, weight: .bold))
-                        .foregroundColor(Color.accentColor)
-                        .frame(width: 38, height: 38)
-                        .background(Color.appTertiaryGroupedBg)
-                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                }
             }
 
             startGameButton
@@ -159,6 +149,21 @@ struct BoardSetupView: View {
                     )
                 }
                 .disabled(isDisabled)
+            }
+
+            Divider()
+                .frame(height: 24)
+
+            // Settings button directly in the floating bottom liquid glass bar!
+            Button(action: { showSettingsSheet = true }) {
+                VStack(spacing: 3) {
+                    Image(systemName: "gearshape.fill")
+                        .font(.system(size: 16, weight: .medium))
+                    Text("Settings")
+                        .font(.system(size: 10, weight: .medium, design: .rounded))
+                }
+                .frame(width: 52, height: 48)
+                .foregroundColor(Color.secondary)
             }
         }
         .padding(4)

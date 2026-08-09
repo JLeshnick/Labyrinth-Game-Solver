@@ -149,14 +149,9 @@ struct GameView: View {
 
             Spacer()
 
-            // Solver + Settings
-            HStack(spacing: 4) {
-                toolbarButton(icon: "sparkles", enabled: true, tint: .accentColor) {
-                    showSolverSheet = true
-                }
-                toolbarButton(icon: "gearshape.fill", enabled: true) {
-                    showSettingsSheet = true
-                }
+            // Solver
+            toolbarButton(icon: "sparkles", enabled: true, tint: .accentColor) {
+                showSolverSheet = true
             }
         }
         .padding(.horizontal, 16)
@@ -239,6 +234,18 @@ struct GameView: View {
                     .foregroundColor(.white)
                     .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                 }
+            }
+
+            Divider().frame(height: 32)
+
+            // Settings button in floating control bar
+            Button(action: { showSettingsSheet = true }) {
+                Image(systemName: "gearshape.fill")
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundColor(Color.accentColor)
+                    .frame(width: 36, height: 36)
+                    .background(Color.appTertiaryGroupedBg)
+                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
             }
         }
         .padding(6)
