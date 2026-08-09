@@ -212,7 +212,7 @@ struct SetupGridCellView: View {
                             HStack {
                                 Spacer()
                                 Button(action: { vm.tapSetupCell(row: row, col: col) }) {
-                                    Image(systemName: "rotate.right")
+                                    Image(systemName: "arrow.clockwise")
                                         .font(.system(size: tileSize * 0.22, weight: .black))
                                         .foregroundColor(.white)
                                         .padding(3)
@@ -316,7 +316,7 @@ struct LooseTilesPoolView: View {
                                 if isSelected {
                                     RoundedRectangle(cornerRadius: 8)
                                         .strokeBorder(Color.accentColor, lineWidth: 3)
-                                    Image(systemName: "rotate.right.circle.fill")
+                                    Image(systemName: "arrow.clockwise.circle.fill")
                                         .font(.system(size: 16))
                                         .foregroundColor(Color.accentColor)
                                         .background(Circle().fill(Color.white))
