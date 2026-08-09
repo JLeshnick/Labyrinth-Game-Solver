@@ -84,7 +84,6 @@ struct GameView: View {
                     .zIndex(50)
             }
         }
-        .animation(.spring(response: 0.3, dampingFraction: 0.8), value: vm.stagedArrowId)
         .animation(.easeInOut(duration: 0.16), value: vm.isSolving)
         .sheet(isPresented: $showSettingsSheet) {
             SettingsView(

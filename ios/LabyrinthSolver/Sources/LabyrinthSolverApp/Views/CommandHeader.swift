@@ -23,8 +23,8 @@ struct CommandHeader: View {
 
     var body: some View {
         HStack(spacing: 8) {
-            // Player Selector Pills (Inline Header Ribbon)
-            HStack(spacing: 6) {
+            // Player Selector Segmented Ribbon
+            HStack(spacing: 4) {
                 ForEach(vm.activePlayers, id: \.id) { pawn in
                     let isActive = vm.myColor == pawn
                     let hand = vm.playerHands[pawn] ?? PlayerHand()
@@ -38,8 +38,8 @@ struct CommandHeader: View {
                             vm.refreshReachable()
                         }
                     }) {
-                        HStack(spacing: 5) {
-                            PawnToken(color: pawn, isActive: isActive, size: 18)
+                        HStack(spacing: 6) {
+                            PawnToken(color: pawn, isActive: isActive, size: 20)
 
                             if isActive {
                                 Text("\(collectedCount)/\(totalCount)")
@@ -47,17 +47,20 @@ struct CommandHeader: View {
                                     .foregroundColor(.primary)
                             }
                         }
-                        .padding(.horizontal, isActive ? 8 : 4)
-                        .padding(.vertical, 4)
+                        .padding(.horizontal, isActive ? 10 : 6)
+                        .frame(height: 34)
                         .background(
                             isActive
-                                ? AnyShapeStyle(Color.accentForTheme(vm.appAccentTheme).opacity(0.25))
-                                : AnyShapeStyle(Color.appTertiaryGroupedBg.opacity(0.5))
+                                ? AnyShapeStyle(Color.accentForTheme(vm.appAccentTheme).opacity(0.22))
+                                : AnyShapeStyle(Color.clear)
                         )
                         .clipShape(Capsule())
                         .overlay(
                             Capsule()
-                                .strokeBorder(isActive ? Color.accentForTheme(vm.appAccentTheme) : Color.clear, lineWidth: 1.5)
+                                .strokeBorder(
+                                    isActive ? Color.accentForTheme(vm.appAccentTheme) : Color.white.opacity(0.10),
+                                    lineWidth: isActive ? 1.5 : 1.0
+                                )
                         )
                     }
                     .buttonStyle(.plain)
@@ -66,12 +69,12 @@ struct CommandHeader: View {
 
             Spacer(minLength: 2)
 
-            // Stopwatch / Timer & Stats Trigger
+            // Stopwatch / Timer & Stats Button
             Button(action: {
                 Haptics.selection()
                 onOpenStats()
             }) {
-                HStack(spacing: 4) {
+                HStack(spacing: 5) {
                     Image(systemName: "stopwatch.fill")
                         .font(.system(size: 11, weight: .bold))
                         .foregroundColor(Color.accentForTheme(vm.appAccentTheme))
@@ -82,9 +85,10 @@ struct CommandHeader: View {
                         .font(.system(size: 10, weight: .bold))
                         .foregroundColor(.secondary)
                 }
-                .padding(.horizontal, 7)
-                .padding(.vertical, 5)
+                .padding(.horizontal, 8)
+                .frame(height: 34)
                 .background(Color.appTertiaryGroupedBg, in: Capsule())
+                .overlay(Capsule().strokeBorder(Color.white.opacity(0.10), lineWidth: 1.0))
             }
             .buttonStyle(.plain)
 
@@ -109,8 +113,9 @@ struct CommandHeader: View {
             Image(systemName: systemName)
                 .font(.system(size: 13, weight: .bold))
                 .foregroundColor(isEnabled ? .primary : .secondary.opacity(0.35))
-                .frame(width: 32, height: 32)
+                .frame(width: 34, height: 34)
                 .background(Color.appTertiaryGroupedBg, in: Circle())
+                .overlay(Circle().strokeBorder(Color.white.opacity(0.10), lineWidth: 1.0))
         }
         .disabled(!isEnabled)
     }
