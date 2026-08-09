@@ -53,8 +53,10 @@ struct SolverConsoleView: View {
                 .buttonStyle(.plain)
 
                 // Solve Button
+                let hasTarget = vm.activeTargetId != nil || vm.activeTargetPosition != nil
                 if vm.stagedArrowId == nil {
                     Button(action: {
+                        guard hasTarget else { return }
                         Haptics.selection()
                         SoundManager.shared.play(.solverComplete, enabled: vm.enableSound)
                         vm.runSolverAndStage()
@@ -63,10 +65,14 @@ struct SolverConsoleView: View {
                             .font(.system(size: 18, weight: .bold))
                             .foregroundColor(.white)
                             .frame(width: 44, height: 44)
-                            .background(Color.accentForTheme(vm.appAccentTheme), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-                            .shadow(color: Color.accentForTheme(vm.appAccentTheme).opacity(0.4), radius: 6, y: 3)
+                            .background(
+                                hasTarget ? Color.accentForTheme(vm.appAccentTheme) : Color.gray.opacity(0.35),
+                                in: RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            )
+                            .shadow(color: hasTarget ? Color.accentForTheme(vm.appAccentTheme).opacity(0.4) : .clear, radius: 6, y: 3)
+                            .opacity(hasTarget ? 1.0 : 0.4)
                     }
-                    .disabled(vm.isSolving)
+                    .disabled(vm.isSolving || !hasTarget)
                     .buttonStyle(.plain)
                 }
             }

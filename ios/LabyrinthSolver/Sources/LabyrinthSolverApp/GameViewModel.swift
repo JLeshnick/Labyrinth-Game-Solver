@@ -648,6 +648,10 @@ final class GameViewModel {
     // MARK: - Solver
     func runSolverAndStage() {
         guard !isSolving else { return }
+        guard activeTargetId != nil || activeTargetPosition != nil else {
+            showToast("Select a target tile or treasure first!")
+            return
+        }
         isSolving = true
 
         let board = self.board
