@@ -194,17 +194,27 @@ final class GameViewModel {
         solverOptions.removeAll()
         refreshReachable()
 
-        if let targetPos = activeTargetPosition ?? stagedSolverMove?.targetPosition {
+        // Shift target position according to slide
+        let destPos: PawnPosition?
+        if let targetId = activeTargetId {
+            destPos = SolverEngine.findTargetPosition(targetId, in: board)
+        } else if let pos = activeTargetPosition {
+            destPos = SolverEngine.shiftedPosition(of: pos, under: arrowId)
+        } else {
+            destPos = stagedSolverMove?.targetPosition
+        }
+
+        if let destPos {
             stagedSolverMove = nil
-            let key = PawnPositionKey(targetPos)
+            let key = PawnPositionKey(destPos)
             if reachablePositions.contains(key) {
-                let route = findRoute(grid: board, start: pawnPositions[myColor], end: targetPos)
+                let route = findRoute(grid: board, start: pawnPositions[myColor], end: destPos)
                 self.projectedRoute = []
                 if route.count > 1 {
                     self.moveCount += 1
                     self.animatePawn(along: route)
                 } else {
-                    // Pawn is already at targetPos
+                    checkTreasureCollection(at: destPos, pawn: myColor)
                     nextTurn()
                 }
             } else {
@@ -213,7 +223,29 @@ final class GameViewModel {
         }
     }
     
-    // MARK: - Pawn Move
+    // MARK: - Pawn Move & Collection
+    var obtainedTreasureIds: Set<String> {
+        Set(playerHands.values.flatMap { $0.obtainedCards })
+    }
+
+    private func checkTreasureCollection(at position: PawnPosition, pawn: PawnColor) {
+        let r = position.row
+        let c = position.col
+        guard let treasure = board[r][c].treasure else { return }
+
+        var hand = playerHands[pawn] ?? PlayerHand()
+        if !hand.obtainedCards.contains(treasure.id) {
+            hand.obtainedCards.append(treasure.id)
+            playerHands[pawn] = hand
+            showToast("🎉 \(pawn.displayName) collected \(treasure.name)!")
+            SoundManager.shared.play(.solverComplete, enabled: enableSound)
+        }
+        if activeTargetId == treasure.id {
+            activeTargetId = nil
+            activeTargetPosition = nil
+        }
+    }
+
     @discardableResult
     func movePawn(to row: Int, col: Int) -> Bool {
         guard turnPhase == .move else { return false }
@@ -223,7 +255,7 @@ final class GameViewModel {
         let destPos = PawnPosition(row: row, col: col)
         let currentPos = pawnPositions[myColor]
         if currentPos == destPos {
-            // Player taps current tile to stay in place & complete turn
+            checkTreasureCollection(at: destPos, pawn: myColor)
             showToast("\(myColor.displayName) stays in place.")
             nextTurn()
             return true
@@ -237,12 +269,7 @@ final class GameViewModel {
         } else {
             pawnPositions[myColor] = destPos
             moveCount += 1
-
-            if let targetId = activeTargetId, board[row][col].treasure?.id == targetId {
-                showToast("🎉 Reached \(board[row][col].treasure?.name ?? targetId)!")
-                activeTargetId = nil
-            }
-            
+            checkTreasureCollection(at: destPos, pawn: myColor)
             nextTurn()
             return true
         }
@@ -250,15 +277,15 @@ final class GameViewModel {
 
     func passMoveTurn() {
         guard turnPhase == .move else { return }
+        checkTreasureCollection(at: pawnPositions[myColor], pawn: myColor)
         showToast("\(myColor.displayName) ends turn.")
         nextTurn()
     }
     
     private func animatePawn(along route: [PawnPosition], currentIndex: Int = 0) {
         guard currentIndex < route.count else {
-            if let targetId = activeTargetId, let last = route.last, board[last.row][last.col].treasure?.id == targetId {
-                showToast("🎉 Reached \(board[last.row][last.col].treasure?.name ?? targetId)!")
-                activeTargetId = nil
+            if let last = route.last {
+                checkTreasureCollection(at: last, pawn: myColor)
             }
             SoundManager.shared.play(.pawnStep, enabled: enableSound)
             nextTurn()
@@ -289,11 +316,18 @@ final class GameViewModel {
         stagedRotation = move.tileRotation
         stagedSolverMove = move
         
-        // Compute route path
+        // Compute route path on the PREVIEW (SLID) grid to where the target tile lands!
         if let preview = previewState {
             let start = preview.pawns[myColor]
-            let dest = activeTargetPosition ?? move.targetPosition
-            projectedRoute = findRoute(grid: preview.grid, start: start, end: dest)
+            let targetOnSlidGrid: PawnPosition
+            if let targetId = activeTargetId {
+                targetOnSlidGrid = SolverEngine.findTargetPosition(targetId, in: preview.grid) ?? move.targetPosition
+            } else if let pos = activeTargetPosition {
+                targetOnSlidGrid = SolverEngine.shiftedPosition(of: pos, under: move.arrowId)
+            } else {
+                targetOnSlidGrid = move.targetPosition
+            }
+            projectedRoute = findRoute(grid: preview.grid, start: start, end: targetOnSlidGrid)
         }
     }
     

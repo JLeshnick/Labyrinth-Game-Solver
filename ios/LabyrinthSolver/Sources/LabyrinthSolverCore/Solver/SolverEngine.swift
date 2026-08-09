@@ -379,6 +379,29 @@ public struct SolverEngine {
         let reachesTarget: Bool
     }
 
+    /// Calculates where coordinate (r, c) lands on the board after applying a slide along `arrowId`.
+    public static func shiftedPosition(of pos: PawnPosition, under arrowId: String) -> PawnPosition {
+        let parts = arrowId.split(separator: "_")
+        guard parts.count == 2, let idx = Int(parts[1]) else { return pos }
+        let dir = parts[0]
+        var r = pos.row
+        var c = pos.col
+
+        switch dir {
+        case "top":
+            if c == idx { r = (r == 6) ? 0 : r + 1 }
+        case "bottom":
+            if c == idx { r = (r == 0) ? 6 : r - 1 }
+        case "left":
+            if r == idx { c = (c == 6) ? 0 : c + 1 }
+        case "right":
+            if r == idx { c = (c == 0) ? 6 : c - 1 }
+        default:
+            break
+        }
+        return PawnPosition(row: r, col: c)
+    }
+
     private static func firstTurnCandidates(
         grid: [[TileData]],
         spareTile: TileData,
@@ -413,7 +436,16 @@ public struct SolverEngine {
                 )
                 let shiftedStart = simPawns[activePawn]
                 let reachable = findReachablePositions(grid: simGrid, start: shiftedStart)
-                let targetPos = targetPosition ?? findTargetPosition(targetTreasureId, in: simGrid)
+
+                let targetPos: PawnPosition?
+                if let targetTreasureId {
+                    targetPos = findTargetPosition(targetTreasureId, in: simGrid)
+                } else if let initialPos = targetPosition {
+                    targetPos = shiftedPosition(of: initialPos, under: arrow)
+                } else {
+                    targetPos = nil
+                }
+
                 let bestLanding = bestLandingPosition(reachable: reachable, target: targetPos, fallback: shiftedStart)
                 let distance = targetPos.map { manhattan(from: bestLanding, to: $0) } ?? max(0, 100 - reachable.count)
                 let firstStep = SearchStep(
@@ -511,7 +543,7 @@ public struct SolverEngine {
         return unique
     }
 
-    private static func findTargetPosition(_ targetTreasureId: String?, in grid: [[TileData]]) -> PawnPosition? {
+    public static func findTargetPosition(_ targetTreasureId: String?, in grid: [[TileData]]) -> PawnPosition? {
         guard let targetTreasureId else { return nil }
 
         for r in 0..<grid.count {

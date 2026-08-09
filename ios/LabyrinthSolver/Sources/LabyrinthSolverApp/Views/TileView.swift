@@ -20,6 +20,7 @@ struct TileView: View {
     var isOneTurnReachable: Bool = false
     var isCurrentTarget: Bool = false
     var isStagedTarget: Bool = false
+    var isObtained: Bool = false
 
     @State private var dashPhase: CGFloat = 0
     @Environment(\.colorScheme) private var colorScheme
@@ -129,16 +130,25 @@ struct TileView: View {
                 if let treasure = tile.treasure {
                     VStack {
                         Spacer()
-                        Text(treasure.shortName)
-                            .font(.system(size: size * 0.16, weight: .bold, design: .rounded))
-                            .foregroundColor(isCurrentTarget ? Color.amber : .white)
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.5)
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 3)
-                            .background(colorScheme == .dark ? Color.black.opacity(0.65) : Color(white: 0.1).opacity(0.80), in: Capsule())
-                            .shadow(color: isCurrentTarget ? Color.amber.opacity(0.8) : .clear, radius: isCurrentTarget ? 6 : 0)
-                            .padding(.bottom, size * 0.08)
+                        HStack(spacing: 2) {
+                            if isObtained {
+                                Image(systemName: "checkmark")
+                                    .font(.system(size: size * 0.12, weight: .bold))
+                                    .foregroundColor(.green)
+                            }
+                            Text(treasure.shortName)
+                                .font(.system(size: size * 0.16, weight: .bold, design: .rounded))
+                                .foregroundColor(isObtained ? .secondary : (isCurrentTarget ? Color.amber : .white))
+                                .strikethrough(isObtained, color: .red)
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.5)
+                        }
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 3)
+                        .background(colorScheme == .dark ? Color.black.opacity(0.65) : Color(white: 0.1).opacity(0.80), in: Capsule())
+                        .shadow(color: isCurrentTarget ? Color.amber.opacity(0.8) : .clear, radius: isCurrentTarget ? 6 : 0)
+                        .opacity(isObtained ? 0.65 : 1.0)
+                        .padding(.bottom, size * 0.08)
                     }
                 }
             }
