@@ -32,6 +32,8 @@ struct GameView: View {
                     onOpenHistory: { showHistorySheet = true },
                     onOpenStats: { showStatsSheet = true }
                 )
+                .padding(.horizontal, 12)
+                .padding(.top, 6)
                 .zIndex(2)
 
                 // Board Stage
