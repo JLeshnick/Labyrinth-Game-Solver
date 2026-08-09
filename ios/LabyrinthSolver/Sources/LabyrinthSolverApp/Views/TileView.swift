@@ -126,34 +126,54 @@ struct TileView: View {
                     .padding(size * 0.06)
                 }
 
-                // Treasure Name Label — anchored to bottom-of-corridor, below pawn center
-                // and above the T-junction closed wall (~71% height), so it's always visible
+                // Treasure badge — tiny emoji in bottom-right corner so it never
+                // obstructs corridor paths on any tile shape or rotation.
+                // Full name shown only when this tile is the active gold target.
                 if let treasure = tile.treasure {
                     VStack {
-                        Spacer()
-                        HStack(spacing: 2) {
-                            if isObtained {
-                                Image(systemName: "checkmark")
-                                    .font(.system(size: size * 0.10, weight: .bold))
-                                    .foregroundColor(.green)
+                        // Full name label floats at top-center ONLY when actively targeted,
+                        // where the golden ring already draws attention to the tile shape.
+                        if isCurrentTarget {
+                            HStack(spacing: 2) {
+                                Text(treasure.emoji)
+                                    .font(.system(size: size * 0.13))
+                                Text(treasure.shortName)
+                                    .font(.system(size: size * 0.13, weight: .bold, design: .rounded))
+                                    .foregroundColor(Color.amber)
+                                    .lineLimit(1)
+                                    .minimumScaleFactor(0.5)
                             }
-                            Text(treasure.shortName)
-                                .font(.system(size: size * 0.13, weight: .bold, design: .rounded))
-                                .foregroundColor(isObtained ? .secondary : (isCurrentTarget ? Color.amber : .white))
-                                .strikethrough(isObtained, color: .red)
-                                .lineLimit(1)
-                                .minimumScaleFactor(0.5)
+                            .padding(.horizontal, 5)
+                            .padding(.vertical, 2)
+                            .background(Color.black.opacity(0.70), in: Capsule())
+                            .shadow(color: Color.amber.opacity(0.8), radius: 6)
+                            .padding(.top, size * 0.06)
                         }
-                        .padding(.horizontal, 5)
-                        .padding(.vertical, 2)
-                        .background(colorScheme == .dark ? Color.black.opacity(0.72) : Color(white: 0.08).opacity(0.82), in: Capsule())
-                        .shadow(color: isCurrentTarget ? Color.amber.opacity(0.8) : .clear, radius: isCurrentTarget ? 6 : 0)
-                        .opacity(isObtained ? 0.65 : 1.0)
-                        // Bottom padding lands the label at ~82% height — below pawn token bottom
-                        // (~75%) and well above the T-junction closed wall (~68–74%)
+                        Spacer()
+                        // Small corner badge — always visible, never covers paths
+                        HStack {
+                            Spacer()
+                            ZStack {
+                                if isObtained {
+                                    Circle()
+                                        .fill(Color.green.opacity(0.85))
+                                        .frame(width: size * 0.22, height: size * 0.22)
+                                    Image(systemName: "checkmark")
+                                        .font(.system(size: size * 0.11, weight: .black))
+                                        .foregroundColor(.white)
+                                } else {
+                                    Text(treasure.emoji)
+                                        .font(.system(size: size * 0.18))
+                                        .opacity(isObtained ? 0.4 : 0.9)
+                                }
+                            }
+                            .shadow(color: .black.opacity(0.5), radius: 2, y: 1)
+                        }
+                        .padding(.trailing, size * 0.05)
                         .padding(.bottom, size * 0.05)
                     }
                 }
+
             }
         }
         .aspectRatio(1, contentMode: .fit)
