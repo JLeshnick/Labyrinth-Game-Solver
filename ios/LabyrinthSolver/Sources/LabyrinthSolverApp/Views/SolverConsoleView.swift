@@ -71,6 +71,40 @@ struct SolverConsoleView: View {
                 }
             }
 
+            if vm.turnPhase == .move && vm.stagedArrowId == nil {
+                HStack(spacing: 8) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("MOVE PHASE")
+                            .font(.system(size: 10, weight: .black, design: .rounded))
+                            .foregroundColor(.green)
+                        Text("Tap tile to move, or End Turn to stay.")
+                            .font(.system(size: 11, weight: .bold, design: .rounded))
+                            .foregroundColor(.primary)
+                            .lineLimit(1)
+                    }
+                    .padding(.horizontal, 10)
+                    .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+                    .liquidGlassCard(cornerRadius: 14)
+
+                    Button(action: {
+                        Haptics.selection()
+                        vm.passMoveTurn()
+                    }) {
+                        HStack(spacing: 4) {
+                            Image(systemName: "checkmark.circle.fill")
+                                .font(.system(size: 14, weight: .bold))
+                            Text("End Turn")
+                                .font(.system(size: 12, weight: .bold, design: .rounded))
+                        }
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 12)
+                        .frame(height: 44)
+                        .background(Color.green, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+
             if vm.stagedArrowId != nil {
                 stagedControls
                     .transition(.opacity.combined(with: .move(edge: .bottom)))

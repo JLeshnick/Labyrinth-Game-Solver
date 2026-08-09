@@ -203,6 +203,9 @@ final class GameViewModel {
                 if route.count > 1 {
                     self.moveCount += 1
                     self.animatePawn(along: route)
+                } else {
+                    // Pawn is already at targetPos
+                    nextTurn()
                 }
             } else {
                 self.projectedRoute = []
@@ -213,12 +216,18 @@ final class GameViewModel {
     // MARK: - Pawn Move
     @discardableResult
     func movePawn(to row: Int, col: Int) -> Bool {
+        guard turnPhase == .move else { return false }
         let key = PawnPositionKey(row: row, col: col)
         guard reachablePositions.contains(key) else { return false }
 
         let destPos = PawnPosition(row: row, col: col)
         let currentPos = pawnPositions[myColor]
-        if currentPos == destPos { return false }
+        if currentPos == destPos {
+            // Player taps current tile to stay in place & complete turn
+            showToast("\(myColor.displayName) stays in place.")
+            nextTurn()
+            return true
+        }
 
         let route = findRoute(grid: board, start: currentPos, end: destPos)
         if route.count > 1 {
@@ -237,6 +246,12 @@ final class GameViewModel {
             nextTurn()
             return true
         }
+    }
+
+    func passMoveTurn() {
+        guard turnPhase == .move else { return }
+        showToast("\(myColor.displayName) ends turn.")
+        nextTurn()
     }
     
     private func animatePawn(along route: [PawnPosition], currentIndex: Int = 0) {
