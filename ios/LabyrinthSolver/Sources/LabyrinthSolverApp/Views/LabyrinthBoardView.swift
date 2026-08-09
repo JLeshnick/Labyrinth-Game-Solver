@@ -11,6 +11,7 @@ struct ArrowButton: View {
     let isAllowed: Bool
     let isStaged: Bool
     var isExpelled: Bool = false
+    var expelledTile: TileData? = nil
     let onTap: () -> Void
 
     @Environment(\.colorScheme) private var colorScheme
@@ -25,31 +26,45 @@ struct ArrowButton: View {
             }
         }) {
             ZStack {
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .fill(
-                        isStaged ? AnyShapeStyle(Color.accentColor.opacity(0.90)) :
-                        isExpelled ? AnyShapeStyle(Color.orange.opacity(0.85)) :
-                        AnyShapeStyle(.ultraThinMaterial)
-                    )
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 12, style: .continuous)
-                            .strokeBorder(
-                                isStaged ? Color.white : (isExpelled ? Color.orange : Color.white.opacity(colorScheme == .dark ? 0.1 : 0.4)),
-                                lineWidth: (isStaged || isExpelled) ? 2 : 1
-                            )
-                    )
-                    .shadow(
-                        color: isStaged ? Color.accentColor.opacity(0.6) : (isExpelled ? Color.orange.opacity(0.6) : .black.opacity(0.05)),
-                        radius: (isStaged || isExpelled) ? 6 : 2,
-                        y: 1
-                    )
-                    .opacity(isAllowed ? 1.0 : 0.35)
+                if isExpelled, let tile = expelledTile {
+                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        .fill(Color.orange.opacity(0.20))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                .strokeBorder(Color.orange, lineWidth: 2)
+                        )
+                        .shadow(color: Color.orange.opacity(0.6), radius: 6)
 
-                if isExpelled {
-                    Image(systemName: "arrow.up.right.circle.fill")
-                        .font(.system(size: 15, weight: .black))
-                        .foregroundColor(.white)
+                    TileView(tile: tile)
+                        .padding(2)
+                        .overlay(
+                            Image(systemName: "arrow.up.right.circle.fill")
+                                .font(.system(size: 13, weight: .black))
+                                .foregroundColor(.orange)
+                                .shadow(color: .black, radius: 3)
+                                .padding(2),
+                            alignment: .topTrailing
+                        )
                 } else {
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .fill(
+                            isStaged ? AnyShapeStyle(Color.accentColor.opacity(0.90)) :
+                            isExpelled ? AnyShapeStyle(Color.orange.opacity(0.85)) :
+                            AnyShapeStyle(.ultraThinMaterial)
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                .strokeBorder(
+                                    isStaged ? Color.white : (isExpelled ? Color.orange : Color.white.opacity(colorScheme == .dark ? 0.1 : 0.4)),
+                                    lineWidth: (isStaged || isExpelled) ? 2 : 1
+                                )
+                        )
+                        .shadow(color: isStaged ? Color.accentColor.opacity(0.6) : (isExpelled ? Color.orange.opacity(0.6) : .black.opacity(0.05)),
+                            radius: (isStaged || isExpelled) ? 6 : 2,
+                            y: 1
+                        )
+                        .opacity(isAllowed ? 1.0 : 0.35)
+
                     Image(systemName: systemImage)
                         .font(.system(size: 16, weight: .bold))
                         .foregroundColor(isStaged ? .white : (isAllowed ? .primary : .secondary))
@@ -175,6 +190,7 @@ struct LabyrinthBoardView: View {
                         ZStack {
                             TileView(
                                 tile: tile,
+                                pawnColor: vm.myColor,
                                 isReachable: isReachable,
                                 isOneTurnReachable: isOneTurn,
                                 isCurrentTarget: isTarget,
@@ -198,15 +214,17 @@ struct LabyrinthBoardView: View {
                     route: vm.projectedRoute,
                     tileSize: tileSize,
                     gap: gap,
+                    pawnColor: vm.myColor,
                     appAccentTheme: vm.appAccentTheme
                 )
             }
             
-            // Render all active pawns with multi-pawn offset fan-out
+            // Render all active pawns with multi-pawn offset fan-out (using simulated preview positions when staging a move)
+            let displayPawns = preview?.pawns ?? vm.pawnPositions
             ForEach(vm.activePlayers, id: \.id) { pawn in
-                let pos = vm.pawnPositions[pawn]
-                let offset = pawnOffset(for: pawn, tileSize: tileSize)
-                let coCount = vm.activePlayers.filter { vm.pawnPositions[$0] == pos }.count
+                let pos = displayPawns[pawn]
+                let offset = pawnOffset(for: pawn, positions: displayPawns, tileSize: tileSize)
+                let coCount = vm.activePlayers.filter { displayPawns[$0] == pos }.count
                 let pawnSize = coCount > 1 ? tileSize * 0.42 : tileSize * 0.5
 
                 PawnToken(color: pawn, isActive: pawn == vm.myColor, size: pawnSize)
@@ -219,9 +237,9 @@ struct LabyrinthBoardView: View {
         }
     }
 
-    private func pawnOffset(for pawn: PawnColor, tileSize: CGFloat) -> CGPoint {
-        let pos = vm.pawnPositions[pawn]
-        let coOccupants = vm.activePlayers.filter { vm.pawnPositions[$0] == pos }
+    private func pawnOffset(for pawn: PawnColor, positions: PawnPositions, tileSize: CGFloat) -> CGPoint {
+        let pos = positions[pawn]
+        let coOccupants = vm.activePlayers.filter { positions[$0] == pos }
         guard coOccupants.count > 1, let index = coOccupants.firstIndex(of: pawn) else {
             return .zero
         }
@@ -249,17 +267,21 @@ struct LabyrinthBoardView: View {
 
     @ViewBuilder
     private func topArrowRow(tileSize: CGFloat) -> some View {
+        let expelledId = vm.stagedArrowId.flatMap { GameConstants.oppositeArrowId(for: $0) }
         HStack(spacing: gap) {
             Spacer().frame(width: arrowSize, height: arrowSize)
 
             ForEach(0..<7, id: \.self) { c in
                 if [1, 3, 5].contains(c) {
                     let arrowId = "top_\(c)"
+                    let isExpelled = expelledId == arrowId
                     ArrowButton(
                         arrowId: arrowId,
                         systemImage: "chevron.down",
                         isAllowed: vm.isArrowAllowed(arrowId) && vm.turnPhase == .slide,
                         isStaged: vm.stagedArrowId == arrowId,
+                        isExpelled: isExpelled,
+                        expelledTile: isExpelled ? vm.previewState?.spareTile : nil,
                         onTap: { vm.stageOrRotateArrow(arrowId) }
                     )
                     .frame(width: tileSize, height: arrowSize)
@@ -280,12 +302,14 @@ struct LabyrinthBoardView: View {
             ForEach(0..<7, id: \.self) { c in
                 if [1, 3, 5].contains(c) {
                     let arrowId = "bottom_\(c)"
+                    let isExpelled = expelledId == arrowId
                     ArrowButton(
                         arrowId: arrowId,
                         systemImage: "chevron.up",
                         isAllowed: vm.isArrowAllowed(arrowId) && vm.turnPhase == .slide,
                         isStaged: vm.stagedArrowId == arrowId,
-                        isExpelled: expelledId == arrowId,
+                        isExpelled: isExpelled,
+                        expelledTile: isExpelled ? vm.previewState?.spareTile : nil,
                         onTap: { vm.stageOrRotateArrow(arrowId) }
                     )
                     .frame(width: tileSize, height: arrowSize)
@@ -304,12 +328,14 @@ struct LabyrinthBoardView: View {
             ForEach(0..<7, id: \.self) { r in
                 if [1, 3, 5].contains(r) {
                     let arrowId = "left_\(r)"
+                    let isExpelled = expelledId == arrowId
                     ArrowButton(
                         arrowId: arrowId,
                         systemImage: "chevron.right",
                         isAllowed: vm.isArrowAllowed(arrowId) && vm.turnPhase == .slide,
                         isStaged: vm.stagedArrowId == arrowId,
-                        isExpelled: expelledId == arrowId,
+                        isExpelled: isExpelled,
+                        expelledTile: isExpelled ? vm.previewState?.spareTile : nil,
                         onTap: { vm.stageOrRotateArrow(arrowId) }
                     )
                     .frame(width: arrowSize, height: tileSize)
@@ -328,12 +354,14 @@ struct LabyrinthBoardView: View {
             ForEach(0..<7, id: \.self) { r in
                 if [1, 3, 5].contains(r) {
                     let arrowId = "right_\(r)"
+                    let isExpelled = expelledId == arrowId
                     ArrowButton(
                         arrowId: arrowId,
                         systemImage: "chevron.left",
                         isAllowed: vm.isArrowAllowed(arrowId) && vm.turnPhase == .slide,
                         isStaged: vm.stagedArrowId == arrowId,
-                        isExpelled: expelledId == arrowId,
+                        isExpelled: isExpelled,
+                        expelledTile: isExpelled ? vm.previewState?.spareTile : nil,
                         onTap: { vm.stageOrRotateArrow(arrowId) }
                     )
                     .frame(width: arrowSize, height: tileSize)
@@ -372,23 +400,33 @@ struct RouteOverlayView: View {
     let route: [PawnPosition]
     let tileSize: CGFloat
     let gap: CGFloat
+    var pawnColor: PawnColor = .red
     let appAccentTheme: AppAccentTheme
     
     @State private var dashPhase: CGFloat = 0
+
+    private var routeColor: Color {
+        switch pawnColor {
+        case .red:    return Color(red: 0.96, green: 0.26, blue: 0.26)
+        case .blue:   return Color(red: 0.24, green: 0.55, blue: 0.98)
+        case .green:  return Color(red: 0.22, green: 0.85, blue: 0.45)
+        case .yellow: return Color(red: 0.98, green: 0.82, blue: 0.12)
+        }
+    }
     
     var body: some View {
         RoutePathShape(route: route, tileSize: tileSize, gap: gap)
             .stroke(
-                Color.accentForTheme(appAccentTheme),
+                routeColor,
                 style: StrokeStyle(
-                    lineWidth: max(4, tileSize * 0.1),
+                    lineWidth: max(4, tileSize * 0.12),
                     lineCap: .round,
                     lineJoin: .round,
                     dash: [tileSize * 0.25, tileSize * 0.25],
                     dashPhase: dashPhase
                 )
             )
-            .shadow(color: Color.accentForTheme(appAccentTheme).opacity(0.8), radius: 6)
+            .shadow(color: routeColor.opacity(0.85), radius: 6)
             .allowsHitTesting(false)
             .onAppear {
                 withAnimation(.linear(duration: 0.8).repeatForever(autoreverses: false)) {

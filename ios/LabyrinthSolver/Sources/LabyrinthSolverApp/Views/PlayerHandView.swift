@@ -24,20 +24,6 @@ struct PlayerHandView: View {
                     .padding(.horizontal, 14)
                     .padding(.vertical, 4)
                 }
-                .mask(
-                    LinearGradient(
-                        stops: [
-                            .init(color: .black, location: 0.0),
-                            .init(color: .black, location: 0.55),
-                            .init(color: .black.opacity(0.85), location: 0.72),
-                            .init(color: .black.opacity(0.40), location: 0.85),
-                            .init(color: .black.opacity(0.10), location: 0.95),
-                            .init(color: .clear, location: 1.0)
-                        ],
-                        startPoint: .leading,
-                        endPoint: .trailing
-                    )
-                )
                 .onChange(of: vm.myColor) { _, newColor in
                     withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
                         proxy.scrollTo(newColor.id, anchor: .center)

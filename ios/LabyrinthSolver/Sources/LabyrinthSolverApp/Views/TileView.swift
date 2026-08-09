@@ -16,6 +16,7 @@ extension Color {
 
 struct TileView: View {
     let tile: TileData
+    var pawnColor: PawnColor = .red
     var isReachable: Bool = false
     var isOneTurnReachable: Bool = false
     var isCurrentTarget: Bool = false
@@ -28,7 +29,7 @@ struct TileView: View {
     @State private var dashPhase: CGFloat = 0
     @Environment(\.colorScheme) private var colorScheme
 
-    private func pawnColor(_ p: PawnColor) -> Color {
+    private func pawnSwiftUIColor(_ p: PawnColor) -> Color {
         switch p {
         case .red:    return Color(red: 0.96, green: 0.26, blue: 0.26)
         case .blue:   return Color(red: 0.24, green: 0.55, blue: 0.98)
@@ -41,6 +42,7 @@ struct TileView: View {
         GeometryReader { geo in
             let size = min(geo.size.width, geo.size.height)
             let cornerRadius = size * 0.16
+            let activeColor = pawnSwiftUIColor(pawnColor)
 
             ZStack {
                 // Base Tile Card Background with bevel border & drop shadow
@@ -50,7 +52,7 @@ struct TileView: View {
                 PathCanvas(shape: tile.shape, rotation: tile.rotation, size: size, isFixed: tile.isFixed)
                     .padding(size * 0.03)
 
-                // 1-Turn Slide Reachable Highlight (continuous animated marching dashed neon emerald outline)
+                // 1-Turn Slide Reachable Highlight (continuous animated marching dashed outline using active pawn color)
                 if !isReachable && isOneTurnReachable {
                     TimelineView(.animation) { timeline in
                         let dashLength = size * 0.16
@@ -61,40 +63,47 @@ struct TileView: View {
 
                         RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                             .strokeBorder(
-                                Color.neonGreen.opacity(0.88),
+                                activeColor.opacity(0.88),
                                 style: StrokeStyle(
                                     lineWidth: max(2.2, size * 0.065),
                                     dash: [dashLength, gapLength],
                                     dashPhase: phase
                                 )
                             )
-                            .shadow(color: Color.neonGreen.opacity(0.45), radius: 4)
+                            .shadow(color: activeColor.opacity(0.45), radius: 4)
                     }
                 }
 
-                // Reachable Highlight Overlay (glowing neon emerald)
+                // Reachable Highlight Overlay (glowing active pawn color)
                 if isReachable {
                     RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                        .fill(Color.neonGreen.opacity(colorScheme == .dark ? 0.24 : 0.30))
+                        .fill(activeColor.opacity(colorScheme == .dark ? 0.24 : 0.30))
                     RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                        .strokeBorder(Color.neonGreen, lineWidth: max(2.5, size * 0.07))
-                        .shadow(color: Color.neonGreen.opacity(0.8), radius: 6)
+                        .strokeBorder(activeColor, lineWidth: max(2.5, size * 0.07))
+                        .shadow(color: activeColor.opacity(0.8), radius: 6)
                 }
 
-                // Current Target Treasure Highlight (pulsing golden starburst)
+                // Current Target Highlight (sleek ambient pawn-themed backlight glow & subtle corner bracket reticle)
                 if isCurrentTarget {
+                    // Soft ambient backlight glow
                     RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                        .strokeBorder(
-                            LinearGradient(
-                                colors: [Color.amber, Color(red: 1.0, green: 0.9, blue: 0.4)],
-                                startPoint: .topLeading, endPoint: .bottomTrailing
-                            ),
-                            lineWidth: max(3.0, size * 0.08)
-                        )
-                        .shadow(color: Color.amber.opacity(0.85), radius: 8)
+                        .fill(activeColor.opacity(colorScheme == .dark ? 0.35 : 0.28))
+                        .shadow(color: activeColor.opacity(0.85), radius: 12)
+                    
+                    // Subtle corner brackets (viewfinder style)
+                    TargetBracketShape(cornerRadius: cornerRadius)
+                        .stroke(activeColor, style: StrokeStyle(lineWidth: max(2.5, size * 0.075), lineCap: .round))
+                        .shadow(color: activeColor.opacity(0.9), radius: 4)
+
+                    // Floating target reticle badge
+                    Circle()
+                        .fill(activeColor)
+                        .frame(width: size * 0.30, height: size * 0.30)
+                        .shadow(color: .black.opacity(0.4), radius: 4, y: 2)
                         .overlay(
-                            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                                .fill(Color.amber.opacity(0.16))
+                            Image(systemName: "scope")
+                                .font(.system(size: size * 0.18, weight: .black))
+                                .foregroundColor(.white)
                         )
                 }
 
@@ -118,10 +127,10 @@ struct TileView: View {
                     VStack {
                         HStack {
                             Circle()
-                                .fill(pawnColor(pawn))
+                                .fill(pawnSwiftUIColor(pawn))
                                 .frame(width: size * 0.22, height: size * 0.22)
                                 .overlay(Circle().strokeBorder(Color.white, lineWidth: 1.5))
-                                .shadow(color: pawnColor(pawn).opacity(0.9), radius: 4)
+                                .shadow(color: pawnSwiftUIColor(pawn).opacity(0.9), radius: 4)
                             Spacer()
                         }
                         Spacer()
@@ -463,6 +472,45 @@ struct PawnOverlayView: View {
                 }
             }
         }
+    }
+}
+
+// MARK: - Viewfinder Target Brackets
+
+struct TargetBracketShape: Shape {
+    let cornerRadius: CGFloat
+
+    func path(in rect: CGRect) -> Path {
+        var p = Path()
+        let arm = min(rect.width, rect.height) * 0.24
+        let inset = rect.width * 0.05
+        let r = rect.insetBy(dx: inset, dy: inset)
+
+        // Top-Left Corner Bracket
+        p.move(to: CGPoint(x: r.minX, y: r.minY + arm))
+        p.addLine(to: CGPoint(x: r.minX, y: r.minY + cornerRadius))
+        p.addQuadCurve(to: CGPoint(x: r.minX + cornerRadius, y: r.minY), control: CGPoint(x: r.minX, y: r.minY))
+        p.addLine(to: CGPoint(x: r.minX + arm, y: r.minY))
+
+        // Top-Right Corner Bracket
+        p.move(to: CGPoint(x: r.maxX - arm, y: r.minY))
+        p.addLine(to: CGPoint(x: r.maxX - cornerRadius, y: r.minY))
+        p.addQuadCurve(to: CGPoint(x: r.maxX, y: r.minY + cornerRadius), control: CGPoint(x: r.maxX, y: r.minY))
+        p.addLine(to: CGPoint(x: r.maxX, y: r.minY + arm))
+
+        // Bottom-Right Corner Bracket
+        p.move(to: CGPoint(x: r.maxX, y: r.maxY - arm))
+        p.addLine(to: CGPoint(x: r.maxX, y: r.maxY - cornerRadius))
+        p.addQuadCurve(to: CGPoint(x: r.maxX - cornerRadius, y: r.maxY), control: CGPoint(x: r.maxX, y: r.maxY))
+        p.addLine(to: CGPoint(x: r.maxX - arm, y: r.maxY))
+
+        // Bottom-Left Corner Bracket
+        p.move(to: CGPoint(x: r.minX + arm, y: r.maxY))
+        p.addLine(to: CGPoint(x: r.minX + cornerRadius, y: r.maxY))
+        p.addQuadCurve(to: CGPoint(x: r.minX, y: r.maxY - cornerRadius), control: CGPoint(x: r.minX, y: r.maxY))
+        p.addLine(to: CGPoint(x: r.minX, y: r.maxY - arm))
+
+        return p
     }
 }
 

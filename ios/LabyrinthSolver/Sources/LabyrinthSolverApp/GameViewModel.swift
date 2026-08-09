@@ -240,9 +240,11 @@ final class GameViewModel {
                 if route.count > 1 {
                     self.moveCount += 1
                     self.animatePawn(along: route)
-                } else {
+                } else if route.count == 1 {
                     checkTreasureCollection(at: destPos, pawn: myColor)
                     nextTurn()
+                } else {
+                    self.projectedRoute = []
                 }
             } else {
                 self.projectedRoute = []
@@ -289,6 +291,8 @@ final class GameViewModel {
         }
 
         let route = findRoute(grid: board, start: currentPos, end: destPos)
+        guard !route.isEmpty else { return false }
+
         if route.count > 1 {
             moveCount += 1
             animatePawn(along: route)
@@ -334,7 +338,11 @@ final class GameViewModel {
         SoundManager.shared.play(.pawnStep, enabled: enableSound)
         
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.16) { [weak self] in
-            self?.animatePawn(along: route, currentIndex: currentIndex + 1)
+            guard let self = self else { return }
+            // Verify pawn is still in move phase and animating before continuing step
+            if self.isAnimatingPawn {
+                self.animatePawn(along: route, currentIndex: currentIndex + 1)
+            }
         }
     }
 
@@ -456,7 +464,15 @@ final class GameViewModel {
     }
 
     private func currentHistoryEntry() -> HistoryEntry {
-        HistoryEntry(board: board, spareTile: spareTile, pawnPositions: pawnPositions, lastArrowId: lastArrowId)
+        HistoryEntry(
+            board: board,
+            spareTile: spareTile,
+            pawnPositions: pawnPositions,
+            lastArrowId: lastArrowId,
+            currentPlayerIndex: currentPlayerIndex,
+            activePlayers: activePlayers,
+            turnPhase: turnPhase
+        )
     }
 
     private func applyHistory(_ entry: HistoryEntry) {
@@ -464,9 +480,12 @@ final class GameViewModel {
         spareTile = entry.spareTile
         pawnPositions = entry.pawnPositions
         lastArrowId = entry.lastArrowId
-        turnPhase = .slide
+        currentPlayerIndex = entry.currentPlayerIndex
+        activePlayers = entry.activePlayers
+        turnPhase = entry.turnPhase
         stagedArrowId = nil
         stagedSolverMove = nil
+        projectedRoute = []
         refreshReachable()
     }
 

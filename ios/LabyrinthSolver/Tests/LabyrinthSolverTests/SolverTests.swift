@@ -73,4 +73,16 @@ final class SolverTests: XCTestCase {
         XCTAssertGreaterThanOrEqual(option?.safetyScore ?? -1, 0)
         XCTAssertLessThanOrEqual(option?.safetyScore ?? 101, 100)
     }
+
+    func testUnreachablePositionPathfinding() {
+        // Disconnected grid: straight tiles horizontal at (0,0) and (0,1) with vertical alignment
+        let tileA = TileData(shape: .straight, rotation: .deg90)
+        let tileB = TileData(shape: .straight, rotation: .deg0)
+        var grid = Array(repeating: Array(repeating: TileData(shape: .straight, rotation: .deg0), count: 7), count: 7)
+        grid[0][0] = tileA
+        grid[0][1] = tileB
+
+        let reachable = SolverEngine.findReachablePositions(grid: grid, start: PawnPosition(row: 0, col: 0))
+        XCTAssertFalse(reachable.contains(PawnPositionKey(row: 0, col: 1)))
+    }
 }

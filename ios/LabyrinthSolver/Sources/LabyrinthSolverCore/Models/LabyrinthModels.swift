@@ -370,17 +370,26 @@ public struct HistoryEntry: Sendable {
     public let spareTile: TileData
     public let pawnPositions: PawnPositions
     public let lastArrowId: String?
+    public let currentPlayerIndex: Int
+    public let activePlayers: [PawnColor]
+    public let turnPhase: TurnPhase
 
     public init(
         board: [[TileData]],
         spareTile: TileData,
         pawnPositions: PawnPositions,
-        lastArrowId: String?
+        lastArrowId: String?,
+        currentPlayerIndex: Int = 0,
+        activePlayers: [PawnColor] = PawnColor.allCases,
+        turnPhase: TurnPhase = .slide
     ) {
-        self.board         = board
-        self.spareTile     = spareTile
-        self.pawnPositions = pawnPositions
-        self.lastArrowId   = lastArrowId
+        self.board              = board
+        self.spareTile          = spareTile
+        self.pawnPositions      = pawnPositions
+        self.lastArrowId        = lastArrowId
+        self.currentPlayerIndex = currentPlayerIndex
+        self.activePlayers      = activePlayers
+        self.turnPhase          = turnPhase
     }
 }
 
