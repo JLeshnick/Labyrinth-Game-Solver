@@ -142,7 +142,6 @@ struct LabyrinthBoardView: View {
     private func boardGrid(tileSize: CGFloat) -> some View {
         let preview = vm.previewState
         let displayBoard = preview?.grid ?? vm.board
-        let currentReachable = preview?.reachable ?? vm.reachablePositions
 
         VStack(spacing: gap) {
             ForEach(0..<7, id: \.self) { r in
@@ -165,8 +164,9 @@ struct LabyrinthBoardView: View {
 
                         let isObtained = tile.treasure.map { vm.obtainedTreasureIds.contains($0.id) } ?? false
                         let posKey = PawnPositionKey(row: r, col: c)
-                        let isReachable = currentReachable.contains(posKey)
-                        let isOneTurn = vm.oneTurnReachablePositions.contains(posKey)
+                        let isPreviewing = preview != nil
+                        let isReachable = isPreviewing ? false : vm.reachablePositions.contains(posKey)
+                        let isOneTurn = isPreviewing ? false : vm.oneTurnReachablePositions.contains(posKey)
 
                         ZStack {
                             TileView(
