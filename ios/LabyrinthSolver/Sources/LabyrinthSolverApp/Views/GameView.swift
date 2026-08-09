@@ -24,43 +24,41 @@ struct GameView: View {
             // Subtle ambient dark background
             Color.appGroupedBg.ignoresSafeArea()
 
-            GeometryReader { geo in
-                let sidePadding: CGFloat = 12
-                let availableWidth = geo.size.width - (sidePadding * 2)
-                let availableHeight = geo.size.height - 180
-                let boardSize = min(availableWidth, max(280, availableHeight))
+            VStack(spacing: 0) {
+                // Command Top Header Ribbon (Integrated player selector & toolbar)
+                CommandHeader(
+                    vm: vm,
+                    onOpenSettings: { showSettingsSheet = true },
+                    onOpenHistory: { showHistorySheet = true },
+                    onOpenStats: { showStatsSheet = true }
+                )
+                .padding(.horizontal, 12)
+                .padding(.top, 6)
+                .padding(.bottom, 6)
+                .zIndex(2)
 
-                VStack(spacing: 10) {
-                    // Command Top Header Ribbon (Integrated player selector & toolbar)
-                    CommandHeader(
-                        vm: vm,
-                        onOpenSettings: { showSettingsSheet = true },
-                        onOpenHistory: { showHistorySheet = true },
-                        onOpenStats: { showStatsSheet = true }
-                    )
-                    .frame(width: boardSize)
-                    .padding(.vertical, 6)
-                    .liquidGlassCard(cornerRadius: 18)
-                    .zIndex(2)
-
-                    // Board Stage
+                // Board Stage (Takes remaining vertical space, pinned under top header)
+                GeometryReader { geo in
+                    let maxBoard = min(geo.size.width - 24, geo.size.height - 12)
                     VStack(spacing: 0) {
                         LabyrinthBoardView(vm: vm)
-                            .frame(width: boardSize, height: boardSize)
+                            .frame(width: maxBoard, height: maxBoard)
+                        Spacer(minLength: 0)
                     }
-                    .zIndex(0)
-
-                    // Solver Interactive Console
-                    SolverConsoleView(
-                        vm: vm,
-                        onOpenTargetPicker: { showTargetPicker = true }
-                    )
-                    .frame(width: boardSize)
-                    .padding(.vertical, 6)
-                    .liquidGlassCard(cornerRadius: 18)
-                    .zIndex(2)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                .zIndex(0)
+
+                // Solver Interactive Console (Pinned strictly to bottom of screen)
+                SolverConsoleView(
+                    vm: vm,
+                    onOpenTargetPicker: { showTargetPicker = true }
+                )
+                .padding(.horizontal, 12)
+                .padding(.top, 8)
+                .padding(.bottom, 10)
+                .background(.ultraThinMaterial)
+                .zIndex(2)
             }
 
             // Toast HUD overlay (centered directly in middle of app screen)

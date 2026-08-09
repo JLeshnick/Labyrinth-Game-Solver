@@ -102,8 +102,9 @@ struct CommandHeader: View {
                 iconButton("gearshape.fill", isEnabled: true, action: onOpenSettings)
             }
         }
-        .padding(.horizontal, 4)
-        .padding(.vertical, 2)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .liquidGlassCard(cornerRadius: 18, isInteractive: true)
     }
 
     private func iconButton(_ systemName: String, isEnabled: Bool, action: @escaping () -> Void) -> some View {
