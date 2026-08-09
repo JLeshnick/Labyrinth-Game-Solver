@@ -32,6 +32,7 @@ interface SetupPanelProps {
   gameMode?: "standard" | "coop" | "auto";
   onSetGameMode?: (mode: "standard" | "coop" | "auto") => void;
   onResetAllDefaults?: () => void;
+  onOpenSettings?: () => void;
 }
 
 export function SetupPanel({
@@ -59,6 +60,7 @@ export function SetupPanel({
   gameMode = "standard",
   onSetGameMode,
   onResetAllDefaults,
+  onOpenSettings,
 }: SetupPanelProps) {
 
   useEffect(() => {
@@ -96,13 +98,24 @@ export function SetupPanel({
 
   return (
     <div className="flex-1 flex flex-col min-h-0 gap-3 md:gap-4 p-2 md:p-3 lg:p-4">
-      {/* Checklist */}
+      {/* Checklist Header */}
       <div className="p-3 app-surface flex flex-col gap-2 text-xs md:text-sm text-left">
         <div className="flex items-center justify-between border-b border-stone-800 pb-1.5">
           <h3 className="font-bold text-stone-200 flex items-center gap-1.5">
             <Sparkles className="w-3.5 h-3.5 text-theme-primary" />
             Setup Wizard & Checklist
           </h3>
+          {onOpenSettings && (
+            <button
+              onClick={() => {
+                if (!isMuted) playClickSound();
+                onOpenSettings();
+              }}
+              className="text-[11px] font-bold text-theme-primary hover:underline flex items-center gap-1 cursor-pointer"
+            >
+              ⚙️ Settings
+            </button>
+          )}
         </div>
         <div className="flex flex-col gap-1.5 mt-0.5">
           <div className="flex items-center gap-2">
@@ -127,7 +140,7 @@ export function SetupPanel({
         </Button>
       </div>
 
-      {/* Tab bar — full width to align with the checklist above */}
+      {/* Tab bar */}
       <div className="flex items-center bg-card rounded-xl p-1 border-2 border-stone-950 w-full shadow-[3px_3px_0_0_#000000] gap-0.5">
         {([
           { id: "tiles",   label: "Tiles",   icon: <Layers  className="w-3.5 h-3.5" />, desc: "Configure movable board tiles" },
@@ -161,16 +174,31 @@ export function SetupPanel({
       <div className="flex-1 overflow-visible min-h-0">
         {setupTab === "tiles" && (
           <div className="flex flex-col gap-3 h-full overflow-visible min-h-0 p-1 px-1.5 pb-4">
-            <div className="flex gap-2 items-center overflow-visible">
-              <Tooltip content="Randomly shuffle and rotate all movable tiles" side="bottom" containerClassName="flex-1">
+            <div className="grid grid-cols-2 sm:flex gap-2 items-center overflow-visible">
+              <Tooltip content="Clear board grid to start placing tiles from scratch" side="bottom" containerClassName="flex-1">
                 <Button
-                  onClick={onRandomizeBoard}
-                  className="w-full neo-brutalism-button bg-theme-primary border-stone-950 hover:bg-theme-primary-hover text-stone-950 font-bold py-2.5 px-4 min-h-11 rounded-xl flex items-center justify-center gap-2 cursor-pointer"
+                  onClick={() => {
+                    if (!isMuted) playClickSound();
+                    onResetBoard();
+                    showToast("Board cleared — start placing tiles from scratch!");
+                  }}
+                  className="w-full neo-brutalism-button bg-stone-800 hover:bg-stone-700 text-red-400 border-stone-950 font-bold py-2.5 px-3 min-h-11 rounded-xl flex items-center justify-center gap-1.5 cursor-pointer text-xs"
                 >
-                  <Sparkles className="w-4 h-4" />
-                  Randomize Board
+                  <RefreshCcw className="w-3.5 h-3.5 text-red-400" />
+                  Start from Scratch
                 </Button>
               </Tooltip>
+
+              <Tooltip content="Randomly shuffle and rotate remaining movable tiles" side="bottom" containerClassName="flex-1">
+                <Button
+                  onClick={onRandomizeBoard}
+                  className="w-full neo-brutalism-button bg-theme-primary border-stone-950 hover:bg-theme-primary-hover text-stone-950 font-bold py-2.5 px-3 min-h-11 rounded-xl flex items-center justify-center gap-1.5 cursor-pointer text-xs"
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  Randomize
+                </Button>
+              </Tooltip>
+
               {onScanBoard && (
                 <Tooltip content="Scan board photo with camera" side="bottom" containerClassName="shrink-0">
                   <Button
@@ -183,6 +211,7 @@ export function SetupPanel({
                   </Button>
                 </Tooltip>
               )}
+
               <Tooltip content="Reset all settings, mode, players, cards, and board to defaults" side="bottom-left" containerClassName="shrink-0">
                 <Button
                   variant="outline"
