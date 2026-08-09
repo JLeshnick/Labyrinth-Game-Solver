@@ -88,13 +88,15 @@ struct ToastView: View {
                 .foregroundColor(Color.amberGold)
             
             Text(message)
-                .font(.system(size: 14, weight: .semibold, design: .rounded))
+                .font(.system(size: 13, weight: .bold, design: .rounded))
                 .foregroundColor(.primary)
         }
-        .padding(.horizontal, 18)
-        .padding(.vertical, 11)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 9)
         .liquidGlassCapsule()
-        .transition(AnyTransition.move(edge: .bottom).combined(with: AnyTransition.opacity))
+        .shadow(color: .black.opacity(0.15), radius: 8, y: 4)
+        .allowsHitTesting(false)
+        .transition(.move(edge: .top).combined(with: .opacity))
     }
 }
 

@@ -229,7 +229,7 @@ struct LabyrinthBoardView: View {
     @ViewBuilder
     private func topArrowRow(tileSize: CGFloat) -> some View {
         HStack(spacing: gap) {
-            SpareCell(tile: vm.spareTile, size: arrowSize, onTap: { vm.rotateSpareTile() })
+            Spacer().frame(width: arrowSize, height: arrowSize)
 
             ForEach(0..<7, id: \.self) { c in
                 if [1, 3, 5].contains(c) {
