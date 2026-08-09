@@ -18,29 +18,27 @@ struct SolverConsoleView: View {
                 let hasTarget = vm.activeTargetId != nil || vm.activeTargetPosition != nil
                 let isStaged = vm.stagedArrowId != nil
 
-                // Primary Target / Slide Status Glass Pill
+                // Primary Target & Slide Status Glass Pill
                 Button(action: {
                     Haptics.selection()
                     onOpenTargetPicker()
                 }) {
-                    HStack(spacing: 8) {
-                        if isStaged, let stagedId = vm.stagedArrowId {
-                            let expelledId = GameConstants.oppositeArrowId(for: stagedId) ?? stagedId
-                            VStack(alignment: .leading, spacing: 1) {
-                                Text("SLIDE PREVIEW")
-                                    .font(.system(size: 9, weight: .black, design: .rounded))
-                                    .foregroundColor(Color.accentForTheme(vm.appAccentTheme))
-                                Text("In: \(SolverEngine.arrowDisplayName(stagedId)) → Out: \(SolverEngine.arrowDisplayName(expelledId))")
-                                    .font(.system(size: 11, weight: .bold, design: .rounded))
-                                    .foregroundColor(.primary)
-                                    .lineLimit(1)
-                            }
-                        } else {
-                            Text(activeTargetEmoji).font(.system(size: 16))
+                    HStack(spacing: 6) {
+                        Text(activeTargetEmoji).font(.system(size: 15))
+
+                        VStack(alignment: .leading, spacing: 1) {
                             Text(activeTargetName)
-                                .font(.system(size: 13, weight: .bold, design: .rounded))
+                                .font(.system(size: 12, weight: .bold, design: .rounded))
                                 .foregroundColor(.primary)
                                 .lineLimit(1)
+
+                            if isStaged, let stagedId = vm.stagedArrowId {
+                                let expelledId = GameConstants.oppositeArrowId(for: stagedId) ?? stagedId
+                                Text("In: \(SolverEngine.arrowDisplayName(stagedId)) → Out: \(SolverEngine.arrowDisplayName(expelledId))")
+                                    .font(.system(size: 10, weight: .bold, design: .rounded))
+                                    .foregroundColor(Color.accentForTheme(vm.appAccentTheme))
+                                    .lineLimit(1)
+                            }
                         }
 
                         Spacer(minLength: 0)
@@ -51,7 +49,7 @@ struct SolverConsoleView: View {
                                 .foregroundColor(.secondary)
                         }
                     }
-                    .padding(.horizontal, 12)
+                    .padding(.horizontal, 10)
                     .frame(maxWidth: .infinity, minHeight: 44)
                     .liquidGlassCard(cornerRadius: 14, isInteractive: true)
                 }

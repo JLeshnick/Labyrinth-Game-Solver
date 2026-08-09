@@ -53,13 +53,12 @@ struct GameView: View {
                 .zIndex(2)
             }
 
-            // Toast HUD overlay (floating in open space above lower console)
+            // Toast HUD overlay (centered directly in middle of app screen)
             if let msg = vm.toastMessage {
                 VStack {
-                    Spacer()
                     ToastView(message: msg)
-                        .padding(.bottom, 125)
                 }
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
                 .allowsHitTesting(false)
                 .zIndex(100)
             }
