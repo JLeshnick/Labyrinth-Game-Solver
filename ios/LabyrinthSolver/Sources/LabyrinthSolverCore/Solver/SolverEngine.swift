@@ -380,22 +380,35 @@ public struct SolverEngine {
     }
 
     /// Calculates where coordinate (r, c) lands on the board after applying a slide along `arrowId`.
-    public static func shiftedPosition(of pos: PawnPosition, under arrowId: String) -> PawnPosition {
+    /// Returns `nil` if coordinate (r, c) is expelled from the board into the new spare tile.
+    public static func shiftedPosition(of pos: PawnPosition, under arrowId: String) -> PawnPosition? {
         let parts = arrowId.split(separator: "_")
         guard parts.count == 2, let idx = Int(parts[1]) else { return pos }
         let dir = parts[0]
-        var r = pos.row
-        var c = pos.col
+        let r = pos.row
+        let c = pos.col
 
         switch dir {
         case "top":
-            if c == idx { r = (r == 6) ? 0 : r + 1 }
+            if c == idx {
+                if r == 6 { return nil }
+                return PawnPosition(row: r + 1, col: c)
+            }
         case "bottom":
-            if c == idx { r = (r == 0) ? 6 : r - 1 }
+            if c == idx {
+                if r == 0 { return nil }
+                return PawnPosition(row: r - 1, col: c)
+            }
         case "left":
-            if r == idx { c = (c == 6) ? 0 : c + 1 }
+            if r == idx {
+                if c == 6 { return nil }
+                return PawnPosition(row: r, col: c + 1)
+            }
         case "right":
-            if r == idx { c = (c == 0) ? 6 : c - 1 }
+            if r == idx {
+                if c == 0 { return nil }
+                return PawnPosition(row: r, col: c - 1)
+            }
         default:
             break
         }
@@ -403,22 +416,35 @@ public struct SolverEngine {
     }
 
     /// Calculates the original coordinate (r, c) on the unslid board that shifted into `simPos` under `arrowId`.
-    public static func unshiftedPosition(of simPos: PawnPosition, under arrowId: String) -> PawnPosition {
+    /// Returns `nil` if `simPos` is the newly inserted spare tile (which came from off-board).
+    public static func unshiftedPosition(of simPos: PawnPosition, under arrowId: String) -> PawnPosition? {
         let parts = arrowId.split(separator: "_")
         guard parts.count == 2, let idx = Int(parts[1]) else { return simPos }
         let dir = parts[0]
-        var r = simPos.row
-        var c = simPos.col
+        let r = simPos.row
+        let c = simPos.col
 
         switch dir {
         case "top":
-            if c == idx { r = (r == 0) ? 6 : r - 1 }
+            if c == idx {
+                if r == 0 { return nil }
+                return PawnPosition(row: r - 1, col: c)
+            }
         case "bottom":
-            if c == idx { r = (r == 6) ? 0 : r + 1 }
+            if c == idx {
+                if r == 6 { return nil }
+                return PawnPosition(row: r + 1, col: c)
+            }
         case "left":
-            if r == idx { c = (c == 0) ? 6 : c - 1 }
+            if r == idx {
+                if c == 0 { return nil }
+                return PawnPosition(row: r, col: c - 1)
+            }
         case "right":
-            if r == idx { c = (c == 6) ? 0 : c + 1 }
+            if r == idx {
+                if c == 6 { return nil }
+                return PawnPosition(row: r, col: c + 1)
+            }
         default:
             break
         }

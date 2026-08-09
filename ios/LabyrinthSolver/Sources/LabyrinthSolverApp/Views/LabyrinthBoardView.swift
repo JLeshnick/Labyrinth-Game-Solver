@@ -153,8 +153,10 @@ struct LabyrinthBoardView: View {
                                 return tile.treasure?.id == targetId
                             } else if let origTargetPos = vm.activeTargetPosition {
                                 if let stagedArrow = vm.stagedArrowId {
-                                    let shiftedTargetPos = SolverEngine.shiftedPosition(of: origTargetPos, under: stagedArrow)
-                                    return PawnPosition(row: r, col: c) == shiftedTargetPos
+                                    if let shiftedTargetPos = SolverEngine.shiftedPosition(of: origTargetPos, under: stagedArrow) {
+                                        return PawnPosition(row: r, col: c) == shiftedTargetPos
+                                    }
+                                    return false
                                 } else {
                                     return PawnPosition(row: r, col: c) == origTargetPos
                                 }

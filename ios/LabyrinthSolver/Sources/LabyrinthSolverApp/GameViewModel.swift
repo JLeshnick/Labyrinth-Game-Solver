@@ -151,8 +151,9 @@ final class GameViewModel {
                     let reachable = SolverEngine.findReachablePositions(grid: simGrid, start: simPawns[myColor])
                     for key in reachable {
                         let simPos = PawnPosition(row: key.row, col: key.col)
-                        let origPos = SolverEngine.unshiftedPosition(of: simPos, under: arrow)
-                        oneTurnKeys.insert(PawnPositionKey(origPos))
+                        if let origPos = SolverEngine.unshiftedPosition(of: simPos, under: arrow) {
+                            oneTurnKeys.insert(PawnPositionKey(origPos))
+                        }
                         if let t = simGrid[key.row][key.col].treasure {
                             oneTurnTreasures.insert(t.id)
                         }
@@ -335,7 +336,7 @@ final class GameViewModel {
             if let targetId = activeTargetId {
                 targetOnSlidGrid = SolverEngine.findTargetPosition(targetId, in: preview.grid) ?? move.targetPosition
             } else if let pos = activeTargetPosition {
-                targetOnSlidGrid = SolverEngine.shiftedPosition(of: pos, under: move.arrowId)
+                targetOnSlidGrid = SolverEngine.shiftedPosition(of: pos, under: move.arrowId) ?? move.targetPosition
             } else {
                 targetOnSlidGrid = move.targetPosition
             }
