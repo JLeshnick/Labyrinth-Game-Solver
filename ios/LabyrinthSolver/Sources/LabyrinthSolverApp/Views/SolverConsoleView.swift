@@ -114,9 +114,7 @@ struct SolverConsoleView: View {
                     .transition(.opacity.combined(with: .move(edge: .bottom)))
             }
 
-            if !vm.solverOptions.isEmpty {
-                solverSuggestions
-            }
+            solverSuggestions
         }
     }
 
@@ -191,32 +189,48 @@ struct SolverConsoleView: View {
     private var solverSuggestions: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack {
-                Text("Alternative Solver Recommendations")
+                Text(vm.solverOptions.isEmpty ? "Solver Recommendations" : "Alternative Solver Recommendations")
                     .font(.system(size: 11, weight: .heavy, design: .rounded))
                     .foregroundColor(.secondary)
                 Spacer()
-                Text("\(vm.solverOptions.count)")
-                    .font(.system(size: 10, weight: .bold, design: .monospaced))
-                    .foregroundColor(.secondary)
+                if !vm.solverOptions.isEmpty {
+                    Text("\(vm.solverOptions.count)")
+                        .font(.system(size: 10, weight: .bold, design: .monospaced))
+                        .foregroundColor(.secondary)
+                }
             }
 
-            ScrollView(.horizontal, showsIndicators: false) {
+            if vm.solverOptions.isEmpty {
                 HStack(spacing: 8) {
-                    ForEach(Array(vm.solverOptions.enumerated()), id: \.element.id) { index, option in
-                        SolverOptionCard(
-                            move: option,
-                            rank: index + 1,
-                            isSelected: vm.stagedSolverMove?.id == option.id,
-                            targetName: activeTargetName,
-                            appAccentTheme: vm.appAccentTheme,
-                            onTap: {
-                                vm.stageSolverOption(option)
-                            }
-                        )
-                        .frame(width: 210)
-                    }
+                    Image(systemName: "sparkles")
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundColor(Color.accentForTheme(vm.appAccentTheme))
+                    Text(vm.activeTargetId != nil || vm.activeTargetPosition != nil ? "Calculating routes..." : "Tap any tile or treasure on board to view solver routes")
+                        .font(.system(size: 11, weight: .bold, design: .rounded))
+                        .foregroundColor(.secondary)
                 }
-                .padding(.bottom, 2)
+                .padding(.horizontal, 14)
+                .frame(maxWidth: .infinity, minHeight: 48, alignment: .leading)
+                .liquidGlassCard(cornerRadius: 14)
+            } else {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        ForEach(Array(vm.solverOptions.enumerated()), id: \.element.id) { index, option in
+                            SolverOptionCard(
+                                move: option,
+                                rank: index + 1,
+                                isSelected: vm.stagedSolverMove?.id == option.id,
+                                targetName: activeTargetName,
+                                appAccentTheme: vm.appAccentTheme,
+                                onTap: {
+                                    vm.stageSolverOption(option)
+                                }
+                            )
+                            .frame(width: 210)
+                        }
+                    }
+                    .padding(.bottom, 2)
+                }
             }
         }
     }

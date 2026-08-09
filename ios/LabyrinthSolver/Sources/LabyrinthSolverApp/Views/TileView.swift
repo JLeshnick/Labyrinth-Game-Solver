@@ -406,13 +406,13 @@ struct PawnToken: View {
     }
 
     var body: some View {
-        ZStack {
-            // Glow aura when active
+        ZStack(alignment: .center) {
+            // Perfectly centered active glow aura
             if isActive {
                 Circle()
-                    .fill(pawnShadowColor.opacity(0.5))
-                    .frame(width: size * 1.35, height: size * 1.35)
-                    .blur(radius: 4)
+                    .fill(pawnShadowColor.opacity(0.45))
+                    .frame(width: size * 1.30, height: size * 1.30)
+                    .blur(radius: 3)
             }
 
             // 3D Pawn Body
@@ -434,10 +434,10 @@ struct PawnToken: View {
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing
                             ),
-                            lineWidth: isActive ? 2.5 : 1.5
+                            lineWidth: isActive ? 2.0 : 1.2
                         )
                 )
-                .shadow(color: pawnShadowColor.opacity(0.6), radius: isActive ? 6 : 3, y: 2)
+                .shadow(color: pawnShadowColor.opacity(0.5), radius: isActive ? 4 : 2, y: 1)
 
             // Letter Icon Badge
             Text(String(color.rawValue.prefix(1)).uppercased())
@@ -445,7 +445,7 @@ struct PawnToken: View {
                 .foregroundColor(color == .yellow ? .black : .white)
                 .shadow(color: .black.opacity(0.3), radius: 1, y: 1)
         }
-        .scaleEffect(isActive ? 1.18 : 1.0)
+        .scaleEffect(isActive ? 1.12 : 1.0)
         .animation(.spring(response: 0.28, dampingFraction: 0.7), value: isActive)
     }
 }

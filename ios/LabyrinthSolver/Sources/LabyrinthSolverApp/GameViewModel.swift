@@ -714,10 +714,11 @@ final class GameViewModel {
             for c in 0..<7 {
                 if board[r][c].treasure?.id == treasureId {
                     activeTargetPosition = PawnPosition(row: r, col: c)
-                    return
+                    break
                 }
             }
         }
+        runSolverAndStage()
     }
 
     func setActiveTargetPosition(_ pos: PawnPosition) {
@@ -725,6 +726,7 @@ final class GameViewModel {
         activeTargetId = board[pos.row][pos.col].treasure?.id
         stagedSolverMove = nil
         solverOptions.removeAll()
+        runSolverAndStage()
     }
 
     func clearActiveTarget() {
