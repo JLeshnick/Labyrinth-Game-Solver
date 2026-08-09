@@ -149,12 +149,24 @@ struct LabyrinthBoardView: View {
                 HStack(spacing: gap) {
                     ForEach(0..<7, id: \.self) { c in
                         let tile = displayBoard[r][c]
+                        let isTarget: Bool = {
+                            if let targetId = vm.activeTargetId {
+                                return tile.treasure?.id == targetId
+                            } else if let origTargetPos = vm.activeTargetPosition {
+                                if let stagedArrow = vm.stagedArrowId {
+                                    let shiftedTargetPos = SolverEngine.shiftedPosition(of: origTargetPos, under: stagedArrow)
+                                    return PawnPosition(row: r, col: c) == shiftedTargetPos
+                                } else {
+                                    return PawnPosition(row: r, col: c) == origTargetPos
+                                }
+                            }
+                            return false
+                        }()
+
+                        let isObtained = tile.treasure.map { vm.obtainedTreasureIds.contains($0.id) } ?? false
                         let posKey = PawnPositionKey(row: r, col: c)
                         let isReachable = currentReachable.contains(posKey)
                         let isOneTurn = vm.oneTurnReachablePositions.contains(posKey)
-                        let isTarget = (vm.activeTargetPosition == PawnPosition(row: r, col: c)) || (vm.activeTargetId != nil && tile.treasure?.id == vm.activeTargetId)
-
-                        let isObtained = tile.treasure.map { vm.obtainedTreasureIds.contains($0.id) } ?? false
 
                         ZStack {
                             TileView(
