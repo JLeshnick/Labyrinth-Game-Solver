@@ -10,6 +10,7 @@ struct GameView: View {
     @State private var showSettingsSheet = false
     @State private var showTargetPicker = false
     @State private var showHistorySheet = false
+    @State private var showStatsSheet = false
     @State private var showWelcomeSheet = false
     @Environment(\.colorScheme) private var colorScheme
 
@@ -24,21 +25,17 @@ struct GameView: View {
             Color.appGroupedBg.ignoresSafeArea()
 
             VStack(spacing: 0) {
-                // Command Top Header
+                // Command Top Header Ribbon (Integrated player selector & toolbar)
                 CommandHeader(
                     vm: vm,
                     onOpenSettings: { showSettingsSheet = true },
-                    onOpenHistory: { showHistorySheet = true }
+                    onOpenHistory: { showHistorySheet = true },
+                    onOpenStats: { showStatsSheet = true }
                 )
                 .padding(.horizontal, 14)
                 .padding(.top, 8)
                 .padding(.bottom, 4)
                 .zIndex(2)
-
-                // Player Inventory Chips Bar
-                PlayerHandView(vm: vm)
-                    .padding(.bottom, 4)
-                    .zIndex(1)
 
                 // Board Stage
                 boardStage
@@ -109,6 +106,13 @@ struct GameView: View {
         }
         .sheet(isPresented: $showHistorySheet) {
             MoveHistorySheet(vm: vm)
+            #if os(iOS)
+            .presentationDetents([.medium, .large])
+            .presentationDragIndicator(.visible)
+            #endif
+        }
+        .sheet(isPresented: $showStatsSheet) {
+            GameStatsSheet(vm: vm)
             #if os(iOS)
             .presentationDetents([.medium, .large])
             .presentationDragIndicator(.visible)
