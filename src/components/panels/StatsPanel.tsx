@@ -10,6 +10,8 @@ import {
   Sparkles,
 } from "lucide-react";
 
+import type { UITheme } from "../../types";
+
 interface PawnStats {
   tilesMoved: number;
   shiftsUsed: number;
@@ -24,6 +26,7 @@ interface StatsPanelProps {
   obtainedTreasures: Record<string, string[]>;
   gameMode?: "standard" | "coop" | "auto";
   coopObtainedTreasures?: string[];
+  uiTheme?: UITheme;
 }
 
 
@@ -34,6 +37,7 @@ export const StatsPanel: React.FC<StatsPanelProps> = ({
   obtainedTreasures,
   gameMode = "standard",
   coopObtainedTreasures = [],
+  uiTheme: _uiTheme = "brutalist",
 }) => {
   const isShared = gameMode === "coop" || gameMode === "auto";
   const totalTreasuresFound = isShared

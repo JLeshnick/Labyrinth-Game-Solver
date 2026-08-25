@@ -1,6 +1,6 @@
 import React from "react";
 import { useDraggable } from "@dnd-kit/core";
-import type { TileData } from "../../types";
+import type { TileData, UITheme } from "../../types";
 import { cn } from "../../lib/utils";
 import { Lock } from "lucide-react";
 import { Tooltip } from "../ui/tooltip";
@@ -15,6 +15,7 @@ interface TileProps {
   isObtainedTreasure?: boolean;
   isCurrentTarget?: boolean;
   is3D?: boolean;
+  uiTheme?: UITheme;
 }
 
 export const Tile: React.FC<TileProps> = ({
@@ -26,6 +27,7 @@ export const Tile: React.FC<TileProps> = ({
   isObtainedTreasure = false,
   isCurrentTarget = false,
   is3D = false,
+  uiTheme = "brutalist",
 }) => {
   // Smoothly fade out overlay elements (banner & lock) in place, wait for board rotation animation to finish (500ms), then fade back in at new position
   const [isRotating, setIsRotating] = React.useState(false);
@@ -151,21 +153,23 @@ export const Tile: React.FC<TileProps> = ({
     }
   };
 
+  const isSimplistic = uiTheme === "simplistic";
+
   const getTileStyles = () => {
     let bgClass = "bg-card";
-    let borderClass = "border-2 border-stone-950";
+    let borderClass = isSimplistic ? "border border-border/80" : "border-2 border-stone-950";
     let shadowStyle: React.CSSProperties = {};
 
     // 1. Pawn start corner presets keep their team color background
     if (tile.color) {
       if (tile.color === "blue") {
-        bgClass = "bg-blue-600 text-white";
+        bgClass = isSimplistic ? "bg-blue-600/90 text-white" : "bg-blue-600 text-white";
       } else if (tile.color === "red") {
-        bgClass = "bg-red-600 text-white";
+        bgClass = isSimplistic ? "bg-red-600/90 text-white" : "bg-red-600 text-white";
       } else if (tile.color === "green") {
-        bgClass = "bg-emerald-600 text-white";
+        bgClass = isSimplistic ? "bg-emerald-600/90 text-white" : "bg-emerald-600 text-white";
       } else if (tile.color === "yellow") {
-        bgClass = "bg-amber-400 text-stone-950";
+        bgClass = isSimplistic ? "bg-amber-400/90 text-stone-950" : "bg-amber-400 text-stone-950";
       }
     } else {
       // 2. Standard tiles: bg-card uses --card CSS variable (dark: #1b1917, light: #ffffff)
@@ -174,7 +178,7 @@ export const Tile: React.FC<TileProps> = ({
 
     if (is3D) {
       shadowStyle = {
-        boxShadow: "0 6px 0 0 #000000, 0 8px 12px rgba(0,0,0,0.35)",
+        boxShadow: isSimplistic ? "0 4px 12px rgba(0,0,0,0.2)" : "0 6px 0 0 #000000, 0 8px 12px rgba(0,0,0,0.35)",
       };
     }
 
@@ -192,19 +196,22 @@ export const Tile: React.FC<TileProps> = ({
         }
       }}
       className={cn(
-        "relative rounded-2xl border-2 transition-all duration-150 flex items-center justify-center select-none group/tile",
+        "relative transition-all duration-150 flex items-center justify-center select-none group/tile",
+        isSimplistic ? "rounded-xl" : "rounded-2xl",
         bgClass,
         borderClass,
-        isObtainedTreasure && "after:absolute after:inset-0 after:bg-stone-950/30 after:rounded-2xl after:pointer-events-none",
+        isObtainedTreasure && "after:absolute after:inset-0 after:bg-stone-950/30 after:rounded-xl after:pointer-events-none",
         is3D
           ? "tile-3d"
+          : isSimplistic
+          ? "shadow-xs hover:shadow-sm hover:scale-[1.02] active:scale-[0.98]"
           : "shadow-[4px_4px_0_0_#000000] dark:shadow-[4px_4px_0_0_#292524] hover:translate-x-[-1.5px] hover:translate-y-[-1.5px] hover:shadow-[5.5px_5.5px_0_0_#44403c] active:translate-x-[1px] active:translate-y-[1px] active:shadow-[2px_2px_0_0_#292524]",
         className
       )}
       style={is3D ? { ...shadowStyle, transformStyle: "preserve-3d" } : undefined}
     >
       {/* Inner container with overflow-hidden to cleanly clip the SVG paths */}
-      <div className="absolute inset-0 rounded-[14px] overflow-hidden" style={{ transformStyle: is3D ? "preserve-3d" : "flat" }}>
+      <div className={cn("absolute inset-0 overflow-hidden", isSimplistic ? "rounded-[11px]" : "rounded-[14px]")} style={{ transformStyle: is3D ? "preserve-3d" : "flat" }}>
         {/* Path rotation wrapper */}
         <div
           className={cn("absolute inset-0", !disableRotationTransition && "transition-transform duration-200")}
@@ -225,7 +232,12 @@ export const Tile: React.FC<TileProps> = ({
         {/* Fixed tile lock badge — anchored to top-right of screen-oriented tile */}
         {tile.isFixed && (
           <Tooltip content="Permanently fixed preset tile (glued to board)" side="top" containerClassName="absolute top-1 right-1 z-[100]">
-            <div className="p-0.5 bg-stone-950 border-2 border-stone-950 rounded-md text-amber-400 shadow-[2px_2px_0_0_#000000] pointer-events-auto cursor-help">
+            <div className={cn(
+              "p-0.5 rounded-md pointer-events-auto cursor-help flex items-center justify-center",
+              isSimplistic
+                ? "bg-slate-900/90 border border-slate-700/60 text-amber-400 shadow-xs"
+                : "bg-stone-950 border-2 border-stone-950 text-amber-400 shadow-[2px_2px_0_0_#000000]"
+            )}>
               <Lock className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
             </div>
           </Tooltip>
@@ -235,18 +247,21 @@ export const Tile: React.FC<TileProps> = ({
         {tile.treasure && (
           <div
             className={cn(
-              "absolute bottom-0 inset-x-0 h-3.5 border-t border-stone-950 rounded-b-[14px] flex items-center justify-center pointer-events-none overflow-hidden",
+              "absolute bottom-0 inset-x-0 h-3.5 flex items-center justify-center pointer-events-none overflow-hidden",
+              isSimplistic ? "border-t border-border/80 rounded-b-[11px] backdrop-blur-xs" : "border-t border-stone-950 rounded-b-[14px]",
               isObtainedTreasure
-                ? "bg-stone-600 opacity-50"
+                ? "bg-stone-600/70 opacity-50"
                 : isCurrentTarget
                 ? "bg-theme-primary text-stone-950"
-                : "bg-amber-300"
+                : isSimplistic
+                ? "bg-amber-400/80 text-stone-950"
+                : "bg-amber-300 text-stone-950"
             )}
             title={tile.treasure.name}
           >
             <span
               className={cn(
-                "text-[8px] sm:text-[9px] font-black text-stone-950 leading-none text-center select-none uppercase tracking-tighter inline-block whitespace-nowrap px-0.5",
+                "text-[8px] sm:text-[9px] font-black text-stone-950 leading-none text-center select-none uppercase tracking-tighter inline-block whitespace-nowrap px-0.5 font-mono",
                 isObtainedTreasure && "line-through opacity-70"
               )}
             >

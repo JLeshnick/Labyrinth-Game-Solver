@@ -4,6 +4,8 @@ export type Rotation = 0 | 90 | 180 | 270;
 
 export type PawnColor = 'red' | 'blue' | 'green' | 'yellow';
 
+export type UITheme = 'brutalist' | 'simplistic';
+
 export interface Treasure {
   id: string;
   name: string;

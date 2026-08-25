@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import type { TileData, PlayerMap } from "../../types";
+import type { TileData, PlayerMap, UITheme } from "../../types";
 import { Button } from "../ui/button";
 import { Tooltip } from "../ui/tooltip";
 import { SidePanel } from "./SidePanel";
@@ -15,6 +15,7 @@ import {
   Users,
 } from "lucide-react";
 import { playClickSound } from "../../utils/audio";
+import { cn } from "../../lib/utils";
 
 interface SetupPanelProps {
   looseTiles: TileData[];
@@ -42,6 +43,7 @@ interface SetupPanelProps {
   onOpenSettings?: () => void;
   compact?: boolean;
   isMuted?: boolean;
+  uiTheme?: UITheme;
 }
 
 export const SetupPanel: React.FC<SetupPanelProps> = ({
@@ -70,7 +72,10 @@ export const SetupPanel: React.FC<SetupPanelProps> = ({
   onOpenSettings,
   compact = false,
   isMuted = false,
+  uiTheme = "brutalist",
 }) => {
+  const isSimplistic = uiTheme === "simplistic";
+
   // If in coop / auto mode and on cards tab, switch back to tiles
   useEffect(() => {
     if ((gameMode === "coop" || gameMode === "auto") && setupTab === "cards") {
@@ -95,7 +100,12 @@ export const SetupPanel: React.FC<SetupPanelProps> = ({
             }}
             disabled={!canStartGame}
             size="sm"
-            className="neo-brutalism-button bg-theme-primary border-stone-950 hover:bg-theme-primary-hover text-stone-950 font-bold min-h-9 rounded-lg flex items-center gap-1.5 shrink-0 disabled:opacity-40 disabled:cursor-not-allowed disabled:translate-x-0 disabled:translate-y-0 disabled:shadow-[2px_2px_0_0_#000000]"
+            className={cn(
+              "font-bold min-h-9 rounded-lg flex items-center gap-1.5 shrink-0 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed",
+              isSimplistic
+                ? "bg-theme-primary text-stone-950 shadow-xs border border-theme-primary"
+                : "neo-brutalism-button bg-theme-primary border-stone-950 hover:bg-theme-primary-hover text-stone-950"
+            )}
           >
             <Play className="w-3.5 h-3.5" />
             Start
@@ -142,7 +152,12 @@ export const SetupPanel: React.FC<SetupPanelProps> = ({
           }}
           disabled={!canStartGame}
           title={!canStartGame ? "Place all 33 movable tiles on the board first" : "Lock in layout and begin game turn"}
-          className="w-full neo-brutalism-button bg-theme-primary border-stone-950 hover:bg-theme-primary-hover text-stone-950 font-bold py-2.5 px-4 min-h-11 rounded-xl flex items-center justify-center gap-2 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed disabled:translate-x-0 disabled:translate-y-0 disabled:shadow-[2px_2px_0_0_#000000] mt-1"
+          className={cn(
+            "w-full font-bold py-2.5 px-4 min-h-11 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed mt-1",
+            isSimplistic
+              ? "bg-theme-primary text-stone-950 rounded-lg shadow-sm hover:brightness-105 active:scale-[0.99] border border-theme-primary"
+              : "neo-brutalism-button bg-theme-primary border-stone-950 hover:bg-theme-primary-hover text-stone-950 rounded-xl"
+          )}
         >
           <Play className="w-4 h-4" />
           Start Game
@@ -150,7 +165,14 @@ export const SetupPanel: React.FC<SetupPanelProps> = ({
       </div>
 
       {/* Tab bar */}
-      <div className="flex items-center bg-card rounded-xl p-1 border-2 border-stone-950 w-full shadow-[3px_3px_0_0_#000000] gap-0.5">
+      <div
+        className={cn(
+          "flex items-center bg-card p-1 w-full gap-0.5",
+          isSimplistic
+            ? "border border-border bg-stone-900/30 dark:bg-stone-900/40 rounded-lg shadow-xs"
+            : "rounded-xl border-2 border-stone-950 shadow-[3px_3px_0_0_#000000]"
+        )}
+      >
         {([
           { id: "tiles",   label: "Tiles",   icon: <Layers  className="w-3.5 h-3.5" />, desc: "Configure movable board tiles" },
           { id: "mode",    label: "Mode",    icon: <Compass className="w-3.5 h-3.5" />, desc: "Select Standard, Co-op, or Auto game mode" },
@@ -164,13 +186,20 @@ export const SetupPanel: React.FC<SetupPanelProps> = ({
               disabled={isDisabled}
               onClick={() => setSetupTab(tab.id)}
               title={isDisabled ? "Cards tab disabled in Co-op / Auto mode" : tab.desc}
-              className={`flex-1 flex items-center justify-center gap-1.5 py-2 md:py-1.5 min-h-11 md:min-h-0 rounded-lg text-xs font-bold transition-all border-2 ${
-                isDisabled
-                  ? "opacity-30 cursor-not-allowed border-transparent bg-muted/40 text-muted-foreground/60 shadow-none"
+              className={cn(
+                "flex-1 flex items-center justify-center gap-1.5 py-2 md:py-1.5 min-h-11 md:min-h-0 rounded-lg text-xs font-bold transition-all",
+                isSimplistic
+                  ? isDisabled
+                    ? "opacity-30 cursor-not-allowed text-muted-foreground/60"
+                    : setupTab === tab.id
+                    ? "bg-theme-primary text-stone-950 shadow-xs border border-theme-primary"
+                    : "text-muted-foreground hover:text-foreground hover:bg-stone-800/40 cursor-pointer"
+                  : isDisabled
+                  ? "opacity-30 cursor-not-allowed border-2 border-transparent bg-muted/40 text-muted-foreground/60 shadow-none"
                   : setupTab === tab.id
-                  ? "bg-theme-primary text-stone-950 border-stone-950 shadow-[2px_2px_0_0_#000000] cursor-pointer"
-                  : "text-muted-foreground hover:text-foreground hover:bg-muted border-transparent cursor-pointer"
-              }`}
+                  ? "bg-theme-primary text-stone-950 border-2 border-stone-950 shadow-[2px_2px_0_0_#000000] cursor-pointer"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted border-2 border-transparent cursor-pointer"
+              )}
             >
               {tab.icon}
               {tab.label}
@@ -235,9 +264,9 @@ export const SetupPanel: React.FC<SetupPanelProps> = ({
                 </Tooltip>
               )}
             </div>
-            {/* padding wrapper lets the card's neo-brutalist shadow breathe — overflow-visible is intentional */}
+            {/* padding wrapper lets the card's shadow breathe — overflow-visible is intentional */}
             <div className="flex-1 overflow-visible min-h-0 p-1 pb-4">
-              <SidePanel tiles={looseTiles} onTileClick={onTileClick} />
+              <SidePanel tiles={looseTiles} onTileClick={onTileClick} uiTheme={uiTheme} />
             </div>
           </div>
         )}

@@ -74,6 +74,10 @@ export default function App() {
     const saved = localStorage.getItem("labyrinth_theme") ?? "";
     return saved === "light" ? "light" : "dark";
   });
+  const [uiTheme, setUiThemeState] = useState<"brutalist" | "simplistic">(() => {
+    const saved = localStorage.getItem("labyrinth_ui_theme");
+    return saved === "simplistic" ? "simplistic" : "brutalist";
+  });
   const [boardRotation, setBoardRotation] = useState(0);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isScanModalOpen, setIsScanModalOpen] = useState(false);
@@ -187,6 +191,15 @@ export default function App() {
     setBaseThemeState(t);
   }, []);
 
+  const setUiTheme = useCallback((theme: "brutalist" | "simplistic") => {
+    setUiThemeState(theme);
+    try {
+      localStorage.setItem("labyrinth_ui_theme", theme);
+    } catch {
+      /* storage full */
+    }
+  }, []);
+
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", baseTheme);
     try {
@@ -195,6 +208,10 @@ export default function App() {
       /* storage full */
     }
   }, [baseTheme]);
+
+  useEffect(() => {
+    document.documentElement.setAttribute("data-ui-theme", uiTheme);
+  }, [uiTheme]);
 
   const setSolverDepth = useCallback((depth: number) => {
     setSolverDepthState(depth);
@@ -640,6 +657,7 @@ export default function App() {
       gameMode={game.gameMode}
       remainingCoopTreasures={game.remainingCoopTreasures}
       grid={game.grid}
+      uiTheme={uiTheme}
     />
   ) : (
     <SetupPanel
@@ -668,6 +686,7 @@ export default function App() {
       gameMode={game.gameMode}
       onSetGameMode={game.setGameMode}
       onResetAllDefaults={game.resetAllDefaults}
+      uiTheme={uiTheme}
     />
   );
 
@@ -686,6 +705,8 @@ export default function App() {
         isMuted={isMuted}
         showStats={showStats}
         baseTheme={baseTheme}
+        uiTheme={uiTheme}
+        onSetUiTheme={setUiTheme}
         activePlayers={game.activePlayers}
         activePawn={game.activePawn}
         looseTiles={game.looseTiles}
@@ -816,6 +837,7 @@ export default function App() {
                       is3D={is3D}
                       activePawn={game.activePawn}
                       travelingPawn={travelingPawn}
+                      uiTheme={uiTheme}
                     />
                   </InlineErrorBoundary>
                   </div>
@@ -900,6 +922,7 @@ export default function App() {
             obtainedTreasures={game.obtainedTreasures}
             gameMode={game.gameMode}
             coopObtainedTreasures={game.coopObtainedTreasures}
+            uiTheme={uiTheme}
           />
         </DialogContent>
       </Dialog>
@@ -933,6 +956,7 @@ export default function App() {
         solutionsCount={solutions.length}
         isMuted={isMuted}
         onToggleMute={handleToggleMute}
+        uiTheme={uiTheme}
       />
 
       <ResumeGameDialog

@@ -9,7 +9,8 @@ import { Tooltip } from "../ui/tooltip";
 import { Tile } from "../board/Tile";
 import { PAWNS, TREASURES, DEFAULT_PAWN_POSITIONS } from "../../constants";
 import { playClickSound } from "../../utils/audio";
-import type { TileData, SolverSolution } from "../../types";
+import { cn } from "../../lib/utils";
+import type { TileData, SolverSolution, UITheme } from "../../types";
 
 interface SolverPanelProps {
   solutions: SolverSolution[];
@@ -44,6 +45,7 @@ interface SolverPanelProps {
   grid?: (TileData | null)[][];
   showEmptyTiles?: boolean;
   setShowEmptyTiles?: (show: boolean) => void;
+  uiTheme?: UITheme;
 }
  
 export function SolverPanel({
@@ -79,8 +81,10 @@ export function SolverPanel({
   grid = [],
   showEmptyTiles = false,
   setShowEmptyTiles,
+  uiTheme = "brutalist",
 }: SolverPanelProps) {
   const [showAllSuggestions, setShowAllSuggestions] = useState(false);
+  const isSimplistic = uiTheme === "simplistic";
 
   const isHomeSelected = !!(customTargetCoords &&
     customTargetCoords.r === DEFAULT_PAWN_POSITIONS[activePawn]?.r &&
@@ -112,11 +116,16 @@ export function SolverPanel({
             {!isActivePawnHome ? (
               <button
                 onClick={() => setCustomTargetCoords(DEFAULT_PAWN_POSITIONS[activePawn])}
-                className={`text-[10px] px-2 py-1 min-h-9 neo-brutalism-button rounded-lg border-stone-950 flex items-center gap-1 transition-all ${
-                  isHomeSelected
-                    ? "bg-theme-primary text-stone-950 shadow-[1px_1px_0_0_#000000] translate-x-[1px] translate-y-[1px]"
-                    : "bg-card text-stone-400 hover:text-stone-200"
-                }`}
+                className={cn(
+                  "text-[10px] px-2 py-1 min-h-9 rounded-lg flex items-center gap-1 transition-all cursor-pointer",
+                  isSimplistic
+                    ? isHomeSelected
+                      ? "bg-theme-primary text-stone-950 shadow-xs border border-theme-primary font-bold"
+                      : "bg-card text-muted-foreground hover:text-foreground border border-border"
+                    : isHomeSelected
+                    ? "neo-brutalism-button border-stone-950 bg-theme-primary text-stone-950 shadow-[1px_1px_0_0_#000000] translate-x-[1px] translate-y-[1px]"
+                    : "neo-brutalism-button border-stone-950 bg-card text-stone-400 hover:text-stone-200"
+                )}
               >
                 <Home className="w-3 h-3" /> Home
               </button>
@@ -125,7 +134,12 @@ export function SolverPanel({
               <button
                 onClick={onToggleStats}
                 aria-label="Toggle game statistics"
-                className="p-2 min-h-9 min-w-9 rounded-lg border border-stone-700 text-stone-400 flex items-center justify-center"
+                className={cn(
+                  "p-2 min-h-9 min-w-9 rounded-lg flex items-center justify-center cursor-pointer transition-colors",
+                  isSimplistic
+                    ? "border border-border text-muted-foreground hover:text-foreground hover:bg-stone-800/40"
+                    : "border border-stone-700 text-stone-400 hover:text-stone-200"
+                )}
               >
                 <Gauge className="w-3.5 h-3.5" />
               </button>
@@ -163,13 +177,20 @@ export function SolverPanel({
           <button
             onClick={() => setCustomTargetCoords(DEFAULT_PAWN_POSITIONS[activePawn])}
             disabled={isActivePawnHome}
-            className={`text-[10px] md:text-xs px-2 py-1 min-h-9 neo-brutalism-button rounded-lg font-semibold flex items-center gap-1 transition-all ${
-              isActivePawnHome
-                ? "border-stone-950 text-stone-500 bg-card opacity-40 cursor-not-allowed translate-x-[1px] translate-y-[1px] shadow-[1px_1px_0_0_#000000]"
+            className={cn(
+              "text-[10px] md:text-xs px-2 py-1 min-h-9 rounded-lg font-semibold flex items-center gap-1 transition-all",
+              isSimplistic
+                ? isActivePawnHome
+                  ? "border border-border/40 text-stone-600 bg-card/40 opacity-40 cursor-not-allowed"
+                  : isHomeSelected
+                  ? "bg-theme-primary text-stone-950 border border-theme-primary shadow-xs font-bold"
+                  : "border border-border bg-card text-muted-foreground hover:text-foreground hover:bg-stone-800/40 cursor-pointer"
+                : isActivePawnHome
+                ? "neo-brutalism-button border-stone-950 text-stone-500 bg-card opacity-40 cursor-not-allowed translate-x-[1px] translate-y-[1px] shadow-[1px_1px_0_0_#000000]"
                 : isHomeSelected
-                ? "bg-theme-primary text-stone-950 border-stone-950 shadow-[1px_1px_0_0_#000000] translate-x-[1px] translate-y-[1px]"
-                : "border-stone-950 bg-card text-stone-400 hover:text-stone-200 cursor-pointer"
-            }`}
+                ? "neo-brutalism-button bg-theme-primary text-stone-950 border-stone-950 shadow-[1px_1px_0_0_#000000] translate-x-[1px] translate-y-[1px]"
+                : "neo-brutalism-button border-stone-950 bg-card text-stone-400 hover:text-stone-200 cursor-pointer"
+            )}
             title={isActivePawnHome ? "Already at home corner" : "Solve route back to home corner"}
           >
             <Home className="w-3 h-3" />
@@ -177,11 +198,16 @@ export function SolverPanel({
           </button>
           <button
             onClick={onToggleOneMoveTargets}
-            className={`text-[10px] md:text-xs px-2 py-1 min-h-9 neo-brutalism-button rounded-lg cursor-pointer font-semibold ${
-              showOneMoveTargets
-                ? "bg-theme-primary-10 border-theme-primary text-theme-primary translate-x-[1px] translate-y-[1px] shadow-[1px_1px_0_0_#000000]"
-                : "border-stone-950 bg-card text-stone-400 hover:text-stone-200"
-            }`}
+            className={cn(
+              "text-[10px] md:text-xs px-2 py-1 min-h-9 rounded-lg cursor-pointer font-semibold transition-all",
+              isSimplistic
+                ? showOneMoveTargets
+                  ? "bg-theme-primary/15 border border-theme-primary text-theme-primary shadow-xs"
+                  : "border border-border bg-card text-muted-foreground hover:text-foreground hover:bg-stone-800/40"
+                : showOneMoveTargets
+                ? "neo-brutalism-button bg-theme-primary-10 border-theme-primary text-theme-primary translate-x-[1px] translate-y-[1px] shadow-[1px_1px_0_0_#000000]"
+                : "neo-brutalism-button border-stone-950 bg-card text-stone-400 hover:text-stone-200"
+            )}
             title="Show all treasures reachable in exactly 1 turn"
           >
             1-move targets
@@ -198,11 +224,16 @@ export function SolverPanel({
             {setShowEmptyTiles && (
               <button
                 onClick={() => setShowEmptyTiles(!showEmptyTiles)}
-                className={`text-[9px] px-2 py-0.5 min-h-6 neo-brutalism-button rounded-md cursor-pointer font-semibold transition-all ${
-                  showEmptyTiles
-                    ? "bg-emerald-400 border-stone-950 text-stone-950 translate-x-[1px] translate-y-[1px] shadow-[1px_1px_0_0_#000000]"
-                    : "border-stone-950 bg-card text-stone-400 hover:text-stone-200"
-                }`}
+                className={cn(
+                  "text-[9px] px-2 py-0.5 min-h-6 rounded-md cursor-pointer font-semibold transition-all",
+                  isSimplistic
+                    ? showEmptyTiles
+                      ? "bg-emerald-500/20 border border-emerald-500/50 text-emerald-300"
+                      : "border border-border bg-card text-muted-foreground hover:text-foreground"
+                    : showEmptyTiles
+                    ? "neo-brutalism-button bg-emerald-400 border-stone-950 text-stone-950 translate-x-[1px] translate-y-[1px] shadow-[1px_1px_0_0_#000000]"
+                    : "neo-brutalism-button border-stone-950 bg-card text-stone-400 hover:text-stone-200"
+                )}
                 title="Show all navigable empty tiles"
               >
                 {showEmptyTiles ? "Hide Navigable Empty Tiles" : "Show Navigable Empty Tiles"}
@@ -219,11 +250,16 @@ export function SolverPanel({
                   <button
                     key={t.id}
                     onClick={() => onSelectTargetTreasure(activePawn, t.id)}
-                    className={`text-[10px] px-2 py-1 neo-brutalism-button rounded-lg border-stone-950 transition-all font-semibold cursor-pointer ${
-                      isSelected
-                        ? "bg-theme-primary text-stone-950 shadow-[1px_1px_0_0_#000000] translate-x-[1px] translate-y-[1px]"
-                        : "bg-green-950/40 text-green-300 hover:text-green-100"
-                    }`}
+                    className={cn(
+                      "text-[10px] px-2 py-1 rounded-lg transition-all font-semibold cursor-pointer",
+                      isSimplistic
+                        ? isSelected
+                          ? "bg-theme-primary text-stone-950 shadow-xs border border-theme-primary font-bold"
+                          : "bg-emerald-950/30 border border-emerald-800/40 text-emerald-300 hover:bg-emerald-900/40"
+                        : isSelected
+                        ? "neo-brutalism-button bg-theme-primary text-stone-950 shadow-[1px_1px_0_0_#000000] translate-x-[1px] translate-y-[1px] border-stone-950"
+                        : "neo-brutalism-button border-stone-950 bg-green-950/40 text-green-300 hover:text-green-100"
+                    )}
                     title={`Set ${t.name} as target`}
                   >
                     {t.name}
@@ -239,8 +275,11 @@ export function SolverPanel({
         {/* Left Side: Turn & Target info */}
         <div className="flex-1 min-w-0 flex flex-col gap-2.5">
           <div className="flex items-center gap-2.5">
-            {/* Brutalist Pawn Theme (matching game board style) */}
-            <div className={`w-8 h-8 rounded-full border-2 border-stone-950 shadow-[2px_2px_0_0_#000000] flex items-center justify-center text-xs font-black capitalize relative shrink-0 ${
+            <div className={cn(
+              "flex items-center justify-center text-xs font-black capitalize relative shrink-0",
+              isSimplistic
+                ? "w-8 h-8 rounded-full ring-2 ring-white/20 shadow-md font-mono"
+                : "w-8 h-8 rounded-full border-2 border-stone-950 shadow-[2px_2px_0_0_#000000]",
               activePawn === "red"
                 ? "bg-red-500 text-white"
                 : activePawn === "blue"
@@ -250,7 +289,7 @@ export function SolverPanel({
                 : activePawn === "yellow"
                 ? "bg-amber-400 text-stone-950"
                 : "bg-stone-500 text-white"
-            }`}>
+            )}>
               <span className="relative z-10">{activePawn[0].toUpperCase()}</span>
             </div>
             <div>
@@ -311,6 +350,7 @@ export function SolverPanel({
           <div className="mt-1">
             <Tile
               tile={{ ...spareTile, rotation: stagedArrow ? stagedRotation : spareTile.rotation }}
+              uiTheme={uiTheme}
               className="w-14 h-14 md:w-16 md:h-16 border-theme-primary-40"
             />
           </div>
@@ -325,7 +365,7 @@ export function SolverPanel({
               </button>
             </div>
           ) : (
-            <span className="text-[9px] text-stone-500 mt-0.5">{spareTile.rotation}°</span>
+            <span className="text-[9px] text-stone-500 mt-0.5 font-mono">{spareTile.rotation}°</span>
           )}
         </div>
       </div>
@@ -335,13 +375,23 @@ export function SolverPanel({
         <div className="flex gap-2 shrink-0">
           <button
             onClick={onCommitSlide}
-            className="flex-1 py-2.5 md:py-2 min-h-11 md:min-h-0 neo-brutalism-button rounded-xl bg-theme-primary border-stone-950 text-stone-950 text-sm md:text-xs font-bold cursor-pointer flex items-center justify-center gap-1.5"
+            className={cn(
+              "flex-1 py-2.5 md:py-2 min-h-11 md:min-h-0 text-sm md:text-xs font-bold cursor-pointer flex items-center justify-center gap-1.5 transition-all",
+              isSimplistic
+                ? "rounded-lg bg-theme-primary text-stone-950 shadow-sm hover:brightness-105 border border-theme-primary"
+                : "neo-brutalism-button rounded-xl bg-theme-primary border-stone-950 text-stone-950"
+            )}
           >
             <ArrowRightCircle className="w-3.5 h-3.5" /> Slide In
           </button>
           <button
             onClick={onCancelSlide}
-            className="px-4 py-2.5 md:py-2 min-h-11 md:min-h-0 neo-brutalism-button rounded-xl border-stone-950 bg-card text-stone-400 text-sm md:text-xs hover:text-stone-200 cursor-pointer"
+            className={cn(
+              "px-4 py-2.5 md:py-2 min-h-11 md:min-h-0 text-sm md:text-xs cursor-pointer transition-all",
+              isSimplistic
+                ? "rounded-lg border border-border bg-card text-muted-foreground hover:text-foreground hover:bg-stone-800/40"
+                : "neo-brutalism-button rounded-xl border-stone-950 bg-card text-stone-400 hover:text-stone-200"
+            )}
           >
             Cancel
           </button>
@@ -360,15 +410,19 @@ export function SolverPanel({
             return (
               <div className="flex flex-col gap-2 animate-fade-in">
                 <div className="text-[10px] text-stone-550 px-1 mb-1 italic flex items-center justify-between flex-wrap gap-2">
-                  
                   <span>Ranked by: Turn depth, walk spaces, safety</span>
                   <button
                     onClick={() => { if (!isMuted) playClickSound(); setShowAllSuggestions(!showAllSuggestions); }}
-                    className={`px-2.5 py-1 rounded-lg border-2 border-stone-950 font-black shadow-[1.5px_1.5px_0_0_#000000] cursor-pointer text-[9px] uppercase tracking-wide leading-none transition-transform hover:-translate-y-0.5 ${
-                      showAllSuggestions
-                        ? "bg-theme-primary text-stone-950"
-                        : "bg-card text-stone-400 hover:text-stone-200"
-                    }`}
+                    className={cn(
+                      "px-2.5 py-1 font-bold cursor-pointer text-[9px] uppercase tracking-wide leading-none transition-all",
+                      isSimplistic
+                        ? showAllSuggestions
+                          ? "bg-theme-primary text-stone-950 rounded-md shadow-xs border border-theme-primary"
+                          : "bg-card text-muted-foreground hover:text-foreground border border-border rounded-md"
+                        : showAllSuggestions
+                        ? "rounded-lg border-2 border-stone-950 bg-theme-primary text-stone-950 shadow-[1.5px_1.5px_0_0_#000000]"
+                        : "rounded-lg border-2 border-stone-950 bg-card text-stone-400 hover:text-stone-200 shadow-[1.5px_1.5px_0_0_#000000]"
+                    )}
                   >
                     {showAllSuggestions ? "Show Top 5" : `Show All (${filteredSolutions.length})`}
                   </button>
@@ -391,37 +445,57 @@ export function SolverPanel({
                           setLockedScoreBreakdownSolution(null);
                         }
                       }}
-                      className={`relative p-2.5 pl-10 rounded-xl transition-all flex items-center justify-between cursor-pointer group gap-2 hover:z-30 ${
+                      className={cn(
+                        "relative p-2.5 pl-10 rounded-xl transition-all flex items-center justify-between cursor-pointer group gap-2 hover:z-30",
                         index === 0 && !isFallback
                           ? "app-surface-accent hover:border-theme-primary"
-                          : "app-surface hover:border-theme-primary-40"
-                      } ${isFallback ? "opacity-75 hover:opacity-100" : ""}`}
+                          : "app-surface hover:border-theme-primary-40",
+                        isFallback && "opacity-75 hover:opacity-100",
+                        isSimplistic && "shadow-xs hover:shadow-sm"
+                      )}
                     >
                       <span
-                        className={`absolute left-2.5 top-1/2 -translate-y-1/2 w-6 h-6 rounded-lg flex items-center justify-center text-xs font-black border-2 border-stone-950 shadow-[1.5px_1.5px_0_0_#000000] z-10 ${
-                          index === 0 && !isFallback
-                            ? "bg-theme-primary text-stone-950"
-                            : "bg-card text-stone-100"
-                        }`}
+                        className={cn(
+                          "absolute left-2.5 top-1/2 -translate-y-1/2 w-6 h-6 flex items-center justify-center text-xs font-black z-10 font-mono",
+                          isSimplistic
+                            ? index === 0 && !isFallback
+                              ? "bg-theme-primary text-stone-950 rounded-md shadow-xs border border-theme-primary"
+                              : "bg-stone-800/80 text-stone-300 rounded-md border border-border"
+                            : index === 0 && !isFallback
+                            ? "rounded-lg border-2 border-stone-950 bg-theme-primary text-stone-950 shadow-[1.5px_1.5px_0_0_#000000]"
+                            : "rounded-lg border-2 border-stone-950 bg-card text-stone-100 shadow-[1.5px_1.5px_0_0_#000000]"
+                        )}
                       >
                         {index + 1}
                       </span>
                       <div className="flex-1 min-w-0">
-                        <div className="text-xs font-semibold flex items-center gap-2 flex-wrap">
+                        <div className="text-xs font-semibold flex items-center gap-2 flex-wrap font-mono">
                           {isFallback ? (
-                            <span className="px-1.5 py-0.5 rounded-lg bg-amber-400 text-stone-950 text-[10px] font-black border-2 border-stone-950 shadow-[1px_1px_0_0_#000000] flex items-center leading-none whitespace-nowrap">
+                            <span className={cn(
+                              "px-1.5 py-0.5 text-stone-950 text-[10px] font-black flex items-center leading-none whitespace-nowrap",
+                              isSimplistic ? "rounded-md bg-amber-400 border border-amber-500/30 shadow-xs" : "rounded-lg bg-amber-400 border-2 border-stone-950 shadow-[1px_1px_0_0_#000000]"
+                            )}>
                               Fallback ({sol.length}t)
                             </span>
                           ) : sol.length === 1 ? (
-                            <span className="px-1.5 py-0.5 rounded-lg bg-emerald-400 text-stone-950 text-[10px] font-black border-2 border-stone-950 shadow-[1px_1px_0_0_#000000] flex items-center leading-none whitespace-nowrap">
+                            <span className={cn(
+                              "px-1.5 py-0.5 text-stone-950 text-[10px] font-black flex items-center leading-none whitespace-nowrap",
+                              isSimplistic ? "rounded-md bg-emerald-400 border border-emerald-500/30 shadow-xs" : "rounded-lg bg-emerald-400 border-2 border-stone-950 shadow-[1px_1px_0_0_#000000]"
+                            )}>
                               Direct (1 turn)
                             </span>
                           ) : (
-                            <span className="px-1.5 py-0.5 rounded-lg bg-blue-400 text-stone-950 text-[10px] font-black border-2 border-stone-950 shadow-[1px_1px_0_0_#000000] flex items-center leading-none whitespace-nowrap">
+                            <span className={cn(
+                              "px-1.5 py-0.5 text-stone-950 text-[10px] font-black flex items-center leading-none whitespace-nowrap",
+                              isSimplistic ? "rounded-md bg-blue-400 border border-blue-500/30 shadow-xs" : "rounded-lg bg-blue-400 border-2 border-stone-950 shadow-[1px_1px_0_0_#000000]"
+                            )}>
                               Multi ({sol.length} turns)
                             </span>
                           )}
-                          <span className="px-1.5 py-0.5 rounded-lg bg-card text-stone-100 text-[10px] font-black border-2 border-stone-950 shadow-[1px_1px_0_0_#000000] flex items-center leading-none whitespace-nowrap">
+                          <span className={cn(
+                            "px-1.5 py-0.5 text-[10px] font-black flex items-center leading-none whitespace-nowrap",
+                            isSimplistic ? "rounded-md bg-stone-800/80 text-stone-200 border border-border" : "rounded-lg bg-card text-stone-100 border-2 border-stone-950 shadow-[1px_1px_0_0_#000000]"
+                          )}>
                             {walkDist}sp
                           </span>
                           {algScoreValue !== null && (
@@ -459,15 +533,12 @@ export function SolverPanel({
                                     setLockedScoreBreakdownSolution(lockedScoreBreakdownSolution === sol ? null : sol);
                                   }
                                 }}
-                                className={`px-1.5 py-0.5 rounded-lg text-stone-950 text-[10px] font-black border-2 border-stone-950 shadow-[1px_1px_0_0_#000000] flex items-center leading-none whitespace-nowrap cursor-pointer transition-transform hover:scale-105 active:scale-95 relative ${
-                                  lockedScoreBreakdownSolution === sol ? "ring-2 ring-white ring-offset-2 ring-offset-stone-950 z-10" : "z-0"
-                                } ${
-                                  algScoreValue >= 80
-                                    ? "bg-emerald-400"
-                                    : algScoreValue >= 40
-                                    ? "bg-amber-400"
-                                    : "bg-red-500"
-                                }`}
+                                className={cn(
+                                  "px-1.5 py-0.5 text-stone-950 text-[10px] font-black flex items-center leading-none whitespace-nowrap cursor-pointer transition-transform hover:scale-105 active:scale-95 relative",
+                                  isSimplistic ? "rounded-md shadow-xs border border-stone-900/40" : "rounded-lg border-2 border-stone-950 shadow-[1px_1px_0_0_#000000]",
+                                  lockedScoreBreakdownSolution === sol && "ring-2 ring-white ring-offset-2 ring-offset-stone-950 z-10",
+                                  algScoreValue >= 80 ? "bg-emerald-400" : algScoreValue >= 40 ? "bg-amber-400" : "bg-red-500"
+                                )}
                               >
                                 {algScoreValue}/100
                               </span>
@@ -478,7 +549,12 @@ export function SolverPanel({
                       <Button
                         size="sm"
                         onClick={(e) => { e.stopPropagation(); onExecuteSolution(sol); }}
-                        className="neo-brutalism-button bg-card hover:bg-theme-primary hover:text-stone-950 text-foreground border-stone-950 font-black text-xs px-3 py-1.5 min-h-11 md:min-h-9 rounded-lg flex-shrink-0 self-center cursor-pointer"
+                        className={cn(
+                          "font-black text-xs px-3 py-1.5 min-h-11 md:min-h-9 flex-shrink-0 self-center cursor-pointer transition-all",
+                          isSimplistic
+                            ? "rounded-md bg-card hover:bg-theme-primary hover:text-stone-950 text-foreground border border-border shadow-xs"
+                            : "neo-brutalism-button bg-card hover:bg-theme-primary hover:text-stone-950 text-foreground border-stone-950 rounded-lg"
+                        )}
                       >
                         Execute
                       </Button>
@@ -503,7 +579,16 @@ export function SolverPanel({
               key={p.id}
               variant={activePawn === p.id ? "default" : "outline"}
               onClick={() => { if (!isMuted) playClickSound(); setActivePawn(p.id); }}
-              className={`neo-brutalism-button bg-card hover:bg-stone-100 hover:bg-stone-800 text-foreground border-stone-950 h-11 md:h-9 ${activePawn === p.id ? p.colorClass + " text-stone-950 font-extrabold translate-x-[1px] translate-y-[1px] shadow-[1px_1px_0_0_#000000]" : ""}`}
+              className={cn(
+                "h-11 md:h-9 cursor-pointer transition-all font-bold",
+                isSimplistic
+                  ? activePawn === p.id
+                    ? p.colorClass + " text-stone-950 font-extrabold rounded-md shadow-xs border border-transparent"
+                    : "bg-card hover:bg-stone-800/40 text-muted-foreground hover:text-foreground border border-border rounded-md"
+                  : activePawn === p.id
+                  ? p.colorClass + " neo-brutalism-button text-stone-950 font-extrabold translate-x-[1px] translate-y-[1px] shadow-[1px_1px_0_0_#000000] border-stone-950"
+                  : "neo-brutalism-button bg-card hover:bg-stone-100 hover:bg-stone-800 text-foreground border-stone-950"
+              )}
             >
               {p.name}
             </Button>

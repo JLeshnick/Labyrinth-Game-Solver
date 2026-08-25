@@ -13,6 +13,8 @@ import {
 } from "lucide-react";
 import { playClickSound } from "../../utils/audio";
 
+import type { UITheme } from "../../types";
+
 interface SettingsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -20,6 +22,8 @@ interface SettingsDialogProps {
   onToggleMute: () => void;
   baseTheme: "dark" | "light";
   setBaseTheme: (theme: "dark" | "light") => void;
+  uiTheme?: UITheme;
+  setUiTheme?: (theme: UITheme) => void;
   accentColor: string;
   setAccentColor: (hex: string) => void;
   is3D?: boolean;
@@ -67,6 +71,8 @@ export function SettingsDialog({
   onToggleMute,
   baseTheme,
   setBaseTheme,
+  uiTheme = "brutalist",
+  setUiTheme,
   accentColor,
   setAccentColor,
   is3D = false,
@@ -367,14 +373,65 @@ export function SettingsDialog({
                   <div className="space-y-1">
                     <h3 className="text-base font-bold text-stone-100">Appearance</h3>
                     <p className="text-xs text-stone-400">
-                      Customize the color theme and accent color highlights.
+                      Customize the UI theme design style, light/dark mode, and accent highlights.
                     </p>
                   </div>
 
-                  {/* Dark / Light Mode */}
+                  {/* UI Theme Style */}
                   <div className="space-y-3">
                     <h4 className="text-[10px] font-bold text-stone-500 uppercase tracking-widest">
-                      Color Theme
+                      UI Design Style
+                    </h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                      {[
+                        {
+                          id: "simplistic" as const,
+                          name: "Simplistic Studio",
+                          description: "Clean minimalist studio aesthetic with sleek 1px borders, subtle elevation, and refined modern surfaces.",
+                          badge: "Modern",
+                        },
+                        {
+                          id: "brutalist" as const,
+                          name: "Neo-Brutalist",
+                          description: "Bold retro arcade aesthetic with thick black borders, chunky offset drop shadows, and high contrast.",
+                          badge: "Retro",
+                        },
+                      ].map((style) => {
+                        const isActive = (uiTheme ?? "simplistic") === style.id;
+                        return (
+                          <button
+                            key={style.id}
+                            onClick={() => {
+                              if (!isMuted) playClickSound();
+                              setUiTheme?.(style.id);
+                            }}
+                            className={`relative flex flex-col items-start gap-1.5 p-3.5 rounded-xl text-left transition-all duration-150 cursor-pointer neo-brutalism-button ${
+                              isActive
+                                ? "border-theme-primary bg-theme-primary-10 text-stone-100 translate-x-[1px] translate-y-[1px] shadow-[1px_1px_0_0_#000000]"
+                                : "border-stone-950 bg-card text-stone-400 hover:text-stone-200"
+                            }`}
+                          >
+                            <div className="flex items-center justify-between w-full">
+                              <span className={`text-xs font-bold ${isActive ? "text-theme-primary" : "text-stone-200"}`}>
+                                {style.name}
+                              </span>
+                              <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-card border border-stone-800 text-stone-400">
+                                {style.badge}
+                              </span>
+                            </div>
+                            <p className="text-[10.5px] text-stone-400 leading-normal">
+                              {style.description}
+                            </p>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Dark / Light Mode */}
+                  <div className="space-y-3 pt-2 border-t border-stone-800">
+                    <h4 className="text-[10px] font-bold text-stone-500 uppercase tracking-widest">
+                      Color Mode
                     </h4>
                     <div className="grid grid-cols-2 gap-2.5">
                       {(

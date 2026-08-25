@@ -1,6 +1,6 @@
 import React from "react";
 import { useDroppable } from "@dnd-kit/core";
-import type { TileData } from "../../types";
+import type { TileData, UITheme } from "../../types";
 import { DraggableTile } from "../board/Tile";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../ui/card";
 import { cn } from "../../lib/utils";
@@ -8,9 +8,10 @@ import { cn } from "../../lib/utils";
 interface SidePanelProps {
   tiles: TileData[];
   onTileClick: (id: string) => void;
+  uiTheme?: UITheme;
 }
 
-export const SidePanel: React.FC<SidePanelProps> = ({ tiles, onTileClick }) => {
+export const SidePanel: React.FC<SidePanelProps> = ({ tiles, onTileClick, uiTheme }) => {
   const { setNodeRef, isOver } = useDroppable({
     id: "side_panel",
     data: { type: "panel" },
@@ -48,6 +49,7 @@ export const SidePanel: React.FC<SidePanelProps> = ({ tiles, onTileClick }) => {
                     <DraggableTile
                       tile={tile}
                       onClick={() => onTileClick(tile.id)}
+                      uiTheme={uiTheme}
                       className="w-12 h-12 sm:w-14 sm:h-14 lg:w-12 lg:h-12 xl:w-14 xl:h-14"
                     />
                   </div>
@@ -68,6 +70,7 @@ export const SidePanel: React.FC<SidePanelProps> = ({ tiles, onTileClick }) => {
                     <DraggableTile
                       tile={tile}
                       onClick={() => onTileClick(tile.id)}
+                      uiTheme={uiTheme}
                       className="w-12 h-12 sm:w-14 sm:h-14 lg:w-12 lg:h-12 xl:w-14 xl:h-14"
                     />
                   </div>
@@ -88,6 +91,7 @@ export const SidePanel: React.FC<SidePanelProps> = ({ tiles, onTileClick }) => {
                     <DraggableTile
                       tile={tile}
                       onClick={() => onTileClick(tile.id)}
+                      uiTheme={uiTheme}
                       className="w-12 h-12 sm:w-14 sm:h-14 lg:w-12 lg:h-12 xl:w-14 xl:h-14"
                     />
                   </div>
