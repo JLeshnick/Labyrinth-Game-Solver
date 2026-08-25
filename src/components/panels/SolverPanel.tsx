@@ -14,7 +14,6 @@ import type { TileData, SolverSolution } from "../../types";
 interface SolverPanelProps {
   solutions: SolverSolution[];
   isLoadingSolutions: boolean;
-  hoveredSolution: SolverSolution | null;
   setHoveredSolution: (sol: SolverSolution | null) => void;
   lockedScoreBreakdownSolution?: SolverSolution | null;
   setLockedScoreBreakdownSolution?: (sol: SolverSolution | null) => void;
@@ -50,7 +49,6 @@ interface SolverPanelProps {
 export function SolverPanel({
   solutions,
   isLoadingSolutions,
-  hoveredSolution: _hoveredSolution,
   setHoveredSolution,
   lockedScoreBreakdownSolution,
   setLockedScoreBreakdownSolution,

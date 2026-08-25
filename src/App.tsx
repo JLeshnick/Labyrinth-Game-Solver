@@ -27,10 +27,10 @@ import { InlineErrorBoundary } from "./components/ErrorBoundary";
 import { Dialog, DialogContent } from "./components/ui/dialog";
 import { useLabyrinthGame } from "./hooks/useLabyrinthGame";
 import { useStopwatch } from "./hooks/useStopwatch";
-import { playClickSound } from "./utils/audio";
+import { playClickSound, setAudioMuted } from "./utils/audio";
 import { fromSolverGrid } from "./lib/solverAdapter";
 import { executeSlideInGrid, getReachableCells, quickSolveMinTurns, solveAllHand } from "./solver";
-import type { Rotation } from "./types";
+import type { Rotation, PawnPositions } from "./types";
 import {
   Sparkles,
   Undo2,
@@ -48,6 +48,38 @@ import { cn } from "./lib/utils";
 
 // Default solver depth. Can be overridden via the Advanced settings panel.
 const DEFAULT_SOLVER_DEPTH = 3;
+
+function computePreviewPawnPositions(
+  arrow: { type: "row" | "col" | string; index: number; dir: string },
+  pawnPositions: PawnPositions
+): PawnPositions {
+  const previewPawnPositions = { ...pawnPositions };
+  Object.entries(pawnPositions).forEach(([color, pos]) => {
+    let nr = pos.r,
+      nc = pos.c;
+    if (arrow.type === "row" && arrow.index === pos.r) {
+      nc =
+        arrow.dir === "left"
+          ? pos.c === 6
+            ? 0
+            : pos.c + 1
+          : pos.c === 0
+          ? 6
+          : pos.c - 1;
+    } else if (arrow.type === "col" && arrow.index === pos.c) {
+      nr =
+        arrow.dir === "top"
+          ? pos.r === 6
+            ? 0
+            : pos.r + 1
+          : pos.r === 0
+          ? 6
+          : pos.r - 1;
+    }
+    previewPawnPositions[color] = { r: nr, c: nc };
+  });
+  return previewPawnPositions;
+}
 
 export default function App() {
   const sensors = useSensors(
@@ -72,9 +104,11 @@ export default function App() {
     return () => media.removeEventListener("change", listener);
   }, []);
 
-  const [isMuted, setIsMuted] = useState(
-    () => localStorage.getItem("labyrinth_audio_muted") === "true"
-  );
+  const [isMuted, setIsMuted] = useState(() => {
+    const muted = localStorage.getItem("labyrinth_audio_muted") === "true";
+    setAudioMuted(muted);
+    return muted;
+  });
   const [baseTheme, setBaseThemeState] = useState<"dark" | "light">(() => {
     const saved = localStorage.getItem("labyrinth_theme") ?? "";
     return saved === "light" ? "light" : "dark";
@@ -199,21 +233,25 @@ export default function App() {
   const [autoPlaySpeed, setAutoPlaySpeed] = useState<0.5 | 1 | 2 | 4>(1);
   const [pawnAnimationSpeed, setPawnAnimationSpeed] = useState<number>(600);
 
-  // ── Toast system ──────────────────────────────────────────────────────────────
-  const [toastText, setToastText] = useState<string | null>(null);
+  // ── Toast FIFO Queue system ───────────────────────────────────────────────────
+  const [toastQueue, setToastQueue] = useState<{ id: number; msg: string }[]>([]);
+  const currentToast = toastQueue[0] || null;
+
   const showToast = useCallback(
     (msg: string) => {
-      setToastText(msg);
+      setToastQueue((prev) => [...prev, { id: Date.now() + Math.random(), msg }]);
       if (!isMuted) playClickSound();
     },
     [isMuted]
   );
 
   useEffect(() => {
-    if (!toastText) return;
-    const t = setTimeout(() => setToastText(null), 3000);
+    if (!currentToast) return;
+    const t = setTimeout(() => {
+      setToastQueue((prev) => prev.slice(1));
+    }, 3000);
     return () => clearTimeout(t);
-  }, [toastText]);
+  }, [currentToast?.id]);
 
   // ── Theme effect ─────────────────────────────────────────────────────────────
   const setBaseTheme = useCallback((t: "dark" | "light") => {
@@ -238,7 +276,7 @@ export default function App() {
     }
   }, []);
 
-  // ── Accent color ──────────────────────────────────────────────────────────────
+  // ── Color Theme ──────────────────────────────────────────────────────────────
   const applyAccentColor = useCallback((hex: string) => {
     if (!hex) return;
     const r = parseInt(hex.slice(1, 3), 16);
@@ -273,19 +311,36 @@ export default function App() {
   const handleToggleMute = useCallback(() => {
     const next = !isMuted;
     setIsMuted(next);
+    setAudioMuted(next);
     try {
       localStorage.setItem("labyrinth_audio_muted", String(next));
     } catch {
       /* storage full */
     }
-    setToastText(next ? "Muted retro sound effects 🔇" : "Sound effects enabled 🔊");
-  }, [isMuted]);
+    showToast(next ? "Muted retro sound effects 🔇" : "Sound effects enabled 🔊");
+  }, [isMuted, showToast]);
 
   // ── Game hook ─────────────────────────────────────────────────────────────────
   const game = useLabyrinthGame({
     isMuted,
     onToast: showToast,
   });
+
+  // Dynamic document title update
+  useEffect(() => {
+    if (!game.isGameStarted) {
+      document.title = "Labyrinth Game Solver";
+      return;
+    }
+    const pawnName = game.activePawn.charAt(0).toUpperCase() + game.activePawn.slice(1);
+    if (game.gameMode === "auto") {
+      document.title = `Auto Mode (${pawnName}) — Labyrinth Solver`;
+    } else if (game.gameMode === "coop") {
+      document.title = `${pawnName}'s Turn (Co-op) — Labyrinth Solver`;
+    } else {
+      document.title = `${pawnName}'s Turn — Labyrinth Solver`;
+    }
+  }, [game.isGameStarted, game.activePawn, game.gameMode]);
 
   const canStartGame = game.looseTiles.length === 1 || game.looseTiles.length === 0;
 
@@ -318,6 +373,9 @@ export default function App() {
 
       // Execute the real move after the animation dot has completed the path
       travelTimerRef.current = setTimeout(() => {
+        setSolutions([]);
+        setHoveredSolutionIndex(null);
+        setLockedScoreBreakdownSolution(null);
         game.handleExecuteSolution(path);
         setTravelingPawn(null);
         setPawnPositionOverride(null);
@@ -325,6 +383,9 @@ export default function App() {
       }, animDuration + 40);
     } else {
       // No animation path possible — execute immediately
+      setSolutions([]);
+      setHoveredSolutionIndex(null);
+      setLockedScoreBreakdownSolution(null);
       game.handleExecuteSolution(path);
       onComplete?.();
     }
@@ -496,26 +557,7 @@ export default function App() {
       console.warn("Failed to instantiate Web Worker solver.", err);
     }
 
-    // Attempt load from autosave once on mount
-    const saved = game.loadAutosave();
-    // A valid Labyrinth state always contains movable (non-fixed) tiles —
-    // either loose tiles left to place or movable tiles already on the board.
-    // A save with zero movable tiles is degenerate (e.g. an empty initial
-    // state captured before setup), so fall back to a fresh preset board.
-    const hasMovableTiles =
-      (saved?.looseTiles?.length ?? 0) > 0 ||
-      (saved?.board ?? []).some((row) =>
-        (row ?? []).some((tile) => tile && !tile.isFixed)
-      );
-    if (saved?.board && hasMovableTiles) {
-      game.hydrateFromSaved(saved, game.spareTile);
-    } else {
-      game.resetBoardToInitialPresets();
-    }
-
     return () => workerRef.current?.terminate();
-    // Mount-only: do not re-run when game callbacks change
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // ── Solver re-run on board/pawn/hand changes ──────────────────────────────────
@@ -556,6 +598,8 @@ export default function App() {
     }
 
     setIsLoadingSolutions(true);
+    setSolutions([]);
+    setHoveredSolutionIndex(null);
     let solverBoard = game.getSolverFormattedBoard(game.grid, game.pawnPositions);
     const solverSpare = game.getSolverFormattedSpare(game.spareTile);
 
@@ -720,31 +764,7 @@ export default function App() {
         solverBoard,
         () => "preview_temp_inserted"
       );
-      const previewPawnPositions = { ...game.pawnPositions };
-      Object.entries(game.pawnPositions).forEach(([color, pos]) => {
-        let nr = pos.r,
-          nc = pos.c;
-        if (arrow.type === "row" && arrow.index === pos.r) {
-          nc =
-            arrow.dir === "left"
-              ? pos.c === 6
-                ? 0
-                : pos.c + 1
-              : pos.c === 0
-              ? 6
-              : pos.c - 1;
-        } else if (arrow.type === "col" && arrow.index === pos.c) {
-          nr =
-            arrow.dir === "top"
-              ? pos.r === 6
-                ? 0
-                : pos.r + 1
-              : pos.r === 0
-              ? 6
-              : pos.r - 1;
-        }
-        previewPawnPositions[color] = { r: nr, c: nc };
-      });
+      const previewPawnPositions = computePreviewPawnPositions(arrow, game.pawnPositions);
       return {
         grid: previewGrid,
         pawnPositions: previewPawnPositions,
@@ -792,31 +812,7 @@ export default function App() {
         solverBoard,
         () => "staged_preview"
       );
-      const previewPawnPositions = { ...game.pawnPositions };
-      Object.entries(game.pawnPositions).forEach(([color, pos]) => {
-        let nr = pos.r,
-          nc = pos.c;
-        if (arrow.type === "row" && arrow.index === pos.r) {
-          nc =
-            arrow.dir === "left"
-              ? pos.c === 6
-                ? 0
-                : pos.c + 1
-              : pos.c === 0
-              ? 6
-              : pos.c - 1;
-        } else if (arrow.type === "col" && arrow.index === pos.c) {
-          nr =
-            arrow.dir === "top"
-              ? pos.r === 6
-                ? 0
-                : pos.r + 1
-              : pos.r === 0
-              ? 6
-              : pos.r - 1;
-        }
-        previewPawnPositions[color] = { r: nr, c: nc };
-      });
+      const previewPawnPositions = computePreviewPawnPositions(arrow, game.pawnPositions);
       return {
         grid: previewGrid,
         pawnPositions: previewPawnPositions,
@@ -1130,7 +1126,6 @@ export default function App() {
                 <SolverPanel
                   solutions={solutions}
                   isLoadingSolutions={isLoadingSolutions}
-                  hoveredSolution={hoveredSolution}
                   setHoveredSolution={handleSetHoveredSolution}
                   lockedScoreBreakdownSolution={lockedScoreBreakdownSolution}
                   setLockedScoreBreakdownSolution={setLockedScoreBreakdownSolution}
@@ -1232,7 +1227,6 @@ export default function App() {
                   <SolverPanel
                     solutions={solutions}
                     isLoadingSolutions={isLoadingSolutions}
-                    hoveredSolution={hoveredSolution}
                     setHoveredSolution={handleSetHoveredSolution}
                     lockedScoreBreakdownSolution={lockedScoreBreakdownSolution}
                     setLockedScoreBreakdownSolution={setLockedScoreBreakdownSolution}
@@ -1372,15 +1366,16 @@ export default function App() {
 
       {/* Toast */}
       <div role="status" aria-live="polite" aria-atomic="true" className="sr-only">
-        {toastText}
+        {currentToast?.msg}
       </div>
-      {toastText && (
+      {currentToast && (
         <div
+          key={currentToast.id}
           className="fixed bottom-[72px] md:bottom-6 left-1/2 -translate-x-1/2 px-4 sm:px-6 py-2.5 sm:py-3 app-dialog-panel neo-brutalism-card text-stone-100 font-semibold text-xs sm:text-sm rounded-lg z-50 animate-toast-in flex items-center gap-2 whitespace-nowrap"
           aria-hidden="true"
         >
           <Sparkles className="w-4 h-4 text-theme-primary shrink-0" />
-          {toastText}
+          {currentToast.msg}
         </div>
       )}
 

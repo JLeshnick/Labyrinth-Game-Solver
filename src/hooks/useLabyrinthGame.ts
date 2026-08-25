@@ -42,6 +42,24 @@ type PawnStat = {
   totalTargets: number;
 };
 
+function createInitialPresetGrid(): (TileData | null)[][] {
+  const initialGrid: (TileData | null)[][] = Array(7)
+    .fill(null)
+    .map(() => Array(7).fill(null));
+  Object.entries(FIXED_TILES_PRESETS).forEach(([coord, tilePartial]) => {
+    const [x, y] = coord.split(",").map(Number);
+    initialGrid[y][x] = {
+      id: `fixed_${x}_${y}`,
+      shape: tilePartial.shape!,
+      rotation: tilePartial.rotation!,
+      treasure: tilePartial.treasure,
+      isFixed: true,
+      color: tilePartial.color,
+    };
+  });
+  return initialGrid;
+}
+
 export interface UseLabyrinthGameOptions {
   isMuted: boolean;
   onToast: (msg: string) => void;
@@ -62,12 +80,8 @@ export function useLabyrinthGame({
   const nextTileId = useCallback(() => `movable_${++tileCounter.current}`, []);
 
   // ── Core game state ──────────────────────────────────────────────────────────
-  const [grid, setGrid] = useState<(TileData | null)[][]>(() =>
-    Array(7)
-      .fill(null)
-      .map(() => Array(7).fill(null))
-  );
-  const [looseTiles, setLooseTiles] = useState<TileData[]>([]);
+  const [grid, setGrid] = useState<(TileData | null)[][]>(createInitialPresetGrid);
+  const [looseTiles, setLooseTiles] = useState<TileData[]>(generateMovablePool);
   const [spareTile, setSpareTile] = useState<TileData>({
     id: "spare_initial",
     shape: "straight",
@@ -237,20 +251,7 @@ export function useLabyrinthGame({
 
   // ── Board initialization ─────────────────────────────────────────────────────
   const resetBoardToInitialPresets = useCallback(() => {
-    const initialGrid: (TileData | null)[][] = Array(7)
-      .fill(null)
-      .map(() => Array(7).fill(null));
-    Object.entries(FIXED_TILES_PRESETS).forEach(([coord, tilePartial]) => {
-      const [x, y] = coord.split(",").map(Number);
-      initialGrid[y][x] = {
-        id: `fixed_${x}_${y}`,
-        shape: tilePartial.shape!,
-        rotation: tilePartial.rotation!,
-        treasure: tilePartial.treasure,
-        isFixed: true,
-        color: tilePartial.color,
-      };
-    });
+    const initialGrid = createInitialPresetGrid();
     const freshMovablePool = generateMovablePool();
     setGrid(initialGrid);
     setPawnPositions(DEFAULT_PAWN_POSITIONS);

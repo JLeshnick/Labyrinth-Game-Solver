@@ -46,16 +46,16 @@ These are safe, isolated, low-risk fixes. No architectural changes needed.
 
 Targeted improvements to specific subsystems. No major restructuring.
 
-- [ ] **Fix toast queue** — When two toasts fire quickly, the second cancels the first. Implement a FIFO array of `{ id, msg }` messages; pop to next on timeout.
+- [x] **Fix toast queue** — When two toasts fire quickly, the second cancels the first. Implement a FIFO array of `{ id, msg }` messages; pop to next on timeout.
   - Files: `src/App.tsx`
 
-- [ ] **Fix autosave boot race condition** — The `ResumeGameDialog` effect (App.tsx lines 107–118) and the worker mount effect (lines 479–498) both call `loadAutosave()` independently. Consolidate to one path: remove the `game.loadAutosave()` inside the worker effect and rely on the dialog flow exclusively.
+- [x] **Fix autosave boot race condition** — The `ResumeGameDialog` effect (App.tsx lines 107–118) and the worker mount effect (lines 479–498) both call `loadAutosave()` independently. Consolidate to one path: remove the `game.loadAutosave()` inside the worker effect and rely on the dialog flow exclusively.
   - Files: `src/App.tsx`, `src/hooks/useLabyrinthGame.ts`
 
-- [ ] **Deduplicate `previewState` pawn position logic** — The ~25-line pawn-position-update block inside `previewState` and `stagedPreviewState` are identical. Extract to a `computePreviewPawnPositions(arrow, pawnPositions)` helper.
+- [x] **Deduplicate `previewState` pawn position logic** — The ~25-line pawn-position-update block inside `previewState` and `stagedPreviewState` are identical. Extract to a `computePreviewPawnPositions(arrow, pawnPositions)` helper.
   - Files: `src/App.tsx`
 
-- [ ] **Fix `audio.ts` mute check** — `isAudioMuted()` reads `localStorage` on every sound call, bypassing React state. Remove it; callers already guard with `if (!isMuted)`. Optionally add a module-level `setMuted(val)` setter so audio.ts doesn't need to touch storage at all.
+- [x] **Fix `audio.ts` mute check** — `isAudioMuted()` reads `localStorage` on every sound call, bypassing React state. Remove it; callers already guard with `if (!isMuted)`. Optionally add a module-level `setMuted(val)` setter so audio.ts doesn't need to touch storage at all.
   - Files: `src/utils/audio.ts`, call sites in `src/hooks/useLabyrinthGame.ts`
 
 - [x] **Fix coop & auto stats in StatsPanel** — In coop and auto mode, `coopObtainedTreasures` is now passed to and shown in `StatsPanel` with team progress.
@@ -64,22 +64,22 @@ Targeted improvements to specific subsystems. No major restructuring.
 - [x] **Fix Auto Mode gameplay & race condition** — Fixed `remainingCoopTreasures` initialization on auto mode start, corrected treasure collection & victory condition triggers, and fixed move execution lock release timing.
   - Files: `src/hooks/useLabyrinthGame.ts`, `src/App.tsx`, `src/components/AppHeader.tsx`
 
-- [ ] **Replace `deepClone` with `structuredClone`** — `JSON.parse/stringify` drops `undefined` values and is slower. Switch to `structuredClone()` which is available in all modern browsers.
+- [x] **Replace `deepClone` with `structuredClone`** — `JSON.parse/stringify` drops `undefined` values and is slower. Switch to `structuredClone()` which is available in all modern browsers.
   - Files: `src/hooks/useLabyrinthHistory.ts`
 
-- [ ] **Cap undo history length** — History grows unboundedly. Add a `MAX_HISTORY = 50` limit when pushing to the history stack.
+- [x] **Cap undo history length** — History grows unboundedly. Add a `MAX_HISTORY = 50` limit when pushing to the history stack.
   - Files: `src/hooks/useLabyrinthHistory.ts`
 
-- [ ] **Remove `_hoveredSolution` unused prop** — Prop is received but immediately discarded with `_` prefix. If unused, remove from the interface entirely.
+- [x] **Remove `_hoveredSolution` unused prop** — Prop is received but immediately discarded with `_` prefix. If unused, remove from the interface entirely.
   - Files: `src/components/panels/SolverPanel.tsx`, `src/App.tsx`
 
-- [ ] **Add dynamic `<title>` update** — Update `document.title` to reflect game state (e.g., "Red's Turn — Labyrinth Solver") during gameplay.
+- [x] **Add dynamic `<title>` update** — Update `document.title` to reflect game state (e.g., "Red's Turn — Labyrinth Solver") during gameplay.
   - Files: `src/App.tsx` or a small `useDocumentTitle` hook
 
-- [ ] **Timer: auto-pause on tab hidden** — Use the Page Visibility API to pause the stopwatch when the tab goes into the background.
+- [x] **Timer: auto-pause on tab hidden** — Use the Page Visibility API to pause the stopwatch when the tab goes into the background.
   - Files: `src/hooks/useStopwatch.ts`
 
-- [ ] **Reduce `!important` CSS overrides (low-hanging fruit)** — Identify the most-used components that still use hardcoded `bg-stone-950` etc. and migrate them to use `bg-background`, `bg-card`, `text-foreground` semantic classes. Each converted component removes several `!important` lines.
+- [x] **Reduce `!important` CSS overrides (low-hanging fruit)** — Identify the most-used components that still use hardcoded `bg-stone-950` etc. and migrate them to use `bg-background`, `bg-card`, `text-foreground` semantic classes. Each converted component removes several `!important` lines.
   - Files: `src/index.css`, various components
 
 ---
@@ -138,8 +138,8 @@ These are the largest changes. Tackle after Waves 1–3 are stable.
 
 | Wave | Status | Est. Time |
 |------|--------|-----------|
-| Wave 1 — Quick Wins | 🟡 In Progress | ~2 hrs |
-| Wave 2 — Medium Fixes | ⬜ Not Started | ~1 day |
+| Wave 1 — Quick Wins | ✅ Completed | ~2 hrs |
+| Wave 2 — Medium Fixes | ✅ Completed | ~1 day |
 | Wave 3 — Architectural | ⬜ Not Started | ~2 days |
 | Wave 4 — Major Refactors | ⬜ Not Started | ~1 week |
 

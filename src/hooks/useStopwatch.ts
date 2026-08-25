@@ -41,6 +41,33 @@ export function useStopwatch(isGameStarted: boolean) {
     return clearTimer;
   }, [isGameStarted, isPaused]);
 
+  const wasRunningBeforeHiddenRef = useRef(false);
+
+  useEffect(() => {
+    if (!isGameStarted) return;
+
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        if (!isPaused) {
+          wasRunningBeforeHiddenRef.current = true;
+          setIsPaused(true);
+        } else {
+          wasRunningBeforeHiddenRef.current = false;
+        }
+      } else {
+        if (wasRunningBeforeHiddenRef.current) {
+          wasRunningBeforeHiddenRef.current = false;
+          setIsPaused(false);
+        }
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [isGameStarted, isPaused]);
+
   const togglePause = useCallback(() => {
     if (isGameStarted) {
       setIsPaused((prev) => !prev);

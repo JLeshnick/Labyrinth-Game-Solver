@@ -18,18 +18,18 @@ export const ResumeGameDialog: React.FC<ResumeGameDialogProps> = ({
 }) => {
   return (
     <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onResume(); }}>
-      <DialogContent className="max-w-md app-dialog-panel neo-brutalism-card bg-stone-900 border-3 border-stone-950 text-stone-100 p-6 rounded-2xl shadow-2xl">
+      <DialogContent className="max-w-md app-dialog-panel neo-brutalism-card bg-card border-3 border-stone-950 text-foreground p-6 rounded-2xl shadow-2xl">
         <DialogHeader className="gap-2 text-center items-center">
           <div className="w-12 h-12 rounded-2xl bg-theme-primary/20 border-2 border-stone-950 flex items-center justify-center text-theme-primary mb-1">
             <AlertCircle className="w-6 h-6" />
           </div>
-          <DialogTitle className="text-lg font-black uppercase tracking-wide text-stone-100">
+          <DialogTitle className="text-lg font-black uppercase tracking-wide text-foreground">
             Resume Game?
           </DialogTitle>
-          <DialogDescription className="text-stone-300">
+          <DialogDescription className="text-muted-foreground">
             It looks like you have a saved session from previously. Do you want to continue where you left off, or start a new game?
             {lastSavedAt && (
-              <div className="mt-2 text-xs text-stone-400">
+              <div className="mt-2 text-xs text-muted-foreground opacity-80">
                 Last saved: {new Date(lastSavedAt).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}
               </div>
             )}
@@ -46,7 +46,7 @@ export const ResumeGameDialog: React.FC<ResumeGameDialogProps> = ({
           <Button
             onClick={onNewGame}
             variant="outline"
-            className="flex-1 py-2.5 neo-brutalism-button bg-stone-800 text-stone-300 hover:bg-stone-700 hover:text-stone-100 font-bold text-xs uppercase tracking-wider rounded-xl border-stone-950 cursor-pointer flex items-center justify-center gap-2"
+            className="flex-1 py-2.5 neo-brutalism-button bg-secondary text-secondary-foreground hover:bg-muted font-bold text-xs uppercase tracking-wider rounded-xl border-stone-950 cursor-pointer flex items-center justify-center gap-2"
           >
             <RotateCcw className="w-4 h-4" /> Start New
           </Button>

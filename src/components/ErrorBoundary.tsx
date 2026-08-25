@@ -26,16 +26,16 @@ export class ErrorBoundary extends Component<Props, State> {
   render() {
     if (this.state.error) {
       return (
-        <div className="h-screen w-screen bg-stone-950 text-stone-100 flex flex-col items-center justify-center gap-6 p-8">
+        <div className="h-screen w-screen bg-background text-foreground flex flex-col items-center justify-center gap-6 p-8">
           <div className="w-16 h-16 rounded-2xl bg-red-500/10 flex items-center justify-center border border-red-500/30">
             <RefreshCcw className="w-8 h-8 text-red-400" />
           </div>
           <div className="text-center max-w-md">
-            <h1 className="text-xl font-bold text-stone-100 mb-2">Something went wrong</h1>
-            <p className="text-stone-400 text-sm mb-4">
+            <h1 className="text-xl font-bold text-foreground mb-2">Something went wrong</h1>
+            <p className="text-muted-foreground text-sm mb-4">
               The solver or board encountered an unexpected error.
             </p>
-            <pre className="text-xs text-red-400 bg-stone-900 rounded-xl p-4 text-left overflow-auto max-h-40 mb-6 border border-stone-800">
+            <pre className="text-xs text-red-400 bg-card rounded-xl p-4 text-left overflow-auto max-h-40 mb-6 border border-border">
               {this.state.error.message}
             </pre>
             <button
