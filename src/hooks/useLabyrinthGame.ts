@@ -506,7 +506,7 @@ export function useLabyrinthGame({
         let nextObtainedCoop = coopObtainedTreasures;
         let claimed = false;
 
-        if (gameMode === "coop") {
+        if (gameMode === "coop" || gameMode === "auto") {
           if (landedTreasure && remainingCoopTreasures.includes(landedTreasure.id)) {
             if (!isMuted) playSuccessSound();
             nextRemainingCoop = remainingCoopTreasures.filter((tid) => tid !== landedTreasure.id);
@@ -527,7 +527,7 @@ export function useLabyrinthGame({
               });
               if (allHome) {
                 if (!isMuted) playSuccessSound();
-                onToast("Cooperative Victory! All treasures collected and all pawns are home! 🎉🏆");
+                onToast(gameMode === "auto" ? "Autoplay Victory! All treasures collected and all pawns are home! 🎉🏆" : "Cooperative Victory! All treasures collected and all pawns are home! 🎉🏆");
               }
             }
           }
@@ -565,7 +565,7 @@ export function useLabyrinthGame({
           : `${activePawn[0].toUpperCase()}${activePawn.slice(1)} → (${r},${c})`;
 
         let nextPawn = activePawn;
-        if (gameMode === "coop" || !claimed) {
+        if (gameMode === "coop" || gameMode === "auto" || !claimed) {
           const currentIndex = activePlayers.indexOf(activePawn);
           nextPawn = activePlayers[(currentIndex + 1) % activePlayers.length] || activePawn;
         }
@@ -604,7 +604,7 @@ export function useLabyrinthGame({
           coopObtainedTreasures: nextObtainedCoop,
         });
 
-        if (gameMode === "coop" || !claimed) {
+        if (gameMode === "coop" || gameMode === "auto" || !claimed) {
           switchToNextPawn();
         }
       } else {
@@ -865,7 +865,7 @@ export function useLabyrinthGame({
     if (!isMuted) playSuccessSound();
 
     let initialRemainingCoop: string[] = [];
-    if (gameMode === "coop") {
+    if (gameMode === "coop" || gameMode === "auto") {
       const boardTreasures: string[] = [];
       grid.forEach((row) => {
         row.forEach((tile) => {
@@ -1082,7 +1082,7 @@ export function useLabyrinthGame({
       let nextObtainedCoop = coopObtainedTreasures;
       let claimed = false;
 
-      if (gameMode === "coop") {
+      if (gameMode === "coop" || gameMode === "auto") {
         if (landedTreasure && remainingCoopTreasures.includes(landedTreasure.id)) {
           if (!isMuted) playSuccessSound();
           nextRemainingCoop = remainingCoopTreasures.filter((tid) => tid !== landedTreasure.id);
@@ -1103,7 +1103,7 @@ export function useLabyrinthGame({
             });
             if (allHome) {
               if (!isMuted) playSuccessSound();
-              onToast("Cooperative Victory! All treasures collected and all pawns are home! 🎉🏆");
+              onToast(gameMode === "auto" ? "Autoplay Victory! All treasures collected and all pawns are home! 🎉🏆" : "Cooperative Victory! All treasures collected and all pawns are home! 🎉🏆");
             }
           }
         }

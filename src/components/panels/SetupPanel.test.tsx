@@ -57,4 +57,14 @@ describe("SetupPanel — Pawns placement removed", () => {
     renderPanel({ setupTab: "cards" });
     expect(screen.getByText(/select player/i)).toBeTruthy();
   });
+
+  it("renders the Reset button with proper label", () => {
+    const onResetAllDefaults = vi.fn();
+    renderPanel({ setupTab: "tiles", onResetAllDefaults });
+    const resetBtn = screen.getByRole("button", { name: /reset all defaults/i });
+    expect(resetBtn).toBeTruthy();
+    expect(resetBtn.textContent).toContain("Reset");
+    fireEvent.click(resetBtn);
+    expect(onResetAllDefaults).toHaveBeenCalledTimes(1);
+  });
 });

@@ -175,17 +175,24 @@ export function SetupPanel({
         {setupTab === "tiles" && (
           <div className="flex flex-col gap-3 h-full overflow-visible min-h-0 p-1 px-1.5 pb-4">
             <div className="grid grid-cols-2 sm:flex gap-2 items-center overflow-visible">
-              <Tooltip content="Clear board grid to start placing tiles from scratch" side="bottom" containerClassName="flex-1">
+              <Tooltip content="Reset all settings, mode, players, cards, and board to defaults" side="bottom" containerClassName="flex-1">
                 <Button
+                  variant="outline"
                   onClick={() => {
                     if (!isMuted) playClickSound();
-                    onResetBoard();
-                    showToast("Board cleared — start placing tiles from scratch!");
+                    if (onResetAllDefaults) {
+                      onResetAllDefaults();
+                      showToast("All game settings and layout reset to defaults!");
+                    } else {
+                      onResetBoard();
+                      showToast("Board layout reset to defaults!");
+                    }
                   }}
-                  className="w-full neo-brutalism-button bg-stone-800 hover:bg-stone-700 text-red-400 border-stone-950 font-bold py-2.5 px-3 min-h-11 rounded-xl flex items-center justify-center gap-1.5 cursor-pointer text-xs"
+                  aria-label="Reset all defaults"
+                  className="w-full neo-brutalism-button border-2 border-stone-950 bg-red-500 hover:bg-red-400 text-stone-950 font-bold py-2.5 px-3 min-h-11 rounded-xl flex items-center justify-center gap-1.5 cursor-pointer text-xs shadow-[2px_2px_0_0_#000000]"
                 >
-                  <RefreshCcw className="w-3.5 h-3.5 text-red-400" />
-                  Start from Scratch
+                  <RefreshCcw className="w-3.5 h-3.5 stroke-[2.5]" />
+                  Reset
                 </Button>
               </Tooltip>
 
@@ -200,7 +207,7 @@ export function SetupPanel({
               </Tooltip>
 
               {onScanBoard && (
-                <Tooltip content="Scan board photo with camera" side="bottom" containerClassName="shrink-0">
+                <Tooltip content="Scan board photo with camera" side="bottom-left" containerClassName="shrink-0">
                   <Button
                     variant="outline"
                     onClick={onScanBoard}
@@ -211,26 +218,6 @@ export function SetupPanel({
                   </Button>
                 </Tooltip>
               )}
-
-              <Tooltip content="Reset all settings, mode, players, cards, and board to defaults" side="bottom-left" containerClassName="shrink-0">
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    if (!isMuted) playClickSound();
-                    if (onResetAllDefaults) {
-                      onResetAllDefaults();
-                      showToast("All game settings and layout reset to defaults!");
-                    } else {
-                      onResetBoard();
-                      showToast("Board layout reset to defaults!");
-                    }
-                  }}
-                  aria-label="Reset all defaults"
-                  className="neo-brutalism-button border-2 border-stone-950 bg-red-500 hover:bg-red-400 text-stone-950 min-h-11 w-11 px-0 cursor-pointer shadow-[2px_2px_0_0_#000000]"
-                >
-                  <RefreshCcw className="w-4 h-4 stroke-[2.5]" />
-                </Button>
-              </Tooltip>
             </div>
             {/* padding wrapper lets the card's neo-brutalist shadow breathe — overflow-visible is intentional */}
             <div className="flex-1 overflow-visible min-h-0 p-1 pb-4">

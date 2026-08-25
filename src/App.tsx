@@ -290,8 +290,11 @@ export default function App() {
   const canStartGame = game.looseTiles.length === 1 || game.looseTiles.length === 0;
 
   // ── Pawn travel animation wrapper (needs game to be declared first) ────────────
-  const handleExecuteSolutionWithAnimation = useCallback((path: any) => {
-    if (!path || path.length === 0) return;
+  const handleExecuteSolutionWithAnimation = useCallback((path: any, onComplete?: () => void) => {
+    if (!path || path.length === 0) {
+      onComplete?.();
+      return;
+    }
     const turn1 = path[0];
     const pawnColor = path.pawnColor ?? game.activePawn;
     const fromPos = game.pawnPositions[pawnColor];
@@ -318,10 +321,12 @@ export default function App() {
         game.handleExecuteSolution(path);
         setTravelingPawn(null);
         setPawnPositionOverride(null);
+        onComplete?.();
       }, animDuration + 40);
     } else {
       // No animation path possible — execute immediately
       game.handleExecuteSolution(path);
+      onComplete?.();
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [game.activePawn, game.pawnPositions, game.handleExecuteSolution, pawnAnimationSpeed]);
@@ -587,8 +592,10 @@ export default function App() {
   const isExecutingAutoMoveRef = useRef(false);
 
   useEffect(() => {
-    if (game.gameMode !== "auto") return;
-    if (!game.isGameStarted) return;
+    if (!game.isGameStarted || game.gameMode !== "auto") {
+      isExecutingAutoMoveRef.current = false;
+      return;
+    }
     if (autoPlayPaused) return;
     if (isLoadingSolutions) return;
     if (!solutions || solutions.length === 0) return;
@@ -599,12 +606,9 @@ export default function App() {
       const top = solutions[0];
       if (top && !isExecutingAutoMoveRef.current) {
         isExecutingAutoMoveRef.current = true;
-        handleExecuteSolutionWithAnimation(top as any);
-        // Release lock after animation and state update completes
-        const releaseDelay = Math.max(350, Math.round(700 / autoPlaySpeed));
-        setTimeout(() => {
+        handleExecuteSolutionWithAnimation(top as any, () => {
           isExecutingAutoMoveRef.current = false;
-        }, releaseDelay);
+        });
       }
     }, delay);
 
@@ -1335,6 +1339,8 @@ export default function App() {
             pawnStats={game.pawnStats}
             totalShifts={game.totalShifts}
             obtainedTreasures={game.obtainedTreasures}
+            gameMode={game.gameMode}
+            coopObtainedTreasures={game.coopObtainedTreasures}
           />
         </DialogContent>
       </Dialog>
