@@ -58,8 +58,11 @@ Targeted improvements to specific subsystems. No major restructuring.
 - [ ] **Fix `audio.ts` mute check** — `isAudioMuted()` reads `localStorage` on every sound call, bypassing React state. Remove it; callers already guard with `if (!isMuted)`. Optionally add a module-level `setMuted(val)` setter so audio.ts doesn't need to touch storage at all.
   - Files: `src/utils/audio.ts`, call sites in `src/hooks/useLabyrinthGame.ts`
 
-- [ ] **Fix coop stats in StatsPanel** — In coop mode, `coopObtainedTreasures` is not passed to or shown in `StatsPanel`. Add the prop and display it.
+- [x] **Fix coop & auto stats in StatsPanel** — In coop and auto mode, `coopObtainedTreasures` is now passed to and shown in `StatsPanel` with team progress.
   - Files: `src/components/panels/StatsPanel.tsx`, `src/App.tsx`
+
+- [x] **Fix Auto Mode gameplay & race condition** — Fixed `remainingCoopTreasures` initialization on auto mode start, corrected treasure collection & victory condition triggers, and fixed move execution lock release timing.
+  - Files: `src/hooks/useLabyrinthGame.ts`, `src/App.tsx`, `src/components/AppHeader.tsx`
 
 - [ ] **Replace `deepClone` with `structuredClone`** — `JSON.parse/stringify` drops `undefined` values and is slower. Switch to `structuredClone()` which is available in all modern browsers.
   - Files: `src/hooks/useLabyrinthHistory.ts`
