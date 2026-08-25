@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { cn } from "../lib/utils";
 import { playClickSound } from "../utils/audio";
+import type { UITheme } from "../types";
 
 export interface MobileActionsBarProps {
   canUndo: boolean;
@@ -26,6 +27,7 @@ export interface MobileActionsBarProps {
   solutionsCount: number;
   isMuted: boolean;
   onToggleMute: () => void;
+  uiTheme?: UITheme;
 }
 
 export const MobileActionsBar: React.FC<MobileActionsBarProps> = ({
@@ -41,6 +43,7 @@ export const MobileActionsBar: React.FC<MobileActionsBarProps> = ({
   solutionsCount,
   isMuted,
   onToggleMute,
+  uiTheme: _uiTheme,
 }) => {
   return (
     <div

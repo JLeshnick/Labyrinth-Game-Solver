@@ -6,6 +6,7 @@
 
   /* Fonts */
   --font-sans: "Inter", system-ui, -apple-system, sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
   --font-display: "Outfit", system-ui, -apple-system, sans-serif;
 
   /* shadcn/ui semantic color tokens mapped to dynamic variables */
@@ -762,4 +763,217 @@
     box-shadow: 2px 2px 0px 0px #000000;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   ─── SIMPLISTIC STUDIO THEME ───────────────────────────────────────────────
+   Clean, modern, minimalist studio theme inspired by Baseball Scorecard Studio.
+   Replaces brutalist borders, chunky shadows, and heavy outlines with sleek 
+   1px borders, subtle elevation, crisp typography, and refined modern surfaces.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Simplistic theme CSS variables: Dark */
+[data-ui-theme="simplistic"],
+[data-theme="dark"][data-ui-theme="simplistic"] {
+  --background: #090d16;
+  --foreground: #f1f5f9;
+  --card: #0f172a;
+  --card-foreground: #f8fafc;
+  --border: rgba(255, 255, 255, 0.08);
+  --input: rgba(255, 255, 255, 0.12);
+  --muted-foreground: #94a3b8;
+  --surface-glass-soft: rgba(15, 23, 42, 0.85);
+  --surface-glass-strong: rgba(9, 13, 22, 0.95);
+  --surface-border-strong: rgba(255, 255, 255, 0.08);
+  --tile-3d-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+  --radius: 0.5rem;
+}
+
+/* Simplistic theme CSS variables: Light */
+[data-theme="light"][data-ui-theme="simplistic"] {
+  --background: #f8fafc;
+  --foreground: #0f172a;
+  --card: #ffffff;
+  --card-foreground: #0f172a;
+  --border: #e2e8f0;
+  --input: #e2e8f0;
+  --muted-foreground: #64748b;
+  --surface-glass-soft: rgba(255, 255, 255, 0.9);
+  --surface-glass-strong: rgba(255, 255, 255, 0.97);
+  --surface-border-strong: rgba(0, 0, 0, 0.06);
+  --tile-3d-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+  --radius: 0.5rem;
+}
+
+/* Base body in Simplistic Theme */
+[data-ui-theme="simplistic"] body {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+}
+
+/* Header in Simplistic Theme */
+[data-ui-theme="simplistic"] header {
+  border-bottom: 1px solid var(--border) !important;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04) !important;
+  background-color: var(--card) !important;
+}
+
+/* Cards & Surfaces in Simplistic Theme */
+[data-ui-theme="simplistic"] .neo-brutalism-card {
+  border: 1px solid var(--border) !important;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.06), 0 1px 2px -1px rgba(0, 0, 0, 0.04) !important;
+  border-radius: 0.75rem !important;
+  background-color: var(--card) !important;
+}
+
+[data-ui-theme="simplistic"] .app-surface {
+  background-color: var(--card) !important;
+  border: 1px solid var(--border) !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04) !important;
+  border-radius: 0.75rem !important;
+}
+
+[data-ui-theme="simplistic"] .app-surface-raised {
+  background-color: var(--card) !important;
+  border: 1px solid var(--border) !important;
+  box-shadow: 0 4px 16px -2px rgba(0, 0, 0, 0.15) !important;
+  border-radius: 0.75rem !important;
+}
+
+[data-ui-theme="simplistic"] .app-surface-accent {
+  background-color: rgba(var(--theme-color-rgb), 0.07) !important;
+  border: 1px solid rgba(var(--theme-color-rgb), 0.35) !important;
+  box-shadow: 0 0 0 1px rgba(var(--theme-color-rgb), 0.12), 0 4px 14px rgba(var(--theme-color-rgb), 0.08) !important;
+  border-radius: 0.75rem !important;
+}
+
+[data-ui-theme="simplistic"] .app-dialog-panel {
+  background-color: var(--card) !important;
+  border: 1px solid var(--border) !important;
+  box-shadow: 0 20px 48px -12px rgba(0, 0, 0, 0.35) !important;
+  border-radius: 0.875rem !important;
+}
+
+/* Buttons in Simplistic Theme */
+[data-ui-theme="simplistic"] .neo-brutalism-button {
+  border: 1px solid var(--border) !important;
+  box-shadow: none !important;
+  border-radius: 0.5rem !important;
+  font-weight: 600 !important;
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+[data-ui-theme="simplistic"] .neo-brutalism-button:hover:not(:disabled) {
+  transform: none !important;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05) !important;
+  filter: brightness(1.08) !important;
+}
+
+[data-ui-theme="simplistic"] .neo-brutalism-button:active:not(:disabled) {
+  transform: scale(0.98) !important;
+  box-shadow: none !important;
+}
+
+/* Simplistic Tile Styling */
+[data-ui-theme="simplistic"] .tile-3d {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25) !important;
+  transform: translateZ(4px) !important;
+}
+
+[data-ui-theme="simplistic"] .tile-3d:hover {
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35) !important;
+  transform: translateZ(8px) !important;
+}
+
+[data-ui-theme="simplistic"] .group\/tile {
+  border: 1px solid var(--border) !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08) !important;
+  border-radius: 0.75rem !important;
+}
+
+[data-ui-theme="simplistic"] .group\/tile:hover {
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15) !important;
+  transform: translateY(-1px) !important;
+}
+
+[data-ui-theme="simplistic"] .group\/tile:active {
+  transform: translateY(0px) !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06) !important;
+}
+
+/* Corridors in Simplistic Theme */
+[data-ui-theme="simplistic"] .tile-corridor-fill {
+  fill: #1e293b !important;
+}
+[data-theme="light"][data-ui-theme="simplistic"] .tile-corridor-fill {
+  fill: #f1f5f9 !important;
+}
+
+[data-ui-theme="simplistic"] svg .stroke-stone-950,
+[data-ui-theme="simplistic"] .stroke-stone-950 {
+  stroke: #334155 !important;
+  stroke-width: 2.5px !important;
+}
+[data-theme="light"][data-ui-theme="simplistic"] svg .stroke-stone-950,
+[data-theme="light"][data-ui-theme="simplistic"] .stroke-stone-950 {
+  stroke: #cbd5e1 !important;
+  stroke-width: 2.5px !important;
+}
+
+/* Override hard-coded shadow & border classes under simplistic mode */
+[data-ui-theme="simplistic"] [class*="shadow-["] {
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04) !important;
+}
+
+[data-ui-theme="simplistic"] [class*="border-2"] {
+  border-width: 1px !important;
+}
+
+[data-ui-theme="simplistic"] [class*="border-3"] {
+  border-width: 1px !important;
+}
+
+[data-ui-theme="simplistic"] .border-stone-950 {
+  border-color: var(--border) !important;
+}
+
+[data-ui-theme="simplistic"] [class*="translate-x-["] {
+  transform: none !important;
+}
+
+[data-ui-theme="simplistic"] [class*="translate-y-["] {
+  transform: none !important;
+}
+
+/* Simplistic Mobile Navigation */
+[data-ui-theme="simplistic"] .app-mobile-nav {
+  background-color: var(--surface-glass-strong) !important;
+  border-top: 1px solid var(--border) !important;
+  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.15) !important;
+}
+
+[data-ui-theme="simplistic"] .app-mobile-sheet {
+  background-color: var(--surface-glass-soft) !important;
+  border: 1px solid var(--border) !important;
+  border-bottom: none !important;
+  box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.2) !important;
+}
+
+/* Simplistic Clean Scrollbars */
+[data-ui-theme="simplistic"] ::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+[data-ui-theme="simplistic"] ::-webkit-scrollbar-track {
+  background: transparent;
+}
+[data-ui-theme="simplistic"] ::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.25);
+  border-radius: 4px;
+  border: none;
+}
+[data-ui-theme="simplistic"] ::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.45);
+}
+
 

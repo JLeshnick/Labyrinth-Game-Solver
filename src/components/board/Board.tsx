@@ -1,12 +1,13 @@
 import React from "react";
 import { useDroppable } from "@dnd-kit/core";
-import type { TileData, SolverSolution } from "../../types";
+import type { TileData, SolverSolution, UITheme } from "../../types";
 import { SHIFT_ARROWS, PAWN_COLOR_HEX } from "../../constants";
 import { isOppositeArrow } from "../../solver";
 import { Tile, DraggableTile } from "./Tile";
 import { cn } from "../../lib/utils";
 import { ChevronRight } from "lucide-react";
 import { Tooltip } from "../ui/tooltip";
+import { generateCurvedSvgPath } from "../../utils/svgPath";
 
 interface BoardSpaceProps {
   x: number;
@@ -29,6 +30,7 @@ interface BoardSpaceProps {
   isCurrentTarget?: boolean;
   is3D?: boolean;
   scoreBadges?: { text: string; type: "positive" | "negative" | "neutral" }[];
+  uiTheme?: UITheme;
 }
 
 const BoardSpace: React.FC<BoardSpaceProps> = ({
@@ -52,8 +54,10 @@ const BoardSpace: React.FC<BoardSpaceProps> = ({
   isCurrentTarget,
   is3D = false,
   scoreBadges,
+  uiTheme = "brutalist",
 }) => {
   const isFixedSpace = x % 2 === 0 && y % 2 === 0;
+  const isSimplistic = uiTheme === "simplistic";
   const id = `board_${x}_${y}`;
   const { setNodeRef, isOver } = useDroppable({
     id,
@@ -90,7 +94,8 @@ const BoardSpace: React.FC<BoardSpaceProps> = ({
         transformStyle: is3D ? "preserve-3d" : "flat",
       }}
       className={cn(
-        "relative w-full h-full aspect-square rounded-lg flex items-center justify-center transition-all cursor-pointer hover:z-50",
+        "relative w-full h-full aspect-square flex items-center justify-center transition-all cursor-pointer hover:z-50",
+        isSimplistic ? "rounded-xl" : "rounded-lg",
         isFixedSpace
           ? "bg-stone-900/40 border border-stone-800/20 dark:bg-stone-800/40 dark:border-stone-700/50"
           : "border border-dashed border-stone-800/40 bg-stone-950/30 hover:bg-stone-900/10 shadow-inner dark:border-stone-600/50 dark:bg-stone-800/30 dark:hover:bg-stone-700/40",
@@ -120,6 +125,7 @@ const BoardSpace: React.FC<BoardSpaceProps> = ({
           isObtainedTreasure={isObtainedTreasure}
           isCurrentTarget={isCurrentTarget}
           is3D={is3D}
+          uiTheme={uiTheme}
 
           className="w-full h-full absolute inset-0"
         />
@@ -131,13 +137,14 @@ const BoardSpace: React.FC<BoardSpaceProps> = ({
       {(isOnHoveredPath || isCustomTarget || isActiveTarget || (isOver && !tile)) && (
         <div
           className={cn(
-            "absolute inset-0 rounded-2xl pointer-events-none z-40",
-            isPathStart  ? "border-[3px] border-green-400" :
-            isPathEnd    ? "border-[3px] border-theme-primary" :
-            isCustomTarget ? "border-[3px] border-theme-primary" :
-            isActiveTarget ? "border-[3px] border-amber-400" :
-            isOnHoveredPath ? "border-2 border-theme-primary/60" :
-            "border-2 border-theme-primary"
+            "absolute inset-0 pointer-events-none z-40",
+            isSimplistic ? "rounded-xl" : "rounded-2xl",
+            isPathStart  ? "border-2 border-green-400 ring-2 ring-green-400/20" :
+            isPathEnd    ? "border-2 border-theme-primary ring-2 ring-theme-primary/30" :
+            isCustomTarget ? "border-2 border-theme-primary ring-2 ring-theme-primary/30" :
+            isActiveTarget ? "border-2 border-amber-400 ring-2 ring-amber-400/30" :
+            isOnHoveredPath ? "border border-theme-primary/80" :
+            "border border-theme-primary"
           )}
           aria-hidden="true"
         />
@@ -164,7 +171,10 @@ const BoardSpace: React.FC<BoardSpaceProps> = ({
             <div
               key={color}
               className={cn(
-                "w-5.5 h-5.5 sm:w-6.5 sm:h-6.5 rounded-full border-2 border-stone-950 dark:border-stone-950 shadow-[2px_2px_0_0_#000000] flex items-center justify-center text-[9px] sm:text-[10px] font-extrabold capitalize relative",
+                "flex items-center justify-center font-extrabold capitalize relative transition-transform",
+                isSimplistic
+                  ? "w-6 h-6 sm:w-7 sm:h-7 rounded-full text-[10px] sm:text-[11px] font-mono shadow-md ring-2 ring-white/30"
+                  : "w-5.5 h-5.5 sm:w-6.5 sm:h-6.5 rounded-full border-2 border-stone-950 shadow-[2px_2px_0_0_#000000] text-[9px] sm:text-[10px]",
                 styleClass
               )}
             >
@@ -228,8 +238,8 @@ interface BoardProps {
     durationMs: number;
     key: number;
   } | null;
+  uiTheme?: UITheme;
 }
-
 
 export const Board: React.FC<BoardProps> = ({
   grid,
@@ -257,7 +267,9 @@ export const Board: React.FC<BoardProps> = ({
   isStaticHoveredPath = false,
   activePawn = "red",
   travelingPawn,
+  uiTheme = "brutalist",
 }) => {
+  const isSimplistic = uiTheme === "simplistic";
 
   return (
     <div className="relative w-full h-full p-6 flex items-center justify-center overflow-visible">
@@ -338,13 +350,21 @@ export const Board: React.FC<BoardProps> = ({
                   disabled={isForbidden || turnPhase === "move"}
                   className={cn(
                     "w-full h-full max-w-[70%] max-h-[70%] aspect-square my-auto mx-auto p-0.5 rounded-lg transition-all focus:outline-none flex items-center justify-center self-center justify-self-center",
-                    isForbidden || turnPhase === "move"
+                    isSimplistic
+                      ? isForbidden || turnPhase === "move"
+                        ? "bg-stone-900/30 border border-border/40 text-stone-600 opacity-40 cursor-not-allowed shadow-none"
+                        : isStaged
+                        ? "border border-theme-primary bg-theme-primary text-stone-950 scale-105 shadow-sm ring-2 ring-theme-primary/30 cursor-pointer font-bold"
+                        : isHighlighted
+                        ? "border border-theme-primary/80 bg-theme-primary/15 text-theme-primary scale-105 cursor-pointer shadow-xs"
+                        : "border border-border/80 bg-card text-foreground hover:bg-theme-primary/15 hover:border-theme-primary hover:text-theme-primary cursor-pointer shadow-xs"
+                      : isForbidden || turnPhase === "move"
                       ? "neo-brutalism-button bg-card border-stone-950 text-stone-600 opacity-40 cursor-not-allowed shadow-none translate-x-0 translate-y-0"
                       : isStaged
                       ? "neo-brutalism-button border-stone-950 bg-theme-primary text-stone-950 scale-105 translate-x-[1px] translate-y-[1px] shadow-[1px_1px_0_0_#000000] cursor-pointer"
                       : isHighlighted
                       ? "neo-brutalism-button border-stone-950 bg-theme-primary-20 text-theme-primary scale-105 cursor-pointer"
-                      : "neo-brutalism-button border-stone-950 bg-card text-foreground hover:bg-theme-primary hover:text-stone-950 cursor-pointer",
+                      : "neo-brutalism-button border-stone-950 bg-card text-foreground hover:bg-theme-primary hover:text-stone-950 cursor-pointer"
                   )}
                   aria-label={
                     isForbidden
@@ -486,6 +506,7 @@ export const Board: React.FC<BoardProps> = ({
                 isReachable={isReachable}
                 is3D={is3D}
                 scoreBadges={cellScoreBadges}
+                uiTheme={uiTheme}
               />
             );
           })
@@ -513,9 +534,13 @@ export const Board: React.FC<BoardProps> = ({
           return (
             <div
               style={{ gridRow, gridColumn, zIndex: 70 }}
-              className={cn("relative w-full h-full aspect-square rounded-xl overflow-hidden border-2 border-stone-950 pointer-events-none shadow-[4px_4px_0_0_#000000]", animClass)}
+              className={cn(
+                "relative w-full h-full aspect-square overflow-hidden pointer-events-none",
+                isSimplistic ? "rounded-xl border border-border shadow-md" : "rounded-xl border-2 border-stone-950 shadow-[4px_4px_0_0_#000000]",
+                animClass
+              )}
             >
-              <Tile tile={pushedTile} boardRotation={boardRotation} disableRotationTransition={true} is3D={is3D} className="absolute inset-0 w-full h-full" />
+              <Tile tile={pushedTile} boardRotation={boardRotation} disableRotationTransition={true} is3D={is3D} uiTheme={uiTheme} className="absolute inset-0 w-full h-full" />
             </div>
           );
         })()}
@@ -523,7 +548,8 @@ export const Board: React.FC<BoardProps> = ({
         {/* SVG Path Overlay for solution / hovered path preview */}
         {isGameStarted && hoveredPath && hoveredPath.length > 0 && !travelingPawn && (() => {
           const tc = (i: number) => i + 1.5;
-          const pts = hoveredPath.map(p => `${tc(p.c)},${tc(p.r)}`).join(" ");
+          const points = hoveredPath.map(p => ({ x: tc(p.c), y: tc(p.r) }));
+          const pathD = generateCurvedSvgPath(points, 0.25);
           const s = hoveredPath[0];
           const e = hoveredPath[hoveredPath.length - 1];
           const pathPawnColor = hoveredPath[0]?.pawnColor || activePawn;
@@ -531,8 +557,8 @@ export const Board: React.FC<BoardProps> = ({
 
           return (
             <svg viewBox="0 0 9 9" className="absolute inset-0 w-full h-full pointer-events-none z-30 transition-opacity duration-150" aria-hidden="true">
-              <polyline
-                points={pts}
+              <path
+                d={pathD}
                 fill="none"
                 stroke="#000000"
                 strokeWidth={isStaticHoveredPath ? "0.08" : "0.10"}
@@ -542,8 +568,8 @@ export const Board: React.FC<BoardProps> = ({
                 opacity={isStaticHoveredPath ? "0.6" : "0.45"}
                 className={isStaticHoveredPath ? "" : "animate-path-crawl"}
               />
-              <polyline
-                points={pts}
+              <path
+                d={pathD}
                 fill="none"
                 stroke={strokeColor}
                 strokeWidth={isStaticHoveredPath ? "0.04" : "0.06"}
@@ -568,9 +594,8 @@ export const Board: React.FC<BoardProps> = ({
         {/* Dynamic Path Trail Erosion during active pawn travel */}
         {isGameStarted && travelingPawn && travelingPawn.path && travelingPawn.path.length > 1 && (() => {
           const tc = (i: number) => i + 1.5;
-          const pathD = travelingPawn.path
-            .map((p, idx) => `${idx === 0 ? "M" : "L"} ${tc(p.c)} ${tc(p.r)}`)
-            .join(" ");
+          const points = travelingPawn.path.map(p => ({ x: tc(p.c), y: tc(p.r) }));
+          const pathD = generateCurvedSvgPath(points, 0.25);
           const e = travelingPawn.path[travelingPawn.path.length - 1];
           const color = PAWN_COLOR_HEX[travelingPawn.color] || "#f59e0b";
           const durSec = `${(travelingPawn.durationMs / 1000).toFixed(2)}s`;

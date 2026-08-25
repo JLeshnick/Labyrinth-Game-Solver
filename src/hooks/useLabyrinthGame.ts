@@ -505,12 +505,12 @@ export function useLabyrinthGame({
             treasures.setRemainingCoopTreasures(nextRemainingCoop);
             treasures.setCoopObtainedTreasures(nextObtainedCoop);
             pawns.trackPawnTreasure(pawns.activePawn);
-            onToast(`Goal Achieved: Found ${landedTreasure.name}! 🏆`);
+            onToast(`Goal Achieved: Found ${landedTreasure.name}!`);
             claimed = true;
           } else if (treasures.remainingCoopTreasures.length === 0) {
             const home = DEFAULT_PAWN_POSITIONS[pawns.activePawn];
             if (home && r === home.r && c === home.c) {
-              onToast(`${pawns.activePawn.toUpperCase()} has reached home! 🏠`);
+              onToast(`${pawns.activePawn.toUpperCase()} has reached home!`);
               const allHome = pawns.activePlayers.every((p) => {
                 const pos = nextPositions[p];
                 const pHome = DEFAULT_PAWN_POSITIONS[p];
@@ -520,8 +520,8 @@ export function useLabyrinthGame({
                 if (!isMuted) playSuccessSound();
                 onToast(
                   treasures.gameMode === "auto"
-                    ? "Autoplay Victory! All treasures collected and all pawns are home! 🎉🏆"
-                    : "Cooperative Victory! All treasures collected and all pawns are home! 🎉🏆"
+                    ? "Autoplay Victory! All treasures collected and all pawns are home!"
+                    : "Cooperative Victory! All treasures collected and all pawns are home!"
                 );
               }
             }
@@ -548,7 +548,7 @@ export function useLabyrinthGame({
             treasures.setPlayerActiveTargets(nextPlayerActiveTargets);
             treasures.setObtainedTreasures(nextObtainedTreasures);
             pawns.trackPawnTreasure(pawns.activePawn);
-            onToast(`Goal Achieved: Found ${landedTreasure.name}! 🏆`);
+            onToast(`Goal Achieved: Found ${landedTreasure.name}!`);
             claimed = true;
           }
         }
@@ -858,12 +858,12 @@ export function useLabyrinthGame({
           treasures.setRemainingCoopTreasures(nextRemainingCoop);
           treasures.setCoopObtainedTreasures(nextObtainedCoop);
           pawns.trackPawnTreasure(pawnToMove);
-          onToast(`Goal Achieved: Found ${landedTreasure.name}! 🏆`);
+          onToast(`Goal Achieved: Found ${landedTreasure.name}!`);
           claimed = true;
         } else if (treasures.remainingCoopTreasures.length === 0) {
           const home = DEFAULT_PAWN_POSITIONS[pawnToMove];
           if (home && turn1.endPos.r === home.r && turn1.endPos.c === home.c) {
-            onToast(`${pawnToMove.toUpperCase()} has reached home! 🏠`);
+            onToast(`${pawnToMove.toUpperCase()} has reached home!`);
             const allHome = pawns.activePlayers.every((p) => {
               const pos = nextPositions[p];
               const pHome = DEFAULT_PAWN_POSITIONS[p];
@@ -873,8 +873,8 @@ export function useLabyrinthGame({
               if (!isMuted) playSuccessSound();
               onToast(
                 treasures.gameMode === "auto"
-                  ? "Autoplay Victory! All treasures collected and all pawns are home! 🎉🏆"
-                  : "Cooperative Victory! All treasures collected and all pawns are home! 🎉🏆"
+                  ? "Autoplay Victory! All treasures collected and all pawns are home!"
+                  : "Cooperative Victory! All treasures collected and all pawns are home!"
               );
             }
           }
@@ -901,7 +901,7 @@ export function useLabyrinthGame({
           treasures.setPlayerActiveTargets(nextPlayerActiveTargets);
           treasures.setObtainedTreasures(nextObtainedTreasures);
           pawns.trackPawnTreasure(pawnToMove);
-          onToast(`Goal Achieved: Found ${landedTreasure.name}! 🏆`);
+          onToast(`Goal Achieved: Found ${landedTreasure.name}!`);
           claimed = true;
         }
       }

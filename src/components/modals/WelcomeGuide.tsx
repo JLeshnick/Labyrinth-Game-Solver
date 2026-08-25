@@ -1,4 +1,4 @@
-import { Compass, Layers, Users, HelpCircle, Shield, Award, Camera } from "lucide-react";
+import { Compass, Layers, Users, HelpCircle, Shield, Award, Camera, Calculator, Lightbulb } from "lucide-react";
 import { Button } from "../ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
 
@@ -162,7 +162,7 @@ export function WelcomeGuide({ open, onOpenChange, onDismiss }: WelcomeGuideProp
                 {/* Explicit Addition Calculation Box */}
                 <div className="p-3 app-surface flex flex-col gap-2 text-[11px] leading-relaxed border-l-2 border-amber-400">
                   <div className="text-amber-400 font-bold text-xs flex items-center justify-between">
-                    <span>📐 Complete Addition Formula & Concrete Example:</span>
+                    <span className="flex items-center gap-1.5"><Calculator className="w-3.5 h-3.5 inline text-amber-400" /> Complete Addition Formula &amp; Concrete Example:</span>
                   </div>
                   <div className="text-stone-200 text-[11px] font-mono leading-relaxed space-y-1.5">
                     <div className="bg-stone-950/60 p-2 rounded border border-stone-800 text-stone-300">
@@ -226,8 +226,8 @@ export function WelcomeGuide({ open, onOpenChange, onDismiss }: WelcomeGuideProp
                   <li>Review flagged tiles and correct any misdetections before clicking <span className="font-semibold text-stone-100">Apply to Board</span>.</li>
                 </ul>
               </div>
-              <p className="text-[11px] text-stone-400">
-                💡 Best results with bright, direct overhead lighting and a photo taken straight down without perspective distortion.
+              <p className="text-[11px] text-stone-400 flex items-center gap-1.5">
+                <Lightbulb className="w-3.5 h-3.5 text-amber-400 shrink-0 inline" /> Best results with bright, direct overhead lighting and a photo taken straight down without perspective distortion.
               </p>
             </div>
           </div>

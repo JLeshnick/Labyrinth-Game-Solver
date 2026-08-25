@@ -74,6 +74,10 @@ export default function App() {
     const saved = localStorage.getItem("labyrinth_theme") ?? "";
     return saved === "light" ? "light" : "dark";
   });
+  const [uiTheme, setUiThemeState] = useState<"brutalist" | "simplistic">(() => {
+    const saved = localStorage.getItem("labyrinth_ui_theme");
+    return saved === "simplistic" ? "simplistic" : "brutalist";
+  });
   const [boardRotation, setBoardRotation] = useState(0);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isScanModalOpen, setIsScanModalOpen] = useState(false);
@@ -187,6 +191,15 @@ export default function App() {
     setBaseThemeState(t);
   }, []);
 
+  const setUiTheme = useCallback((theme: "brutalist" | "simplistic") => {
+    setUiThemeState(theme);
+    try {
+      localStorage.setItem("labyrinth_ui_theme", theme);
+    } catch {
+      /* storage full */
+    }
+  }, []);
+
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", baseTheme);
     try {
@@ -195,6 +208,10 @@ export default function App() {
       /* storage full */
     }
   }, [baseTheme]);
+
+  useEffect(() => {
+    document.documentElement.setAttribute("data-ui-theme", uiTheme);
+  }, [uiTheme]);
 
   const setSolverDepth = useCallback((depth: number) => {
     setSolverDepthState(depth);
@@ -246,7 +263,7 @@ export default function App() {
     } catch {
       /* storage full */
     }
-    showToast(next ? "Muted retro sound effects 🔇" : "Sound effects enabled 🔊");
+    showToast(next ? "Muted retro sound effects" : "Sound effects enabled");
   }, [isMuted, showToast]);
 
   // ── Game hook ─────────────────────────────────────────────────────────────────
@@ -255,21 +272,11 @@ export default function App() {
     onToast: showToast,
   });
 
-  // Dynamic document title update
+  // Keep clean static document title
   useEffect(() => {
-    if (!game.isGameStarted) {
-      document.title = "Labyrinth Game Solver";
-      return;
-    }
-    const pawnName = game.activePawn.charAt(0).toUpperCase() + game.activePawn.slice(1);
-    if (game.gameMode === "auto") {
-      document.title = `Auto Mode (${pawnName}) — Labyrinth Solver`;
-    } else if (game.gameMode === "coop") {
-      document.title = `${pawnName}'s Turn (Co-op) — Labyrinth Solver`;
-    } else {
-      document.title = `${pawnName}'s Turn — Labyrinth Solver`;
-    }
-  }, [game.isGameStarted, game.activePawn, game.gameMode]);
+    document.title = "Labyrinth Solver";
+  }, []);
+
 
   const canStartGame = game.looseTiles.length === 1 || game.looseTiles.length === 0;
 
@@ -640,6 +647,7 @@ export default function App() {
       gameMode={game.gameMode}
       remainingCoopTreasures={game.remainingCoopTreasures}
       grid={game.grid}
+      uiTheme={uiTheme}
     />
   ) : (
     <SetupPanel
@@ -668,6 +676,7 @@ export default function App() {
       gameMode={game.gameMode}
       onSetGameMode={game.setGameMode}
       onResetAllDefaults={game.resetAllDefaults}
+      uiTheme={uiTheme}
     />
   );
 
@@ -686,6 +695,8 @@ export default function App() {
         isMuted={isMuted}
         showStats={showStats}
         baseTheme={baseTheme}
+        uiTheme={uiTheme}
+        onSetUiTheme={setUiTheme}
         activePlayers={game.activePlayers}
         activePawn={game.activePawn}
         looseTiles={game.looseTiles}
@@ -804,7 +815,7 @@ export default function App() {
                         game.handleSelectTargetTreasure(game.activePawn, treasureId);
                         if (alreadyObtained) {
                           showToast(
-                            `⚠️ ${
+                            `${
                               TREASURES.find((t) => t.id === treasureId)?.name ?? treasureId
                             } already obtained — solving anyway`
                           );
@@ -816,6 +827,7 @@ export default function App() {
                       is3D={is3D}
                       activePawn={game.activePawn}
                       travelingPawn={travelingPawn}
+                      uiTheme={uiTheme}
                     />
                   </InlineErrorBoundary>
                   </div>
@@ -900,6 +912,7 @@ export default function App() {
             obtainedTreasures={game.obtainedTreasures}
             gameMode={game.gameMode}
             coopObtainedTreasures={game.coopObtainedTreasures}
+            uiTheme={uiTheme}
           />
         </DialogContent>
       </Dialog>
@@ -933,6 +946,7 @@ export default function App() {
         solutionsCount={solutions.length}
         isMuted={isMuted}
         onToggleMute={handleToggleMute}
+        uiTheme={uiTheme}
       />
 
       <ResumeGameDialog

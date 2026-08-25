@@ -1,7 +1,7 @@
 import { TREASURES } from "../constants";
 import type { TileData, Shape, Rotation } from "../types";
 
-// ── Mapping constants (React ↔ solver) ──────────────────────────────────────
+// ── Mapping constants (React <-> solver) ──────────────────────────────────────
 
 export const SHAPE_TO_SOLVER: Record<Shape, string> = {
   straight: "I",

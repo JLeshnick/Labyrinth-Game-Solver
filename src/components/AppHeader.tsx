@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { TileData, PlayerMap, HistoryRecord } from "../types";
+import type { TileData, PlayerMap, HistoryRecord, UITheme } from "../types";
 import { PAWNS, TREASURES } from "../constants";
 import { Button } from "./ui/button";
 import { Tooltip } from "./ui/tooltip";
@@ -20,6 +20,10 @@ import {
   HelpCircle,
   Clock,
   BarChart2,
+  Sparkles,
+  LayoutGrid,
+  Pause,
+  ChevronRight,
 } from "lucide-react";
 
 export interface AppHeaderProps {
@@ -29,6 +33,8 @@ export interface AppHeaderProps {
   isMuted: boolean;
   showStats: boolean;
   baseTheme: "dark" | "light";
+  uiTheme?: UITheme;
+  onSetUiTheme?: (theme: UITheme) => void;
   activePlayers: string[];
   activePawn: string;
   looseTiles: TileData[];
@@ -76,21 +82,18 @@ export interface AppHeaderProps {
   totalShifts?: number;
 }
 
-const iconBtnCls =
-  "neo-brutalism-button bg-card text-foreground w-8 h-8 flex items-center justify-center rounded-lg cursor-pointer transition-all hover:bg-stone-200 hover:text-stone-950";
-
 const STEPS = [
   {
     id: "setup" as const,
     label: "Edit Layout",
     shortLabel: "Setup",
-    icon: <Layers className="w-3 h-3" />,
+    icon: <Layers className="w-3.5 h-3.5" />,
   },
   {
     id: "game" as const,
     label: "Game",
     shortLabel: "Game",
-    icon: <Play className="w-3 h-3" />,
+    icon: <Play className="w-3.5 h-3.5" />,
   },
 ];
 
@@ -100,6 +103,8 @@ export function AppHeader({
   canRedo,
   isMuted,
   baseTheme: _baseTheme,
+  uiTheme = "brutalist",
+  onSetUiTheme,
   activePlayers,
   activePawn,
   looseTiles: _looseTiles,
@@ -148,31 +153,67 @@ export function AppHeader({
   const [showEndGameConfirm, setShowEndGameConfirm] = useState(false);
 
   const currentStep = isGameStarted ? "game" : "setup";
+  const isSimplistic = uiTheme === "simplistic";
+
+  const iconBtnCls = isSimplistic
+    ? "bg-card text-foreground border border-border w-8 h-8 flex items-center justify-center rounded-md cursor-pointer transition-all hover:bg-stone-800/40 hover:text-foreground active:scale-95 shadow-none"
+    : "neo-brutalism-button bg-card text-foreground w-8 h-8 flex items-center justify-center rounded-lg cursor-pointer transition-all hover:bg-stone-200 hover:text-stone-950";
 
   return (
     <>
       <header
-        className="relative z-40 px-3 sm:px-4 py-2 flex items-center justify-between border-b-2 border-stone-950 bg-card gap-2 sm:gap-3"
-        style={{ boxShadow: "0 3px 0 0 #000000" }}
+        className={cn(
+          "relative z-40 px-3 sm:px-4 py-2 flex items-center justify-between bg-card gap-2 sm:gap-3 transition-colors",
+          isSimplistic ? "border-b border-border shadow-xs" : "border-b-2 border-stone-950"
+        )}
+        style={isSimplistic ? undefined : { boxShadow: "0 3px 0 0 #000000" }}
       >
-        {/* Left — brutalist title linking to GitHub */}
+        {/* Left — title linking to GitHub */}
         <Tooltip content="Labyrinth Companion & Solver — View on GitHub" side="bottom-left">
           <a
             href="https://github.com/JLeshnick/Labyrinth-Game-Solver"
             target="_blank"
             rel="noopener noreferrer"
-            className="shrink-0 neo-brutalism-card px-2.5 py-1 rounded-lg bg-card hover:bg-stone-200 hover:text-stone-950 transition-colors cursor-pointer"
+            className={cn(
+              "shrink-0 select-none cursor-pointer transition-all",
+              isSimplistic
+                ? "flex items-center gap-2.5 px-1 py-0.5 group"
+                : "neo-brutalism-card px-2.5 py-1 rounded-lg bg-card hover:bg-stone-200 hover:text-stone-950"
+            )}
           >
-            <span className="text-xs sm:text-sm font-black tracking-tight text-foreground uppercase select-none">
-              <span className="hidden sm:inline">Labyrinth <span className="text-theme-primary">Solver</span></span>
-              <span className="sm:hidden">Labyrinth</span>
-            </span>
+            {isSimplistic ? (
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-lg bg-theme-primary/10 border border-theme-primary/30 flex items-center justify-center text-theme-primary group-hover:scale-105 transition-transform">
+                  <Sparkles className="w-3.5 h-3.5 text-theme-primary" />
+                </div>
+                <div>
+                  <div className="font-extrabold text-[13px] tracking-tight text-foreground leading-none">
+                    Labyrinth <span className="text-theme-primary">Solver</span>
+                  </div>
+                  <div className="text-[9.5px] text-muted-foreground tracking-normal font-medium leading-tight hidden sm:block">
+                    Studio Edition
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <span className="text-xs sm:text-sm font-black tracking-tight text-foreground uppercase select-none">
+                <span className="hidden sm:inline">Labyrinth <span className="text-theme-primary">Solver</span></span>
+                <span className="sm:hidden">Labyrinth</span>
+              </span>
+            )}
           </a>
         </Tooltip>
 
         {/* Center — Step Nav (timer integrated in Game button) */}
         <div className="flex-1 flex items-center justify-center min-w-0 gap-2">
-          <div className="flex items-center bg-card neo-brutalism-card rounded-xl px-1 py-0.5 sm:p-1 gap-1">
+          <div
+            className={cn(
+              "flex items-center bg-card rounded-xl px-1 py-0.5 sm:p-1 gap-1",
+              isSimplistic
+                ? "border border-border bg-stone-900/30 dark:bg-stone-900/40 p-1 rounded-lg shadow-xs"
+                : "neo-brutalism-card"
+            )}
+          >
             {STEPS.map((s) => {
               const isActive = s.id === currentStep;
               const isDisabled = s.id === "game" && !isGameStarted && !canStartGame;
@@ -200,12 +241,18 @@ export function AppHeader({
                       }
                     }}
                     className={cn(
-                      "flex items-center justify-center gap-1 sm:gap-2 px-3 sm:px-4 py-1.5 rounded-lg text-[11px] sm:text-xs font-bold transition-all border-2",
-                      isActive
-                        ? "bg-theme-primary text-stone-950 border-stone-950 shadow-[2px_2px_0_0_#000000]"
+                      "flex items-center justify-center gap-1 sm:gap-2 px-3 sm:px-4 py-1.5 rounded-lg text-[11px] sm:text-xs font-bold transition-all",
+                      isSimplistic
+                        ? isActive
+                          ? "bg-theme-primary text-stone-950 shadow-xs border border-theme-primary"
+                          : isDisabled
+                          ? "text-stone-600 cursor-not-allowed border border-transparent"
+                          : "text-muted-foreground hover:text-foreground hover:bg-stone-800/40 cursor-pointer border border-transparent"
+                        : isActive
+                        ? "bg-theme-primary text-stone-950 border-2 border-stone-950 shadow-[2px_2px_0_0_#000000]"
                         : isDisabled
-                        ? "text-stone-600 border-transparent cursor-not-allowed"
-                        : "text-stone-400 border-transparent hover:text-stone-200 hover:bg-stone-900/40 cursor-pointer"
+                        ? "text-stone-600 border-2 border-transparent cursor-not-allowed"
+                        : "text-stone-400 border-2 border-transparent hover:text-stone-200 hover:bg-stone-900/40 cursor-pointer"
                     )}
                   >
                     {s.icon}
@@ -213,8 +260,8 @@ export function AppHeader({
                     <span className="hidden sm:inline">{s.label}</span>
                     <span className="xs:hidden">{s.shortLabel}</span>
                     {showTimer && (
-                      <span className="font-mono text-[10px] opacity-80 ml-1">
-                        {isTimerPaused ? "⏸" : "⏱"} {elapsedTime}
+                      <span className="font-mono text-[10px] opacity-80 ml-1 inline-flex items-center gap-0.5">
+                        {isTimerPaused ? <Pause className="w-2.5 h-2.5 inline" /> : <Clock className="w-2.5 h-2.5 inline" />} {elapsedTime}
                       </span>
                     )}
                   </button>
@@ -234,7 +281,7 @@ export function AppHeader({
                 }}
                 className="neo-brutalism-button bg-theme-primary border-stone-950 text-stone-950 w-7 h-7 rounded-lg flex items-center justify-center text-xs font-black cursor-pointer"
               >
-                {autoPlayPaused ? "▶" : "⏸"}
+                {autoPlayPaused ? <Play className="w-3.5 h-3.5 fill-current" /> : <Pause className="w-3.5 h-3.5 fill-current" />}
               </button>
 
               <div className="w-px h-4 bg-stone-800 mx-0.5" />
@@ -343,8 +390,8 @@ export function AppHeader({
                             const t = TREASURES.find((x) => x.id === id);
                             return (
                               <div key={id} className="flex items-center gap-1.5">
-                                <span className={cn("text-[9px] flex-shrink-0", i === 0 ? "text-amber-400" : "text-stone-600")}>
-                                  {i === 0 ? "▶" : "·"}
+                                <span className={cn("text-[9px] flex-shrink-0 flex items-center", i === 0 ? "text-amber-400" : "text-stone-600")}>
+                                  {i === 0 ? <ChevronRight className="w-2.5 h-2.5 inline" /> : "·"}
                                 </span>
                                 <span className={cn("text-[9px]", i === 0 ? "text-amber-200 font-medium" : "text-stone-500")}>
                                   {t?.name ?? id}{i === 0 ? " ← next" : ""}
@@ -582,6 +629,22 @@ export function AppHeader({
             </Tooltip>
           </div>
 
+          {onSetUiTheme && (
+            <Tooltip content={isSimplistic ? "Switch to Neo-Brutalist Theme" : "Switch to Simplistic Studio Theme"} side="bottom">
+              <Button
+                variant="outline" size="icon"
+                onClick={() => {
+                  if (!isMuted) playClickSound();
+                  onSetUiTheme(isSimplistic ? "brutalist" : "simplistic");
+                }}
+                className={cn(iconBtnCls, "shrink-0")}
+                aria-label="Toggle UI Theme Style"
+              >
+                {isSimplistic ? <LayoutGrid className="w-3.5 h-3.5 text-theme-primary" /> : <Sparkles className="w-3.5 h-3.5" />}
+              </Button>
+            </Tooltip>
+          )}
+
           <Tooltip content="Settings" side="bottom">
             <Button
               variant="outline" size="icon"
@@ -617,6 +680,8 @@ export function AppHeader({
             }}
             baseTheme={_baseTheme}
             setBaseTheme={onSetBaseTheme}
+            uiTheme={uiTheme}
+            setUiTheme={onSetUiTheme}
             accentColor={accentColor}
             setAccentColor={setAccentColor}
             is3D={_is3D}

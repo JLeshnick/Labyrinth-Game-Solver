@@ -73,8 +73,8 @@ Targeted improvements to specific subsystems. No major restructuring.
 - [x] **Remove `_hoveredSolution` unused prop** — Prop is received but immediately discarded with `_` prefix. If unused, remove from the interface entirely.
   - Files: `src/components/panels/SolverPanel.tsx`, `src/App.tsx`
 
-- [x] **Add dynamic `<title>` update** — Update `document.title` to reflect game state (e.g., "Red's Turn — Labyrinth Solver") during gameplay.
-  - Files: `src/App.tsx` or a small `useDocumentTitle` hook
+- [x] **Static clean `<title>`** — Keep `document.title` as "Labyrinth Solver" consistently without dynamic changes on every move.
+  - Files: `index.html`, `src/App.tsx`
 
 - [x] **Timer: auto-pause on tab hidden** — Use the Page Visibility API to pause the stopwatch when the tab goes into the background.
   - Files: `src/hooks/useStopwatch.ts`
