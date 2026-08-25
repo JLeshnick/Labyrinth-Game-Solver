@@ -522,6 +522,25 @@ export default function App() {
   useEffect(() => {
     if (!game.isGameStarted || game.grid.length === 0 || !workerRef.current) return;
     const isCoop = game.gameMode === "coop" || game.gameMode === "auto";
+    // In Phase 2 (all treasures collected in Co-op / Auto mode):
+    // If the currently active pawn is already at its home corner, but other pawns are not yet home,
+    // automatically pass the turn to the next player who needs to get home.
+    if (isCoop && game.remainingCoopTreasures.length === 0) {
+      const activeHome = DEFAULT_PAWN_POSITIONS[game.activePawn];
+      const activePos = game.pawnPositions[game.activePawn];
+      const isAlreadyHome = activeHome && activePos && activePos.r === activeHome.r && activePos.c === activeHome.c;
+      const anyPawnNotHome = game.activePlayers.some((p) => {
+        const h = DEFAULT_PAWN_POSITIONS[p];
+        const pos = game.pawnPositions[p];
+        return pos && h && (pos.r !== h.r || pos.c !== h.c);
+      });
+
+      if (isAlreadyHome && anyPawnNotHome) {
+        game.switchToNextPawn();
+        return;
+      }
+    }
+
     const currentPawnCoord = game.pawnPositions[game.activePawn];
     const handCards = game.customTargetCoords
       ? [`${game.customTargetCoords.type || "coord"}:${game.customTargetCoords.r},${game.customTargetCoords.c}`]
@@ -540,8 +559,6 @@ export default function App() {
     let solverBoard = game.getSolverFormattedBoard(game.grid, game.pawnPositions);
     const solverSpare = game.getSolverFormattedSpare(game.spareTile);
 
-    
-
     let isCoopSolve = isCoop;
     let coopTarget = null;
     if (isCoop && game.customTargetCoords) {
@@ -555,13 +572,8 @@ export default function App() {
     const selectedTarget = game.gameMode === "auto" ? null : game.playerActiveTargets[game.activePawn];
     const coopTreasures = isCoop && selectedTarget ? [selectedTarget] : game.remainingCoopTreasures;
 
-    // In auto mode or in Phase 2 (all treasures collected), solve across all active players so every pawn returns home
-    const coopActivePawns =
-      game.gameMode === "auto" || (isCoop && game.remainingCoopTreasures.length === 0)
-        ? game.activePlayers
-        : isCoop
-        ? [game.activePawn]
-        : game.activePlayers;
+    // Strict round-robin turn order: always solve for the active pawn whose turn it is
+    const coopActivePawns = [game.activePawn];
 
     workerRef.current.postMessage({
       board: solverBoard,
@@ -593,6 +605,7 @@ export default function App() {
     game.activePlayers,
     game.remainingCoopTreasures,
     game.showEmptyTiles,
+    game.switchToNextPawn,
   ]);
 
   // ── Autoplay: when in auto mode, auto-execute the top solver suggestion ────────
@@ -1043,8 +1056,12 @@ export default function App() {
                 const overlaySuggestedPath = activeHoveredSolution 
                   ? activeHoveredSolution[0]?.pawnPath || []
                   : (effectivePreview as any)?.pawnPath || null;
-                if (overlaySuggestedPath && !activeHoveredSolution && (effectivePreview as any)?.movedPawn) {
-                  (overlaySuggestedPath as any).pawnColor = (effectivePreview as any).movedPawn;
+                if (overlaySuggestedPath && overlaySuggestedPath.length > 0) {
+                  if (activeHoveredSolution) {
+                    (overlaySuggestedPath as any).pawnColor = (activeHoveredSolution as any).pawnColor || game.activePawn;
+                  } else if ((effectivePreview as any)?.movedPawn) {
+                    (overlaySuggestedPath as any).pawnColor = (effectivePreview as any).movedPawn;
+                  }
                 }
                 return (
                   <div
