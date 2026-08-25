@@ -100,3 +100,66 @@ describe("useLabyrinthGame — setup state (Pawns placement removed)", () => {
     });
   });
 });
+
+describe("useLabyrinthGame — auto mode", () => {
+  it("initializes board treasures pool when auto mode game is started", () => {
+    const { result } = renderGame();
+
+    act(() => {
+      result.current.resetBoardToInitialPresets();
+      result.current.handleRandomizeBoard();
+      result.current.setGameMode("auto");
+    });
+
+    act(() => {
+      result.current.handleStartGame();
+    });
+
+    expect(result.current.isGameStarted).toBe(true);
+    expect(result.current.gameMode).toBe("auto");
+    expect(result.current.remainingCoopTreasures.length).toBeGreaterThan(0);
+    expect(result.current.coopObtainedTreasures).toEqual([]);
+  });
+
+  it("claims treasures in auto mode when executing a solution", () => {
+    const { result } = renderGame();
+
+    act(() => {
+      result.current.resetBoardToInitialPresets();
+      result.current.handleRandomizeBoard();
+      result.current.setGameMode("auto");
+    });
+
+    act(() => {
+      result.current.handleStartGame();
+    });
+
+    const initialRemaining = result.current.remainingCoopTreasures;
+    const targetTreasureId = initialRemaining[0];
+
+    // Find coordinate of the target treasure
+    let targetPos = { r: 2, c: 0 };
+    for (let r = 0; r < 7; r++) {
+      for (let c = 0; c < 7; c++) {
+        if (result.current.grid[r][c]?.treasure?.id === targetTreasureId) {
+          targetPos = { r, c };
+        }
+      }
+    }
+
+    act(() => {
+      result.current.handleExecuteSolution([
+        {
+          arrowId: "row-1-left",
+          rotation: 0,
+          endPos: targetPos,
+        },
+      ]);
+    });
+
+    expect(result.current.coopObtainedTreasures).toContain(targetTreasureId);
+    expect(result.current.remainingCoopTreasures).not.toContain(targetTreasureId);
+    expect(result.current.totalShifts).toBe(1);
+  });
+});
+

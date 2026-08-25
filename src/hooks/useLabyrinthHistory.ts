@@ -1,26 +1,15 @@
 import { useState, useCallback, useRef } from "react";
-import type { TileData, PlayerMap, PawnPositions } from "../types";
+import type { TileData, PlayerMap, PawnPositions, HistoryRecord } from "../types";
+export type { HistoryRecord };
 
-// Safe deep-clone that handles null cells in the React TileData grid
+const MAX_HISTORY = 50;
+
+// Safe deep-clone using structuredClone with fallback for test/legacy environments
 function deepClone<T>(obj: T): T {
+  if (typeof structuredClone === "function") {
+    return structuredClone(obj);
+  }
   return JSON.parse(JSON.stringify(obj));
-}
-
-export interface HistoryRecord {
-  board: (TileData | null)[][];
-  spareTile: TileData;
-  lastShiftArrowId: string | null;
-  activePawn: string;
-  playerHands: PlayerMap<string[]>;
-  playerActiveTargets: PlayerMap<string | null>;
-  obtainedTreasures: PlayerMap<string[]>;
-  pawnPositions?: PawnPositions;
-  label?: string;
-  movedPawn?: string;
-  pawnPath?: { r: number; c: number }[];
-  gameMode?: "standard" | "coop" | "auto";
-  remainingCoopTreasures?: string[];
-  coopObtainedTreasures?: string[];
 }
 
 export function useLabyrinthHistory(initialState: HistoryRecord | null) {
@@ -72,9 +61,15 @@ export function useLabyrinthHistory(initialState: HistoryRecord | null) {
 
       setHistory((prev) => {
         const newHistory = prev.slice(0, historyIndexRef.current + 1);
-        return [...newHistory, record];
+        const updated = [...newHistory, record];
+        if (updated.length > MAX_HISTORY) {
+          const trimmed = updated.slice(updated.length - MAX_HISTORY);
+          setHistoryIndex(trimmed.length - 1);
+          return trimmed;
+        }
+        setHistoryIndex(updated.length - 1);
+        return updated;
       });
-      setHistoryIndex((prev) => prev + 1);
     },
     []
   );

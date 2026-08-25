@@ -75,6 +75,9 @@ export const PAWN_COLOR_HEX: Record<string, string> = {
   yellow: "#facc15",
 };
 
+/** Ordered rotation steps in degrees — use instead of inline [0, 90, 180, 270] literals. */
+export const ROTATIONS = [0, 90, 180, 270] as const;
+
 // Fixed tiles on the board game (16 total).
 // Swapped Red and Yellow starting spots, and Green and Blue starting spots
 // so Blue/Red are across from each other, and Green/Yellow are across from each other.

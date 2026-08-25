@@ -1,7 +1,7 @@
 import React from "react";
 import { useDroppable } from "@dnd-kit/core";
 import type { TileData, SolverSolution } from "../../types";
-import { SHIFT_ARROWS } from "../../constants";
+import { SHIFT_ARROWS, PAWN_COLOR_HEX } from "../../constants";
 import { isOppositeArrow } from "../../solver";
 import { Tile, DraggableTile } from "./Tile";
 import { cn } from "../../lib/utils";
@@ -206,7 +206,7 @@ interface BoardProps {
   isGameStarted: boolean;
   lastShiftArrowId: string | null;
   onArrowClick: (arrowId: string) => void;
-  hoveredPath: { r: number; c: number }[] | null;
+  hoveredPath: { r: number; c: number; pawnColor?: string }[] | null;
   hoveredSolutionArrow: string | null;
   boardRotation?: number;
   customTargetCoords?: { r: number; c: number } | null;
@@ -230,12 +230,6 @@ interface BoardProps {
   } | null;
 }
 
-const PAWN_HEX_COLORS: Record<string, string> = {
-  red: "#ef4444",
-  blue: "#3b82f6",
-  green: "#10b981",
-  yellow: "#f59e0b",
-};
 
 export const Board: React.FC<BoardProps> = ({
   grid,
@@ -532,8 +526,8 @@ export const Board: React.FC<BoardProps> = ({
           const pts = hoveredPath.map(p => `${tc(p.c)},${tc(p.r)}`).join(" ");
           const s = hoveredPath[0];
           const e = hoveredPath[hoveredPath.length - 1];
-          const pathPawnColor = (hoveredPath as any).pawnColor || activePawn;
-          const strokeColor = PAWN_HEX_COLORS[pathPawnColor] || "#f59e0b";
+          const pathPawnColor = hoveredPath[0]?.pawnColor || activePawn;
+          const strokeColor = PAWN_COLOR_HEX[pathPawnColor] || "#f59e0b";
 
           return (
             <svg viewBox="0 0 9 9" className="absolute inset-0 w-full h-full pointer-events-none z-30 transition-opacity duration-150" aria-hidden="true">
@@ -578,7 +572,7 @@ export const Board: React.FC<BoardProps> = ({
             .map((p, idx) => `${idx === 0 ? "M" : "L"} ${tc(p.c)} ${tc(p.r)}`)
             .join(" ");
           const e = travelingPawn.path[travelingPawn.path.length - 1];
-          const color = PAWN_HEX_COLORS[travelingPawn.color] || "#f59e0b";
+          const color = PAWN_COLOR_HEX[travelingPawn.color] || "#f59e0b";
           const durSec = `${(travelingPawn.durationMs / 1000).toFixed(2)}s`;
 
           // Calculate total path length in viewBox coordinate units

@@ -14,7 +14,6 @@ import type { TileData, SolverSolution } from "../../types";
 interface SolverPanelProps {
   solutions: SolverSolution[];
   isLoadingSolutions: boolean;
-  hoveredSolution: SolverSolution | null;
   setHoveredSolution: (sol: SolverSolution | null) => void;
   lockedScoreBreakdownSolution?: SolverSolution | null;
   setLockedScoreBreakdownSolution?: (sol: SolverSolution | null) => void;
@@ -50,7 +49,6 @@ interface SolverPanelProps {
 export function SolverPanel({
   solutions,
   isLoadingSolutions,
-  hoveredSolution: _hoveredSolution,
   setHoveredSolution,
   lockedScoreBreakdownSolution,
   setLockedScoreBreakdownSolution,
@@ -91,9 +89,9 @@ export function SolverPanel({
   // Filter solutions to only show the active target (unless no target is set, then show all)
   const currentTargetId = customTargetCoords 
     ? `coord:${customTargetCoords.r},${customTargetCoords.c}`
-    : (playerActiveTargets[activePawn] || (solutions[0] ? (solutions[0] as any).cardId : null));
+    : (playerActiveTargets[activePawn] || (solutions[0] ? solutions[0].cardId || null : null));
   const filteredSolutions = currentTargetId
-    ? solutions.filter((sol) => (sol as any).cardId === currentTargetId)
+    ? solutions.filter((sol) => sol.cardId === currentTargetId)
     : solutions;
 
   // Key changes whenever new solutions arrive so the list re-mounts and plays the fade animation

@@ -33,7 +33,7 @@ function MiniGrid({ results }: { results: BoardScanResult }) {
             );
           }
           const cell = map.get(key);
-          if (!cell) return <div key={key} className="w-7 h-7 rounded-sm bg-stone-800" />;
+          if (!cell) return <div key={key} className="w-7 h-7 rounded-sm bg-muted" />;
           const bg = !cell.flagged
             ? "bg-green-900/40 border-green-700/40"
             : cell.confidence >= 0.55
@@ -41,7 +41,7 @@ function MiniGrid({ results }: { results: BoardScanResult }) {
             : "bg-red-900/40 border-red-600/40";
           return (
             <div key={key} className={`w-7 h-7 rounded-sm border flex flex-col items-center justify-center gap-0 ${bg}`}>
-              <span className="text-[6px] text-stone-300 leading-none capitalize">{cell.shape[0]}</span>
+              <span className="text-[6px] text-foreground leading-none capitalize">{cell.shape[0]}</span>
               {cell.treasureId && (
                 <span className="text-[5px] text-amber-300 leading-none truncate max-w-full px-0.5">{cell.treasureId.slice(0, 4)}</span>
               )}
@@ -53,14 +53,7 @@ function MiniGrid({ results }: { results: BoardScanResult }) {
   );
 }
 
-// Corner order matches the app's board orientation (clockwise from top-left):
-//   [0] Yellow TL — yellow pawn's home corner (row 0, col 6 in app = top-right, but visually TL here)
-//   [1] Blue   TR
-//   [2] Green  BR
-//   [3] Red    BL
-// App layout (FIXED_TILES_PRESETS): Red=(0,0) TL, Blue=(6,6) BR, Green=(6,0) BL, Yellow=(0,6) TR
-// Clockwise from TL: Red → Yellow → Blue → Green
-// So handle order [TL, TR, BR, BL] = [Red, Yellow, Blue, Green]
+// Handle order [TL, TR, BR, BL] = [Red, Yellow, Blue, Green]
 const CORNER_COLORS = ["bg-red-500", "bg-yellow-400", "bg-blue-500", "bg-green-500"];
 const CORNER_LABELS = ["Red\nTL", "Yellow\nTR", "Blue\nBR", "Green\nBL"];
 const CORNER_SHORT  = ["R", "Y", "B", "G"];
@@ -82,17 +75,17 @@ function TemplateStatus() {
     );
   }
   return (
-    <div className="text-[11px] text-stone-400 bg-stone-900/50 border border-stone-800 rounded-lg px-3 py-2 flex flex-col gap-0.5">
+    <div className="text-[11px] text-muted-foreground bg-muted/50 border border-border rounded-lg px-3 py-2 flex flex-col gap-0.5">
       <span>
-        <span className="text-stone-300 font-semibold">{treasureCount} treasure</span>
+        <span className="text-foreground font-semibold">{treasureCount} treasure</span>
         {blankCount > 0 && (
-          <span> + <span className="text-stone-300 font-semibold">{blankCount} blank</span></span>
+          <span> + <span className="text-foreground font-semibold">{blankCount} blank</span></span>
         )} tile photo{total !== 1 ? "s" : ""} configured.
         {blankCount === 0 && (
           <span className="text-amber-400"> Add blank tile photos for best accuracy.</span>
         )}
       </span>
-      <span>Photos go in <code className="font-mono text-stone-500">public/tile-templates/</code>.</span>
+      <span>Photos go in <code className="font-mono text-muted-foreground">public/tile-templates/</code>.</span>
     </div>
   );
 }
@@ -140,12 +133,12 @@ function AlignStep({ imgSrc, photoRotation, onRotatePhoto, corners, onCornersCha
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-start justify-between gap-2">
-        <p className="text-xs text-stone-400 flex-1">
+        <p className="text-xs text-muted-foreground flex-1">
           Drag the corner handles to match each pawn's home corner. Rotate the photo if needed.
         </p>
         <button
           onClick={onRotatePhoto}
-          className="shrink-0 flex items-center gap-1 text-xs text-stone-300 neo-brutalism-button rounded-lg px-2 py-1.5"
+          className="shrink-0 flex items-center gap-1 text-xs text-foreground neo-brutalism-button rounded-lg px-2 py-1.5"
           title="Rotate photo 90° clockwise"
         >
           <RotateCw className="w-3.5 h-3.5" />
@@ -155,7 +148,7 @@ function AlignStep({ imgSrc, photoRotation, onRotatePhoto, corners, onCornersCha
       {/* Corner color legend */}
       <div className="flex gap-2 flex-wrap text-[10px]">
         {CORNER_LABELS.map((label, i) => (
-          <span key={i} className="flex items-center gap-1 text-stone-400">
+          <span key={i} className="flex items-center gap-1 text-muted-foreground">
             <span className={`w-2.5 h-2.5 rounded-full inline-block ${CORNER_COLORS[i]}`} />
             {label.replace("\n", " ")}
           </span>
@@ -163,127 +156,106 @@ function AlignStep({ imgSrc, photoRotation, onRotatePhoto, corners, onCornersCha
       </div>
       <div
         ref={containerRef}
-        className="relative w-full aspect-square overflow-hidden rounded-lg border border-stone-700 select-none touch-none cursor-crosshair"
+        className="relative w-full aspect-square overflow-hidden rounded-lg border border-border select-none touch-none cursor-crosshair"
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
       >
         <img
           src={imgSrc}
-          className="w-full h-full object-contain transition-transform duration-200"
+          alt="Board for alignment"
+          className="w-full h-full object-cover pointer-events-none transition-transform duration-150"
           style={{ transform: `rotate(${photoRotation}deg)` }}
-          alt="Board photo"
           draggable={false}
         />
-
-        {/* Grid overlay SVG */}
+        {/* SVG quadrilateral showing the crop area */}
         <svg className="absolute inset-0 w-full h-full pointer-events-none" viewBox="0 0 100 100" preserveAspectRatio="none">
-          {/* Outer quad */}
           <polygon
             points={corners.map((c) => `${c.x * 100},${c.y * 100}`).join(" ")}
-            fill="none"
-            stroke="rgba(245,158,11,0.6)"
-            strokeWidth="0.5"
+            fill="rgba(245,158,11,0.12)"
+            stroke="var(--theme-color)"
+            strokeWidth="0.8"
+            strokeDasharray="2,2"
           />
-          {/* 7×7 grid lines */}
-          {Array.from({ length: 8 }, (_, i) => {
-            const t = i / 7;
-            const [tl, tr, br, bl] = corners;
-            const lx = tl.x + (bl.x - tl.x) * t;
-            const ly = tl.y + (bl.y - tl.y) * t;
-            const rx = tr.x + (br.x - tr.x) * t;
-            const ry = tr.y + (br.y - tr.y) * t;
-            const tx2 = tl.x + (tr.x - tl.x) * t;
-            const ty2 = tl.y + (tr.y - tl.y) * t;
-            const bx2 = bl.x + (br.x - bl.x) * t;
-            const by2 = bl.y + (br.y - bl.y) * t;
-            return (
-              <g key={i}>
-                <line x1={lx * 100} y1={ly * 100} x2={rx * 100} y2={ry * 100} stroke="rgba(245,158,11,0.4)" strokeWidth="0.3" />
-                <line x1={tx2 * 100} y1={ty2 * 100} x2={bx2 * 100} y2={by2 * 100} stroke="rgba(245,158,11,0.4)" strokeWidth="0.3" />
-              </g>
-            );
-          })}
         </svg>
-
-        {/* Corner handles */}
-        {corners.map((c, i) => (
-          <div
-            key={i}
-            onPointerDown={startDrag(i)}
-            className={`absolute w-7 h-7 rounded-full ${CORNER_COLORS[i]} border-2 border-white shadow-lg cursor-grab active:cursor-grabbing flex items-center justify-center pointer-events-auto`}
-            style={{ left: toPercent(c).x, top: toPercent(c).y, transform: "translate(-50%, -50%)" }}
-          >
-            <span className="text-[9px] font-bold text-white">{CORNER_SHORT[i]}</span>
-          </div>
-        ))}
+        {/* Four corner draggable handles */}
+        {corners.map((pt, i) => {
+          const { x, y } = toPercent(pt);
+          return (
+            <div
+              key={i}
+              onPointerDown={startDrag(i)}
+              style={{ left: x, top: y }}
+              className="absolute -translate-x-1/2 -translate-y-1/2 cursor-grab active:cursor-grabbing touch-none z-10"
+            >
+              <div
+                className={`w-6 h-6 rounded-full border-2 border-white shadow-md flex items-center justify-center text-[9px] font-bold text-white ${CORNER_COLORS[i]}`}
+              >
+                {CORNER_SHORT[i]}
+              </div>
+            </div>
+          );
+        })}
       </div>
-
       <Button
         onClick={onScan}
         className="w-full bg-theme-primary hover:bg-theme-primary-hover text-stone-950 font-bold min-h-11 rounded-xl flex items-center justify-center gap-2"
       >
         <Camera className="w-4 h-4" />
-        Scan Board
+        Analyze Board
       </Button>
     </div>
   );
 }
 
-// ── Main modal ────────────────────────────────────────────────────────────────
+// ── Main Modal ────────────────────────────────────────────────────────────────
 
 export function BoardScanModal({ open, onClose, onApply }: Props) {
   const [step, setStep] = useState<Step>("upload");
   const [imgSrc, setImgSrc] = useState<string | null>(null);
-  const [imgEl, setImgEl] = useState<HTMLImageElement | null>(null);
-  const [photoRotation, setPhotoRotation] = useState(0); // 0, 90, 180, 270
+  const [photoRotation, setPhotoRotation] = useState<number>(0);
   const [corners, setCorners] = useState<[CornerPoint, CornerPoint, CornerPoint, CornerPoint]>([
-    { x: 0.05, y: 0.05 },
-    { x: 0.95, y: 0.05 },
-    { x: 0.95, y: 0.95 },
-    { x: 0.05, y: 0.95 },
+    { x: 0.05, y: 0.05 }, // Red TL
+    { x: 0.95, y: 0.05 }, // Yellow TR
+    { x: 0.95, y: 0.95 }, // Blue BR
+    { x: 0.05, y: 0.95 }, // Green BL
   ]);
   const [progress, setProgress] = useState(0);
   const [results, setResults] = useState<BoardScanResult>([]);
   const [error, setError] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  // Preload templates when modal opens (no-op if already cached)
+  // Pre-load tile templates in background when modal mounts
   useEffect(() => {
-    if (open) loadTileTemplates().catch(() => {/* photos not present yet — ok */});
+    if (open) {
+      loadTileTemplates().catch(() => {});
+    }
   }, [open]);
 
-  // Reset on close
+  // Reset state when closed
   useEffect(() => {
     if (!open) {
       setStep("upload");
       setImgSrc(null);
-      setImgEl(null);
       setPhotoRotation(0);
+      setProgress(0);
       setResults([]);
       setError(null);
-      setProgress(0);
     }
   }, [open]);
 
-  const handleRotatePhoto = () => {
-    setPhotoRotation((prev) => (prev + 90) % 360);
-    // Reset corners to defaults when rotating so they stay sensible
-    setCorners([
-      { x: 0.05, y: 0.05 },
-      { x: 0.95, y: 0.05 },
-      { x: 0.95, y: 0.95 },
-      { x: 0.05, y: 0.95 },
-    ]);
-  };
-
   const handleFile = (file: File) => {
-    if (!file.type.startsWith("image/")) { setError("Please upload an image file."); return; }
-    const url = URL.createObjectURL(file);
-    setImgSrc(url);
-    const img = new Image();
-    img.onload = () => { setImgEl(img); setStep("align"); };
-    img.onerror = () => setError("Could not load image.");
-    img.src = url;
+    if (!file.type.startsWith("image/")) {
+      setError("Please select an image file.");
+      return;
+    }
+    setError(null);
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      setImgSrc(e.target?.result as string);
+      setPhotoRotation(0);
+      setStep("align");
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleDrop = (e: React.DragEvent) => {
@@ -292,91 +264,105 @@ export function BoardScanModal({ open, onClose, onApply }: Props) {
     if (file) handleFile(file);
   };
 
+  const handleRotatePhoto = () => {
+    setPhotoRotation((r) => (r + 90) % 360);
+  };
+
   const handleScan = async () => {
-    if (!imgEl) return;
+    if (!imgSrc) return;
     setStep("scanning");
     setProgress(0);
     setError(null);
-    try {
-      // Build a rotated canvas if the user rotated the photo preview
-      let scanSource: HTMLImageElement | HTMLCanvasElement = imgEl;
-      let scanW = imgEl.naturalWidth;
-      let scanH = imgEl.naturalHeight;
 
+    try {
+      const img = new Image();
+      await new Promise<void>((resolve, reject) => {
+        img.onload = () => resolve();
+        img.onerror = reject;
+        img.src = imgSrc;
+      });
+
+      // If photo was rotated, draw into an offscreen canvas with that rotation first
+      let sourceImage: HTMLImageElement | HTMLCanvasElement = img;
       if (photoRotation !== 0) {
-        const swapped = photoRotation === 90 || photoRotation === 270;
-        const cW = swapped ? imgEl.naturalHeight : imgEl.naturalWidth;
-        const cH = swapped ? imgEl.naturalWidth : imgEl.naturalHeight;
-        const c = document.createElement("canvas");
-        c.width = cW; c.height = cH;
-        const ctx = c.getContext("2d")!;
-        ctx.translate(cW / 2, cH / 2);
-        ctx.rotate((photoRotation * Math.PI) / 180);
-        ctx.drawImage(imgEl, -imgEl.naturalWidth / 2, -imgEl.naturalHeight / 2);
-        scanSource = c;
-        scanW = cW;
-        scanH = cH;
+        const rotCanvas = document.createElement("canvas");
+        const rad = (photoRotation * Math.PI) / 180;
+        const isOdd = photoRotation === 90 || photoRotation === 270;
+        rotCanvas.width = isOdd ? img.naturalHeight : img.naturalWidth;
+        rotCanvas.height = isOdd ? img.naturalWidth : img.naturalHeight;
+        const ctx = rotCanvas.getContext("2d")!;
+        ctx.translate(rotCanvas.width / 2, rotCanvas.height / 2);
+        ctx.rotate(rad);
+        ctx.drawImage(img, -img.naturalWidth / 2, -img.naturalHeight / 2);
+        sourceImage = rotCanvas;
       }
 
-      // Convert fractional corners to absolute pixel coords on the (possibly rotated) image
-      const absCorners: [CornerPoint, CornerPoint, CornerPoint, CornerPoint] = corners.map((c) => ({
-        x: c.x * scanW,
-        y: c.y * scanH,
-      })) as [CornerPoint, CornerPoint, CornerPoint, CornerPoint];
-
-      const scanResults = await scanBoard(scanSource, absCorners, setProgress);
+      const scanResults = await scanBoard(sourceImage, corners, (pct) => setProgress(pct));
       setResults(scanResults);
       setStep("results");
-    } catch (err) {
-      setError("Scan failed: " + (err instanceof Error ? err.message : String(err)));
+    } catch {
+      setError("Scan failed. Please try a clearer, top-down photo.");
       setStep("align");
     }
   };
 
+  // Convert scan results to TileData grid + looseTiles pool
   const handleApply = () => {
-    const pool = generateMovablePool();
+    const newGrid: (TileData | null)[][] = Array(7)
+      .fill(null)
+      .map(() => Array(7).fill(null));
 
-    const newGrid: (TileData | null)[][] = Array(7).fill(null).map(() => Array(7).fill(null));
-
-    // Place fixed tiles
-    Object.entries(FIXED_TILES_PRESETS).forEach(([coord, partial]) => {
+    // Fill fixed tiles from presets
+    Object.entries(FIXED_TILES_PRESETS).forEach(([coord, tilePartial]) => {
       const [x, y] = coord.split(",").map(Number);
       newGrid[y][x] = {
         id: `fixed_${x}_${y}`,
-        shape: partial.shape!,
-        rotation: partial.rotation!,
-        treasure: partial.treasure,
+        shape: tilePartial.shape!,
+        rotation: tilePartial.rotation!,
+        treasure: tilePartial.treasure,
         isFixed: true,
-        color: partial.color,
+        color: tilePartial.color,
       };
     });
 
-    // Track which movable tiles are placed
+    // Match movable pool tiles to scan results
+    const pool = generateMovablePool();
     const usedIds = new Set<string>();
-    const placedResults: BoardScanResult = [];
 
-    for (const cell of results) {
-      // Skip cells that are too uncertain to place
-      if (cell.confidence < 0.35) continue;
+    const resultMap = new Map(results.map((c) => [`${c.row},${c.col}`, c]));
 
-      // Find a matching tile from the pool
-      const candidate = pool.find((t) => {
-        if (usedIds.has(t.id)) return false;
-        if (t.shape !== cell.shape) return false;
-        if (cell.treasureId) {
-          return t.treasure?.id === cell.treasureId;
+    for (let r = 0; r < 7; r++) {
+      for (let c = 0; c < 7; c++) {
+        if (isFixedCell(r, c)) continue;
+        const detected = resultMap.get(`${r},${c}`);
+        if (!detected) continue;
+
+        // Find best match in unused pool tiles:
+        // Priority 1: same treasureId
+        // Priority 2: same shape, no treasure
+        // Priority 3: any tile of that shape
+        let match = detected.treasureId
+          ? pool.find((t) => !usedIds.has(t.id) && t.treasure?.id === detected.treasureId)
+          : null;
+
+        if (!match) {
+          match = pool.find((t) => !usedIds.has(t.id) && t.shape === detected.shape && !t.treasure);
         }
-        return !t.treasure;
-      });
+        if (!match) {
+          match = pool.find((t) => !usedIds.has(t.id) && t.shape === detected.shape);
+        }
+        if (!match) {
+          match = pool.find((t) => !usedIds.has(t.id));
+        }
 
-      if (!candidate) continue;
-
-      usedIds.add(candidate.id);
-      newGrid[cell.row][cell.col] = {
-        ...candidate,
-        rotation: cell.rotation,
-      };
-      placedResults.push(cell);
+        if (match) {
+          usedIds.add(match.id);
+          newGrid[r][c] = {
+            ...match,
+            rotation: detected.rotation,
+          };
+        }
+      }
     }
 
     // Remaining unplaced tiles become the loose tile pool
@@ -391,9 +377,9 @@ export function BoardScanModal({ open, onClose, onApply }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
-      <DialogContent className="max-w-md text-stone-100 rounded-xl">
+      <DialogContent className="max-w-md text-foreground rounded-xl">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-stone-100">
+          <DialogTitle className="flex items-center gap-2 text-foreground">
             <Camera className="w-5 h-5 text-theme-primary" />
             Scan Board Photo
           </DialogTitle>
@@ -402,21 +388,21 @@ export function BoardScanModal({ open, onClose, onApply }: Props) {
         {/* Step: Upload */}
         {step === "upload" && (
           <div className="flex flex-col gap-4">
-            <p className="text-xs text-stone-400">
+            <p className="text-xs text-muted-foreground">
               Upload a photo of your assembled board. The app detects tile shapes and treasures on your device — no internet required.
             </p>
             {/* Template availability summary */}
             <TemplateStatus />
             {error && <p className="text-xs text-red-400">{error}</p>}
             <div
-              className="neo-brutalism-button border-dashed border-stone-700 hover:border-theme-primary rounded-xl p-8 flex flex-col items-center gap-3 cursor-pointer transition-colors"
+              className="neo-brutalism-button border-dashed border-border hover:border-theme-primary rounded-xl p-8 flex flex-col items-center gap-3 cursor-pointer transition-colors"
               onClick={() => fileRef.current?.click()}
               onDrop={handleDrop}
               onDragOver={(e) => e.preventDefault()}
             >
-              <Upload className="w-8 h-8 text-stone-500" />
-              <span className="text-sm text-stone-400">Tap to upload or drag & drop</span>
-              <span className="text-xs text-stone-600">JPG, PNG, HEIC, etc.</span>
+              <Upload className="w-8 h-8 text-muted-foreground" />
+              <span className="text-sm text-muted-foreground">Tap to upload or drag & drop</span>
+              <span className="text-xs text-muted-foreground/60">JPG, PNG, HEIC, etc.</span>
             </div>
             <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); }} />
           </div>
@@ -438,14 +424,14 @@ export function BoardScanModal({ open, onClose, onApply }: Props) {
         {step === "scanning" && (
           <div className="flex flex-col items-center gap-4 py-6">
             <Camera className="w-10 h-10 text-theme-primary animate-pulse" />
-            <p className="text-sm text-stone-300">Analyzing board…</p>
-            <div className="w-full bg-stone-900 border-2 border-stone-950 rounded h-3">
+            <p className="text-sm text-foreground">Analyzing board…</p>
+            <div className="w-full bg-muted border-2 border-stone-950 rounded h-3">
               <div
                 className="h-full rounded-sm bg-theme-primary transition-all duration-200"
                 style={{ width: `${progress}%` }}
               />
             </div>
-            <span className="text-xs text-stone-500">{progress}% complete</span>
+            <span className="text-xs text-muted-foreground">{progress}% complete</span>
           </div>
         )}
 
@@ -463,7 +449,7 @@ export function BoardScanModal({ open, onClose, onApply }: Props) {
             </div>
 
             {flaggedCount > 0 && (
-              <p className="text-xs text-stone-400 bg-amber-950/30 border border-amber-800/30 rounded-lg px-3 py-2">
+              <p className="text-xs text-muted-foreground bg-amber-950/30 border border-amber-800/30 rounded-lg px-3 py-2">
                 Amber/red cells were low-confidence. Apply the board and correct them manually by clicking tiles to rotate or dragging replacements.
               </p>
             )}
@@ -474,7 +460,7 @@ export function BoardScanModal({ open, onClose, onApply }: Props) {
             </div>
 
             {/* Legend */}
-            <div className="flex gap-3 justify-center text-[10px] text-stone-500">
+            <div className="flex gap-3 justify-center text-[10px] text-muted-foreground">
               <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-green-500 inline-block" /> Auto</span>
               <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-amber-400 inline-block" /> Review</span>
               <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-red-500 inline-block" /> Uncertain</span>

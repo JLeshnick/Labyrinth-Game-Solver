@@ -1,48 +1,42 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
-import { createPortal } from "react-dom";
 import {
   DndContext,
   type DragEndEvent,
   type DragStartEvent,
-  DragOverlay,
   closestCenter,
   useSensor,
   useSensors,
   MouseSensor,
   TouchSensor,
 } from "@dnd-kit/core";
-import { SHIFT_ARROWS, TREASURES, DEFAULT_PAWN_POSITIONS } from "./constants";
-import type { TileData, SolverSolution } from "./types";
+import { TREASURES, DEFAULT_PAWN_POSITIONS } from "./constants";
+import type { TileData, AppGameState } from "./types";
 import { Board } from "./components/board/Board";
-import { Tile } from "./components/board/Tile";
-import { Button } from "./components/ui/button";
 import { SolverPanel } from "./components/panels/SolverPanel";
 import { SetupPanel } from "./components/panels/SetupPanel";
 import { BoardScanModal } from "./components/modals/BoardScanModal";
 import { MoveHistoryDialog } from "./components/modals/MoveHistoryDialog";
 import { StatsPanel } from "./components/panels/StatsPanel";
 import { AppHeader } from "./components/AppHeader";
+import { MobileActionsBar } from "./components/MobileActionsBar";
 import { WelcomeGuide } from "./components/modals/WelcomeGuide";
+import { InlineErrorBoundary } from "./components/ErrorBoundary";
 import { Dialog, DialogContent } from "./components/ui/dialog";
 import { useLabyrinthGame } from "./hooks/useLabyrinthGame";
 import { useStopwatch } from "./hooks/useStopwatch";
-import { playClickSound } from "./utils/audio";
-import { fromSolverGrid } from "./lib/solverAdapter";
-import { executeSlideInGrid, getReachableCells, quickSolveMinTurns, solveAllHand } from "./solver";
-import type { Rotation } from "./types";
+import { useSlideStaging } from "./hooks/useSlideStaging";
+import { usePawnAnimation } from "./hooks/usePawnAnimation";
+import { useSolverWorker } from "./hooks/useSolverWorker";
+import { playClickSound, setAudioMuted } from "./utils/audio";
+import { quickSolveMinTurns, solveAllHand } from "./solver";
 import {
   Sparkles,
-  Undo2,
-  Redo2,
-  RotateCw,
-  Volume2,
-  VolumeX,
   ChevronUp,
   ChevronDown as ChevronDownIcon,
-  Clock,
 } from "lucide-react";
 import { ResumeGameDialog } from "./components/modals/ResumeGameDialog";
 import { AUTOSAVE_KEY } from "./hooks/useLabyrinthStorage";
+import { usePreviewState } from "./hooks/usePreviewState";
 import { cn } from "./lib/utils";
 
 // Default solver depth. Can be overridden via the Advanced settings panel.
@@ -71,9 +65,11 @@ export default function App() {
     return () => media.removeEventListener("change", listener);
   }, []);
 
-  const [isMuted, setIsMuted] = useState(
-    () => localStorage.getItem("labyrinth_audio_muted") === "true"
-  );
+  const [isMuted, setIsMuted] = useState(() => {
+    const muted = localStorage.getItem("labyrinth_audio_muted") === "true";
+    setAudioMuted(muted);
+    return muted;
+  });
   const [baseTheme, setBaseThemeState] = useState<"dark" | "light">(() => {
     const saved = localStorage.getItem("labyrinth_theme") ?? "";
     return saved === "light" ? "light" : "dark";
@@ -86,30 +82,37 @@ export default function App() {
     () => localStorage.getItem("labyrinth_accent_color") ?? ""
   );
   const [showStats, setShowStats] = useState(false);
-  const [activeId, setActiveId] = useState<string | null>(null);
+  const [, setActiveId] = useState<string | null>(null);
   const [turnPhase, setTurnPhase] = useState<"slide" | "move">("slide");
-  const [stagedArrow, setStagedArrow] = useState<string | null>(null);
-  const [stagedRotation, setStagedRotation] = useState<0 | 90 | 180 | 270>(0);
   const [showOneMoveTargets, setShowOneMoveTargets] = useState(true);
   const [solverDepth, setSolverDepthState] = useState<number>(() => {
     const saved = parseInt(localStorage.getItem("labyrinth_solver_depth") ?? "");
     return [1, 2, 3, 4, 5].includes(saved) ? saved : DEFAULT_SOLVER_DEPTH;
   });
-  const [mobilePanelStop, setMobilePanelStop] = useState<"peek" | "expanded">("expanded");
+  const [mobilePanelStop, setMobilePanelStopRaw] = useState<"peek" | "expanded">(
+    () => (localStorage.getItem("labyrinth_mobile_panel") === "peek" ? "peek" : "expanded")
+  );
+  const setMobilePanelStop = useCallback((val: "peek" | "expanded" | ((prev: "peek" | "expanded") => "peek" | "expanded")) => {
+    setMobilePanelStopRaw((prev) => {
+      const next = typeof val === "function" ? val(prev) : val;
+      try { localStorage.setItem("labyrinth_mobile_panel", next); } catch { /* storage full */ }
+      return next;
+    });
+  }, []);
   const [hasShownSetupHint, setHasShownSetupHint] = useState(false);
   const [showWelcomeGuide, setShowWelcomeGuide] = useState(
     () => localStorage.getItem("labyrinth_welcome_dismissed") !== "true"
   );
   const [isResumeDialogOpen, setIsResumeDialogOpen] = useState(false);
-  const [pendingResumeState, setPendingResumeState] = useState<any>(null);
+  const [pendingResumeState, setPendingResumeState] = useState<Partial<AppGameState> | null>(null);
 
   // Check for saved game state on boot
   useEffect(() => {
     try {
       const saved = localStorage.getItem(AUTOSAVE_KEY);
       if (saved) {
-        const parsed = JSON.parse(saved);
-        if (parsed && (parsed.isGameStarted || (parsed.board && parsed.board.some((r: any) => r.some((c: any) => c !== null))))) {
+        const parsed = JSON.parse(saved) as Partial<AppGameState>;
+        if (parsed && (parsed.isGameStarted || (parsed.board && parsed.board.some((r) => r.some((c) => c !== null))))) {
           setPendingResumeState(parsed);
           setIsResumeDialogOpen(true);
         }
@@ -135,9 +138,6 @@ export default function App() {
     });
   }, []);
 
-  // ── Solver worker ─────────────────────────────────────────────────────────────
-  const [solutions, setSolutions] = useState<SolverSolution[]>([]);
-  const [hoveredSolutionIndex, setHoveredSolutionIndex] = useState<number | null>(null);
   const [hoveredHistoryIndex, setHoveredHistoryIndex] = useState<number | null>(null);
   const [boardOpacity, setBoardOpacity] = useState(1);
   const transitionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -156,54 +156,31 @@ export default function App() {
       return idx;
     });
   }, []);
-  const [lockedScoreBreakdownSolution, setLockedScoreBreakdownSolution] = useState<SolverSolution | null>(null);
-  const hoveredSolution = (hoveredSolutionIndex !== null && solutions && hoveredSolutionIndex < solutions.length) ? solutions[hoveredSolutionIndex] : null;
-
-  const handleSetHoveredSolution = useCallback((sol: SolverSolution | null) => {
-    if (sol === null) {
-      setHoveredSolutionIndex(0);
-    } else {
-      const idx = solutions.indexOf(sol);
-      if (idx !== -1) {
-        setHoveredSolutionIndex(idx);
-      }
-    }
-  }, [solutions]);
-
-  const [isLoadingSolutions, setIsLoadingSolutions] = useState(false);
-  const workerRef = useRef<Worker | null>(null);
-
-  // ── Pawn travel animation state ───────────────────────────────────────────────
-  const [travelingPawn, setTravelingPawn] = useState<{
-    color: string;
-    path: { r: number; c: number }[];
-    durationMs: number;
-    key: number;
-  } | null>(null);
-  // While animating, hold pawn at from-position so it doesn't snap before the dot lands
-  const [pawnPositionOverride, setPawnPositionOverride] = useState<Record<string, {r: number; c: number}> | null>(null);
-  const travelTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // ── Autoplay & animation settings ──────────────────────────────────────────────
   const [autoPlayPaused, setAutoPlayPaused] = useState(false);
   const [autoPlaySpeed, setAutoPlaySpeed] = useState<0.5 | 1 | 2 | 4>(1);
   const [pawnAnimationSpeed, setPawnAnimationSpeed] = useState<number>(600);
 
-  // ── Toast system ──────────────────────────────────────────────────────────────
-  const [toastText, setToastText] = useState<string | null>(null);
+  // ── Toast FIFO Queue system ───────────────────────────────────────────────────
+  const [toastQueue, setToastQueue] = useState<{ id: number; msg: string }[]>([]);
+  const currentToast = toastQueue[0] || null;
+
   const showToast = useCallback(
     (msg: string) => {
-      setToastText(msg);
+      setToastQueue((prev) => [...prev, { id: Date.now() + Math.random(), msg }]);
       if (!isMuted) playClickSound();
     },
     [isMuted]
   );
 
   useEffect(() => {
-    if (!toastText) return;
-    const t = setTimeout(() => setToastText(null), 3000);
+    if (!currentToast) return;
+    const t = setTimeout(() => {
+      setToastQueue((prev) => prev.slice(1));
+    }, 3000);
     return () => clearTimeout(t);
-  }, [toastText]);
+  }, [currentToast]);
 
   // ── Theme effect ─────────────────────────────────────────────────────────────
   const setBaseTheme = useCallback((t: "dark" | "light") => {
@@ -228,7 +205,7 @@ export default function App() {
     }
   }, []);
 
-  // ── Accent color ──────────────────────────────────────────────────────────────
+  // ── Color Theme ──────────────────────────────────────────────────────────────
   const applyAccentColor = useCallback((hex: string) => {
     if (!hex) return;
     const r = parseInt(hex.slice(1, 3), 16);
@@ -263,13 +240,14 @@ export default function App() {
   const handleToggleMute = useCallback(() => {
     const next = !isMuted;
     setIsMuted(next);
+    setAudioMuted(next);
     try {
       localStorage.setItem("labyrinth_audio_muted", String(next));
     } catch {
       /* storage full */
     }
-    setToastText(next ? "Muted retro sound effects 🔇" : "Sound effects enabled 🔊");
-  }, [isMuted]);
+    showToast(next ? "Muted retro sound effects 🔇" : "Sound effects enabled 🔊");
+  }, [isMuted, showToast]);
 
   // ── Game hook ─────────────────────────────────────────────────────────────────
   const game = useLabyrinthGame({
@@ -277,44 +255,82 @@ export default function App() {
     onToast: showToast,
   });
 
+  // Dynamic document title update
+  useEffect(() => {
+    if (!game.isGameStarted) {
+      document.title = "Labyrinth Game Solver";
+      return;
+    }
+    const pawnName = game.activePawn.charAt(0).toUpperCase() + game.activePawn.slice(1);
+    if (game.gameMode === "auto") {
+      document.title = `Auto Mode (${pawnName}) — Labyrinth Solver`;
+    } else if (game.gameMode === "coop") {
+      document.title = `${pawnName}'s Turn (Co-op) — Labyrinth Solver`;
+    } else {
+      document.title = `${pawnName}'s Turn — Labyrinth Solver`;
+    }
+  }, [game.isGameStarted, game.activePawn, game.gameMode]);
+
   const canStartGame = game.looseTiles.length === 1 || game.looseTiles.length === 0;
 
-  // ── Pawn travel animation wrapper (needs game to be declared first) ────────────
-  const handleExecuteSolutionWithAnimation = useCallback((path: any) => {
-    if (!path || path.length === 0) return;
-    const turn1 = path[0];
-    const pawnColor = path.pawnColor ?? game.activePawn;
-    const fromPos = game.pawnPositions[pawnColor];
-    const fullPath: { r: number; c: number }[] = turn1?.pawnPath || (fromPos ? [fromPos, turn1.endPos] : []);
+  // ── Solver Worker hook ────────────────────────────────────────────────────────
+  const {
+    solutions,
+    hoveredSolution,
+    handleSetHoveredSolution,
+    lockedScoreBreakdownSolution,
+    setLockedScoreBreakdownSolution,
+    isLoadingSolutions,
+    clearSolutions,
+  } = useSolverWorker({
+    isGameStarted: game.isGameStarted,
+    grid: game.grid,
+    spareTile: game.spareTile,
+    activePawn: game.activePawn,
+    activePlayers: game.activePlayers,
+    pawnPositions: game.pawnPositions,
+    playerHands: game.playerHands,
+    playerActiveTargets: game.playerActiveTargets,
+    lastShiftArrowId: game.lastShiftArrowId,
+    gameMode: game.gameMode,
+    remainingCoopTreasures: game.remainingCoopTreasures,
+    customTargetCoords: game.customTargetCoords,
+    solverDepth,
+    getSolverFormattedBoard: game.getSolverFormattedBoard,
+    getSolverFormattedSpare: game.getSolverFormattedSpare,
+    showToast,
+    switchToNextPawn: game.switchToNextPawn,
+  });
 
-    if (fullPath.length > 1 && fromPos) {
-      if (travelTimerRef.current) clearTimeout(travelTimerRef.current);
-      // Lock the pawn display at FROM so it doesn't instantly jump
-      setPawnPositionOverride(prev => ({ ...game.pawnPositions, ...prev, [pawnColor]: fromPos }));
+  // ── Slide Staging hook ────────────────────────────────────────────────────────
+  const {
+    stagedArrow,
+    stagedRotation,
+    handleArrowClick,
+    rotateStaged,
+    commitStagedSlide,
+    cancelStagedSlide,
+  } = useSlideStaging({
+    spareTile: game.spareTile,
+    activePawn: game.activePawn,
+    isGameStarted: game.isGameStarted,
+    onSlide: game.handleSlide,
+    onRotateSpare: game.handleTileClick,
+    setTurnPhase,
+  });
 
-      // Duration scales based on path length and user speed setting (300ms, 600ms, 1000ms base)
-      const numSteps = fullPath.length - 1;
-      const animDuration = Math.max(250, Math.round(pawnAnimationSpeed * Math.min(2, Math.max(0.7, numSteps * 0.4))));
-
-      setTravelingPawn({
-        color: pawnColor,
-        path: fullPath,
-        durationMs: animDuration,
-        key: Date.now(),
-      });
-
-      // Execute the real move after the animation dot has completed the path
-      travelTimerRef.current = setTimeout(() => {
-        game.handleExecuteSolution(path);
-        setTravelingPawn(null);
-        setPawnPositionOverride(null);
-      }, animDuration + 40);
-    } else {
-      // No animation path possible — execute immediately
-      game.handleExecuteSolution(path);
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [game.activePawn, game.pawnPositions, game.handleExecuteSolution, pawnAnimationSpeed]);
+  // ── Pawn Travel Animation hook ────────────────────────────────────────────────
+  const {
+    travelingPawn,
+    pawnPositionOverride,
+    handleExecuteSolutionWithAnimation,
+  } = usePawnAnimation({
+    activePawn: game.activePawn,
+    pawnPositions: game.pawnPositions,
+    pawnAnimationSpeed,
+    onBeforeExecute: clearSolutions,
+    onExecuteSolution: game.handleExecuteSolution,
+  });
 
   const handleScanApply = useCallback(
     (scannedGrid: (TileData | null)[][], looseTiles: TileData[]) => {
@@ -332,7 +348,7 @@ export default function App() {
       setHasShownSetupHint(false);
       setMobilePanelStop("peek");
     }
-  }, [game.isGameStarted]);
+  }, [game.isGameStarted, setMobilePanelStop]);
 
   useEffect(() => {
     if (!game.isGameStarted && game.looseTiles.length !== 1 && !hasShownSetupHint) {
@@ -340,49 +356,7 @@ export default function App() {
       showToast("Tap Randomize Board or place tiles to finish setup.");
       setHasShownSetupHint(true);
     }
-  }, [game.isGameStarted, game.looseTiles.length, hasShownSetupHint, showToast]);
-
-  // ── Turn-phase-aware slide, arrow staging, and cell-click ────────────────────
-  const handleArrowClick = useCallback(
-    (arrowId: string) => {
-      if (stagedArrow === arrowId) {
-        // Already staged — rotate the staged spare instead
-        setStagedRotation(
-          (prev) =>
-            ([0, 90, 180, 270] as (0 | 90 | 180 | 270)[])[
-              ([0, 90, 180, 270].indexOf(prev) + 1) % 4
-            ]
-        );
-      } else {
-        setStagedArrow(arrowId);
-        // Initialise staged rotation from the current spare tile's actual rotation
-        setStagedRotation(game.spareTile.rotation as 0 | 90 | 180 | 270);
-      }
-    },
-    [stagedArrow, game.spareTile.rotation]
-  );
-
-  const commitStagedSlide = useCallback(() => {
-    if (!stagedArrow) return;
-    // Apply staged rotation to the real spare, then slide
-    if (stagedRotation !== game.spareTile.rotation) {
-      // Rotate the spare to the staged rotation by clicking until it matches
-      const turns =
-        ([0, 90, 180, 270].indexOf(stagedRotation) -
-          [0, 90, 180, 270].indexOf(game.spareTile.rotation as 0 | 90 | 180 | 270) +
-          4) %
-        4;
-      for (let i = 0; i < turns; i++) game.handleTileClick(game.spareTile.id);
-    }
-    game.handleSlide(stagedArrow);
-    setStagedArrow(null);
-    setTurnPhase("move");
-  }, [stagedArrow, stagedRotation, game]);
-
-  const cancelStagedSlide = useCallback(() => {
-    setStagedArrow(null);
-    setStagedRotation(game.spareTile.rotation as 0 | 90 | 180 | 270);
-  }, [game.spareTile.rotation]);
+  }, [game.isGameStarted, game.looseTiles.length, hasShownSetupHint, showToast, setMobilePanelStop]);
 
   const handleManualCellClick = useCallback(
     (r: number, c: number) => {
@@ -431,149 +405,26 @@ export default function App() {
         setIsSettingsOpen(true);
         return;
       }
+      if ((e.key === "r" || e.key === "R") && !ctrl) {
+        e.preventDefault();
+        setBoardRotation((prev) => (prev + 90) % 360);
+        return;
+      }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isMuted, game.handleUndo, game.handleRedo, showToast]);
 
-  // ── Turn phase reset ──────────────────────────────────────────────────────────
-  useEffect(() => {
-    if (game.isGameStarted) {
-      setTurnPhase("slide");
-      setStagedArrow(null);
-      setStagedRotation(game.spareTile.rotation as 0 | 90 | 180 | 270);
-    }
-  }, [game.activePawn, game.isGameStarted, game.spareTile.rotation]);
-
-  // ── Solver worker lifecycle ───────────────────────────────────────────────────
-  useEffect(() => {
-    try {
-      workerRef.current = new Worker(new URL("./solver.worker.js", import.meta.url), {
-        type: "module",
-      });
-      workerRef.current.onmessage = (e) => {
-        const { success, solutions: computed, error } = e.data as {
-          success: boolean;
-          solutions: SolverSolution[];
-          error: string;
-        };
-        if (success) {
-          setSolutions(computed || []);
-          setHoveredSolutionIndex(0);
-        } else {
-          console.error("Worker solver failed:", error);
-          showToast("Solver error — try adjusting targets or reducing max turns.");
-        }
-        setIsLoadingSolutions(false);
-      };
-      workerRef.current.onerror = (e) => {
-        console.error("Worker crashed:", e);
-        showToast("Solver worker crashed. Reload to retry.");
-        setIsLoadingSolutions(false);
-      };
-    } catch (err) {
-      console.warn("Failed to instantiate Web Worker solver.", err);
-    }
-
-    // Attempt load from autosave once on mount
-    const saved = game.loadAutosave();
-    // A valid Labyrinth state always contains movable (non-fixed) tiles —
-    // either loose tiles left to place or movable tiles already on the board.
-    // A save with zero movable tiles is degenerate (e.g. an empty initial
-    // state captured before setup), so fall back to a fresh preset board.
-    const hasMovableTiles =
-      (saved?.looseTiles?.length ?? 0) > 0 ||
-      (saved?.board ?? []).some((row) =>
-        (row ?? []).some((tile) => tile && !tile.isFixed)
-      );
-    if (saved?.board && hasMovableTiles) {
-      game.hydrateFromSaved(saved, game.spareTile);
-    } else {
-      game.resetBoardToInitialPresets();
-    }
-
-    return () => workerRef.current?.terminate();
-    // Mount-only: do not re-run when game callbacks change
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // ── Solver re-run on board/pawn/hand changes ──────────────────────────────────
-  useEffect(() => {
-    if (!game.isGameStarted || game.grid.length === 0 || !workerRef.current) return;
-    const isCoop = game.gameMode === "coop" || game.gameMode === "auto";
-    const currentPawnCoord = game.pawnPositions[game.activePawn];
-    const handCards = game.customTargetCoords
-      ? [`${game.customTargetCoords.type || "coord"}:${game.customTargetCoords.r},${game.customTargetCoords.c}`]
-      : game.playerHands[game.activePawn] || [];
-
-    if (!isCoop && (!currentPawnCoord || handCards.length === 0)) {
-      setSolutions([]);
-      return;
-    }
-    if (isCoop && !currentPawnCoord) {
-      setSolutions([]);
-      return;
-    }
-
-    setIsLoadingSolutions(true);
-    let solverBoard = game.getSolverFormattedBoard(game.grid, game.pawnPositions);
-    const solverSpare = game.getSolverFormattedSpare(game.spareTile);
-
-    
-
-    let isCoopSolve = isCoop;
-    let coopTarget = null;
-    if (isCoop && game.customTargetCoords) {
-      isCoopSolve = false; // Solve as a standard single target using solveLabyrinth
-      const activeHome = DEFAULT_PAWN_POSITIONS[game.activePawn];
-      const isHomeSelected = activeHome && game.customTargetCoords.r === activeHome.r && game.customTargetCoords.c === activeHome.c;
-      coopTarget = isHomeSelected ? `home_${game.activePawn}` : `${game.customTargetCoords.type || "coord"}:${game.customTargetCoords.r},${game.customTargetCoords.c}`;
-    }
-
-    // In coop mode, if a specific target card is selected, solve only for that card. In auto mode or unselected coop, solve globally for all remaining treasures.
-    const selectedTarget = game.gameMode === "auto" ? null : game.playerActiveTargets[game.activePawn];
-    const coopTreasures = isCoop && selectedTarget ? [selectedTarget] : game.remainingCoopTreasures;
-
-    workerRef.current.postMessage({
-      board: solverBoard,
-      spareTile: solverSpare,
-      pawnPos: currentPawnCoord,
-      pawnPositions: game.pawnPositions,
-      handCards: coopTarget ? [coopTarget] : handCards,
-      lastShiftArrowId: game.lastShiftArrowId,
-      maxTurns: solverDepth,
-      isCoop: isCoopSolve,
-      activePawns: isCoop ? [game.activePawn] : game.activePlayers,
-      remainingTreasures: coopTreasures,
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    game.grid,
-    game.spareTile,
-    game.activePawn,
-    game.playerHands,
-    game.playerActiveTargets,
-    game.lastShiftArrowId,
-    game.isGameStarted,
-    game.pawnPositions,
-    game.getSolverFormattedBoard,
-    game.getSolverFormattedSpare,
-    game.customTargetCoords,
-    solverDepth,
-    game.gameMode,
-    game.activePlayers,
-    game.remainingCoopTreasures,
-    game.showEmptyTiles,
-  ]);
-
   // ── Autoplay: when in auto mode, auto-execute the top solver suggestion ────────
-  const AUTOPLAY_BASE_DELAY_MS = 1000; // base pause between moves at 1× speed
+  const AUTOPLAY_BASE_DELAY_MS = 1000;
   const isExecutingAutoMoveRef = useRef(false);
 
   useEffect(() => {
-    if (game.gameMode !== "auto") return;
-    if (!game.isGameStarted) return;
+    if (!game.isGameStarted || game.gameMode !== "auto") {
+      isExecutingAutoMoveRef.current = false;
+      return;
+    }
     if (autoPlayPaused) return;
     if (isLoadingSolutions) return;
     if (!solutions || solutions.length === 0) return;
@@ -584,12 +435,9 @@ export default function App() {
       const top = solutions[0];
       if (top && !isExecutingAutoMoveRef.current) {
         isExecutingAutoMoveRef.current = true;
-        handleExecuteSolutionWithAnimation(top as any);
-        // Release lock after animation and state update completes
-        const releaseDelay = Math.max(350, Math.round(700 / autoPlaySpeed));
-        setTimeout(() => {
+        handleExecuteSolutionWithAnimation(top, () => {
           isExecutingAutoMoveRef.current = false;
-        }, releaseDelay);
+        });
       }
     }, delay);
 
@@ -617,10 +465,8 @@ export default function App() {
     if (!over) return;
 
     const tileId = active.id as string;
-    const tileData = active.data.current as TileData;
-    if (tileData.isFixed) return;
-
     const overId = over.id as string;
+
     const removeTile = (id: string) => {
       game.setLooseTiles((prev) => prev.filter((t) => t.id !== id));
       game.setGrid((prev) =>
@@ -657,197 +503,27 @@ export default function App() {
     }
   };
 
-  // ── Preview state for hovered solver suggestion ───────────────────────────────
-  const previewState = useMemo(() => {
-    if (
-      !hoveredSolution ||
-      (hoveredSolution as { arrowId: string; rotation: number }[]).length === 0
-    )
-      return null;
-    const turn1 = (hoveredSolution as { arrowId: string; rotation: number }[])[0];
-    const arrow = SHIFT_ARROWS.find((a) => a.id === turn1.arrowId);
-    if (!arrow) return null;
-    try {
-      const solverBoard = game.getSolverFormattedBoard(game.grid, game.pawnPositions);
-      const rotDegrees = ([0, 90, 180, 270] as Rotation[])[turn1.rotation];
-      const solverSpare = game.getSolverFormattedSpare({
-        ...game.spareTile,
-        rotation: rotDegrees,
-      });
-      executeSlideInGrid(solverBoard, solverSpare, arrow.type, arrow.index, arrow.dir);
-      const previewGrid = fromSolverGrid(
-        game.grid,
-        solverBoard,
-        () => "preview_temp_inserted"
-      );
-      const previewPawnPositions = { ...game.pawnPositions };
-      Object.entries(game.pawnPositions).forEach(([color, pos]) => {
-        let nr = pos.r,
-          nc = pos.c;
-        if (arrow.type === "row" && arrow.index === pos.r) {
-          nc =
-            arrow.dir === "left"
-              ? pos.c === 6
-                ? 0
-                : pos.c + 1
-              : pos.c === 0
-              ? 6
-              : pos.c - 1;
-        } else if (arrow.type === "col" && arrow.index === pos.c) {
-          nr =
-            arrow.dir === "top"
-              ? pos.r === 6
-                ? 0
-                : pos.r + 1
-              : pos.r === 0
-              ? 6
-              : pos.r - 1;
-        }
-        previewPawnPositions[color] = { r: nr, c: nc };
-      });
-      return {
-        grid: previewGrid,
-        pawnPositions: previewPawnPositions,
-        spareTile: { ...game.spareTile, rotation: rotDegrees },
-      };
-    } catch {
-      return null;
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    hoveredSolution,
-    game.grid,
-    game.pawnPositions,
-    game.spareTile,
-    game.getSolverFormattedBoard,
-    game.getSolverFormattedSpare,
-  ]);
-
-  const activeTargetCoords = useMemo(() => {
-    const targetId = game.playerActiveTargets[game.activePawn];
-    if (!targetId) return null;
-    const gridToSearch = previewState?.grid ?? game.grid;
-    if (!gridToSearch.length) return null;
-    for (let r = 0; r < 7; r++)
-      for (let c = 0; c < 7; c++) {
-        const cell = gridToSearch[r]?.[c];
-        if (cell?.treasure?.id === targetId) return { r, c };
-      }
-    return null;
-  }, [game.playerActiveTargets, game.activePawn, game.grid, previewState]);
-
-  const stagedPreviewState = useMemo(() => {
-    if (hoveredSolution || !stagedArrow || turnPhase !== "slide") return null;
-    const arrow = SHIFT_ARROWS.find((a) => a.id === stagedArrow);
-    if (!arrow) return null;
-    try {
-      const solverBoard = game.getSolverFormattedBoard(game.grid, game.pawnPositions);
-      const solverSpare = game.getSolverFormattedSpare({
-        ...game.spareTile,
-        rotation: stagedRotation,
-      });
-      executeSlideInGrid(solverBoard, solverSpare, arrow.type, arrow.index, arrow.dir);
-      const previewGrid = fromSolverGrid(
-        game.grid,
-        solverBoard,
-        () => "staged_preview"
-      );
-      const previewPawnPositions = { ...game.pawnPositions };
-      Object.entries(game.pawnPositions).forEach(([color, pos]) => {
-        let nr = pos.r,
-          nc = pos.c;
-        if (arrow.type === "row" && arrow.index === pos.r) {
-          nc =
-            arrow.dir === "left"
-              ? pos.c === 6
-                ? 0
-                : pos.c + 1
-              : pos.c === 0
-              ? 6
-              : pos.c - 1;
-        } else if (arrow.type === "col" && arrow.index === pos.c) {
-          nr =
-            arrow.dir === "top"
-              ? pos.r === 6
-                ? 0
-                : pos.r + 1
-              : pos.r === 0
-              ? 6
-              : pos.r - 1;
-        }
-        previewPawnPositions[color] = { r: nr, c: nc };
-      });
-      return {
-        grid: previewGrid,
-        pawnPositions: previewPawnPositions,
-        spareTile: { ...game.spareTile, rotation: stagedRotation },
-      };
-    } catch {
-      return null;
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
+  // ── Preview state (hovered suggestion, staged arrow, history) ───────────────
+  const {
+    effectivePreview,
+    activeTargetCoords,
+    reachableCells,
+  } = usePreviewState({
+    grid: game.grid,
+    pawnPositions: game.pawnPositions,
+    spareTile: game.spareTile,
+    isGameStarted: game.isGameStarted,
+    activePawn: game.activePawn,
+    playerActiveTargets: game.playerActiveTargets,
+    turnPhase,
     hoveredSolution,
     stagedArrow,
     stagedRotation,
-    turnPhase,
-    game.grid,
-    game.pawnPositions,
-    game.spareTile,
-    game.getSolverFormattedBoard,
-    game.getSolverFormattedSpare,
-  ]);
-
-  const reachableCells = useMemo<{ r: number; c: number }[]>(() => {
-    if (!game.isGameStarted) return [];
-    // During move phase, use the post-slide game grid
-    if (turnPhase === "move") {
-      const pawnPos = game.pawnPositions[game.activePawn];
-      if (!pawnPos) return [];
-      try {
-        const solverBoard = game.getSolverFormattedBoard(game.grid, game.pawnPositions);
-        const { cells } = getReachableCells(solverBoard, pawnPos.r, pawnPos.c);
-        return cells as { r: number; c: number }[];
-      } catch {
-        return [];
-      }
-    }
-    // During staged preview, show reachable cells from the staged board
-    if (stagedPreviewState) {
-      const pawnPos = stagedPreviewState.pawnPositions[game.activePawn];
-      if (!pawnPos) return [];
-      try {
-        const solverBoard = game.getSolverFormattedBoard(
-          stagedPreviewState.grid,
-          stagedPreviewState.pawnPositions
-        );
-        const { cells } = getReachableCells(solverBoard, pawnPos.r, pawnPos.c);
-        return cells as { r: number; c: number }[];
-      } catch {
-        return [];
-      }
-    }
-    return [];
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    game.isGameStarted,
-    turnPhase,
-    game.grid,
-    game.pawnPositions,
-    game.activePawn,
-    game.getSolverFormattedBoard,
-    stagedPreviewState,
-  ]);
-
-  const effectivePreview = hoveredHistoryIndex !== null && game.history && game.history[hoveredHistoryIndex]
-    ? {
-        grid: game.history[hoveredHistoryIndex].board,
-        pawnPositions: game.history[hoveredHistoryIndex].pawnPositions || game.pawnPositions,
-        spareTile: game.history[hoveredHistoryIndex].spareTile || game.spareTile,
-        pawnPath: game.history[hoveredHistoryIndex].pawnPath,
-        movedPawn: game.history[hoveredHistoryIndex].movedPawn,
-      }
-    : previewState || stagedPreviewState;
+    hoveredHistoryIndex,
+    history: game.history,
+    getSolverFormattedBoard: game.getSolverFormattedBoard,
+    getSolverFormattedSpare: game.getSolverFormattedSpare,
+  });
 
   const isActivePawnHome = useMemo(() => {
     const pawnPos = game.pawnPositions[game.activePawn];
@@ -891,17 +567,16 @@ export default function App() {
           1
         );
 
-        const uniqueEmptyCoords = new Set();
+        const uniqueEmptyCoords = new Set<string>();
         for (const sol of emptySols) {
           if (sol[0] && sol[0].targetCoord) {
-            // Check if the target tile's original location matches the pawn's current location
             if (sol[0].targetCoord.r === pawnPos.r && sol[0].targetCoord.c === pawnPos.c) continue;
             uniqueEmptyCoords.add(`${sol[0].targetCoord.r},${sol[0].targetCoord.c}`);
           }
         }
 
         for (const coord of uniqueEmptyCoords) {
-          const [r, c] = (coord as string).split(",");
+          const [r, c] = coord.split(",");
           targets.push({
             id: `empty:${r},${c}`,
             name: `Cell (${r}, ${c})`
@@ -929,6 +604,72 @@ export default function App() {
     game.getSolverFormattedSpare,
     game.showEmptyTiles
   ]);
+
+  // ── Unified Side / Sheet Panel Component ──────────────────────────────────────
+  const sidePanelContent = game.isGameStarted ? (
+    <SolverPanel
+      solutions={solutions}
+      isLoadingSolutions={isLoadingSolutions}
+      setHoveredSolution={handleSetHoveredSolution}
+      lockedScoreBreakdownSolution={lockedScoreBreakdownSolution}
+      setLockedScoreBreakdownSolution={setLockedScoreBreakdownSolution}
+      activePawn={game.activePawn}
+      setActivePawn={game.setActivePawn}
+      activePlayers={game.activePlayers}
+      isMuted={isMuted}
+      spareTile={effectivePreview ? effectivePreview.spareTile : game.spareTile}
+      customTargetCoords={game.customTargetCoords}
+      setCustomTargetCoords={game.setCustomTargetCoords}
+      showEmptyTiles={game.showEmptyTiles}
+      setShowEmptyTiles={game.setShowEmptyTiles}
+      onExecuteSolution={handleExecuteSolutionWithAnimation}
+      playerActiveTargets={game.playerActiveTargets}
+      onSelectTargetTreasure={game.handleSelectTargetTreasure}
+      stagedArrow={stagedArrow}
+      stagedRotation={stagedRotation}
+      onRotateStaged={rotateStaged}
+      onCommitSlide={commitStagedSlide}
+      onCancelSlide={cancelStagedSlide}
+      turnPhase={turnPhase}
+      showOneMoveTargets={showOneMoveTargets}
+      onToggleOneMoveTargets={() => setShowOneMoveTargets((v) => !v)}
+      oneMoveTargets={oneMoveTargets}
+      isActivePawnHome={isActivePawnHome}
+      compact={isMobile && mobilePanelStop === "peek"}
+      onToggleStats={() => setShowStats((prev) => !prev)}
+      gameMode={game.gameMode}
+      remainingCoopTreasures={game.remainingCoopTreasures}
+      grid={game.grid}
+    />
+  ) : (
+    <SetupPanel
+      looseTiles={game.looseTiles}
+      activePlayers={game.activePlayers}
+      setActivePlayers={game.setActivePlayers}
+      activePawn={game.activePawn}
+      setActivePawn={game.setActivePawn}
+      isMuted={isMuted}
+      playerHands={game.playerHands}
+      onTileClick={game.handleTileClick}
+      onRandomizeBoard={game.handleRandomizeBoard}
+      onResetBoard={() => game.resetBoardToInitialPresets()}
+      onAddCard={game.handleAddCard}
+      onRemoveCard={game.handleRemoveCard}
+      onAddAllCards={game.handleAddAllCards}
+      onClearAllCards={game.handleClearAllCards}
+      setupTab={game.setupTab}
+      setSetupTab={game.setSetupTab}
+      canStartGame={canStartGame}
+      onStartGame={game.handleStartGame}
+      showToast={showToast}
+      onScanBoard={() => setIsScanModalOpen(true)}
+      onOpenSettings={() => setIsSettingsOpen(true)}
+      compact={isMobile && mobilePanelStop === "peek"}
+      gameMode={game.gameMode}
+      onSetGameMode={game.setGameMode}
+      onResetAllDefaults={game.resetAllDefaults}
+    />
+  );
 
   // ── Render ────────────────────────────────────────────────────────────────────
   return (
@@ -1013,17 +754,22 @@ export default function App() {
             >
               {(() => {
                 const activeHoveredSolution = hoveredSolution || lockedScoreBreakdownSolution;
-                const overlaySuggestedPath = activeHoveredSolution 
-                  ? activeHoveredSolution[0]?.pawnPath || []
-                  : (effectivePreview as any)?.pawnPath || null;
-                if (overlaySuggestedPath && !activeHoveredSolution && (effectivePreview as any)?.movedPawn) {
-                  (overlaySuggestedPath as any).pawnColor = (effectivePreview as any).movedPawn;
+                const overlaySuggestedPath: { r: number; c: number; pawnColor?: string }[] | null = activeHoveredSolution 
+                  ? activeHoveredSolution[0]?.pawnPath ? [...activeHoveredSolution[0].pawnPath] : []
+                  : effectivePreview?.pawnPath ? [...effectivePreview.pawnPath] : null;
+                if (overlaySuggestedPath && overlaySuggestedPath.length > 0) {
+                  if (activeHoveredSolution) {
+                    overlaySuggestedPath.forEach((pt) => { pt.pawnColor = activeHoveredSolution.pawnColor || game.activePawn; });
+                  } else if (effectivePreview?.movedPawn) {
+                    overlaySuggestedPath.forEach((pt) => { pt.pawnColor = effectivePreview.movedPawn; });
+                  }
                 }
                 return (
                   <div
                     className="relative w-full h-full transition-opacity duration-150 ease-in-out"
                     style={{ opacity: boardOpacity }}
                   >
+                  <InlineErrorBoundary label="Board">
                     <Board
                       grid={effectivePreview ? effectivePreview.grid : game.grid}
                       originalGrid={game.grid}
@@ -1043,7 +789,7 @@ export default function App() {
                       isStaticHoveredPath={!!effectivePreview && !activeHoveredSolution}
                       hoveredSolutionArrow={
                         activeHoveredSolution
-                          ? (activeHoveredSolution as { arrowId: string }[])[0].arrowId
+                          ? activeHoveredSolution[0]?.arrowId || null
                           : stagedArrow || null
                       }
                       boardRotation={boardRotation}
@@ -1071,6 +817,7 @@ export default function App() {
                       activePawn={game.activePawn}
                       travelingPawn={travelingPawn}
                     />
+                  </InlineErrorBoundary>
                   </div>
                 );
               })()}
@@ -1080,74 +827,7 @@ export default function App() {
           {/* Tablet & desktop side panel (md+) */}
           {!isMobile && (
             <div className="flex w-full md:w-[320px] lg:w-[400px] xl:w-[440px] flex-col flex-shrink-0 min-h-0 md:h-full gap-3 bg-card neo-brutalism-card rounded-3xl p-2 overflow-hidden">
-              {game.isGameStarted ? (
-                <SolverPanel
-                  solutions={solutions}
-                  isLoadingSolutions={isLoadingSolutions}
-                  hoveredSolution={hoveredSolution}
-                  setHoveredSolution={handleSetHoveredSolution}
-                  lockedScoreBreakdownSolution={lockedScoreBreakdownSolution}
-                  setLockedScoreBreakdownSolution={setLockedScoreBreakdownSolution}
-                  activePawn={game.activePawn}
-                  setActivePawn={game.setActivePawn}
-                  activePlayers={game.activePlayers}
-                  isMuted={isMuted}
-                  spareTile={effectivePreview ? effectivePreview.spareTile : game.spareTile}
-                  customTargetCoords={game.customTargetCoords}
-                  setCustomTargetCoords={game.setCustomTargetCoords}
-                  showEmptyTiles={game.showEmptyTiles}
-                  setShowEmptyTiles={game.setShowEmptyTiles}
-                  onExecuteSolution={handleExecuteSolutionWithAnimation}
-                  playerActiveTargets={game.playerActiveTargets}
-                  onSelectTargetTreasure={game.handleSelectTargetTreasure}
-                  stagedArrow={stagedArrow}
-                  stagedRotation={stagedRotation}
-                  onRotateStaged={() =>
-                    setStagedRotation(
-                      (prev) =>
-                        ([0, 90, 180, 270] as (0 | 90 | 180 | 270)[])[
-                          ([0, 90, 180, 270].indexOf(prev) + 1) % 4
-                        ]
-                    )
-                  }
-                  onCommitSlide={commitStagedSlide}
-                  onCancelSlide={cancelStagedSlide}
-                  turnPhase={turnPhase}
-                  showOneMoveTargets={showOneMoveTargets}
-                  onToggleOneMoveTargets={() => setShowOneMoveTargets((v) => !v)}
-                  oneMoveTargets={oneMoveTargets}
-                  isActivePawnHome={isActivePawnHome}
-                  gameMode={game.gameMode}
-                  remainingCoopTreasures={game.remainingCoopTreasures}
-                  grid={game.grid}
-                />
-              ) : (
-                <SetupPanel
-                  looseTiles={game.looseTiles}
-                  activePlayers={game.activePlayers}
-                  setActivePlayers={game.setActivePlayers}
-                  activePawn={game.activePawn}
-                  setActivePawn={game.setActivePawn}
-                  isMuted={isMuted}
-                  playerHands={game.playerHands}
-                  onTileClick={game.handleTileClick}
-                  onRandomizeBoard={game.handleRandomizeBoard}
-                  onResetBoard={() => game.resetBoardToInitialPresets()}
-                  onAddCard={game.handleAddCard}
-                  onRemoveCard={game.handleRemoveCard}
-                  onAddAllCards={game.handleAddAllCards}
-                  onClearAllCards={game.handleClearAllCards}
-                  setupTab={game.setupTab}
-                  setSetupTab={game.setSetupTab}
-                  canStartGame={canStartGame}
-                  onStartGame={game.handleStartGame}
-                  showToast={showToast}
-                  onScanBoard={() => setIsScanModalOpen(true)}
-                  gameMode={game.gameMode}
-                  onSetGameMode={game.setGameMode}
-                  onResetAllDefaults={game.resetAllDefaults}
-                />
-              )}
+              {sidePanelContent}
             </div>
           )}
 
@@ -1182,100 +862,19 @@ export default function App() {
                   mobilePanelStop === "expanded" ? "overflow-y-auto overscroll-contain" : "overflow-hidden"
                 )}
               >
-                {game.isGameStarted ? (
-                  <SolverPanel
-                    solutions={solutions}
-                    isLoadingSolutions={isLoadingSolutions}
-                    hoveredSolution={hoveredSolution}
-                    setHoveredSolution={handleSetHoveredSolution}
-                    lockedScoreBreakdownSolution={lockedScoreBreakdownSolution}
-                    setLockedScoreBreakdownSolution={setLockedScoreBreakdownSolution}
-                    activePawn={game.activePawn}
-                    setActivePawn={game.setActivePawn}
-                    activePlayers={game.activePlayers}
-                    isMuted={isMuted}
-                    spareTile={effectivePreview ? effectivePreview.spareTile : game.spareTile}
-                    customTargetCoords={game.customTargetCoords}
-                    setCustomTargetCoords={game.setCustomTargetCoords}
-                    showEmptyTiles={game.showEmptyTiles}
-                    setShowEmptyTiles={game.setShowEmptyTiles}
-                    onExecuteSolution={handleExecuteSolutionWithAnimation}
-                    playerActiveTargets={game.playerActiveTargets}
-                    onSelectTargetTreasure={game.handleSelectTargetTreasure}
-                    stagedArrow={stagedArrow}
-                    stagedRotation={stagedRotation}
-                    onRotateStaged={() =>
-                      setStagedRotation(
-                        (prev) =>
-                          ([0, 90, 180, 270] as (0 | 90 | 180 | 270)[])[
-                            ([0, 90, 180, 270].indexOf(prev) + 1) % 4
-                          ]
-                      )
-                    }
-                    onCommitSlide={commitStagedSlide}
-                    onCancelSlide={cancelStagedSlide}
-                    turnPhase={turnPhase}
-                    showOneMoveTargets={showOneMoveTargets}
-                    onToggleOneMoveTargets={() => setShowOneMoveTargets((v) => !v)}
-                    oneMoveTargets={oneMoveTargets}
-                    isActivePawnHome={isActivePawnHome}
-                    compact={mobilePanelStop === "peek"}
-                    onToggleStats={() => setShowStats((prev) => !prev)}
-                    gameMode={game.gameMode}
-                    remainingCoopTreasures={game.remainingCoopTreasures}
-                    grid={game.grid}
-                  />
-                ) : (
-                  <SetupPanel
-                    looseTiles={game.looseTiles}
-                    activePlayers={game.activePlayers}
-                    setActivePlayers={game.setActivePlayers}
-                    activePawn={game.activePawn}
-                    setActivePawn={game.setActivePawn}
-                    isMuted={isMuted}
-                    playerHands={game.playerHands}
-                    onTileClick={game.handleTileClick}
-                    onRandomizeBoard={game.handleRandomizeBoard}
-                    onResetBoard={() => game.resetBoardToInitialPresets()}
-                    onAddCard={game.handleAddCard}
-                    onRemoveCard={game.handleRemoveCard}
-                    onAddAllCards={game.handleAddAllCards}
-                    onClearAllCards={game.handleClearAllCards}
-                    setupTab={game.setupTab}
-                    setSetupTab={game.setSetupTab}
-                    canStartGame={canStartGame}
-                    onStartGame={game.handleStartGame}
-                    showToast={showToast}
-                    onScanBoard={() => setIsScanModalOpen(true)}
-                    onOpenSettings={() => setIsSettingsOpen(true)}
-                    compact={mobilePanelStop === "peek"}
-                    gameMode={game.gameMode}
-                    onSetGameMode={game.setGameMode}
-                    onResetAllDefaults={game.resetAllDefaults}
-                  />
-                )}
+                {sidePanelContent}
               </div>
             </div>
-          )}
-
-          {createPortal(
-            <DragOverlay dropAnimation={null}>
-              {activeId ? (
-                <Tile
-                  tile={
-                    game.looseTiles.find((t) => t.id === activeId) ||
-                    game.grid.flat().find((t) => t?.id === activeId)!
-                  }
-                  className="w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 lg:w-24 lg:h-24 shadow-[6px_6px_0_0_#000000] rotate-3"
-                />
-              ) : null}
-            </DragOverlay>,
-            document.body
           )}
         </DndContext>
       </main>
 
-      {/* Move history dialog */}
+      <BoardScanModal
+        open={isScanModalOpen}
+        onClose={() => setIsScanModalOpen(false)}
+        onApply={handleScanApply}
+      />
+
       <MoveHistoryDialog
         open={isHistoryOpen}
         onClose={() => setIsHistoryOpen(false)}
@@ -1285,164 +884,56 @@ export default function App() {
         onJumpTo={game.handleJumpToHistory}
       />
 
-      {/* Board scan modal */}
-      <BoardScanModal
-        open={isScanModalOpen}
-        onClose={() => setIsScanModalOpen(false)}
-        onApply={handleScanApply}
-      />
-
-      {/* Welcome guide */}
       <WelcomeGuide
         open={showWelcomeGuide}
         onOpenChange={setShowWelcomeGuide}
-        onDismiss={() => {
-          try {
-            localStorage.setItem("labyrinth_welcome_dismissed", "true");
-          } catch {
-            /* storage full */
-          }
-        }}
+        onDismiss={() => setShowWelcomeGuide(false)}
       />
 
-      {/* Stats dialog */}
+      {/* Stats Dialog */}
       <Dialog open={showStats} onOpenChange={setShowStats}>
-        <DialogContent
-          className="sm:max-w-[500px] text-stone-100 p-0 rounded-xl overflow-hidden"
-          onKeyDown={(e) => {
-            if (e.key === " ") e.stopPropagation();
-          }}
-        >
+        <DialogContent className="max-w-md app-dialog-panel neo-brutalism-card border-3 border-stone-950 p-6 rounded-2xl shadow-2xl">
           <StatsPanel
             activePlayers={game.activePlayers}
             pawnStats={game.pawnStats}
-            totalShifts={game.totalShiftsRef.current}
+            totalShifts={game.totalShifts}
             obtainedTreasures={game.obtainedTreasures}
+            gameMode={game.gameMode}
+            coopObtainedTreasures={game.coopObtainedTreasures}
           />
         </DialogContent>
       </Dialog>
 
       {/* Toast */}
       <div role="status" aria-live="polite" aria-atomic="true" className="sr-only">
-        {toastText}
+        {currentToast?.msg}
       </div>
-      {toastText && (
+      {currentToast && (
         <div
+          key={currentToast.id}
           className="fixed bottom-[72px] md:bottom-6 left-1/2 -translate-x-1/2 px-4 sm:px-6 py-2.5 sm:py-3 app-dialog-panel neo-brutalism-card text-stone-100 font-semibold text-xs sm:text-sm rounded-lg z-50 animate-toast-in flex items-center gap-2 whitespace-nowrap"
           aria-hidden="true"
         >
           <Sparkles className="w-4 h-4 text-theme-primary shrink-0" />
-          {toastText}
+          {currentToast.msg}
         </div>
       )}
 
       {/* Mobile Actions Bar (phones only, < md) */}
-      <div
-        className="md:hidden fixed bottom-0 left-0 right-0 app-mobile-nav px-2 flex items-center justify-around z-40"
-        style={{
-          paddingBottom: "calc(env(safe-area-inset-bottom) + 6px)",
-          paddingTop: "6px",
-          height: "56px",
-        }}
-      >
-        <Button
-          variant="ghost"
-          size="sm"
-          disabled={!game.canUndo}
-          onClick={() => {
-            if (!isMuted) playClickSound();
-            game.handleUndo();
-          }}
-          className="flex flex-col items-center gap-0.5 text-stone-400 hover:text-stone-200 disabled:opacity-30 h-auto py-1 px-3 cursor-pointer"
-        >
-          <Undo2 className="w-4 h-4" />
-          <span className="text-[9px] font-medium">Undo</span>
-        </Button>
-
-        <Button
-          variant="ghost"
-          size="sm"
-          disabled={!game.canRedo}
-          onClick={() => {
-            if (!isMuted) playClickSound();
-            game.handleRedo();
-          }}
-          className="flex flex-col items-center gap-0.5 text-stone-400 hover:text-stone-200 disabled:opacity-30 h-auto py-1 px-3 cursor-pointer"
-        >
-          <Redo2 className="w-4 h-4" />
-          <span className="text-[9px] font-medium">Redo</span>
-        </Button>
-
-        {game.isGameStarted && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => {
-              if (!isMuted) playClickSound();
-              setIsHistoryOpen(true);
-            }}
-            className="flex flex-col items-center gap-0.5 text-stone-400 hover:text-stone-200 h-auto py-1 px-3 cursor-pointer"
-          >
-            <Clock className="w-4 h-4" />
-            <span className="text-[9px] font-medium">History</span>
-          </Button>
-        )}
-
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => {
-            if (!isMuted) playClickSound();
-            setBoardRotation((prev) => (prev + 90) % 360);
-          }}
-          className="flex flex-col items-center gap-0.5 text-stone-400 hover:text-stone-200 h-auto py-1 px-3 cursor-pointer"
-        >
-          <RotateCw className="w-4 h-4" />
-          <span className="text-[9px] font-medium">Rotate</span>
-        </Button>
-
-        {/* Panel toggle button — expands/collapses the persistent split panel */}
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() =>
-            setMobilePanelStop((prev) => (prev === "peek" ? "expanded" : "peek"))
-          }
-          className={cn(
-            "flex flex-col items-center gap-0.5 h-auto py-1 px-3 cursor-pointer relative",
-            mobilePanelStop === "expanded" ? "text-theme-primary" : "text-stone-400 hover:text-stone-200"
-          )}
-        >
-          {mobilePanelStop === "expanded" ? (
-            <ChevronDownIcon className="w-4 h-4" />
-          ) : (
-            <ChevronUp className="w-4 h-4" />
-          )}
-          <span className="text-[9px] font-medium">
-            {game.isGameStarted ? "Solver" : "Setup"}
-          </span>
-          {/* Badge for solver solutions */}
-          {game.isGameStarted && solutions.length > 0 && mobilePanelStop === "peek" && (
-            <span className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-theme-primary text-stone-950 text-[8px] font-bold flex items-center justify-center">
-              {solutions.length}
-            </span>
-          )}
-        </Button>
-
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={handleToggleMute}
-          className="flex flex-col items-center gap-0.5 text-stone-400 hover:text-stone-200 h-auto py-1 px-3 cursor-pointer"
-        >
-          {isMuted ? (
-            <VolumeX className="w-4 h-4 text-stone-500" />
-          ) : (
-            <Volume2 className="w-4 h-4 text-theme-primary" />
-          )}
-          <span className="text-[9px] font-medium">{isMuted ? "Unmute" : "Mute"}</span>
-        </Button>
-      </div>
+      <MobileActionsBar
+        canUndo={game.canUndo}
+        canRedo={game.canRedo}
+        onUndo={game.handleUndo}
+        onRedo={game.handleRedo}
+        isGameStarted={game.isGameStarted}
+        onOpenHistory={() => setIsHistoryOpen(true)}
+        onRotateBoard={() => setBoardRotation((prev) => (prev + 90) % 360)}
+        mobilePanelStop={mobilePanelStop}
+        onToggleMobilePanel={() => setMobilePanelStop((prev) => (prev === "peek" ? "expanded" : "peek"))}
+        solutionsCount={solutions.length}
+        isMuted={isMuted}
+        onToggleMute={handleToggleMute}
+      />
 
       <ResumeGameDialog
         isOpen={isResumeDialogOpen}

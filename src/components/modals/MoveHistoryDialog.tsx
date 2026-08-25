@@ -101,7 +101,7 @@ export function MoveHistoryDialog({ open, onClose, history, historyIndex, active
                     {!isFirst && (
                       <button
                         onClick={() => { onJumpTo(idx - 1); onClose(); }}
-                        className="text-[10px] px-2 py-0.5 rounded border border-stone-700 text-stone-400 hover:text-stone-200 hover:border-stone-500 transition-colors cursor-pointer"
+                        className="text-[10px] px-2 py-0.5 rounded border border-border text-muted-foreground hover:text-foreground hover:border-muted-foreground transition-colors cursor-pointer"
                         title="Restore state before this move"
                       >
                         Before
@@ -112,7 +112,7 @@ export function MoveHistoryDialog({ open, onClose, history, historyIndex, active
                       className={`text-[10px] px-2 py-0.5 rounded border transition-colors cursor-pointer ${
                         isCurrent
                           ? "border-theme-primary-40 text-theme-primary bg-theme-primary-10"
-                          : "border-stone-700 text-stone-400 hover:text-stone-200 hover:border-stone-500"
+                          : "border-border text-muted-foreground hover:text-foreground hover:border-muted-foreground"
                       }`}
                       title="Restore to this state"
                     >
@@ -125,7 +125,7 @@ export function MoveHistoryDialog({ open, onClose, history, historyIndex, active
           })}
         </div>
 
-        <div className="px-4 py-3 border-t border-stone-800 shrink-0 flex justify-end">
+        <div className="px-4 py-3 border-t border-border shrink-0 flex justify-end">
           <Button
             variant="brutalist"
             size="sm"
@@ -145,12 +145,12 @@ export function MoveHistoryDialog({ open, onClose, history, historyIndex, active
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex items-center justify-between w-full">
-                <span className="text-base font-bold text-stone-100">{zoomed.label}</span>
-                <button type="button" onClick={() => setZoomed(null)} className="text-stone-400 hover:text-stone-100 p-1 bg-stone-800 rounded-full hover:bg-stone-700 transition-colors cursor-pointer">
+                <span className="text-base font-bold text-foreground">{zoomed.label}</span>
+                <button type="button" onClick={() => setZoomed(null)} className="text-muted-foreground hover:text-foreground p-1 bg-muted rounded-full hover:bg-accent transition-colors cursor-pointer">
                   <X className="w-5 h-5" />
                 </button>
               </div>
-              <div className="w-full max-w-[280px] aspect-square rounded-xl shadow-[4px_4px_0_0_#000000] border-2 border-stone-950 overflow-hidden bg-stone-900">
+              <div className="w-full max-w-[280px] aspect-square rounded-xl shadow-[4px_4px_0_0_#000000] border-2 border-stone-950 overflow-hidden bg-card">
                 <MiniBoardSnapshot
                   board={zoomed.record.board}
                   pawnPositions={(zoomed.record.pawnPositions ?? DEFAULT_PAWN_POSITIONS) as PawnPositions}
@@ -159,7 +159,7 @@ export function MoveHistoryDialog({ open, onClose, history, historyIndex, active
                   pawnPath={zoomed.record.pawnPath}
                 />
               </div>
-              <p className="text-xs font-semibold text-stone-500 text-center mt-2 uppercase tracking-widest">Tap outside to close</p>
+              <p className="text-xs font-semibold text-muted-foreground text-center mt-2 uppercase tracking-widest">Tap outside to close</p>
             </div>
           </div>
         )}

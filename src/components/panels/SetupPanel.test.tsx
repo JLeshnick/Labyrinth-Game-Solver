@@ -11,7 +11,7 @@ function renderPanel(overrides: Partial<Parameters<typeof SetupPanel>[0]> = {}) 
     activePawn: "red",
     setActivePawn: vi.fn(),
     isMuted: true,
-    playerHands: {},
+    playerHands: { red: [], blue: [], green: [], yellow: [] },
     onTileClick: vi.fn(),
     onRandomizeBoard: vi.fn(),
     onResetBoard: vi.fn(),
@@ -19,6 +19,7 @@ function renderPanel(overrides: Partial<Parameters<typeof SetupPanel>[0]> = {}) 
     onRemoveCard: vi.fn(),
     setupTab: "tiles" as const,
     setSetupTab,
+    gameMode: "standard" as const,
     canStartGame: false,
     onStartGame: vi.fn(),
     showToast: vi.fn(),
@@ -56,5 +57,17 @@ describe("SetupPanel — Pawns placement removed", () => {
   it("renders the Cards tab content when setupTab is 'cards'", () => {
     renderPanel({ setupTab: "cards" });
     expect(screen.getByText(/select player/i)).toBeTruthy();
+  });
+
+  it("renders the Reset button with proper label", () => {
+    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
+    const onResetAllDefaults = vi.fn();
+    renderPanel({ setupTab: "tiles", onResetAllDefaults });
+    const resetBtn = screen.getByRole("button", { name: /reset all defaults/i });
+    expect(resetBtn).toBeTruthy();
+    expect(resetBtn.textContent).toContain("Reset");
+    fireEvent.click(resetBtn);
+    expect(onResetAllDefaults).toHaveBeenCalledTimes(1);
+    confirmSpy.mockRestore();
   });
 });

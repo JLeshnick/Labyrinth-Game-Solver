@@ -22,6 +22,8 @@ interface StatsPanelProps {
   pawnStats: Record<string, PawnStats>;
   totalShifts: number;
   obtainedTreasures: Record<string, string[]>;
+  gameMode?: "standard" | "coop" | "auto";
+  coopObtainedTreasures?: string[];
 }
 
 
@@ -30,11 +32,16 @@ export const StatsPanel: React.FC<StatsPanelProps> = ({
   pawnStats,
   totalShifts,
   obtainedTreasures,
+  gameMode = "standard",
+  coopObtainedTreasures = [],
 }) => {
-  const totalTreasuresFound = Object.values(obtainedTreasures).reduce(
-    (sum, arr) => sum + arr.length,
-    0
-  );
+  const isShared = gameMode === "coop" || gameMode === "auto";
+  const totalTreasuresFound = isShared
+    ? coopObtainedTreasures.length
+    : Object.values(obtainedTreasures).reduce(
+        (sum, arr) => sum + arr.length,
+        0
+      );
 
   const totalTilesMoved = Object.values(pawnStats).reduce(
     (sum, s) => sum + s.tilesMoved,
@@ -105,7 +112,9 @@ export const StatsPanel: React.FC<StatsPanelProps> = ({
                     </span>
                   </div>
                   <div className="text-[10px] text-stone-500">
-                    {stats.treasuresFound}/{stats.totalTargets} collected
+                    {isShared
+                      ? `${stats.treasuresFound} found (${coopObtainedTreasures.length}/24 total)`
+                      : `${stats.treasuresFound}/${stats.totalTargets} collected`}
                   </div>
                 </div>
 
@@ -125,7 +134,7 @@ export const StatsPanel: React.FC<StatsPanelProps> = ({
                 </div>
 
                 {/* Recently found treasures */}
-                {(obtainedTreasures[color]?.length ?? 0) > 0 && (
+                {!isShared && (obtainedTreasures[color]?.length ?? 0) > 0 && (
                   <div className="mt-1.5 pt-1.5 border-t border-stone-700/30">
                     <div className="flex flex-wrap gap-1">
                       {obtainedTreasures[color].map((tid) => (
@@ -144,6 +153,26 @@ export const StatsPanel: React.FC<StatsPanelProps> = ({
             );
           })}
         </div>
+
+        {/* Co-op / Auto team treasures list */}
+        {isShared && coopObtainedTreasures.length > 0 && (
+          <div className="app-surface p-2 rounded-lg mt-2">
+            <div className="text-[10px] font-bold text-stone-300 uppercase mb-1 flex items-center gap-1">
+              <Sparkles className="w-3 h-3 text-amber-400" />
+              Team Collected Treasures ({coopObtainedTreasures.length}/24)
+            </div>
+            <div className="flex flex-wrap gap-1">
+              {coopObtainedTreasures.map((tid) => (
+                <span
+                  key={tid}
+                  className="text-[9px] px-1.5 py-0.5 rounded-full bg-amber-900/30 text-amber-300/80 border border-amber-700/30 flex items-center gap-0.5"
+                >
+                  {getTreasureName(tid)}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   );

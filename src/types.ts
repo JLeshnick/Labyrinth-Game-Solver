@@ -34,6 +34,23 @@ export interface PlayerMap<T> {
   [key: string]: T;
 }
 
+export interface HistoryRecord {
+  board: (TileData | null)[][];
+  spareTile: TileData;
+  lastShiftArrowId: string | null;
+  activePawn: string;
+  playerHands: PlayerMap<string[]>;
+  playerActiveTargets: PlayerMap<string | null>;
+  obtainedTreasures: PlayerMap<string[]>;
+  pawnPositions?: PawnPositions;
+  label?: string;
+  movedPawn?: string;
+  pawnPath?: { r: number; c: number }[];
+  gameMode?: "standard" | "coop" | "auto";
+  remainingCoopTreasures?: string[];
+  coopObtainedTreasures?: string[];
+}
+
 export interface AppGameState {
   board: (TileData | null)[][];
   spareTile: TileData;
@@ -49,7 +66,7 @@ export interface AppGameState {
   gameMode?: "standard" | "coop" | "auto";
   remainingCoopTreasures?: string[];
   coopObtainedTreasures?: string[];
-  history?: any[];
+  history?: HistoryRecord[];
   historyIndex?: number;
   lastSavedAt?: number;
 }
@@ -81,6 +98,9 @@ export interface SolverSolutionStep {
   rotation: number;
   endPos: { r: number; c: number };
   pawnPath?: { r: number; c: number }[];
+  pawnColor?: string;
+  cardId?: string;
+  targetCoord?: { r: number; c: number };
   explanation?: {
     slide: string;
     walk: string;
@@ -92,12 +112,14 @@ export interface SolverSolutionStep {
 }
 
 export interface SolverSolution extends Array<SolverSolutionStep> {
+  pawnColor?: string;
+  cardId?: string;
   explanation?: {
     slide: string;
     walk: string;
     safety: string;
   };
-  safetyScore: number;
+  safetyScore?: number;
   algorithmScore?: number;
   scoreBreakdown?: ScoreBreakdown;
   isFallback?: boolean;

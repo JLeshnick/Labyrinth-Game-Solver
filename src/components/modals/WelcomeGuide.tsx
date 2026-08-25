@@ -1,4 +1,4 @@
-import { Compass, Layers, Users, HelpCircle, Shield, Award } from "lucide-react";
+import { Compass, Layers, Users, HelpCircle, Shield, Award, Camera } from "lucide-react";
 import { Button } from "../ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
 
@@ -193,7 +193,6 @@ export function WelcomeGuide({ open, onOpenChange, onDismiss }: WelcomeGuideProp
             </div>
           </div>
 
-          {/* Section 4: Tips & Custom Commands */}
           <div className="flex flex-col gap-1.5 text-xs text-stone-300">
             <h4 className="font-semibold text-stone-200">Pro Tips:</h4>
             <ul className="list-disc pl-4 space-y-1.5 leading-relaxed">
@@ -204,6 +203,33 @@ export function WelcomeGuide({ open, onOpenChange, onDismiss }: WelcomeGuideProp
                 <span className="font-semibold text-theme-primary">Manual Moves:</span> You are not forced to follow the solver. Feel free to drag-and-drop the spare tile or click the board manually; the solver will automatically adapt.
               </li>
             </ul>
+          </div>
+
+          {/* Section 5: Board Scan */}
+          <div className="flex flex-col gap-2 p-3.5 app-surface">
+            <h3 className="font-bold text-stone-100 flex items-center gap-2 border-b border-stone-800 pb-1.5 uppercase text-xs tracking-wider">
+              <Camera className="w-4 h-4 text-theme-primary" />
+              5. Board Scan — Setup from a Photo
+            </h3>
+            <div className="text-xs text-stone-300 flex flex-col gap-2 mt-1 leading-relaxed">
+              <p>
+                Skip manual tile placement entirely. Take a photo of your physical board and let the app detect tile shapes and treasures automatically.
+              </p>
+              <div className="pl-3 border-l-2 border-stone-800 flex flex-col gap-1.5">
+                <p>
+                  <span className="font-bold text-theme-primary">How to use it:</span>
+                </p>
+                <ul className="list-disc pl-4 space-y-1">
+                  <li>In the <span className="font-semibold text-stone-100">Setup</span> tab, click the <span className="font-semibold text-stone-100">Scan Board</span> button (camera icon).</li>
+                  <li>Upload a clear overhead photo of the board. Drag the corner handles to align the grid.</li>
+                  <li>The scanner detects tile shapes (<span className="font-semibold">straight, corner, T-junction</span>) and treasure labels.</li>
+                  <li>Review flagged tiles and correct any misdetections before clicking <span className="font-semibold text-stone-100">Apply to Board</span>.</li>
+                </ul>
+              </div>
+              <p className="text-[11px] text-stone-400">
+                💡 Best results with bright, direct overhead lighting and a photo taken straight down without perspective distortion.
+              </p>
+            </div>
           </div>
         </div>
 

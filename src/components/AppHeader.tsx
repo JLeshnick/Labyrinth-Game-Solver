@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { TileData, PlayerMap } from "../types";
+import type { TileData, PlayerMap, HistoryRecord } from "../types";
 import { PAWNS, TREASURES } from "../constants";
 import { Button } from "./ui/button";
 import { Tooltip } from "./ui/tooltip";
@@ -50,7 +50,7 @@ export interface AppHeaderProps {
   onCloseSettings: () => void;
   onUndo: () => void;
   onRedo: () => void;
-  history?: any[];
+  history?: HistoryRecord[];
   historyIndex?: number;
   onJumpToHistory?: (index: number) => void;
   onHoverHistory?: (index: number | null) => void;
@@ -282,15 +282,16 @@ export function AppHeader({
           {/* Pawn score chips — only during game */}
           {isGameStarted && activePlayers.length > 0 && (
             <div className="hidden sm:flex items-center gap-1.5">
-              {gameMode === "coop" && (
+              {(gameMode === "coop" || gameMode === "auto") && (
                 <div className="flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-black border-2 border-stone-950 bg-theme-primary text-stone-950 shadow-[2px_2px_0_0_#000000] cursor-default mr-1">
-                  <span>CO-OP: {coopObtainedTreasures.length}/24</span>
+                  <span>{gameMode === "auto" ? "AUTO" : "CO-OP"}: {coopObtainedTreasures.length}/24</span>
                 </div>
               )}
               {activePlayers.map((pawnId) => {
                 const pawn = PAWNS.find((p) => p.id === pawnId);
-                const obtained = gameMode === "coop" ? [] : (obtainedTreasures as Record<string, string[]>)[pawnId] ?? [];
-                const hand = gameMode === "coop" ? [] : (playerHands as Record<string, string[]>)[pawnId] ?? [];
+                const isSharedPool = gameMode === "coop" || gameMode === "auto";
+                const obtained = isSharedPool ? [] : (obtainedTreasures as Record<string, string[]>)[pawnId] ?? [];
+                const hand = isSharedPool ? [] : (playerHands as Record<string, string[]>)[pawnId] ?? [];
                 const total = obtained.length + hand.length;
                 const isActive = pawnId === activePawn;
                 return (
@@ -305,7 +306,7 @@ export function AppHeader({
                         pawnId === "yellow" ? "text-stone-950" : "text-white"
                       )}
                     >
-                      {gameMode === "coop" ? (
+                      {isSharedPool ? (
                         <span>{pawnId[0].toUpperCase()}</span>
                       ) : (
                         <>
@@ -318,9 +319,9 @@ export function AppHeader({
                     <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-52 rounded-xl app-dialog-panel neo-brutalism-card p-3 z-50 invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-all duration-150 flex flex-col gap-1 pointer-events-none">
                       <div className="text-[10px] font-bold text-stone-200 capitalize border-b border-stone-800 pb-1.5 mb-0.5 flex items-center gap-1.5">
                         <div className={cn("w-3 h-3 rounded-full border border-stone-950", pawn?.colorClass ?? "bg-stone-500")} />
-                        {pawn?.name ?? pawnId} {gameMode === "coop" ? "(Cooperative)" : `— ${obtained.length} collected`}
+                        {pawn?.name ?? pawnId} {gameMode === "auto" ? "(Auto Mode)" : gameMode === "coop" ? "(Cooperative)" : `— ${obtained.length} collected`}
                       </div>
-                      {gameMode === "coop" ? (
+                      {isSharedPool ? (
                         <p className="text-[9px] text-stone-300">
                           Team progress: {coopObtainedTreasures.length} of 24 treasures collected.
                         </p>
@@ -537,7 +538,7 @@ export function AppHeader({
                       </div>
                       <div className="app-surface p-1.5 rounded-lg">
                         <div className="text-sm font-black text-amber-400">
-                          {gameMode === "coop"
+                          {gameMode === "coop" || gameMode === "auto"
                             ? coopObtainedTreasures.length
                             : Object.values(obtainedTreasures).reduce((sum, arr) => sum + arr.length, 0)}
                         </div>
@@ -550,7 +551,7 @@ export function AppHeader({
                       {activePlayers.map((color) => {
                         const pawn = PAWNS.find((p) => p.id === color);
                         const stats = pawnStats[color] || { tilesMoved: 0, shiftsUsed: 0, treasuresFound: 0, totalTargets: 0 };
-                        const collected = gameMode === "coop" ? coopObtainedTreasures.length : (obtainedTreasures[color]?.length ?? 0);
+                        const collected = gameMode === "coop" || gameMode === "auto" ? coopObtainedTreasures.length : (obtainedTreasures[color]?.length ?? 0);
                         return (
                           <div key={color} className="app-surface p-1.5 rounded-lg flex items-center justify-between text-[10px]">
                             <div className="flex items-center gap-1.5">

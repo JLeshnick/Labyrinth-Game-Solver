@@ -1,51 +1,33 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import {
-  FIXED_TILES_PRESETS,
   SHIFT_ARROWS,
   generateMovablePool,
   DEFAULT_PAWN_POSITIONS,
   EMPTY_PLAYER_HANDS,
   EMPTY_PLAYER_TARGETS,
   EMPTY_OBTAINED_TREASURES,
-  TREASURES,
 } from "../constants";
 import type {
   TileData,
   Rotation,
   Shape,
-  PlayerMap,
   PawnPositions,
   AppGameState,
+  SolverSolution,
 } from "../types";
-import {
-  toSolverBoard,
-  toSolverSpare,
-  fromSolverGrid,
-  fromSolverSpare,
-} from "../lib/solverAdapter";
+import { fromSolverGrid, fromSolverSpare } from "../lib/solverAdapter";
 import { executeSlideInGrid, isOppositeArrow, getReachableCells } from "../solver";
 import {
   playClickSound,
   playSlideSound,
-  playRotateSound,
   playSuccessSound,
   playPawnMoveSound,
 } from "../utils/audio";
 import { useLabyrinthHistory } from "./useLabyrinthHistory";
 import { useLabyrinthStorage } from "./useLabyrinthStorage";
-const HOME_POSITIONS: Record<string, { r: number; c: number }> = {
-  red:    { r: 0, c: 0 },
-  blue:   { r: 6, c: 6 },
-  green:  { r: 6, c: 0 },
-  yellow: { r: 0, c: 6 }
-};
-
-type PawnStat = {
-  tilesMoved: number;
-  shiftsUsed: number;
-  treasuresFound: number;
-  totalTargets: number;
-};
+import { useBoardManagement, createInitialPresetGrid } from "./useBoardManagement";
+import { usePawnManagement } from "./usePawnManagement";
+import { useTreasureCollection } from "./useTreasureCollection";
 
 export interface UseLabyrinthGameOptions {
   isMuted: boolean;
@@ -56,82 +38,32 @@ export function useLabyrinthGame({
   isMuted,
   onToast,
 }: UseLabyrinthGameOptions) {
-  // ── Internal sub-hooks ───────────────────────────────────────────────────────
-  const { history, historyIndex, pushStateToHistory, resetHistory, hydrateHistory, undo, redo, jumpToHistory, canUndo, canRedo } =
-    useLabyrinthHistory(null);
+  // ── Composed Sub-Hooks ───────────────────────────────────────────────────────
+  const board = useBoardManagement();
+  const pawns = usePawnManagement();
+  const treasures = useTreasureCollection();
+
+  const {
+    history,
+    historyIndex,
+    pushStateToHistory,
+    resetHistory,
+    hydrateHistory,
+    undo,
+    redo,
+    jumpToHistory,
+    canUndo,
+    canRedo,
+  } = useLabyrinthHistory(null);
 
   const { saveAutosave, loadAutosave } = useLabyrinthStorage();
 
-  // ── Tile ID counter ──────────────────────────────────────────────────────────
-  const tileCounter = useRef(0);
-  const nextTileId = useCallback(() => `movable_${++tileCounter.current}`, []);
-
-  // ── Core game state ──────────────────────────────────────────────────────────
-  const [grid, setGrid] = useState<(TileData | null)[][]>(() =>
-    Array(7)
-      .fill(null)
-      .map(() => Array(7).fill(null))
-  );
-  const [looseTiles, setLooseTiles] = useState<TileData[]>([]);
-  const [spareTile, setSpareTile] = useState<TileData>({
-    id: "spare_initial",
-    shape: "straight",
-    rotation: 0,
-    isFixed: false,
-  });
+  // ── Overall Game Lifecycle State ─────────────────────────────────────────────
   const [isGameStarted, setIsGameStarted] = useState(false);
   const [gameStartState, setGameStartState] = useState<AppGameState | null>(null);
-  const [activePawn, setActivePawn] = useState<string>("red");
-  const [lastShiftArrowId, setLastShiftArrowId] = useState<string | null>(null);
-  const [pawnPositions, setPawnPositions] =
-    useState<PawnPositions>(DEFAULT_PAWN_POSITIONS);
-  const [playerHands, setPlayerHands] =
-    useState<PlayerMap<string[]>>(EMPTY_PLAYER_HANDS);
-  const [playerActiveTargets, setPlayerActiveTargets] =
-    useState<PlayerMap<string | null>>(EMPTY_PLAYER_TARGETS);
-  const [obtainedTreasures, setObtainedTreasures] =
-    useState<PlayerMap<string[]>>(EMPTY_OBTAINED_TREASURES);
-  const [pawnStats, setPawnStats] = useState<Record<string, PawnStat>>({});
-  const [gameMode, setGameMode] = useState<"standard" | "coop" | "auto">("standard");
-  const [remainingCoopTreasures, setRemainingCoopTreasures] = useState<string[]>([]);
-  const [coopObtainedTreasures, setCoopObtainedTreasures] = useState<string[]>([]);
-  const [showEmptyTiles, setShowEmptyTiles] = useState(false);
-  const [customTargetCoords, setCustomTargetCoords] = useState<{
-    r: number;
-    c: number;
-    type?: "coord" | "empty";
-  } | null>(null);
-  const totalShiftsRef = useRef(0);
-
-  // Setup panel state (used by handleTileClick / handleCellClick)
   const [setupTab, setSetupTab] = useState<"tiles" | "players" | "mode" | "cards">("tiles");
 
-  // Active players — stored in localStorage as a preference
-  const [activePlayers, setActivePlayers] = useState<string[]>(() => {
-    try {
-      const saved = localStorage.getItem("labyrinth_active_players");
-      return saved ? (JSON.parse(saved) as string[]) : ["red", "blue", "green", "yellow"];
-    } catch {
-      return ["red", "blue", "green", "yellow"];
-    }
-  });
-
-  // ── Effects ──────────────────────────────────────────────────────────────────
-
-  // Sync activePlayers to localStorage; ensure activePawn is in the list
-  useEffect(() => {
-    try {
-      localStorage.setItem("labyrinth_active_players", JSON.stringify(activePlayers));
-    } catch {
-      /* storage full/blocked */
-    }
-    if (!activePlayers.includes(activePawn)) {
-      setActivePawn(activePlayers[0] || "red");
-    }
-  }, [activePlayers, activePawn]);
-
-  // Skip the very first autosave so the hook's mount-time empty state
-  // doesn't clobber a real autosave before App has a chance to hydrate from it.
+  // Skip the very first autosave so mount-time empty state doesn't clobber a saved state
   const skipFirstAutosave = useRef(true);
 
   // Auto-save during setup (when game has not started)
@@ -141,39 +73,39 @@ export function useLabyrinthGame({
       return;
     }
     if (isGameStarted) return;
-    if (grid.length === 0) return; // Do not clobber existing save with an empty mount state
+    if (board.grid.length === 0) return;
     saveAutosave({
-      board: grid,
-      looseTiles,
-      spareTile,
-      activePawn,
-      playerHands,
-      playerActiveTargets,
-      obtainedTreasures,
-      lastShiftArrowId,
+      board: board.grid,
+      looseTiles: board.looseTiles,
+      spareTile: board.spareTile,
+      activePawn: pawns.activePawn,
+      playerHands: treasures.playerHands,
+      playerActiveTargets: treasures.playerActiveTargets,
+      obtainedTreasures: treasures.obtainedTreasures,
+      lastShiftArrowId: board.lastShiftArrowId,
       isGameStarted,
       gameStartState: gameStartState ?? null,
-      pawnPositions,
-      gameMode,
-      remainingCoopTreasures,
-      coopObtainedTreasures,
+      pawnPositions: pawns.pawnPositions,
+      gameMode: treasures.gameMode,
+      remainingCoopTreasures: treasures.remainingCoopTreasures,
+      coopObtainedTreasures: treasures.coopObtainedTreasures,
     });
-    // Intentionally only react to board/card/pawn state changes — not every callback
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
-    grid,
-    looseTiles,
-    spareTile,
-    activePawn,
-    playerHands,
-    playerActiveTargets,
-    obtainedTreasures,
-    lastShiftArrowId,
+    board.grid,
+    board.looseTiles,
+    board.spareTile,
+    board.lastShiftArrowId,
+    pawns.activePawn,
+    pawns.pawnPositions,
+    treasures.playerHands,
+    treasures.playerActiveTargets,
+    treasures.obtainedTreasures,
+    treasures.gameMode,
+    treasures.remainingCoopTreasures,
+    treasures.coopObtainedTreasures,
     isGameStarted,
-    pawnPositions,
-    gameMode,
-    remainingCoopTreasures,
-    coopObtainedTreasures,
+    gameStartState,
+    saveAutosave,
   ]);
 
   // Sync history and historyIndex to autosave whenever they change
@@ -183,97 +115,13 @@ export function useLabyrinthGame({
     }
   }, [history, historyIndex, saveAutosave]);
 
-  // ── Solver adapter helpers ───────────────────────────────────────────────────
-  const getSolverFormattedBoard = useCallback(
-    (g: (TileData | null)[][], pos: Record<string, { r: number; c: number }>) =>
-      toSolverBoard(g, pos),
-    []
-  );
-
-  const getSolverFormattedSpare = useCallback(
-    (tile: TileData) => toSolverSpare(tile),
-    []
-  );
-
-  // ── Stat trackers ────────────────────────────────────────────────────────────
-  const trackPawnMove = useCallback((pawnColor: string, tilesMoved: number = 1) => {
-    setPawnStats((prev) => {
-      const current =
-        prev[pawnColor] ?? {
-          tilesMoved: 0,
-          shiftsUsed: 0,
-          treasuresFound: 0,
-          totalTargets: 0,
-        };
-      return {
-        ...prev,
-        [pawnColor]: { ...current, tilesMoved: current.tilesMoved + tilesMoved },
-      };
-    });
-  }, []);
-
-  const trackPawnTreasure = useCallback((pawnColor: string) => {
-    setPawnStats((prev) => {
-      const current =
-        prev[pawnColor] ?? {
-          tilesMoved: 0,
-          shiftsUsed: 0,
-          treasuresFound: 0,
-          totalTargets: 0,
-        };
-      return {
-        ...prev,
-        [pawnColor]: {
-          ...current,
-          treasuresFound: current.treasuresFound + 1,
-        },
-      };
-    });
-  }, []);
-
-  // ── Turn management ──────────────────────────────────────────────────────────
-  const switchToNextPawn = useCallback(() => {
-    const currentIndex = activePlayers.indexOf(activePawn);
-    const nextPawn = activePlayers[(currentIndex + 1) % activePlayers.length];
-    if (nextPawn) setActivePawn(nextPawn);
-    setCustomTargetCoords(null);
-  }, [activePawn, activePlayers]);
-
-  // ── Board initialization ─────────────────────────────────────────────────────
+  // ── Board resets & hydration ─────────────────────────────────────────────────
   const resetBoardToInitialPresets = useCallback(() => {
-    const initialGrid: (TileData | null)[][] = Array(7)
-      .fill(null)
-      .map(() => Array(7).fill(null));
-    Object.entries(FIXED_TILES_PRESETS).forEach(([coord, tilePartial]) => {
-      const [x, y] = coord.split(",").map(Number);
-      initialGrid[y][x] = {
-        id: `fixed_${x}_${y}`,
-        shape: tilePartial.shape!,
-        rotation: tilePartial.rotation!,
-        treasure: tilePartial.treasure,
-        isFixed: true,
-        color: tilePartial.color,
-      };
-    });
-    const freshMovablePool = generateMovablePool();
-    setGrid(initialGrid);
-    setPawnPositions(DEFAULT_PAWN_POSITIONS);
-    setLooseTiles(freshMovablePool);
-    setSpareTile({
-      id: "spare_initial",
-      shape: "straight",
-      rotation: 0,
-      isFixed: false,
-    });
+    const { initialGrid } = board.resetBoardPresets();
+    pawns.resetPawnState();
+    treasures.resetTreasureState();
     setIsGameStarted(false);
     setGameStartState(null);
-    setLastShiftArrowId(null);
-    setPlayerHands(EMPTY_PLAYER_HANDS);
-    setPlayerActiveTargets(EMPTY_PLAYER_TARGETS);
-    setObtainedTreasures(EMPTY_OBTAINED_TREASURES);
-    setCustomTargetCoords(null);
-    setPawnStats({});
-    totalShiftsRef.current = 0;
 
     resetHistory({
       board: initialGrid,
@@ -290,42 +138,43 @@ export function useLabyrinthGame({
       lastShiftArrowId: null,
       pawnPositions: DEFAULT_PAWN_POSITIONS,
     });
-  }, [resetHistory]);
+  }, [board, pawns, treasures, resetHistory]);
 
   const resetAllDefaults = useCallback(() => {
     resetBoardToInitialPresets();
-    setActivePlayers(["red", "blue", "green", "yellow"]);
-    setActivePawn("red");
-    setGameMode("standard");
-    setRemainingCoopTreasures([]);
-    setCoopObtainedTreasures([]);
+    pawns.setActivePlayers(["red", "blue", "green", "yellow"]);
+    pawns.setActivePawn("red");
+    treasures.setGameMode("standard");
     try {
       localStorage.removeItem("labyrinth_autosave");
       localStorage.removeItem("labyrinth_active_players");
     } catch {
       /* storage blocked */
     }
-  }, [resetBoardToInitialPresets]);
+  }, [resetBoardToInitialPresets, pawns, treasures]);
 
-  // ── hydrate from autosave on mount ───────────────────────────────────────────
   const hydrateFromSaved = useCallback(
     (saved: Partial<AppGameState>, fallbackSpare: TileData) => {
-      setGrid(saved.board ?? []);
-      setLooseTiles(saved.looseTiles || []);
-      setSpareTile(saved.spareTile ?? fallbackSpare);
-      setActivePawn(saved.activePawn || "red");
-      setPlayerHands(saved.playerHands || EMPTY_PLAYER_HANDS);
-      setPlayerActiveTargets(saved.playerActiveTargets || EMPTY_PLAYER_TARGETS);
-      setObtainedTreasures(saved.obtainedTreasures || EMPTY_OBTAINED_TREASURES);
-      setLastShiftArrowId(saved.lastShiftArrowId || null);
+      board.setGrid(saved.board ?? []);
+      board.setLooseTiles(saved.looseTiles || []);
+      board.setSpareTile(saved.spareTile ?? fallbackSpare);
+      board.setLastShiftArrowId(saved.lastShiftArrowId || null);
+
+      pawns.setActivePawn(saved.activePawn || "red");
+      pawns.setPawnPositions(saved.pawnPositions || DEFAULT_PAWN_POSITIONS);
+      pawns.setCustomTargetCoords(null);
+      pawns.totalShiftsRef.current = 0;
+      pawns.setTotalShifts(0);
+
+      treasures.setPlayerHands(saved.playerHands || EMPTY_PLAYER_HANDS);
+      treasures.setPlayerActiveTargets(saved.playerActiveTargets || EMPTY_PLAYER_TARGETS);
+      treasures.setObtainedTreasures(saved.obtainedTreasures || EMPTY_OBTAINED_TREASURES);
+      treasures.setGameMode(saved.gameMode || "standard");
+      treasures.setRemainingCoopTreasures(saved.remainingCoopTreasures || []);
+      treasures.setCoopObtainedTreasures(saved.coopObtainedTreasures || []);
+
       setIsGameStarted(saved.isGameStarted || false);
       setGameStartState(saved.gameStartState || null);
-      setPawnPositions(saved.pawnPositions || DEFAULT_PAWN_POSITIONS);
-      setGameMode(saved.gameMode || "standard");
-      setRemainingCoopTreasures(saved.remainingCoopTreasures || []);
-      setCoopObtainedTreasures(saved.coopObtainedTreasures || []);
-      setCustomTargetCoords(null);
-      totalShiftsRef.current = 0;
 
       if (saved.history && saved.historyIndex !== undefined) {
         hydrateHistory(saved.history, saved.historyIndex);
@@ -345,30 +194,15 @@ export function useLabyrinthGame({
         });
       }
     },
-    [resetHistory]
+    [board, pawns, treasures, resetHistory, hydrateHistory]
   );
 
-  // ── Game actions ─────────────────────────────────────────────────────────────
-
+  // ── Game Actions ─────────────────────────────────────────────────────────────
   const handleRandomizeBoard = useCallback(() => {
     if (isGameStarted) return;
     if (!isMuted) playClickSound();
 
-    const initialGrid: (TileData | null)[][] = Array(7)
-      .fill(null)
-      .map(() => Array(7).fill(null));
-    Object.entries(FIXED_TILES_PRESETS).forEach(([coord, tilePartial]) => {
-      const [x, y] = coord.split(",").map(Number);
-      initialGrid[y][x] = {
-        id: `fixed_${x}_${y}`,
-        shape: tilePartial.shape!,
-        rotation: tilePartial.rotation!,
-        treasure: tilePartial.treasure,
-        isFixed: true,
-        color: tilePartial.color,
-      };
-    });
-
+    const initialGrid = createInitialPresetGrid();
     const pool = generateMovablePool();
     for (let i = pool.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
@@ -395,56 +229,55 @@ export function useLabyrinthGame({
         ...remainingSpare,
         rotation: rotations[Math.floor(Math.random() * 4)],
       };
-      setSpareTile(finalSpare);
-      setLooseTiles([finalSpare]);
-      setGrid(initialGrid);
-      setCustomTargetCoords(null);
-      setLastShiftArrowId(null);
+      board.setSpareTile(finalSpare);
+      board.setLooseTiles([finalSpare]);
+      board.setGrid(initialGrid);
+      board.setLastShiftArrowId(null);
+      pawns.setCustomTargetCoords(null);
+      pawns.totalShiftsRef.current = 0;
+      pawns.setTotalShifts(0);
       setGameStartState(null);
-      totalShiftsRef.current = 0;
 
       pushStateToHistory(
         initialGrid,
         finalSpare,
         null,
-        activePawn,
-        playerHands,
-        playerActiveTargets,
-        obtainedTreasures,
-        pawnPositions,
+        pawns.activePawn,
+        treasures.playerHands,
+        treasures.playerActiveTargets,
+        treasures.obtainedTreasures,
+        pawns.pawnPositions,
         "Board randomized",
         undefined,
         undefined,
-        gameMode,
-        remainingCoopTreasures,
-        coopObtainedTreasures
+        treasures.gameMode,
+        treasures.remainingCoopTreasures,
+        treasures.coopObtainedTreasures
       );
       saveAutosave({
         board: initialGrid,
         looseTiles: [finalSpare],
         spareTile: finalSpare,
-        activePawn,
-        playerHands,
-        playerActiveTargets,
-        obtainedTreasures,
+        activePawn: pawns.activePawn,
+        playerHands: treasures.playerHands,
+        playerActiveTargets: treasures.playerActiveTargets,
+        obtainedTreasures: treasures.obtainedTreasures,
         lastShiftArrowId: null,
         isGameStarted: false,
         gameStartState: null,
-        pawnPositions,
-        gameMode,
-        remainingCoopTreasures,
-        coopObtainedTreasures,
+        pawnPositions: pawns.pawnPositions,
+        gameMode: treasures.gameMode,
+        remainingCoopTreasures: treasures.remainingCoopTreasures,
+        coopObtainedTreasures: treasures.coopObtainedTreasures,
       });
       onToast("Board Randomized Successfully!");
     }
   }, [
     isGameStarted,
     isMuted,
-    activePawn,
-    playerHands,
-    playerActiveTargets,
-    obtainedTreasures,
-    pawnPositions,
+    board,
+    pawns,
+    treasures,
     pushStateToHistory,
     saveAutosave,
     onToast,
@@ -452,205 +285,90 @@ export function useLabyrinthGame({
 
   const handleTileClick = useCallback(
     (id: string) => {
-      if (id === spareTile.id) {
-        if (!isMuted) playRotateSound();
-        setSpareTile((prev) => ({
-          ...prev,
-          rotation: ((prev.rotation + 90) % 360) as Rotation,
-        }));
-        return;
-      }
-      if (isGameStarted) return;
-
-      if (!isMuted) playRotateSound();
-      setLooseTiles((prev) =>
-        prev.map((t) =>
-          t.id === id
-            ? { ...t, rotation: ((t.rotation + 90) % 360) as Rotation }
-            : t
-        )
-      );
-      setGrid((prev) =>
-        prev.map((row) =>
-          row.map((tile) =>
-            tile && tile.id === id && !tile.isFixed
-              ? { ...tile, rotation: ((tile.rotation + 90) % 360) as Rotation }
-              : tile
-          )
-        )
-      );
+      board.handleTileClick(id, isGameStarted, isMuted);
     },
-    [spareTile.id, isGameStarted, isMuted]
+    [board, isGameStarted, isMuted]
   );
 
-  const handleCellClick = useCallback(
-    (r: number, c: number) => {
-      if (!isGameStarted) return;
-
-      const startCoord = pawnPositions[activePawn];
-      if (!startCoord) return;
-
-      const solverBoard = getSolverFormattedBoard(grid, pawnPositions);
-      const { cells } = getReachableCells(solverBoard, startCoord.r, startCoord.c);
-      const reachable = cells.some(
-        (cell: { r: number; c: number }) => cell.r === r && cell.c === c
-      );
-
-      if (reachable) {
-        if (!isMuted) playPawnMoveSound();
-        const nextPositions = { ...pawnPositions, [activePawn]: { r, c } };
-        setPawnPositions(nextPositions);
-        trackPawnMove(activePawn, 1);
-
-        const landedTreasure = grid[r][c]?.treasure;
-        let nextPlayerHands = playerHands;
-        let nextPlayerActiveTargets = playerActiveTargets;
-        let nextObtainedTreasures = obtainedTreasures;
-        let nextRemainingCoop = remainingCoopTreasures;
-        let nextObtainedCoop = coopObtainedTreasures;
-        let claimed = false;
-
-        if (gameMode === "coop") {
-          if (landedTreasure && remainingCoopTreasures.includes(landedTreasure.id)) {
-            if (!isMuted) playSuccessSound();
-            nextRemainingCoop = remainingCoopTreasures.filter((tid) => tid !== landedTreasure.id);
-            nextObtainedCoop = [...coopObtainedTreasures, landedTreasure.id];
-            setRemainingCoopTreasures(nextRemainingCoop);
-            setCoopObtainedTreasures(nextObtainedCoop);
-            trackPawnTreasure(activePawn);
-            onToast(`Goal Achieved: Found ${landedTreasure.name}! 🏆`);
-            claimed = true;
-          } else if (remainingCoopTreasures.length === 0) {
-            const home = HOME_POSITIONS[activePawn];
-            if (home && r === home.r && c === home.c) {
-              onToast(`${activePawn.toUpperCase()} has reached home! 🏠`);
-              const allHome = activePlayers.every((p) => {
-                const pos = nextPositions[p];
-                const pHome = HOME_POSITIONS[p];
-                return pos && pHome && pos.r === pHome.r && pos.c === pHome.c;
-              });
-              if (allHome) {
-                if (!isMuted) playSuccessSound();
-                onToast("Cooperative Victory! All treasures collected and all pawns are home! 🎉🏆");
-              }
-            }
-          }
-        } else {
-          if (landedTreasure && playerHands[activePawn].includes(landedTreasure.id)) {
-            if (!isMuted) playSuccessSound();
-            const nextHand = playerHands[activePawn].filter((tid) => tid !== landedTreasure.id);
-            nextPlayerHands = { ...playerHands, [activePawn]: nextHand };
-            nextPlayerActiveTargets = {
-              ...playerActiveTargets,
-              [activePawn]: nextHand.length > 0 ? nextHand[0] : null,
+  const handleAddCard = useCallback(
+    (treasureId: string) => {
+      treasures.handleAddCard(treasureId, pawns.activePawn, (pawn) => {
+        pawns.setPawnStats((prev) => {
+          const current =
+            prev[pawn] ?? {
+              tilesMoved: 0,
+              shiftsUsed: 0,
+              treasuresFound: 0,
+              totalTargets: 0,
             };
-            nextObtainedTreasures = {
-              ...obtainedTreasures,
-              [activePawn]: [
-                ...(obtainedTreasures[activePawn] || []),
-                landedTreasure.id,
-              ],
-            };
-            setPlayerHands(nextPlayerHands);
-            setPlayerActiveTargets(nextPlayerActiveTargets);
-            setObtainedTreasures(nextObtainedTreasures);
-            trackPawnTreasure(activePawn);
-            onToast(`Goal Achieved: Found ${landedTreasure.name}! 🏆`);
-            claimed = true;
-          }
-        }
-
-        if (!claimed) {
-          onToast(`Moved ${activePawn.toUpperCase()} pawn to (${r}, ${c})`);
-        }
-
-        const moveLabel = claimed && landedTreasure
-          ? `${activePawn[0].toUpperCase()}${activePawn.slice(1)} found ${landedTreasure.name}`
-          : `${activePawn[0].toUpperCase()}${activePawn.slice(1)} → (${r},${c})`;
-
-        let nextPawn = activePawn;
-        if (gameMode === "coop" || !claimed) {
-          const currentIndex = activePlayers.indexOf(activePawn);
-          nextPawn = activePlayers[(currentIndex + 1) % activePlayers.length] || activePawn;
-        }
-
-        pushStateToHistory(
-          grid,
-          spareTile,
-          lastShiftArrowId,
-          nextPawn,
-          nextPlayerHands,
-          nextPlayerActiveTargets,
-          nextObtainedTreasures,
-          nextPositions,
-          moveLabel,
-          activePawn,
-          [startCoord, { r, c }],
-          gameMode,
-          nextRemainingCoop,
-          nextObtainedCoop
-        );
-
-        saveAutosave({
-          board: grid,
-          looseTiles: [],
-          spareTile,
-          activePawn: nextPawn,
-          playerHands: nextPlayerHands,
-          playerActiveTargets: nextPlayerActiveTargets,
-          obtainedTreasures: nextObtainedTreasures,
-          lastShiftArrowId,
-          isGameStarted,
-          gameStartState,
-          pawnPositions: nextPositions,
-          gameMode,
-          remainingCoopTreasures: nextRemainingCoop,
-          coopObtainedTreasures: nextObtainedCoop,
+          return {
+            ...prev,
+            [pawn]: { ...current, totalTargets: current.totalTargets + 1 },
+          };
         });
-
-        if (gameMode === "coop" || !claimed) {
-          switchToNextPawn();
-        }
-      } else {
-        if (customTargetCoords && customTargetCoords.r === r && customTargetCoords.c === c) {
-          setCustomTargetCoords(null);
-          onToast("Cleared custom target");
-        } else {
-          setCustomTargetCoords({ r, c, type: "coord" });
-          onToast(`Custom target set at (${r}, ${c}). Solving path...`);
-        }
-      }
+      });
     },
-    [
-      isGameStarted,
-      isMuted,
-      pawnPositions,
-      activePawn,
-      grid,
-      playerHands,
-      playerActiveTargets,
-      obtainedTreasures,
-      spareTile,
-      lastShiftArrowId,
-      gameStartState,
-      customTargetCoords,
-      getSolverFormattedBoard,
-      trackPawnMove,
-      trackPawnTreasure,
-      pushStateToHistory,
-      saveAutosave,
-      switchToNextPawn,
-      onToast,
-      gameMode,
-      remainingCoopTreasures,
-      coopObtainedTreasures,
-      activePlayers,
-    ]
+    [treasures, pawns]
+  );
+
+  const handleRemoveCard = useCallback(
+    (treasureId: string) => {
+      treasures.handleRemoveCard(treasureId, pawns.activePawn);
+    },
+    [treasures, pawns.activePawn]
+  );
+
+  const handleAddAllCards = useCallback(() => {
+    treasures.handleAddAllCards(pawns.activePawn, (pawn, count) => {
+      pawns.setPawnStats((prev) => {
+        const current =
+          prev[pawn] ?? {
+            tilesMoved: 0,
+            shiftsUsed: 0,
+            treasuresFound: 0,
+            totalTargets: 0,
+          };
+        return {
+          ...prev,
+          [pawn]: { ...current, totalTargets: count },
+        };
+      });
+    });
+  }, [treasures, pawns]);
+
+  const handleClearAllCards = useCallback(() => {
+    treasures.handleClearAllCards(pawns.activePawn, (pawn) => {
+      pawns.setPawnStats((prev) => {
+        const current =
+          prev[pawn] ?? {
+            tilesMoved: 0,
+            shiftsUsed: 0,
+            treasuresFound: 0,
+            totalTargets: 0,
+          };
+        return {
+          ...prev,
+          [pawn]: { ...current, totalTargets: 0 },
+        };
+      });
+    });
+  }, [treasures, pawns]);
+
+  const handleSelectTargetTreasure = useCallback(
+    (pawnColor: string, treasureId: string | null) => {
+      treasures.handleSelectTargetTreasure(
+        pawnColor,
+        treasureId,
+        (target) => pawns.setCustomTargetCoords(target),
+        () => pawns.setCustomTargetCoords(null)
+      );
+    },
+    [treasures, pawns]
   );
 
   const handleSlide = useCallback(
     (arrowId: string) => {
-      if (lastShiftArrowId && isOppositeArrow(arrowId, lastShiftArrowId)) {
+      if (board.lastShiftArrowId && isOppositeArrow(arrowId, board.lastShiftArrowId)) {
         onToast("Can't reverse the shift action immediately!");
         return;
       }
@@ -659,25 +377,23 @@ export function useLabyrinthGame({
       const arrow = SHIFT_ARROWS.find((a) => a.id === arrowId);
       if (!arrow) return;
 
-      const solverBoard = getSolverFormattedBoard(grid, pawnPositions);
+      const solverBoard = board.getSolverFormattedBoard(board.grid, pawns.pawnPositions);
       const { newSpare } = executeSlideInGrid(
         solverBoard,
-        getSolverFormattedSpare(spareTile),
+        board.getSolverFormattedSpare(board.spareTile),
         arrow.type,
         arrow.index,
         arrow.dir
       );
 
-      const nextGrid = fromSolverGrid(grid, solverBoard, nextTileId);
+      const nextGrid = fromSolverGrid(board.grid, solverBoard, board.nextTileId);
       const nextSpare = fromSolverSpare(newSpare, String(Date.now()));
-      const nextPositions: PawnPositions = { ...pawnPositions };
+      const nextPositions: PawnPositions = { ...pawns.pawnPositions };
 
-      Object.entries(pawnPositions).forEach(([color, pos]) => {
+      Object.entries(pawns.pawnPositions).forEach(([color, pos]) => {
         let nr = pos.r,
           nc = pos.c;
         if (arrow.type === "row" && arrow.index === pos.r) {
-          // dir === "left" means arrow pushing right (spare inserts at c=0, tile slides right: c -> c+1, 6 wraps to 0)
-          // dir === "right" means arrow pushing left (spare inserts at c=6, tile slides left: c -> c-1, 0 wraps to 6)
           nc =
             arrow.dir === "left"
               ? pos.c === 6
@@ -687,8 +403,6 @@ export function useLabyrinthGame({
               ? 6
               : pos.c - 1;
         } else if (arrow.type === "col" && arrow.index === pos.c) {
-          // dir === "top" means arrow pushing down (spare inserts at r=0, tile slides down: r -> r+1, 6 wraps to 0)
-          // dir === "bottom" means arrow pushing up (spare inserts at r=6, tile slides up: r -> r-1, 0 wraps to 6)
           nr =
             arrow.dir === "top"
               ? pos.r === 6
@@ -701,269 +415,317 @@ export function useLabyrinthGame({
         nextPositions[color] = { r: nr, c: nc };
       });
 
-      setPawnPositions(nextPositions);
-      setGrid(nextGrid);
-      setSpareTile(nextSpare);
-      setLastShiftArrowId(arrowId);
+      pawns.setPawnPositions(nextPositions);
+      board.setGrid(nextGrid);
+      board.setSpareTile(nextSpare);
+      board.setLastShiftArrowId(arrowId);
 
-      const slideLabel = arrow ? `Slide ${arrow.type === "row" ? `row ${arrow.index}` : `col ${arrow.index}`} ${arrow.dir}` : `Slide`;
+      const slideLabel = arrow
+        ? `Slide ${arrow.type === "row" ? `row ${arrow.index}` : `col ${arrow.index}`} ${arrow.dir}`
+        : `Slide`;
+
       pushStateToHistory(
         nextGrid,
         nextSpare,
         arrowId,
-        activePawn,
-        playerHands,
-        playerActiveTargets,
-        obtainedTreasures,
+        pawns.activePawn,
+        treasures.playerHands,
+        treasures.playerActiveTargets,
+        treasures.obtainedTreasures,
         nextPositions,
         slideLabel,
         undefined,
         undefined,
-        gameMode,
-        remainingCoopTreasures,
-        coopObtainedTreasures
+        treasures.gameMode,
+        treasures.remainingCoopTreasures,
+        treasures.coopObtainedTreasures
       );
       saveAutosave({
         board: nextGrid,
         looseTiles: [],
         spareTile: nextSpare,
-        activePawn,
-        playerHands,
-        playerActiveTargets,
-        obtainedTreasures,
+        activePawn: pawns.activePawn,
+        playerHands: treasures.playerHands,
+        playerActiveTargets: treasures.playerActiveTargets,
+        obtainedTreasures: treasures.obtainedTreasures,
         lastShiftArrowId: arrowId,
         isGameStarted,
         gameStartState,
         pawnPositions: nextPositions,
-        gameMode,
-        remainingCoopTreasures,
-        coopObtainedTreasures,
+        gameMode: treasures.gameMode,
+        remainingCoopTreasures: treasures.remainingCoopTreasures,
+        coopObtainedTreasures: treasures.coopObtainedTreasures,
       });
     },
     [
-      lastShiftArrowId,
+      board,
+      pawns,
+      treasures,
       isMuted,
-      grid,
-      pawnPositions,
-      spareTile,
-      activePawn,
-      playerHands,
-      playerActiveTargets,
-      obtainedTreasures,
       isGameStarted,
       gameStartState,
-      getSolverFormattedBoard,
-      getSolverFormattedSpare,
-      nextTileId,
       pushStateToHistory,
       saveAutosave,
       onToast,
-      gameMode,
-      remainingCoopTreasures,
-      coopObtainedTreasures,
     ]
   );
 
-  const handleAddCard = useCallback(
-    (treasureId: string) => {
-      if (playerHands[activePawn].includes(treasureId)) return;
-      const nextHand = [...playerHands[activePawn], treasureId];
-      setPlayerHands((prev) => ({ ...prev, [activePawn]: nextHand }));
-      if (!playerActiveTargets[activePawn]) {
-        setPlayerActiveTargets((prev) => ({ ...prev, [activePawn]: treasureId }));
-      }
-      setPawnStats((prev) => {
-        const current =
-          prev[activePawn] ?? {
-            tilesMoved: 0,
-            shiftsUsed: 0,
-            treasuresFound: 0,
-            totalTargets: 0,
-          };
-        return {
-          ...prev,
-          [activePawn]: { ...current, totalTargets: current.totalTargets + 1 },
-        };
-      });
-    },
-    [activePawn, playerHands, playerActiveTargets]
-  );
+  const handleCellClick = useCallback(
+    (r: number, c: number) => {
+      if (!isGameStarted) return;
 
-  const handleRemoveCard = useCallback(
-    (treasureId: string) => {
-      const nextHand = playerHands[activePawn].filter((id) => id !== treasureId);
-      setPlayerHands((prev) => ({ ...prev, [activePawn]: nextHand }));
-      setPlayerActiveTargets((prev) => ({
-        ...prev,
-        [activePawn]: nextHand.length > 0 ? nextHand[0] : null,
-      }));
-    },
-    [activePawn, playerHands]
-  );
+      const startCoord = pawns.pawnPositions[pawns.activePawn];
+      if (!startCoord) return;
 
-  const handleAddAllCards = useCallback(() => {
-    // Collect all treasures that are not already in other players' hands
-    const allAvailable = TREASURES.filter((t) => {
-      return !Object.entries(playerHands).some(([color, hand]) => color !== activePawn && hand.includes(t.id));
-    }).map((t) => t.id);
+      const solverBoard = board.getSolverFormattedBoard(board.grid, pawns.pawnPositions);
+      const { cells } = getReachableCells(solverBoard, startCoord.r, startCoord.c);
+      const reachable = cells.some(
+        (cell: { r: number; c: number }) => cell.r === r && cell.c === c
+      );
 
-    setPlayerHands((prev) => ({ ...prev, [activePawn]: allAvailable }));
-    setPlayerActiveTargets((prev) => ({
-      ...prev,
-      [activePawn]: allAvailable.length > 0 ? allAvailable[0] : null,
-    }));
-    setPawnStats((prev) => {
-      const current =
-        prev[activePawn] ?? {
-          tilesMoved: 0,
-          shiftsUsed: 0,
-          treasuresFound: 0,
-          totalTargets: 0,
-        };
-      return {
-        ...prev,
-        [activePawn]: { ...current, totalTargets: allAvailable.length },
-      };
-    });
-  }, [activePawn, playerHands]);
+      if (reachable) {
+        if (!isMuted) playPawnMoveSound();
+        const nextPositions = { ...pawns.pawnPositions, [pawns.activePawn]: { r, c } };
+        pawns.setPawnPositions(nextPositions);
+        pawns.trackPawnMove(pawns.activePawn, 1);
 
-  const handleClearAllCards = useCallback(() => {
-    setPlayerHands((prev) => ({ ...prev, [activePawn]: [] }));
-    setPlayerActiveTargets((prev) => ({ ...prev, [activePawn]: null }));
-    setPawnStats((prev) => {
-      const current =
-        prev[activePawn] ?? {
-          tilesMoved: 0,
-          shiftsUsed: 0,
-          treasuresFound: 0,
-          totalTargets: 0,
-        };
-      return {
-        ...prev,
-        [activePawn]: { ...current, totalTargets: 0 },
-      };
-    });
-  }, [activePawn]);
+        const landedTreasure = board.grid[r][c]?.treasure;
+        let nextPlayerHands = treasures.playerHands;
+        let nextPlayerActiveTargets = treasures.playerActiveTargets;
+        let nextObtainedTreasures = treasures.obtainedTreasures;
+        let nextRemainingCoop = treasures.remainingCoopTreasures;
+        let nextObtainedCoop = treasures.coopObtainedTreasures;
+        let claimed = false;
 
-  const handleSelectTargetTreasure = useCallback(
-    (pawnColor: string, treasureId: string | null) => {
-      if (treasureId && (treasureId.startsWith("coord:") || treasureId.startsWith("empty:"))) {
-        const prefixLen = treasureId.indexOf(":") + 1;
-        const type = treasureId.substring(0, prefixLen - 1) as "coord" | "empty";
-        const [r, c] = treasureId.substring(prefixLen).split(",").map(Number);
-        setCustomTargetCoords({ r, c, type });
+        if (treasures.gameMode === "coop" || treasures.gameMode === "auto") {
+          if (landedTreasure && treasures.remainingCoopTreasures.includes(landedTreasure.id)) {
+            if (!isMuted) playSuccessSound();
+            nextRemainingCoop = treasures.remainingCoopTreasures.filter((tid) => tid !== landedTreasure.id);
+            nextObtainedCoop = [...treasures.coopObtainedTreasures, landedTreasure.id];
+            treasures.setRemainingCoopTreasures(nextRemainingCoop);
+            treasures.setCoopObtainedTreasures(nextObtainedCoop);
+            pawns.trackPawnTreasure(pawns.activePawn);
+            onToast(`Goal Achieved: Found ${landedTreasure.name}! 🏆`);
+            claimed = true;
+          } else if (treasures.remainingCoopTreasures.length === 0) {
+            const home = DEFAULT_PAWN_POSITIONS[pawns.activePawn];
+            if (home && r === home.r && c === home.c) {
+              onToast(`${pawns.activePawn.toUpperCase()} has reached home! 🏠`);
+              const allHome = pawns.activePlayers.every((p) => {
+                const pos = nextPositions[p];
+                const pHome = DEFAULT_PAWN_POSITIONS[p];
+                return pos && pHome && pos.r === pHome.r && pos.c === pHome.c;
+              });
+              if (allHome) {
+                if (!isMuted) playSuccessSound();
+                onToast(
+                  treasures.gameMode === "auto"
+                    ? "Autoplay Victory! All treasures collected and all pawns are home! 🎉🏆"
+                    : "Cooperative Victory! All treasures collected and all pawns are home! 🎉🏆"
+                );
+              }
+            }
+          }
+        } else {
+          if (landedTreasure && (treasures.playerHands[pawns.activePawn] || []).includes(landedTreasure.id)) {
+            if (!isMuted) playSuccessSound();
+            const nextHand = (treasures.playerHands[pawns.activePawn] || []).filter(
+              (tid) => tid !== landedTreasure.id
+            );
+            nextPlayerHands = { ...treasures.playerHands, [pawns.activePawn]: nextHand };
+            nextPlayerActiveTargets = {
+              ...treasures.playerActiveTargets,
+              [pawns.activePawn]: nextHand.length > 0 ? nextHand[0] : null,
+            };
+            nextObtainedTreasures = {
+              ...treasures.obtainedTreasures,
+              [pawns.activePawn]: [
+                ...(treasures.obtainedTreasures[pawns.activePawn] || []),
+                landedTreasure.id,
+              ],
+            };
+            treasures.setPlayerHands(nextPlayerHands);
+            treasures.setPlayerActiveTargets(nextPlayerActiveTargets);
+            treasures.setObtainedTreasures(nextObtainedTreasures);
+            pawns.trackPawnTreasure(pawns.activePawn);
+            onToast(`Goal Achieved: Found ${landedTreasure.name}! 🏆`);
+            claimed = true;
+          }
+        }
+
+        if (!claimed) {
+          onToast(`Moved ${pawns.activePawn.toUpperCase()} pawn to (${r}, ${c})`);
+        }
+
+        const moveLabel = claimed && landedTreasure
+          ? `${pawns.activePawn[0].toUpperCase()}${pawns.activePawn.slice(1)} found ${landedTreasure.name}`
+          : `${pawns.activePawn[0].toUpperCase()}${pawns.activePawn.slice(1)} → (${r},${c})`;
+
+        let nextPawn = pawns.activePawn;
+        if (treasures.gameMode === "coop" || treasures.gameMode === "auto" || !claimed) {
+          const currentIndex = pawns.activePlayers.indexOf(pawns.activePawn);
+          nextPawn = pawns.activePlayers[(currentIndex + 1) % pawns.activePlayers.length] || pawns.activePawn;
+        }
+
+        pushStateToHistory(
+          board.grid,
+          board.spareTile,
+          board.lastShiftArrowId,
+          nextPawn,
+          nextPlayerHands,
+          nextPlayerActiveTargets,
+          nextObtainedTreasures,
+          nextPositions,
+          moveLabel,
+          pawns.activePawn,
+          [startCoord, { r, c }],
+          treasures.gameMode,
+          nextRemainingCoop,
+          nextObtainedCoop
+        );
+
+        saveAutosave({
+          board: board.grid,
+          looseTiles: [],
+          spareTile: board.spareTile,
+          activePawn: nextPawn,
+          playerHands: nextPlayerHands,
+          playerActiveTargets: nextPlayerActiveTargets,
+          obtainedTreasures: nextObtainedTreasures,
+          lastShiftArrowId: board.lastShiftArrowId,
+          isGameStarted,
+          gameStartState,
+          pawnPositions: nextPositions,
+          gameMode: treasures.gameMode,
+          remainingCoopTreasures: nextRemainingCoop,
+          coopObtainedTreasures: nextObtainedCoop,
+        });
+
+        if (treasures.gameMode === "coop" || treasures.gameMode === "auto" || !claimed) {
+          pawns.switchToNextPawn();
+        }
       } else {
-        setPlayerActiveTargets((prev) => ({ ...prev, [pawnColor]: treasureId }));
-        setPlayerHands((prev) => ({ ...prev, [pawnColor]: treasureId ? [treasureId] : [] }));
-        setCustomTargetCoords(null);
+        if (pawns.customTargetCoords && pawns.customTargetCoords.r === r && pawns.customTargetCoords.c === c) {
+          pawns.setCustomTargetCoords(null);
+          onToast("Cleared custom target");
+        } else {
+          pawns.setCustomTargetCoords({ r, c, type: "coord" });
+          onToast(`Custom target set at (${r}, ${c}). Solving path...`);
+        }
       }
     },
-    []
+    [
+      isGameStarted,
+      isMuted,
+      board,
+      pawns,
+      treasures,
+      gameStartState,
+      pushStateToHistory,
+      saveAutosave,
+      onToast,
+    ]
   );
 
   const handleStartGame = useCallback(() => {
-    if (looseTiles.length !== 1) {
+    if (board.looseTiles.length !== 1) {
       onToast("Cannot start! Make sure exactly 33 tiles are placed on the board.");
       return;
     }
     if (!isMuted) playSuccessSound();
 
     let initialRemainingCoop: string[] = [];
-    if (gameMode === "coop") {
+    if (treasures.gameMode === "coop" || treasures.gameMode === "auto") {
       const boardTreasures: string[] = [];
-      grid.forEach((row) => {
+      board.grid.forEach((row) => {
         row.forEach((tile) => {
           if (tile && tile.treasure) {
             boardTreasures.push(tile.treasure.id);
           }
         });
       });
-      looseTiles.forEach((tile) => {
+      board.looseTiles.forEach((tile) => {
         if (tile && tile.treasure) {
           boardTreasures.push(tile.treasure.id);
         }
       });
       initialRemainingCoop = boardTreasures;
-      setRemainingCoopTreasures(initialRemainingCoop);
-      setCoopObtainedTreasures([]);
+      treasures.setRemainingCoopTreasures(initialRemainingCoop);
+      treasures.setCoopObtainedTreasures([]);
     }
 
     const startState: AppGameState = {
-      board: grid.map((r) => [...r]),
-      spareTile: { ...looseTiles[0] },
+      board: board.grid.map((r) => [...r]),
+      spareTile: { ...board.looseTiles[0] },
       looseTiles: [],
-      activePawn,
-      playerHands: { ...playerHands },
-      playerActiveTargets: { ...playerActiveTargets },
-      obtainedTreasures: { ...obtainedTreasures },
+      activePawn: pawns.activePawn,
+      playerHands: { ...treasures.playerHands },
+      playerActiveTargets: { ...treasures.playerActiveTargets },
+      obtainedTreasures: { ...treasures.obtainedTreasures },
       lastShiftArrowId: null,
       isGameStarted: false,
       gameStartState: null,
-      pawnPositions: { ...pawnPositions },
-      gameMode,
+      pawnPositions: { ...pawns.pawnPositions },
+      gameMode: treasures.gameMode,
       remainingCoopTreasures: initialRemainingCoop,
       coopObtainedTreasures: [],
     };
 
-    setSpareTile(looseTiles[0]);
-    setLooseTiles([]);
+    board.setSpareTile(board.looseTiles[0]);
+    board.setLooseTiles([]);
     setIsGameStarted(true);
     setGameStartState(startState);
-    setCustomTargetCoords(null);
-    totalShiftsRef.current = 0;
+    pawns.setCustomTargetCoords(null);
+    pawns.totalShiftsRef.current = 0;
+    pawns.setTotalShifts(0);
 
     pushStateToHistory(
-      grid,
-      looseTiles[0],
+      board.grid,
+      board.looseTiles[0],
       null,
-      activePawn,
-      playerHands,
-      playerActiveTargets,
-      obtainedTreasures,
-      pawnPositions,
+      pawns.activePawn,
+      treasures.playerHands,
+      treasures.playerActiveTargets,
+      treasures.obtainedTreasures,
+      pawns.pawnPositions,
       "Game started",
       undefined,
       undefined,
-      gameMode,
+      treasures.gameMode,
       initialRemainingCoop,
       []
     );
     saveAutosave({
-      board: grid,
+      board: board.grid,
       looseTiles: [],
-      spareTile: looseTiles[0],
-      activePawn,
-      playerHands,
-      playerActiveTargets,
-      obtainedTreasures,
+      spareTile: board.looseTiles[0],
+      activePawn: pawns.activePawn,
+      playerHands: treasures.playerHands,
+      playerActiveTargets: treasures.playerActiveTargets,
+      obtainedTreasures: treasures.obtainedTreasures,
       lastShiftArrowId: null,
       isGameStarted: true,
       gameStartState: startState,
-      pawnPositions,
-      gameMode,
+      pawnPositions: pawns.pawnPositions,
+      gameMode: treasures.gameMode,
       remainingCoopTreasures: initialRemainingCoop,
       coopObtainedTreasures: [],
     });
     onToast(
-      gameMode === "auto"
+      treasures.gameMode === "auto"
         ? "Auto Mode active! Sit back while the solver automatically executes optimal moves."
-        : gameMode === "coop"
+        : treasures.gameMode === "coop"
         ? "Cooperative Game started! Collect all treasures and get all pawns back home."
         : "Game started! Slide the spare tile and move your pawn to targets."
     );
   }, [
-    looseTiles,
+    board,
+    pawns,
+    treasures,
     isMuted,
-    grid,
-    activePawn,
-    playerHands,
-    playerActiveTargets,
-    obtainedTreasures,
-    pawnPositions,
     pushStateToHistory,
     saveAutosave,
     onToast,
-    gameMode,
   ]);
 
   const handleEndGame = useCallback(() => {
@@ -979,23 +741,27 @@ export function useLabyrinthGame({
     const restoredRemainingCoop = gameStartState.remainingCoopTreasures ?? [];
     const restoredObtainedCoop = gameStartState.coopObtainedTreasures ?? [];
 
-    setGrid(gameStartState.board);
-    setLooseTiles([gameStartState.spareTile]);
-    setSpareTile(gameStartState.spareTile);
-    setPawnPositions(restoredPawnPositions);
-    setPlayerHands(restoredHands);
-    setPlayerActiveTargets(restoredTargets);
-    setObtainedTreasures(restoredObtained);
-    setActivePawn(restoredActivePawn);
-    setGameMode(restoredGameMode);
-    setRemainingCoopTreasures(restoredRemainingCoop);
-    setCoopObtainedTreasures(restoredObtainedCoop);
+    board.setGrid(gameStartState.board);
+    board.setLooseTiles([gameStartState.spareTile]);
+    board.setSpareTile(gameStartState.spareTile);
+    board.setLastShiftArrowId(null);
+
+    pawns.setPawnPositions(restoredPawnPositions);
+    pawns.setActivePawn(restoredActivePawn);
+    pawns.setCustomTargetCoords(null);
+    pawns.setPawnStats({});
+    pawns.totalShiftsRef.current = 0;
+    pawns.setTotalShifts(0);
+
+    treasures.setPlayerHands(restoredHands);
+    treasures.setPlayerActiveTargets(restoredTargets);
+    treasures.setObtainedTreasures(restoredObtained);
+    treasures.setGameMode(restoredGameMode);
+    treasures.setRemainingCoopTreasures(restoredRemainingCoop);
+    treasures.setCoopObtainedTreasures(restoredObtainedCoop);
+
     setIsGameStarted(false);
-    setLastShiftArrowId(null);
     setGameStartState(null);
-    setCustomTargetCoords(null);
-    setPawnStats({});
-    totalShiftsRef.current = 0;
 
     resetHistory({
       board: gameStartState.board,
@@ -1030,105 +796,111 @@ export function useLabyrinthGame({
   }, [
     gameStartState,
     isMuted,
+    board,
+    pawns,
+    treasures,
     resetHistory,
     saveAutosave,
   ]);
 
   const handleExecuteSolution = useCallback(
-    (path: {
-      arrowId: string;
-      rotation: number;
-      endPos: { r: number; c: number };
-    }[]) => {
+    (path: SolverSolution) => {
       if (path.length === 0) return;
       const turn1 = path[0];
       const arrow = SHIFT_ARROWS.find((a) => a.id === turn1.arrowId);
       if (!arrow) return;
       if (!isMuted) playSlideSound();
 
-      // Read which pawn is moving from the solver solution (coop mode supports multi-pawn steps)
-      const pawnToMove = (path as any).pawnColor ?? activePawn;
-      if (pawnToMove !== activePawn) {
-        setActivePawn(pawnToMove);
+      const pawnToMove = path.pawnColor ?? pawns.activePawn;
+      if (pawnToMove !== pawns.activePawn) {
+        pawns.setActivePawn(pawnToMove);
       }
 
       const rotDegrees = ([0, 90, 180, 270] as Rotation[])[turn1.rotation];
-      const solverBoard = getSolverFormattedBoard(grid, pawnPositions);
+      const solverBoard = board.getSolverFormattedBoard(board.grid, pawns.pawnPositions);
       const { newSpare } = executeSlideInGrid(
         solverBoard,
-        getSolverFormattedSpare({ ...spareTile, rotation: rotDegrees }),
+        board.getSolverFormattedSpare({ ...board.spareTile, rotation: rotDegrees }),
         arrow.type,
         arrow.index,
         arrow.dir
       );
 
-      const nextGrid = fromSolverGrid(grid, solverBoard, nextTileId);
+      const nextGrid = fromSolverGrid(board.grid, solverBoard, board.nextTileId);
       const nextSpare = fromSolverSpare(newSpare, String(Date.now()));
       const nextPositions: PawnPositions = {
-        ...pawnPositions,
+        ...pawns.pawnPositions,
         [pawnToMove]: { r: turn1.endPos.r, c: turn1.endPos.c },
       };
 
-      setGrid(nextGrid);
-      setSpareTile(nextSpare);
-      setPawnPositions(nextPositions);
-      setLastShiftArrowId(turn1.arrowId);
-      totalShiftsRef.current += 1;
-      trackPawnMove(pawnToMove, 1);
+      board.setGrid(nextGrid);
+      board.setSpareTile(nextSpare);
+      board.setLastShiftArrowId(turn1.arrowId);
+
+      pawns.setPawnPositions(nextPositions);
+      pawns.totalShiftsRef.current += 1;
+      pawns.setTotalShifts((n) => n + 1);
+      pawns.trackPawnMove(pawnToMove, 1);
 
       const landedTreasure = nextGrid[turn1.endPos.r][turn1.endPos.c]?.treasure;
-      let nextPlayerHands = playerHands;
-      let nextPlayerActiveTargets = playerActiveTargets;
-      let nextObtainedTreasures = obtainedTreasures;
-      let nextRemainingCoop = remainingCoopTreasures;
-      let nextObtainedCoop = coopObtainedTreasures;
+      let nextPlayerHands = treasures.playerHands;
+      let nextPlayerActiveTargets = treasures.playerActiveTargets;
+      let nextObtainedTreasures = treasures.obtainedTreasures;
+      let nextRemainingCoop = treasures.remainingCoopTreasures;
+      let nextObtainedCoop = treasures.coopObtainedTreasures;
       let claimed = false;
 
-      if (gameMode === "coop") {
-        if (landedTreasure && remainingCoopTreasures.includes(landedTreasure.id)) {
+      if (treasures.gameMode === "coop" || treasures.gameMode === "auto") {
+        if (landedTreasure && treasures.remainingCoopTreasures.includes(landedTreasure.id)) {
           if (!isMuted) playSuccessSound();
-          nextRemainingCoop = remainingCoopTreasures.filter((tid) => tid !== landedTreasure.id);
-          nextObtainedCoop = [...coopObtainedTreasures, landedTreasure.id];
-          setRemainingCoopTreasures(nextRemainingCoop);
-          setCoopObtainedTreasures(nextObtainedCoop);
-          trackPawnTreasure(pawnToMove);
+          nextRemainingCoop = treasures.remainingCoopTreasures.filter((tid) => tid !== landedTreasure.id);
+          nextObtainedCoop = [...treasures.coopObtainedTreasures, landedTreasure.id];
+          treasures.setRemainingCoopTreasures(nextRemainingCoop);
+          treasures.setCoopObtainedTreasures(nextObtainedCoop);
+          pawns.trackPawnTreasure(pawnToMove);
           onToast(`Goal Achieved: Found ${landedTreasure.name}! 🏆`);
           claimed = true;
-        } else if (remainingCoopTreasures.length === 0) {
-          const home = HOME_POSITIONS[pawnToMove];
+        } else if (treasures.remainingCoopTreasures.length === 0) {
+          const home = DEFAULT_PAWN_POSITIONS[pawnToMove];
           if (home && turn1.endPos.r === home.r && turn1.endPos.c === home.c) {
             onToast(`${pawnToMove.toUpperCase()} has reached home! 🏠`);
-            const allHome = activePlayers.every((p) => {
+            const allHome = pawns.activePlayers.every((p) => {
               const pos = nextPositions[p];
-              const pHome = HOME_POSITIONS[p];
+              const pHome = DEFAULT_PAWN_POSITIONS[p];
               return pos && pHome && pos.r === pHome.r && pos.c === pHome.c;
             });
             if (allHome) {
               if (!isMuted) playSuccessSound();
-              onToast("Cooperative Victory! All treasures collected and all pawns are home! 🎉🏆");
+              onToast(
+                treasures.gameMode === "auto"
+                  ? "Autoplay Victory! All treasures collected and all pawns are home! 🎉🏆"
+                  : "Cooperative Victory! All treasures collected and all pawns are home! 🎉🏆"
+              );
             }
           }
         }
       } else {
-        if (landedTreasure && playerHands[pawnToMove].includes(landedTreasure.id)) {
+        if (landedTreasure && (treasures.playerHands[pawnToMove] || []).includes(landedTreasure.id)) {
           if (!isMuted) playSuccessSound();
-          const nextHand = playerHands[pawnToMove].filter((tid) => tid !== landedTreasure.id);
-          nextPlayerHands = { ...playerHands, [pawnToMove]: nextHand };
+          const nextHand = (treasures.playerHands[pawnToMove] || []).filter(
+            (tid) => tid !== landedTreasure.id
+          );
+          nextPlayerHands = { ...treasures.playerHands, [pawnToMove]: nextHand };
           nextPlayerActiveTargets = {
-            ...playerActiveTargets,
+            ...treasures.playerActiveTargets,
             [pawnToMove]: nextHand.length > 0 ? nextHand[0] : null,
           };
           nextObtainedTreasures = {
-            ...obtainedTreasures,
+            ...treasures.obtainedTreasures,
             [pawnToMove]: [
-              ...(obtainedTreasures[pawnToMove] || []),
+              ...(treasures.obtainedTreasures[pawnToMove] || []),
               landedTreasure.id,
             ],
           };
-          setPlayerHands(nextPlayerHands);
-          setPlayerActiveTargets(nextPlayerActiveTargets);
-          setObtainedTreasures(nextObtainedTreasures);
-          trackPawnTreasure(pawnToMove);
+          treasures.setPlayerHands(nextPlayerHands);
+          treasures.setPlayerActiveTargets(nextPlayerActiveTargets);
+          treasures.setObtainedTreasures(nextObtainedTreasures);
+          pawns.trackPawnTreasure(pawnToMove);
           onToast(`Goal Achieved: Found ${landedTreasure.name}! 🏆`);
           claimed = true;
         }
@@ -1136,11 +908,14 @@ export function useLabyrinthGame({
       const execLabel = claimed && landedTreasure
         ? `${pawnToMove[0].toUpperCase()}${pawnToMove.slice(1)} found ${landedTreasure.name}`
         : `${pawnToMove[0].toUpperCase()}${pawnToMove.slice(1)} → (${turn1.endPos.r},${turn1.endPos.c})`;
-      const execPath = (turn1 as { pawnPath?: { r: number; c: number }[] }).pawnPath ?? [pawnPositions[pawnToMove], turn1.endPos];
+      const execPath = (turn1 as { pawnPath?: { r: number; c: number }[] }).pawnPath ?? [
+        pawns.pawnPositions[pawnToMove],
+        turn1.endPos,
+      ];
 
       let nextPawnForSave = pawnToMove;
-      const currentIndex = activePlayers.indexOf(pawnToMove);
-      nextPawnForSave = activePlayers[(currentIndex + 1) % activePlayers.length] || pawnToMove;
+      const currentIndex = pawns.activePlayers.indexOf(pawnToMove);
+      nextPawnForSave = pawns.activePlayers[(currentIndex + 1) % pawns.activePlayers.length] || pawnToMove;
 
       pushStateToHistory(
         nextGrid,
@@ -1154,7 +929,7 @@ export function useLabyrinthGame({
         execLabel,
         pawnToMove,
         execPath,
-        gameMode,
+        treasures.gameMode,
         nextRemainingCoop,
         nextObtainedCoop
       );
@@ -1171,117 +946,116 @@ export function useLabyrinthGame({
         isGameStarted,
         gameStartState,
         pawnPositions: nextPositions,
-        gameMode,
+        gameMode: treasures.gameMode,
         remainingCoopTreasures: nextRemainingCoop,
         coopObtainedTreasures: nextObtainedCoop,
       });
 
-      switchToNextPawn();
+      pawns.switchToNextPawn();
     },
     [
       isMuted,
-      grid,
-      pawnPositions,
-      spareTile,
-      activePawn,
-      playerHands,
-      playerActiveTargets,
-      obtainedTreasures,
+      board,
+      pawns,
+      treasures,
       isGameStarted,
       gameStartState,
-      getSolverFormattedBoard,
-      getSolverFormattedSpare,
-      nextTileId,
-      trackPawnMove,
-      trackPawnTreasure,
       pushStateToHistory,
       saveAutosave,
-      switchToNextPawn,
       onToast,
-      gameMode,
-      remainingCoopTreasures,
-      coopObtainedTreasures,
-      activePlayers,
     ]
   );
 
   // ── Undo / Redo (apply history back to internal state) ──────────────────────
   const handleUndo = useCallback(() => {
     undo((state) => {
-      setGrid(state.board);
-      setSpareTile(state.spareTile);
-      setLastShiftArrowId(state.lastShiftArrowId);
-      setActivePawn(state.activePawn);
-      setPlayerHands(state.playerHands);
-      setPlayerActiveTargets(state.playerActiveTargets);
-      setObtainedTreasures(state.obtainedTreasures || EMPTY_OBTAINED_TREASURES);
-      if (state.pawnPositions) setPawnPositions(state.pawnPositions);
-      if (state.gameMode) setGameMode(state.gameMode);
-      if (state.remainingCoopTreasures) setRemainingCoopTreasures(state.remainingCoopTreasures);
-      if (state.coopObtainedTreasures) setCoopObtainedTreasures(state.coopObtainedTreasures);
+      board.setGrid(state.board);
+      board.setSpareTile(state.spareTile);
+      board.setLastShiftArrowId(state.lastShiftArrowId);
+      pawns.setActivePawn(state.activePawn);
+      treasures.setPlayerHands(state.playerHands);
+      treasures.setPlayerActiveTargets(state.playerActiveTargets);
+      treasures.setObtainedTreasures(state.obtainedTreasures || EMPTY_OBTAINED_TREASURES);
+      if (state.pawnPositions) pawns.setPawnPositions(state.pawnPositions);
+      if (state.gameMode) treasures.setGameMode(state.gameMode);
+      if (state.remainingCoopTreasures) treasures.setRemainingCoopTreasures(state.remainingCoopTreasures);
+      if (state.coopObtainedTreasures) treasures.setCoopObtainedTreasures(state.coopObtainedTreasures);
     });
-  }, [undo]);
+  }, [undo, board, pawns, treasures]);
 
   const handleRedo = useCallback(() => {
     redo((state) => {
-      setGrid(state.board);
-      setSpareTile(state.spareTile);
-      setLastShiftArrowId(state.lastShiftArrowId);
-      setActivePawn(state.activePawn);
-      setPlayerHands(state.playerHands);
-      setPlayerActiveTargets(state.playerActiveTargets);
-      setObtainedTreasures(state.obtainedTreasures || EMPTY_OBTAINED_TREASURES);
-      if (state.pawnPositions) setPawnPositions(state.pawnPositions);
-      if (state.gameMode) setGameMode(state.gameMode);
-      if (state.remainingCoopTreasures) setRemainingCoopTreasures(state.remainingCoopTreasures);
-      if (state.coopObtainedTreasures) setCoopObtainedTreasures(state.coopObtainedTreasures);
+      board.setGrid(state.board);
+      board.setSpareTile(state.spareTile);
+      board.setLastShiftArrowId(state.lastShiftArrowId);
+      pawns.setActivePawn(state.activePawn);
+      treasures.setPlayerHands(state.playerHands);
+      treasures.setPlayerActiveTargets(state.playerActiveTargets);
+      treasures.setObtainedTreasures(state.obtainedTreasures || EMPTY_OBTAINED_TREASURES);
+      if (state.pawnPositions) pawns.setPawnPositions(state.pawnPositions);
+      if (state.gameMode) treasures.setGameMode(state.gameMode);
+      if (state.remainingCoopTreasures) treasures.setRemainingCoopTreasures(state.remainingCoopTreasures);
+      if (state.coopObtainedTreasures) treasures.setCoopObtainedTreasures(state.coopObtainedTreasures);
     });
-  }, [redo]);
+  }, [redo, board, pawns, treasures]);
 
-  const handleJumpToHistory = useCallback((index: number) => {
-    jumpToHistory(index, (state) => {
-      setGrid(state.board);
-      setSpareTile(state.spareTile);
-      setLastShiftArrowId(state.lastShiftArrowId);
-      setActivePawn(state.activePawn);
-      setPlayerHands(state.playerHands);
-      setPlayerActiveTargets(state.playerActiveTargets);
-      setObtainedTreasures(state.obtainedTreasures || EMPTY_OBTAINED_TREASURES);
-      if (state.pawnPositions) setPawnPositions(state.pawnPositions);
-      if (state.gameMode) setGameMode(state.gameMode);
-      if (state.remainingCoopTreasures) setRemainingCoopTreasures(state.remainingCoopTreasures);
-      if (state.coopObtainedTreasures) setCoopObtainedTreasures(state.coopObtainedTreasures);
-    });
-  }, [jumpToHistory]);
+  const handleJumpToHistory = useCallback(
+    (index: number) => {
+      jumpToHistory(index, (state) => {
+        board.setGrid(state.board);
+        board.setSpareTile(state.spareTile);
+        board.setLastShiftArrowId(state.lastShiftArrowId);
+        pawns.setActivePawn(state.activePawn);
+        treasures.setPlayerHands(state.playerHands);
+        treasures.setPlayerActiveTargets(state.playerActiveTargets);
+        treasures.setObtainedTreasures(state.obtainedTreasures || EMPTY_OBTAINED_TREASURES);
+        if (state.pawnPositions) pawns.setPawnPositions(state.pawnPositions);
+        if (state.gameMode) treasures.setGameMode(state.gameMode);
+        if (state.remainingCoopTreasures) treasures.setRemainingCoopTreasures(state.remainingCoopTreasures);
+        if (state.coopObtainedTreasures) treasures.setCoopObtainedTreasures(state.coopObtainedTreasures);
+      });
+    },
+    [jumpToHistory, board, pawns, treasures]
+  );
 
   return {
-    // Core game state
-    grid,
-    setGrid,
-    looseTiles,
-    setLooseTiles,
-    spareTile,
-    setSpareTile,
+    // Board state
+    grid: board.grid,
+    setGrid: board.setGrid,
+    looseTiles: board.looseTiles,
+    setLooseTiles: board.setLooseTiles,
+    spareTile: board.spareTile,
+    setSpareTile: board.setSpareTile,
+    lastShiftArrowId: board.lastShiftArrowId,
+    showEmptyTiles: board.showEmptyTiles,
+    setShowEmptyTiles: board.setShowEmptyTiles,
+    // Game lifecycle
     isGameStarted,
     gameStartState,
-    activePawn,
-    setActivePawn,
-    activePlayers,
-    setActivePlayers,
-    lastShiftArrowId,
-    pawnPositions,
-    setPawnPositions,
-    playerHands,
-    playerActiveTargets,
-    obtainedTreasures,
-    pawnStats,
-    customTargetCoords,
-    setCustomTargetCoords,
-    showEmptyTiles,
-    setShowEmptyTiles,
     setupTab,
     setSetupTab,
-    totalShiftsRef,
+    // Pawn state
+    activePawn: pawns.activePawn,
+    setActivePawn: pawns.setActivePawn,
+    activePlayers: pawns.activePlayers,
+    setActivePlayers: pawns.setActivePlayers,
+    pawnPositions: pawns.pawnPositions,
+    setPawnPositions: pawns.setPawnPositions,
+    pawnStats: pawns.pawnStats,
+    customTargetCoords: pawns.customTargetCoords,
+    setCustomTargetCoords: pawns.setCustomTargetCoords,
+    totalShiftsRef: pawns.totalShiftsRef,
+    totalShifts: pawns.totalShifts,
+    // Treasure state
+    playerHands: treasures.playerHands,
+    playerActiveTargets: treasures.playerActiveTargets,
+    obtainedTreasures: treasures.obtainedTreasures,
+    gameMode: treasures.gameMode,
+    setGameMode: treasures.setGameMode,
+    remainingCoopTreasures: treasures.remainingCoopTreasures,
+    setRemainingCoopTreasures: treasures.setRemainingCoopTreasures,
+    coopObtainedTreasures: treasures.coopObtainedTreasures,
+    setCoopObtainedTreasures: treasures.setCoopObtainedTreasures,
     // History
     history,
     historyIndex,
@@ -1294,8 +1068,8 @@ export function useLabyrinthGame({
     saveAutosave,
     loadAutosave,
     // Solver adapter helpers
-    getSolverFormattedBoard,
-    getSolverFormattedSpare,
+    getSolverFormattedBoard: board.getSolverFormattedBoard,
+    getSolverFormattedSpare: board.getSolverFormattedSpare,
     // Initialisation
     hydrateFromSaved,
     resetBoardToInitialPresets,
@@ -1313,13 +1087,6 @@ export function useLabyrinthGame({
     handleStartGame,
     handleEndGame,
     handleExecuteSolution,
-    switchToNextPawn,
-    gameMode,
-    setGameMode,
-    remainingCoopTreasures,
-    setRemainingCoopTreasures,
-    coopObtainedTreasures,
-    setCoopObtainedTreasures,
-    totalShifts: totalShiftsRef.current,
+    switchToNextPawn: pawns.switchToNextPawn,
   };
 }

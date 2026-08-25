@@ -2,8 +2,14 @@
 
 let audioCtx: AudioContext | null = null;
 
+let isMutedModule = false;
+
+export function setAudioMuted(muted: boolean) {
+  isMutedModule = muted;
+}
+
 function isAudioMuted(): boolean {
-  return localStorage.getItem("labyrinth_audio_muted") === "true";
+  return isMutedModule;
 }
 
 function getAudioContext(): AudioContext {
