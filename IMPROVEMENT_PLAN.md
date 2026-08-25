@@ -118,17 +118,17 @@ These are larger, more impactful changes that require careful testing after each
 
 These are the largest changes. Tackle after Waves 1–3 are stable.
 
-- [ ] **Break up `useLabyrinthGame.ts` (1,326 lines)** into composed sub-hooks:
+- [x] **Break up `useLabyrinthGame.ts` (1,326 lines)** into composed sub-hooks:
   - `src/hooks/useBoardManagement.ts` — grid, slide, reset, presets
   - `src/hooks/usePawnManagement.ts` — positions, stats, active pawn rotation, turn switching
   - `src/hooks/useTreasureCollection.ts` — hand management, target selection, obtained tracking
   - Keep `useLabyrinthGame.ts` as a thin composition layer
   - **Risk:** High — touches core game logic. Do one sub-hook at a time with tests between.
 
-- [ ] **CSS theming overhaul** — Migrate components away from hardcoded `stone-*` Tailwind classes to CSS variable-backed semantic classes (`bg-background`, `bg-card`, `text-foreground`). This eliminates the 80+ `!important` overrides in `index.css`.
+- [x] **CSS theming overhaul** — Migrate components away from hardcoded `stone-*` Tailwind classes to CSS variable-backed semantic classes (`bg-background`, `bg-card`, `text-foreground`). This eliminates the 80+ `!important` overrides in `index.css`.
   - **Risk:** Medium — visual regression risk; do component-by-component with before/after screenshots
 
-- [ ] **Proper `usePreviewState` hook** — Deduplicate `previewState`, `stagedPreviewState`, and `effectivePreview` by consolidating into a single hook that handles all three display modes.
+- [x] **Proper `usePreviewState` hook** — Deduplicate `previewState`, `stagedPreviewState`, and `effectivePreview` by consolidating into a single hook that handles all three display modes.
   - Files: `src/App.tsx`, new `src/hooks/usePreviewState.ts`
   - **Risk:** Medium — preview logic is subtle; regression-test by hovering solver suggestions and staging arrows
 
@@ -141,7 +141,7 @@ These are the largest changes. Tackle after Waves 1–3 are stable.
 | Wave 1 — Quick Wins | ✅ Completed | ~2 hrs |
 | Wave 2 — Medium Fixes | ✅ Completed | ~1 day |
 | Wave 3 — Architectural | ✅ Completed | ~2 days |
-| Wave 4 — Major Refactors | ⬜ Not Started | ~1 week |
+| Wave 4 — Major Refactors | ✅ Completed | ~1 week |
 
 > **Tip:** After each wave, run `npm test` and `npm run typecheck` before moving on.
 > **Reminder:** All changes must remain GitHub Pages compatible — no server-side dependencies.

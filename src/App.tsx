@@ -9,8 +9,8 @@ import {
   MouseSensor,
   TouchSensor,
 } from "@dnd-kit/core";
-import { SHIFT_ARROWS, TREASURES, DEFAULT_PAWN_POSITIONS, ROTATIONS } from "./constants";
-import type { TileData, AppGameState, Rotation, PawnPositions } from "./types";
+import { TREASURES, DEFAULT_PAWN_POSITIONS } from "./constants";
+import type { TileData, AppGameState } from "./types";
 import { Board } from "./components/board/Board";
 import { SolverPanel } from "./components/panels/SolverPanel";
 import { SetupPanel } from "./components/panels/SetupPanel";
@@ -28,8 +28,7 @@ import { useSlideStaging } from "./hooks/useSlideStaging";
 import { usePawnAnimation } from "./hooks/usePawnAnimation";
 import { useSolverWorker } from "./hooks/useSolverWorker";
 import { playClickSound, setAudioMuted } from "./utils/audio";
-import { fromSolverGrid } from "./lib/solverAdapter";
-import { executeSlideInGrid, getReachableCells, quickSolveMinTurns, solveAllHand } from "./solver";
+import { quickSolveMinTurns, solveAllHand } from "./solver";
 import {
   Sparkles,
   ChevronUp,
@@ -37,42 +36,11 @@ import {
 } from "lucide-react";
 import { ResumeGameDialog } from "./components/modals/ResumeGameDialog";
 import { AUTOSAVE_KEY } from "./hooks/useLabyrinthStorage";
+import { usePreviewState } from "./hooks/usePreviewState";
 import { cn } from "./lib/utils";
 
 // Default solver depth. Can be overridden via the Advanced settings panel.
 const DEFAULT_SOLVER_DEPTH = 3;
-
-function computePreviewPawnPositions(
-  arrow: { type: "row" | "col" | string; index: number; dir: string },
-  pawnPositions: PawnPositions
-): PawnPositions {
-  const previewPawnPositions = { ...pawnPositions };
-  Object.entries(pawnPositions).forEach(([color, pos]) => {
-    let nr = pos.r,
-      nc = pos.c;
-    if (arrow.type === "row" && arrow.index === pos.r) {
-      nc =
-        arrow.dir === "left"
-          ? pos.c === 6
-            ? 0
-            : pos.c + 1
-          : pos.c === 0
-          ? 6
-          : pos.c - 1;
-    } else if (arrow.type === "col" && arrow.index === pos.c) {
-      nr =
-        arrow.dir === "top"
-          ? pos.r === 6
-            ? 0
-            : pos.r + 1
-          : pos.r === 0
-          ? 6
-          : pos.r - 1;
-    }
-    previewPawnPositions[color] = { r: nr, c: nc };
-  });
-  return previewPawnPositions;
-}
 
 export default function App() {
   const sensors = useSensors(
@@ -535,149 +503,27 @@ export default function App() {
     }
   };
 
-  // ── Preview state for hovered solver suggestion ───────────────────────────────
-  const previewState = useMemo(() => {
-    if (!hoveredSolution || hoveredSolution.length === 0) return null;
-    const turn1 = hoveredSolution[0];
-    const arrow = SHIFT_ARROWS.find((a) => a.id === turn1.arrowId);
-    if (!arrow) return null;
-    try {
-      const solverBoard = game.getSolverFormattedBoard(game.grid, game.pawnPositions);
-      const rotDegrees = (ROTATIONS as unknown as Rotation[])[turn1.rotation];
-      const solverSpare = game.getSolverFormattedSpare({
-        ...game.spareTile,
-        rotation: rotDegrees,
-      });
-      executeSlideInGrid(solverBoard, solverSpare, arrow.type, arrow.index, arrow.dir);
-      const previewGrid = fromSolverGrid(
-        game.grid,
-        solverBoard,
-        () => "preview_temp_inserted"
-      );
-      const previewPawnPositions = computePreviewPawnPositions(arrow, game.pawnPositions);
-      return {
-        grid: previewGrid,
-        pawnPositions: previewPawnPositions,
-        spareTile: { ...game.spareTile, rotation: rotDegrees },
-      };
-    } catch {
-      return null;
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    hoveredSolution,
-    game.grid,
-    game.pawnPositions,
-    game.spareTile,
-    game.getSolverFormattedBoard,
-    game.getSolverFormattedSpare,
-  ]);
-
-  const activeTargetCoords = useMemo(() => {
-    const targetId = game.playerActiveTargets[game.activePawn];
-    if (!targetId) return null;
-    const gridToSearch = previewState?.grid ?? game.grid;
-    if (!gridToSearch.length) return null;
-    for (let r = 0; r < 7; r++)
-      for (let c = 0; c < 7; c++) {
-        const cell = gridToSearch[r]?.[c];
-        if (cell?.treasure?.id === targetId) return { r, c };
-      }
-    return null;
-  }, [game.playerActiveTargets, game.activePawn, game.grid, previewState]);
-
-  const stagedPreviewState = useMemo(() => {
-    if (hoveredSolution || !stagedArrow || turnPhase !== "slide") return null;
-    const arrow = SHIFT_ARROWS.find((a) => a.id === stagedArrow);
-    if (!arrow) return null;
-    try {
-      const solverBoard = game.getSolverFormattedBoard(game.grid, game.pawnPositions);
-      const solverSpare = game.getSolverFormattedSpare({
-        ...game.spareTile,
-        rotation: stagedRotation,
-      });
-      executeSlideInGrid(solverBoard, solverSpare, arrow.type, arrow.index, arrow.dir);
-      const previewGrid = fromSolverGrid(
-        game.grid,
-        solverBoard,
-        () => "staged_preview"
-      );
-      const previewPawnPositions = computePreviewPawnPositions(arrow, game.pawnPositions);
-      return {
-        grid: previewGrid,
-        pawnPositions: previewPawnPositions,
-        spareTile: { ...game.spareTile, rotation: stagedRotation },
-      };
-    } catch {
-      return null;
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
+  // ── Preview state (hovered suggestion, staged arrow, history) ───────────────
+  const {
+    effectivePreview,
+    activeTargetCoords,
+    reachableCells,
+  } = usePreviewState({
+    grid: game.grid,
+    pawnPositions: game.pawnPositions,
+    spareTile: game.spareTile,
+    isGameStarted: game.isGameStarted,
+    activePawn: game.activePawn,
+    playerActiveTargets: game.playerActiveTargets,
+    turnPhase,
     hoveredSolution,
     stagedArrow,
     stagedRotation,
-    turnPhase,
-    game.grid,
-    game.pawnPositions,
-    game.spareTile,
-    game.getSolverFormattedBoard,
-    game.getSolverFormattedSpare,
-  ]);
-
-  const reachableCells = useMemo<{ r: number; c: number }[]>(() => {
-    if (!game.isGameStarted) return [];
-    if (turnPhase === "move") {
-      const pawnPos = game.pawnPositions[game.activePawn];
-      if (!pawnPos) return [];
-      try {
-        const solverBoard = game.getSolverFormattedBoard(game.grid, game.pawnPositions);
-        const { cells } = getReachableCells(solverBoard, pawnPos.r, pawnPos.c);
-        return cells as { r: number; c: number }[];
-      } catch {
-        return [];
-      }
-    }
-    if (turnPhase === "slide" && stagedPreviewState) {
-      const pawnPos = stagedPreviewState.pawnPositions[game.activePawn];
-      if (!pawnPos) return [];
-      try {
-        const solverBoard = game.getSolverFormattedBoard(
-          stagedPreviewState.grid,
-          stagedPreviewState.pawnPositions
-        );
-        const { cells } = getReachableCells(solverBoard, pawnPos.r, pawnPos.c);
-        return cells as { r: number; c: number }[];
-      } catch {
-        return [];
-      }
-    }
-    return [];
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    game.isGameStarted,
-    turnPhase,
-    game.grid,
-    game.pawnPositions,
-    game.activePawn,
-    game.getSolverFormattedBoard,
-    stagedPreviewState,
-  ]);
-
-  const effectivePreview: {
-    grid: (TileData | null)[][];
-    pawnPositions: PawnPositions;
-    spareTile: TileData;
-    pawnPath?: { r: number; c: number }[];
-    movedPawn?: string;
-  } | null = hoveredHistoryIndex !== null && game.history && game.history[hoveredHistoryIndex]
-    ? {
-        grid: game.history[hoveredHistoryIndex].board,
-        pawnPositions: game.history[hoveredHistoryIndex].pawnPositions || game.pawnPositions,
-        spareTile: game.history[hoveredHistoryIndex].spareTile || game.spareTile,
-        pawnPath: game.history[hoveredHistoryIndex].pawnPath,
-        movedPawn: game.history[hoveredHistoryIndex].movedPawn,
-      }
-    : previewState || stagedPreviewState;
+    hoveredHistoryIndex,
+    history: game.history,
+    getSolverFormattedBoard: game.getSolverFormattedBoard,
+    getSolverFormattedSpare: game.getSolverFormattedSpare,
+  });
 
   const isActivePawnHome = useMemo(() => {
     const pawnPos = game.pawnPositions[game.activePawn];

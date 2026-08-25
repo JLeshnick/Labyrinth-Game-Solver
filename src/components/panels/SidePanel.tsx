@@ -23,8 +23,8 @@ export const SidePanel: React.FC<SidePanelProps> = ({ tiles, onTileClick }) => {
   return (
     <Card className="w-full flex flex-col h-full">
       <CardHeader className="pb-3">
-        <CardTitle className="text-xl text-stone-200">Loose Tiles</CardTitle>
-        <CardDescription className="text-stone-400 text-xs">
+        <CardTitle className="text-xl text-foreground">Loose Tiles</CardTitle>
+        <CardDescription className="text-muted-foreground text-xs">
           Drag tiles onto the board. Click placed tiles to rotate. Leave exactly 1 spare tile here.
         </CardDescription>
       </CardHeader>
@@ -38,9 +38,9 @@ export const SidePanel: React.FC<SidePanelProps> = ({ tiles, onTileClick }) => {
         <div className="h-full w-full overflow-y-auto pr-1 flex flex-col gap-5">
           {corners.length > 0 && (
             <div>
-              <div className="text-xs font-semibold text-stone-400 mb-2 flex items-center justify-between">
+              <div className="text-xs font-semibold text-muted-foreground mb-2 flex items-center justify-between">
                 <span>Right-Angle Corners</span>
-                <span className="bg-stone-900 px-1.5 py-0.5 rounded text-[10px] text-stone-300 font-bold">{corners.length}</span>
+                <span className="bg-muted px-1.5 py-0.5 rounded text-[10px] text-foreground font-bold">{corners.length}</span>
               </div>
               <div className="grid grid-cols-4 gap-2">
                 {corners.map((tile) => (
@@ -58,9 +58,9 @@ export const SidePanel: React.FC<SidePanelProps> = ({ tiles, onTileClick }) => {
 
           {straights.length > 0 && (
             <div>
-              <div className="text-xs font-semibold text-stone-400 mb-2 flex items-center justify-between">
+              <div className="text-xs font-semibold text-muted-foreground mb-2 flex items-center justify-between">
                 <span>Straight Corridors</span>
-                <span className="bg-stone-900 px-1.5 py-0.5 rounded text-[10px] text-stone-300 font-bold">{straights.length}</span>
+                <span className="bg-muted px-1.5 py-0.5 rounded text-[10px] text-foreground font-bold">{straights.length}</span>
               </div>
               <div className="grid grid-cols-4 gap-2">
                 {straights.map((tile) => (
@@ -78,9 +78,9 @@ export const SidePanel: React.FC<SidePanelProps> = ({ tiles, onTileClick }) => {
 
           {tJunctions.length > 0 && (
             <div>
-              <div className="text-xs font-semibold text-stone-400 mb-2 flex items-center justify-between">
+              <div className="text-xs font-semibold text-muted-foreground mb-2 flex items-center justify-between">
                 <span>T-Junctions</span>
-                <span className="bg-stone-900 px-1.5 py-0.5 rounded text-[10px] text-stone-300 font-bold">{tJunctions.length}</span>
+                <span className="bg-muted px-1.5 py-0.5 rounded text-[10px] text-foreground font-bold">{tJunctions.length}</span>
               </div>
               <div className="grid grid-cols-4 gap-2">
                 {tJunctions.map((tile) => (
@@ -97,8 +97,8 @@ export const SidePanel: React.FC<SidePanelProps> = ({ tiles, onTileClick }) => {
           )}
 
           {tiles.length === 0 && (
-            <div className="text-center text-stone-500 py-10 text-sm">
-              All tiles placed!
+            <div className="text-center text-muted-foreground py-10 text-sm">
+              All tiles placed! Exactly 1 spare tile should remain.
             </div>
           )}
         </div>
