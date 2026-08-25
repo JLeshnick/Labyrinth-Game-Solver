@@ -555,6 +555,14 @@ export default function App() {
     const selectedTarget = game.gameMode === "auto" ? null : game.playerActiveTargets[game.activePawn];
     const coopTreasures = isCoop && selectedTarget ? [selectedTarget] : game.remainingCoopTreasures;
 
+    // In auto mode or in Phase 2 (all treasures collected), solve across all active players so every pawn returns home
+    const coopActivePawns =
+      game.gameMode === "auto" || (isCoop && game.remainingCoopTreasures.length === 0)
+        ? game.activePlayers
+        : isCoop
+        ? [game.activePawn]
+        : game.activePlayers;
+
     workerRef.current.postMessage({
       board: solverBoard,
       spareTile: solverSpare,
@@ -564,7 +572,7 @@ export default function App() {
       lastShiftArrowId: game.lastShiftArrowId,
       maxTurns: solverDepth,
       isCoop: isCoopSolve,
-      activePawns: isCoop ? [game.activePawn] : game.activePlayers,
+      activePawns: coopActivePawns,
       remainingTreasures: coopTreasures,
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
