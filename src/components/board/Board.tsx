@@ -206,7 +206,7 @@ interface BoardProps {
   isGameStarted: boolean;
   lastShiftArrowId: string | null;
   onArrowClick: (arrowId: string) => void;
-  hoveredPath: { r: number; c: number }[] | null;
+  hoveredPath: { r: number; c: number; pawnColor?: string }[] | null;
   hoveredSolutionArrow: string | null;
   boardRotation?: number;
   customTargetCoords?: { r: number; c: number } | null;
@@ -526,7 +526,7 @@ export const Board: React.FC<BoardProps> = ({
           const pts = hoveredPath.map(p => `${tc(p.c)},${tc(p.r)}`).join(" ");
           const s = hoveredPath[0];
           const e = hoveredPath[hoveredPath.length - 1];
-          const pathPawnColor = (hoveredPath as any).pawnColor || activePawn;
+          const pathPawnColor = hoveredPath[0]?.pawnColor || activePawn;
           const strokeColor = PAWN_COLOR_HEX[pathPawnColor] || "#f59e0b";
 
           return (

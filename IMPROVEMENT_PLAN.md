@@ -88,27 +88,27 @@ Targeted improvements to specific subsystems. No major restructuring.
 
 These are larger, more impactful changes that require careful testing after each step.
 
-- [ ] **Fix duplicate `SolverPanel` / `SetupPanel` render** — Both panels are copy-pasted in the mobile and desktop DOM trees with identical props. Refactor so each panel is rendered once; control visibility with CSS (`hidden md:block` / `md:hidden`) or with an `isMobile` conditional on a single instance.
+- [x] **Fix duplicate `SolverPanel` / `SetupPanel` render** — Both panels are copy-pasted in the mobile and desktop DOM trees with identical props. Refactor so each panel is rendered once; control visibility with CSS (`hidden md:block` / `md:hidden`) or with an `isMobile` conditional on a single instance.
   - Files: `src/App.tsx`
   - **Risk:** Medium — layout-sensitive, test on both mobile and desktop after
 
-- [ ] **Extract `MobileActionsBar` component** — Lines 1340–1445 of `App.tsx` (the bottom nav bar) are self-contained. Pull into `src/components/MobileActionsBar.tsx`.
+- [x] **Extract `MobileActionsBar` component** — Lines 1340–1445 of `App.tsx` (the bottom nav bar) are self-contained. Pull into `src/components/MobileActionsBar.tsx`.
   - Files: `src/App.tsx`, new `src/components/MobileActionsBar.tsx`
   - **Risk:** Low
 
-- [ ] **Extract `useSolverWorker` hook** — Move the Web Worker lifecycle (creation, `onmessage`, `onerror`, `terminate`) and solution state (`solutions`, `isLoadingSolutions`, `hoveredSolutionIndex`) out of `App.tsx` into `src/hooks/useSolverWorker.ts`.
+- [x] **Extract `useSolverWorker` hook** — Move the Web Worker lifecycle (creation, `onmessage`, `onerror`, `terminate`) and solution state (`solutions`, `isLoadingSolutions`, `hoveredSolutionIndex`) out of `App.tsx` into `src/hooks/useSolverWorker.ts`.
   - Files: `src/App.tsx`, new `src/hooks/useSolverWorker.ts`
   - **Risk:** Low-medium — test that solutions still update on board changes
 
-- [ ] **Extract `useSlideStaging` hook** — Pull `stagedArrow`, `stagedRotation`, `handleArrowClick`, `commitStagedSlide`, `cancelStagedSlide` into `src/hooks/useSlideStaging.ts`.
+- [x] **Extract `useSlideStaging` hook** — Pull `stagedArrow`, `stagedRotation`, `handleArrowClick`, `commitStagedSlide`, `cancelStagedSlide` into `src/hooks/useSlideStaging.ts`.
   - Files: `src/App.tsx`, new `src/hooks/useSlideStaging.ts`
   - **Risk:** Low
 
-- [ ] **Extract `usePawnAnimation` hook** — `travelingPawn`, `pawnPositionOverride`, `travelTimerRef`, and `handleExecuteSolutionWithAnimation` into `src/hooks/usePawnAnimation.ts`.
+- [x] **Extract `usePawnAnimation` hook** — `travelingPawn`, `pawnPositionOverride`, `travelTimerRef`, and `handleExecuteSolutionWithAnimation` into `src/hooks/usePawnAnimation.ts`.
   - Files: `src/App.tsx`, new `src/hooks/usePawnAnimation.ts`
   - **Risk:** Low-medium — test animation timing and cleanup
 
-- [ ] **Fix `any` types throughout** — Replace `pendingResumeState: useState<any>`, `history?: any[]` in types, and the solution path `any` cast with proper interfaces.
+- [x] **Fix `any` types throughout** — Replace `pendingResumeState: useState<any>`, `history?: any[]` in types, and the solution path `any` cast with proper interfaces.
   - Files: `src/types.ts`, `src/App.tsx`, `src/components/AppHeader.tsx`
   - **Risk:** Low (compile-time only, no runtime change)
 
@@ -140,7 +140,7 @@ These are the largest changes. Tackle after Waves 1–3 are stable.
 |------|--------|-----------|
 | Wave 1 — Quick Wins | ✅ Completed | ~2 hrs |
 | Wave 2 — Medium Fixes | ✅ Completed | ~1 day |
-| Wave 3 — Architectural | ⬜ Not Started | ~2 days |
+| Wave 3 — Architectural | ✅ Completed | ~2 days |
 | Wave 4 — Major Refactors | ⬜ Not Started | ~1 week |
 
 > **Tip:** After each wave, run `npm test` and `npm run typecheck` before moving on.

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { TileData, PlayerMap } from "../types";
+import type { TileData, PlayerMap, HistoryRecord } from "../types";
 import { PAWNS, TREASURES } from "../constants";
 import { Button } from "./ui/button";
 import { Tooltip } from "./ui/tooltip";
@@ -50,7 +50,7 @@ export interface AppHeaderProps {
   onCloseSettings: () => void;
   onUndo: () => void;
   onRedo: () => void;
-  history?: any[];
+  history?: HistoryRecord[];
   historyIndex?: number;
   onJumpToHistory?: (index: number) => void;
   onHoverHistory?: (index: number | null) => void;

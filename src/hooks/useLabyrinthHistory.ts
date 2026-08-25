@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef } from "react";
-import type { TileData, PlayerMap, PawnPositions } from "../types";
+import type { TileData, PlayerMap, PawnPositions, HistoryRecord } from "../types";
+export type { HistoryRecord };
 
 const MAX_HISTORY = 50;
 
@@ -9,23 +10,6 @@ function deepClone<T>(obj: T): T {
     return structuredClone(obj);
   }
   return JSON.parse(JSON.stringify(obj));
-}
-
-export interface HistoryRecord {
-  board: (TileData | null)[][];
-  spareTile: TileData;
-  lastShiftArrowId: string | null;
-  activePawn: string;
-  playerHands: PlayerMap<string[]>;
-  playerActiveTargets: PlayerMap<string | null>;
-  obtainedTreasures: PlayerMap<string[]>;
-  pawnPositions?: PawnPositions;
-  label?: string;
-  movedPawn?: string;
-  pawnPath?: { r: number; c: number }[];
-  gameMode?: "standard" | "coop" | "auto";
-  remainingCoopTreasures?: string[];
-  coopObtainedTreasures?: string[];
 }
 
 export function useLabyrinthHistory(initialState: HistoryRecord | null) {

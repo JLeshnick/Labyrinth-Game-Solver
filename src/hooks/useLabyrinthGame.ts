@@ -16,6 +16,7 @@ import type {
   PlayerMap,
   PawnPositions,
   AppGameState,
+  SolverSolution,
 } from "../types";
 import {
   toSolverBoard,
@@ -342,7 +343,7 @@ export function useLabyrinthGame({
         });
       }
     },
-    [resetHistory]
+    [resetHistory, hydrateHistory]
   );
 
   // ── Game actions ─────────────────────────────────────────────────────────────
@@ -442,6 +443,9 @@ export function useLabyrinthGame({
     playerActiveTargets,
     obtainedTreasures,
     pawnPositions,
+    gameMode,
+    remainingCoopTreasures,
+    coopObtainedTreasures,
     pushStateToHistory,
     saveAutosave,
     onToast,
@@ -1032,11 +1036,7 @@ export function useLabyrinthGame({
   ]);
 
   const handleExecuteSolution = useCallback(
-    (path: {
-      arrowId: string;
-      rotation: number;
-      endPos: { r: number; c: number };
-    }[]) => {
+    (path: SolverSolution) => {
       if (path.length === 0) return;
       const turn1 = path[0];
       const arrow = SHIFT_ARROWS.find((a) => a.id === turn1.arrowId);
@@ -1044,7 +1044,7 @@ export function useLabyrinthGame({
       if (!isMuted) playSlideSound();
 
       // Read which pawn is moving from the solver solution (coop mode supports multi-pawn steps)
-      const pawnToMove = (path as any).pawnColor ?? activePawn;
+      const pawnToMove = path.pawnColor ?? activePawn;
       if (pawnToMove !== activePawn) {
         setActivePawn(pawnToMove);
       }
