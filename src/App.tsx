@@ -1247,6 +1247,7 @@ export default function App() {
                     onStartGame={game.handleStartGame}
                     showToast={showToast}
                     onScanBoard={() => setIsScanModalOpen(true)}
+                    onOpenSettings={() => setIsSettingsOpen(true)}
                     compact={mobilePanelStop === "peek"}
                     gameMode={game.gameMode}
                     onSetGameMode={game.setGameMode}
