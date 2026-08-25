@@ -4,6 +4,8 @@ import { RefreshCcw } from "lucide-react";
 
 interface Props {
   children: ReactNode;
+  /** Optional label shown in the compact error card (e.g. "Board", "Solver Panel") */
+  label?: string;
 }
 
 interface State {
@@ -43,6 +45,41 @@ export class ErrorBoundary extends Component<Props, State> {
               Try to recover
             </button>
           </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+/** Compact error boundary for wrapping individual panels/components. Shows an
+ *  inline error card rather than a full-screen takeover. */
+export class InlineErrorBoundary extends Component<Props, State> {
+  state: State = { error: null };
+
+  static getDerivedStateFromError(error: Error): State {
+    return { error };
+  }
+
+  componentDidCatch(error: Error, info: ErrorInfo) {
+    console.error(`[InlineErrorBoundary:${this.props.label ?? "unknown"}]`, error, info.componentStack);
+  }
+
+  render() {
+    if (this.state.error) {
+      return (
+        <div className="flex flex-col items-center justify-center gap-3 p-4 text-center rounded-xl border border-red-800/40 bg-red-950/20">
+          <RefreshCcw className="w-6 h-6 text-red-400" />
+          <div>
+            <p className="text-xs font-bold text-red-300">{this.props.label ?? "Component"} crashed</p>
+            <p className="text-[10px] text-stone-500 mt-0.5">{this.state.error.message}</p>
+          </div>
+          <button
+            onClick={() => this.setState({ error: null })}
+            className="px-3 py-1 text-xs bg-red-900/40 text-red-300 border border-red-800/40 rounded-lg hover:bg-red-900/60 transition-colors"
+          >
+            Retry
+          </button>
         </div>
       );
     }

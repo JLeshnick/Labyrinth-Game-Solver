@@ -48,6 +48,7 @@ const KEYBOARD_SHORTCUTS = [
     shortcuts: [
       { keys: ["Ctrl", "Z"], desc: "Undo last action" },
       { keys: ["Ctrl", "Y"], desc: "Redo last action" },
+      { keys: ["R"], desc: "Rotate board 90°" },
     ],
   },
   {

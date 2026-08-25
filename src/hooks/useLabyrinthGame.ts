@@ -33,12 +33,7 @@ import {
 } from "../utils/audio";
 import { useLabyrinthHistory } from "./useLabyrinthHistory";
 import { useLabyrinthStorage } from "./useLabyrinthStorage";
-const HOME_POSITIONS: Record<string, { r: number; c: number }> = {
-  red:    { r: 0, c: 0 },
-  blue:   { r: 6, c: 6 },
-  green:  { r: 6, c: 0 },
-  yellow: { r: 0, c: 6 }
-};
+
 
 type PawnStat = {
   tilesMoved: number;
@@ -102,6 +97,7 @@ export function useLabyrinthGame({
     type?: "coord" | "empty";
   } | null>(null);
   const totalShiftsRef = useRef(0);
+  const [totalShifts, setTotalShifts] = useState(0);
 
   // Setup panel state (used by handleTileClick / handleCellClick)
   const [setupTab, setSetupTab] = useState<"tiles" | "players" | "mode" | "cards">("tiles");
@@ -273,7 +269,7 @@ export function useLabyrinthGame({
     setObtainedTreasures(EMPTY_OBTAINED_TREASURES);
     setCustomTargetCoords(null);
     setPawnStats({});
-    totalShiftsRef.current = 0;
+    totalShiftsRef.current = 0; setTotalShifts(0);
 
     resetHistory({
       board: initialGrid,
@@ -325,7 +321,7 @@ export function useLabyrinthGame({
       setRemainingCoopTreasures(saved.remainingCoopTreasures || []);
       setCoopObtainedTreasures(saved.coopObtainedTreasures || []);
       setCustomTargetCoords(null);
-      totalShiftsRef.current = 0;
+      totalShiftsRef.current = 0; setTotalShifts(0);
 
       if (saved.history && saved.historyIndex !== undefined) {
         hydrateHistory(saved.history, saved.historyIndex);
@@ -401,7 +397,7 @@ export function useLabyrinthGame({
       setCustomTargetCoords(null);
       setLastShiftArrowId(null);
       setGameStartState(null);
-      totalShiftsRef.current = 0;
+      totalShiftsRef.current = 0; setTotalShifts(0);
 
       pushStateToHistory(
         initialGrid,
@@ -521,12 +517,12 @@ export function useLabyrinthGame({
             onToast(`Goal Achieved: Found ${landedTreasure.name}! 🏆`);
             claimed = true;
           } else if (remainingCoopTreasures.length === 0) {
-            const home = HOME_POSITIONS[activePawn];
+            const home = DEFAULT_PAWN_POSITIONS[activePawn];
             if (home && r === home.r && c === home.c) {
               onToast(`${activePawn.toUpperCase()} has reached home! 🏠`);
               const allHome = activePlayers.every((p) => {
                 const pos = nextPositions[p];
-                const pHome = HOME_POSITIONS[p];
+                const pHome = DEFAULT_PAWN_POSITIONS[p];
                 return pos && pHome && pos.r === pHome.r && pos.c === pHome.c;
               });
               if (allHome) {
@@ -910,7 +906,7 @@ export function useLabyrinthGame({
     setIsGameStarted(true);
     setGameStartState(startState);
     setCustomTargetCoords(null);
-    totalShiftsRef.current = 0;
+    totalShiftsRef.current = 0; setTotalShifts(0);
 
     pushStateToHistory(
       grid,
@@ -995,7 +991,7 @@ export function useLabyrinthGame({
     setGameStartState(null);
     setCustomTargetCoords(null);
     setPawnStats({});
-    totalShiftsRef.current = 0;
+    totalShiftsRef.current = 0; setTotalShifts(0);
 
     resetHistory({
       board: gameStartState.board,
@@ -1074,6 +1070,8 @@ export function useLabyrinthGame({
       setPawnPositions(nextPositions);
       setLastShiftArrowId(turn1.arrowId);
       totalShiftsRef.current += 1;
+      setTotalShifts((n) => n + 1);
+
       trackPawnMove(pawnToMove, 1);
 
       const landedTreasure = nextGrid[turn1.endPos.r][turn1.endPos.c]?.treasure;
@@ -1095,12 +1093,12 @@ export function useLabyrinthGame({
           onToast(`Goal Achieved: Found ${landedTreasure.name}! 🏆`);
           claimed = true;
         } else if (remainingCoopTreasures.length === 0) {
-          const home = HOME_POSITIONS[pawnToMove];
+          const home = DEFAULT_PAWN_POSITIONS[pawnToMove];
           if (home && turn1.endPos.r === home.r && turn1.endPos.c === home.c) {
             onToast(`${pawnToMove.toUpperCase()} has reached home! 🏠`);
             const allHome = activePlayers.every((p) => {
               const pos = nextPositions[p];
-              const pHome = HOME_POSITIONS[p];
+              const pHome = DEFAULT_PAWN_POSITIONS[p];
               return pos && pHome && pos.r === pHome.r && pos.c === pHome.c;
             });
             if (allHome) {
@@ -1320,6 +1318,6 @@ export function useLabyrinthGame({
     setRemainingCoopTreasures,
     coopObtainedTreasures,
     setCoopObtainedTreasures,
-    totalShifts: totalShiftsRef.current,
+    totalShifts,
   };
 }

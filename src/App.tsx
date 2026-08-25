@@ -11,7 +11,7 @@ import {
   MouseSensor,
   TouchSensor,
 } from "@dnd-kit/core";
-import { SHIFT_ARROWS, TREASURES, DEFAULT_PAWN_POSITIONS } from "./constants";
+import { SHIFT_ARROWS, TREASURES, DEFAULT_PAWN_POSITIONS, ROTATIONS } from "./constants";
 import type { TileData, SolverSolution } from "./types";
 import { Board } from "./components/board/Board";
 import { Tile } from "./components/board/Tile";
@@ -23,6 +23,7 @@ import { MoveHistoryDialog } from "./components/modals/MoveHistoryDialog";
 import { StatsPanel } from "./components/panels/StatsPanel";
 import { AppHeader } from "./components/AppHeader";
 import { WelcomeGuide } from "./components/modals/WelcomeGuide";
+import { InlineErrorBoundary } from "./components/ErrorBoundary";
 import { Dialog, DialogContent } from "./components/ui/dialog";
 import { useLabyrinthGame } from "./hooks/useLabyrinthGame";
 import { useStopwatch } from "./hooks/useStopwatch";
@@ -95,7 +96,16 @@ export default function App() {
     const saved = parseInt(localStorage.getItem("labyrinth_solver_depth") ?? "");
     return [1, 2, 3, 4, 5].includes(saved) ? saved : DEFAULT_SOLVER_DEPTH;
   });
-  const [mobilePanelStop, setMobilePanelStop] = useState<"peek" | "expanded">("expanded");
+  const [mobilePanelStop, setMobilePanelStopRaw] = useState<"peek" | "expanded">(
+    () => (localStorage.getItem("labyrinth_mobile_panel") === "peek" ? "peek" : "expanded")
+  );
+  const setMobilePanelStop = useCallback((val: "peek" | "expanded" | ((prev: "peek" | "expanded") => "peek" | "expanded")) => {
+    setMobilePanelStopRaw((prev) => {
+      const next = typeof val === "function" ? val(prev) : val;
+      try { localStorage.setItem("labyrinth_mobile_panel", next); } catch { /* storage full */ }
+      return next;
+    });
+  }, []);
   const [hasShownSetupHint, setHasShownSetupHint] = useState(false);
   const [showWelcomeGuide, setShowWelcomeGuide] = useState(
     () => localStorage.getItem("labyrinth_welcome_dismissed") !== "true"
@@ -349,8 +359,8 @@ export default function App() {
         // Already staged — rotate the staged spare instead
         setStagedRotation(
           (prev) =>
-            ([0, 90, 180, 270] as (0 | 90 | 180 | 270)[])[
-              ([0, 90, 180, 270].indexOf(prev) + 1) % 4
+            (ROTATIONS as unknown as (0 | 90 | 180 | 270)[])[
+              (ROTATIONS.indexOf(prev as 0 | 90 | 180 | 270) + 1) % 4
             ]
         );
       } else {
@@ -368,8 +378,8 @@ export default function App() {
     if (stagedRotation !== game.spareTile.rotation) {
       // Rotate the spare to the staged rotation by clicking until it matches
       const turns =
-        ([0, 90, 180, 270].indexOf(stagedRotation) -
-          [0, 90, 180, 270].indexOf(game.spareTile.rotation as 0 | 90 | 180 | 270) +
+        (ROTATIONS.indexOf(stagedRotation as 0 | 90 | 180 | 270) -
+          ROTATIONS.indexOf(game.spareTile.rotation as 0 | 90 | 180 | 270) +
           4) %
         4;
       for (let i = 0; i < turns; i++) game.handleTileClick(game.spareTile.id);
@@ -429,6 +439,11 @@ export default function App() {
       if (e.key === "?" && !ctrl) {
         e.preventDefault();
         setIsSettingsOpen(true);
+        return;
+      }
+      if ((e.key === "r" || e.key === "R") && !ctrl) {
+        e.preventDefault();
+        setBoardRotation((prev) => (prev + 90) % 360);
         return;
       }
     };
@@ -669,7 +684,7 @@ export default function App() {
     if (!arrow) return null;
     try {
       const solverBoard = game.getSolverFormattedBoard(game.grid, game.pawnPositions);
-      const rotDegrees = ([0, 90, 180, 270] as Rotation[])[turn1.rotation];
+      const rotDegrees = (ROTATIONS as unknown as Rotation[])[turn1.rotation];
       const solverSpare = game.getSolverFormattedSpare({
         ...game.spareTile,
         rotation: rotDegrees,
@@ -1024,6 +1039,7 @@ export default function App() {
                     className="relative w-full h-full transition-opacity duration-150 ease-in-out"
                     style={{ opacity: boardOpacity }}
                   >
+                  <InlineErrorBoundary label="Board">
                     <Board
                       grid={effectivePreview ? effectivePreview.grid : game.grid}
                       originalGrid={game.grid}
@@ -1071,6 +1087,7 @@ export default function App() {
                       activePawn={game.activePawn}
                       travelingPawn={travelingPawn}
                     />
+                  </InlineErrorBoundary>
                   </div>
                 );
               })()}
@@ -1105,8 +1122,8 @@ export default function App() {
                   onRotateStaged={() =>
                     setStagedRotation(
                       (prev) =>
-                        ([0, 90, 180, 270] as (0 | 90 | 180 | 270)[])[
-                          ([0, 90, 180, 270].indexOf(prev) + 1) % 4
+                        (ROTATIONS as unknown as (0 | 90 | 180 | 270)[])[
+                          (ROTATIONS.indexOf(prev as 0 | 90 | 180 | 270) + 1) % 4
                         ]
                     )
                   }
@@ -1207,8 +1224,8 @@ export default function App() {
                     onRotateStaged={() =>
                       setStagedRotation(
                         (prev) =>
-                          ([0, 90, 180, 270] as (0 | 90 | 180 | 270)[])[
-                            ([0, 90, 180, 270].indexOf(prev) + 1) % 4
+                          (ROTATIONS as unknown as (0 | 90 | 180 | 270)[])[
+                            (ROTATIONS.indexOf(prev as 0 | 90 | 180 | 270) + 1) % 4
                           ]
                       )
                     }
@@ -1316,7 +1333,7 @@ export default function App() {
           <StatsPanel
             activePlayers={game.activePlayers}
             pawnStats={game.pawnStats}
-            totalShifts={game.totalShiftsRef.current}
+            totalShifts={game.totalShifts}
             obtainedTreasures={game.obtainedTreasures}
           />
         </DialogContent>
