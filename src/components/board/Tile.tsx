@@ -92,18 +92,20 @@ export const Tile: React.FC<TileProps> = ({
         return (
           <svg viewBox="0 0 100 100" className="absolute inset-0 w-full h-full pointer-events-none overflow-visible">
             <path
-              d="M 32 -5 H 68 A 32 32 0 0 0 105 32 V 68 A 68 68 0 0 1 32 -5 Z"
+              d="M 32 -5 H 68 V 22 A 10 10 0 0 0 78 32 H 105 V 68 H 68 A 36 36 0 0 1 32 32 Z"
               className={fillClass}
             />
+            {/* Outer curved wall */}
             <path
-              d="M 32 -5 A 68 68 0 0 0 105 68"
+              d="M 32 -5 V 32 A 36 36 0 0 0 68 68 H 105"
               fill="none"
               className={strokeClass}
               strokeWidth={strokeWidth}
               strokeLinecap="round"
             />
+            {/* Inner curved wall */}
             <path
-              d="M 68 -5 A 32 32 0 0 0 105 32"
+              d="M 68 -5 V 22 A 10 10 0 0 0 78 32 H 105"
               fill="none"
               className={strokeClass}
               strokeWidth={strokeWidth}
@@ -115,7 +117,7 @@ export const Tile: React.FC<TileProps> = ({
         return (
           <svg viewBox="0 0 100 100" className="absolute inset-0 w-full h-full pointer-events-none overflow-visible">
             <path
-              d="M -5 68 H 105 V 32 H 68 V -5 H 32 V 32 H -5 Z"
+              d="M -5 68 H 105 V 32 H 82 A 14 14 0 0 1 68 18 V -5 H 32 V 18 A 14 14 0 0 1 18 32 H -5 Z"
               className={fillClass}
             />
             {/* Bottom wall */}
@@ -128,23 +130,21 @@ export const Tile: React.FC<TileProps> = ({
               strokeWidth={strokeWidth}
               strokeLinecap="round"
             />
-            {/* Left corner wall */}
+            {/* Left curved corner wall */}
             <path
-              d="M -5 32 H 32 V -5"
+              d="M -5 32 H 18 A 14 14 0 0 0 32 18 V -5"
               fill="none"
               className={strokeClass}
               strokeWidth={strokeWidth}
               strokeLinecap="round"
-              strokeLinejoin="round"
             />
-            {/* Right corner wall */}
+            {/* Right curved corner wall */}
             <path
-              d="M 105 32 H 68 V -5"
+              d="M 105 32 H 82 A 14 14 0 0 1 68 18 V -5"
               fill="none"
               className={strokeClass}
               strokeWidth={strokeWidth}
               strokeLinecap="round"
-              strokeLinejoin="round"
             />
           </svg>
         );

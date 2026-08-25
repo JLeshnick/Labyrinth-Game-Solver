@@ -3,7 +3,7 @@
 // target the phone sheet; `md:` targets the tablet column; `lg:` targets the
 // wider desktop column. Interactive play controls get a 44px phone floor.
 import { useState } from "react";
-import { Sparkles, ArrowRightCircle, MousePointer2, RotateCw, Home, Gauge } from "lucide-react";
+import { Sparkles, ArrowRightCircle, MousePointer2, RotateCw, Home, Gauge, Target, Trophy } from "lucide-react";
 import { Button } from "../ui/button";
 import { Tooltip } from "../ui/tooltip";
 import { Tile } from "../board/Tile";
@@ -305,7 +305,7 @@ export function SolverPanel({
             <div className="mt-1.5 flex items-center flex-wrap gap-1 leading-none">
               {customTargetCoords ? (
                 <span className="text-theme-primary font-bold text-xs flex items-center gap-1">
-                  🎯 {customTargetCoords.r === DEFAULT_PAWN_POSITIONS[activePawn]?.r &&
+                  <Target className="w-3.5 h-3.5 inline text-theme-primary" /> {customTargetCoords.r === DEFAULT_PAWN_POSITIONS[activePawn]?.r &&
                   customTargetCoords.c === DEFAULT_PAWN_POSITIONS[activePawn]?.c
                     ? "Home Corner"
                     : `(${customTargetCoords.r}, ${customTargetCoords.c})${grid[customTargetCoords.r]?.[customTargetCoords.c]?.treasure ? ` — ${grid[customTargetCoords.r][customTargetCoords.c]!.treasure!.name}` : ""}`}
@@ -313,7 +313,12 @@ export function SolverPanel({
                 </span>
               ) : currentTargetId ? (
                 <span className="text-theme-primary font-bold text-xs flex items-center gap-1">
-                  {currentTargetId.startsWith("coord:") ? "🎯" : "🏆"} {currentTargetId.startsWith("coord:") ? `Cell (${currentTargetId.substring(6)})` : (TREASURES.find(t => t.id === currentTargetId)?.name ?? currentTargetId)}
+                  {currentTargetId.startsWith("coord:") ? (
+                    <Target className="w-3.5 h-3.5 inline text-theme-primary" />
+                  ) : (
+                    <Trophy className="w-3.5 h-3.5 inline text-theme-primary" />
+                  )}{" "}
+                  {currentTargetId.startsWith("coord:") ? `Cell (${currentTargetId.substring(6)})` : (TREASURES.find(t => t.id === currentTargetId)?.name ?? currentTargetId)}
                   <button onClick={() => {
                     if (setCustomTargetCoords && customTargetCoords) {
                       setCustomTargetCoords(null);
@@ -323,8 +328,9 @@ export function SolverPanel({
                   }} className="text-stone-500 hover:text-stone-300 text-[10px] ml-1 underline cursor-pointer" title="Clear target">(clear)</button>
                 </span>
               ) : gameMode === "coop" || gameMode === "auto" ? (
-                <span className="text-theme-primary font-bold text-xs">
-                  ✨ {remainingCoopTreasures && remainingCoopTreasures.length > 0 ? (
+                <span className="text-theme-primary font-bold text-xs flex items-center gap-1">
+                  <Sparkles className="w-3.5 h-3.5 inline text-theme-primary" />{" "}
+                  {remainingCoopTreasures && remainingCoopTreasures.length > 0 ? (
                     currentTargetId ? (
                       `Optimal: ${TREASURES.find(t => t.id === currentTargetId)?.name ?? currentTargetId} (Auto)`
                     ) : (

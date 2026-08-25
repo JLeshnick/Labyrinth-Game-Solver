@@ -7,6 +7,7 @@ import { Tile, DraggableTile } from "./Tile";
 import { cn } from "../../lib/utils";
 import { ChevronRight } from "lucide-react";
 import { Tooltip } from "../ui/tooltip";
+import { generateCurvedSvgPath } from "../../utils/svgPath";
 
 interface BoardSpaceProps {
   x: number;
@@ -547,7 +548,8 @@ export const Board: React.FC<BoardProps> = ({
         {/* SVG Path Overlay for solution / hovered path preview */}
         {isGameStarted && hoveredPath && hoveredPath.length > 0 && !travelingPawn && (() => {
           const tc = (i: number) => i + 1.5;
-          const pts = hoveredPath.map(p => `${tc(p.c)},${tc(p.r)}`).join(" ");
+          const points = hoveredPath.map(p => ({ x: tc(p.c), y: tc(p.r) }));
+          const pathD = generateCurvedSvgPath(points, 0.25);
           const s = hoveredPath[0];
           const e = hoveredPath[hoveredPath.length - 1];
           const pathPawnColor = hoveredPath[0]?.pawnColor || activePawn;
@@ -555,8 +557,8 @@ export const Board: React.FC<BoardProps> = ({
 
           return (
             <svg viewBox="0 0 9 9" className="absolute inset-0 w-full h-full pointer-events-none z-30 transition-opacity duration-150" aria-hidden="true">
-              <polyline
-                points={pts}
+              <path
+                d={pathD}
                 fill="none"
                 stroke="#000000"
                 strokeWidth={isStaticHoveredPath ? "0.08" : "0.10"}
@@ -566,8 +568,8 @@ export const Board: React.FC<BoardProps> = ({
                 opacity={isStaticHoveredPath ? "0.6" : "0.45"}
                 className={isStaticHoveredPath ? "" : "animate-path-crawl"}
               />
-              <polyline
-                points={pts}
+              <path
+                d={pathD}
                 fill="none"
                 stroke={strokeColor}
                 strokeWidth={isStaticHoveredPath ? "0.04" : "0.06"}
@@ -592,9 +594,8 @@ export const Board: React.FC<BoardProps> = ({
         {/* Dynamic Path Trail Erosion during active pawn travel */}
         {isGameStarted && travelingPawn && travelingPawn.path && travelingPawn.path.length > 1 && (() => {
           const tc = (i: number) => i + 1.5;
-          const pathD = travelingPawn.path
-            .map((p, idx) => `${idx === 0 ? "M" : "L"} ${tc(p.c)} ${tc(p.r)}`)
-            .join(" ");
+          const points = travelingPawn.path.map(p => ({ x: tc(p.c), y: tc(p.r) }));
+          const pathD = generateCurvedSvgPath(points, 0.25);
           const e = travelingPawn.path[travelingPawn.path.length - 1];
           const color = PAWN_COLOR_HEX[travelingPawn.color] || "#f59e0b";
           const durSec = `${(travelingPawn.durationMs / 1000).toFixed(2)}s`;

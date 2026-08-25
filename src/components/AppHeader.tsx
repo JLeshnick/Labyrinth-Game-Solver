@@ -22,6 +22,8 @@ import {
   BarChart2,
   Sparkles,
   LayoutGrid,
+  Pause,
+  ChevronRight,
 } from "lucide-react";
 
 export interface AppHeaderProps {
@@ -258,8 +260,8 @@ export function AppHeader({
                     <span className="hidden sm:inline">{s.label}</span>
                     <span className="xs:hidden">{s.shortLabel}</span>
                     {showTimer && (
-                      <span className="font-mono text-[10px] opacity-80 ml-1">
-                        {isTimerPaused ? "⏸" : "⏱"} {elapsedTime}
+                      <span className="font-mono text-[10px] opacity-80 ml-1 inline-flex items-center gap-0.5">
+                        {isTimerPaused ? <Pause className="w-2.5 h-2.5 inline" /> : <Clock className="w-2.5 h-2.5 inline" />} {elapsedTime}
                       </span>
                     )}
                   </button>
@@ -279,7 +281,7 @@ export function AppHeader({
                 }}
                 className="neo-brutalism-button bg-theme-primary border-stone-950 text-stone-950 w-7 h-7 rounded-lg flex items-center justify-center text-xs font-black cursor-pointer"
               >
-                {autoPlayPaused ? "▶" : "⏸"}
+                {autoPlayPaused ? <Play className="w-3.5 h-3.5 fill-current" /> : <Pause className="w-3.5 h-3.5 fill-current" />}
               </button>
 
               <div className="w-px h-4 bg-stone-800 mx-0.5" />
@@ -388,8 +390,8 @@ export function AppHeader({
                             const t = TREASURES.find((x) => x.id === id);
                             return (
                               <div key={id} className="flex items-center gap-1.5">
-                                <span className={cn("text-[9px] flex-shrink-0", i === 0 ? "text-amber-400" : "text-stone-600")}>
-                                  {i === 0 ? "▶" : "·"}
+                                <span className={cn("text-[9px] flex-shrink-0 flex items-center", i === 0 ? "text-amber-400" : "text-stone-600")}>
+                                  {i === 0 ? <ChevronRight className="w-2.5 h-2.5 inline" /> : "·"}
                                 </span>
                                 <span className={cn("text-[9px]", i === 0 ? "text-amber-200 font-medium" : "text-stone-500")}>
                                   {t?.name ?? id}{i === 0 ? " ← next" : ""}

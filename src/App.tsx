@@ -263,7 +263,7 @@ export default function App() {
     } catch {
       /* storage full */
     }
-    showToast(next ? "Muted retro sound effects 🔇" : "Sound effects enabled 🔊");
+    showToast(next ? "Muted retro sound effects" : "Sound effects enabled");
   }, [isMuted, showToast]);
 
   // ── Game hook ─────────────────────────────────────────────────────────────────
@@ -272,21 +272,11 @@ export default function App() {
     onToast: showToast,
   });
 
-  // Dynamic document title update
+  // Keep clean static document title
   useEffect(() => {
-    if (!game.isGameStarted) {
-      document.title = "Labyrinth Game Solver";
-      return;
-    }
-    const pawnName = game.activePawn.charAt(0).toUpperCase() + game.activePawn.slice(1);
-    if (game.gameMode === "auto") {
-      document.title = `Auto Mode (${pawnName}) — Labyrinth Solver`;
-    } else if (game.gameMode === "coop") {
-      document.title = `${pawnName}'s Turn (Co-op) — Labyrinth Solver`;
-    } else {
-      document.title = `${pawnName}'s Turn — Labyrinth Solver`;
-    }
-  }, [game.isGameStarted, game.activePawn, game.gameMode]);
+    document.title = "Labyrinth Solver";
+  }, []);
+
 
   const canStartGame = game.looseTiles.length === 1 || game.looseTiles.length === 0;
 
@@ -825,7 +815,7 @@ export default function App() {
                         game.handleSelectTargetTreasure(game.activePawn, treasureId);
                         if (alreadyObtained) {
                           showToast(
-                            `⚠️ ${
+                            `${
                               TREASURES.find((t) => t.id === treasureId)?.name ?? treasureId
                             } already obtained — solving anyway`
                           );

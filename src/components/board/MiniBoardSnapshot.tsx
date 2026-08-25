@@ -1,5 +1,6 @@
 import type { TileData, PawnPositions } from "../../types";
 import { PAWNS, PAWN_COLOR_HEX } from "../../constants";
+import { generateCurvedSvgPath } from "../../utils/svgPath";
 
 const CELL = 10; // px per cell
 const TOTAL = CELL * 7; // 70px
@@ -69,9 +70,9 @@ export function MiniBoardSnapshot({ board, pawnPositions, activePlayers, movedPa
     }
   }
 
-  // Pawn path polyline points
-  const pathPoints = pawnPath && pawnPath.length > 1
-    ? pawnPath.map((p) => `${p.c * CELL + CELL / 2},${p.r * CELL + CELL / 2}`).join(" ")
+  // Pawn path curved line
+  const pathD = pawnPath && pawnPath.length > 1
+    ? generateCurvedSvgPath(pawnPath.map((p) => ({ x: p.c * CELL + CELL / 2, y: p.r * CELL + CELL / 2 })), CELL * 0.25)
     : null;
   const pathColor = movedPawn ? (PAWN_COLOR_HEX[movedPawn] ?? "#f59e0b") : "#f59e0b";
 
@@ -88,9 +89,9 @@ export function MiniBoardSnapshot({ board, pawnPositions, activePlayers, movedPa
       ))}
 
       {/* Pawn movement path */}
-      {pathPoints && (
-        <polyline
-          points={pathPoints}
+      {pathD && (
+        <path
+          d={pathD}
           fill="none"
           stroke={pathColor}
           strokeWidth="1.5"

@@ -13,6 +13,7 @@ import {
   Layers,
   Compass,
   Users,
+  Settings,
 } from "lucide-react";
 import { playClickSound } from "../../utils/audio";
 import { cn } from "../../lib/utils";
@@ -132,7 +133,7 @@ export const SetupPanel: React.FC<SetupPanelProps> = ({
               }}
               className="text-[11px] font-bold text-theme-primary hover:underline flex items-center gap-1 cursor-pointer"
             >
-              ⚙️ Settings
+              <Settings className="w-3.5 h-3.5 inline" /> Settings
             </button>
           )}
         </div>
