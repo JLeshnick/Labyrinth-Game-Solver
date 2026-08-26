@@ -48,3 +48,11 @@ Before running a solver loop, state must be passed through the formatter functio
 - Sliding is only allowed along odd indices (`1, 3, 5`).
 - The player cannot immediately slide a row or column back in the opposite direction of the last turn's slide (restricted by `isOppositeArrow`).
 - Pawns that slide off the grid are wrapped around and placed on the newly inserted tile on the opposite end.
+
+---
+
+## Git Workflow & Branching Rules
+
+- **NEVER commit or push directly to `main`**.
+- Always develop on a dedicated feature or bugfix branch (e.g., `feat/...`, `fix/...`).
+- Push branches to `origin` and allow the user to open and merge Pull Requests into `main` manually.
