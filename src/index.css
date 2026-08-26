@@ -51,7 +51,29 @@
   --theme-color-rgb: 245, 158, 11;
   --theme-glow: rgba(245, 158, 11, 0.15);
   
-  /* Dark variables (default) */
+  /* Light variables (default) */
+  --background: #fafaf9;
+  --foreground: #1c1917;
+  --card: #ffffff;
+  --card-foreground: #1c1917;
+  --border: #e7e5e4;
+  --input: #e7e5e4;
+  --muted-foreground: #78716c;
+
+  --surface-glass-soft: rgba(250, 250, 249, 0.9);
+  --surface-glass-strong: rgba(250, 250, 249, 0.96);
+  --surface-border-strong: rgba(214, 211, 209, 0.7);
+  --tile-3d-shadow: 0 6px 0 #d6d3d1, 0 10px 16px rgba(0, 0, 0, 0.18);
+}
+
+/* Dark mode */
+[data-theme="dark"] {
+  --theme-color: #f59e0b;
+  --theme-color-hover: #d97706;
+  --theme-color-rgb: 245, 158, 11;
+  --theme-glow: rgba(245, 158, 11, 0.15);
+
+  /* Dark variables */
   --background: #0c0a09;
   --foreground: #f5f5f4;
   --card: #1b1917;
@@ -66,15 +88,7 @@
   --tile-3d-shadow: 0 6px 0 #1c1917, 0 10px 16px rgba(0, 0, 0, 0.45);
 }
 
-/* Dark mode — explicit alias of :root defaults */
-[data-theme="dark"] {
-  --theme-color: #f59e0b;
-  --theme-color-hover: #d97706;
-  --theme-color-rgb: 245, 158, 11;
-  --theme-glow: rgba(245, 158, 11, 0.15);
-}
-
-/* Light mode */
+/* Light mode — explicit alias of :root defaults */
 [data-theme="light"] {
   --theme-color: #f59e0b;
   --theme-color-hover: #d97706;

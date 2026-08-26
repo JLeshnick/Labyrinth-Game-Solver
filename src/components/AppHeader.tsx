@@ -10,8 +10,6 @@ import { playClickSound } from "../utils/audio";
 import {
   Undo2,
   Redo2,
-  Volume2,
-  VolumeX,
   RotateCw,
   Layers,
   Play,
@@ -21,7 +19,8 @@ import {
   Clock,
   BarChart2,
   Sparkles,
-  LayoutGrid,
+  Sun,
+  Moon,
   Pause,
   ChevronRight,
 } from "lucide-react";
@@ -102,7 +101,7 @@ export function AppHeader({
   canUndo,
   canRedo,
   isMuted,
-  baseTheme: _baseTheme,
+  baseTheme,
   uiTheme = "brutalist",
   onSetUiTheme,
   activePlayers,
@@ -616,34 +615,27 @@ export function AppHeader({
                 </div>
               </>
             )}
-            <div className="w-px h-4 bg-stone-800 mx-0.5" />
-            <Tooltip content={isMuted ? "Unmute audio" : "Mute audio"} side="bottom">
-              <Button
-                variant="outline" size="icon"
-                onClick={() => { if (!isMuted) playClickSound(); onToggleMute(); }}
-                className={iconBtnCls}
-                aria-label={isMuted ? "Unmute audio" : "Mute audio"}
-              >
-                {isMuted ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
-              </Button>
-            </Tooltip>
           </div>
 
-          {onSetUiTheme && (
-            <Tooltip content={isSimplistic ? "Switch to Neo-Brutalist Theme" : "Switch to Simplistic Studio Theme"} side="bottom">
-              <Button
-                variant="outline" size="icon"
-                onClick={() => {
-                  if (!isMuted) playClickSound();
-                  onSetUiTheme(isSimplistic ? "brutalist" : "simplistic");
-                }}
-                className={cn(iconBtnCls, "shrink-0")}
-                aria-label="Toggle UI Theme Style"
-              >
-                {isSimplistic ? <LayoutGrid className="w-3.5 h-3.5 text-theme-primary" /> : <Sparkles className="w-3.5 h-3.5" />}
-              </Button>
-            </Tooltip>
-          )}
+          {/* Light / Dark Mode Toggle */}
+          <Tooltip content={baseTheme === "dark" ? "Switch to light mode" : "Switch to dark mode"} side="bottom">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => {
+                if (!isMuted) playClickSound();
+                onSetBaseTheme(baseTheme === "dark" ? "light" : "dark");
+              }}
+              className={cn(iconBtnCls, "shrink-0")}
+              aria-label={baseTheme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+            >
+              {baseTheme === "dark" ? (
+                <Sun className="w-3.5 h-3.5 text-amber-400" />
+              ) : (
+                <Moon className="w-3.5 h-3.5 text-foreground" />
+              )}
+            </Button>
+          </Tooltip>
 
           <Tooltip content="Settings" side="bottom">
             <Button
@@ -678,7 +670,7 @@ export function AppHeader({
               if (!isMuted) playClickSound();
               onToggleMute();
             }}
-            baseTheme={_baseTheme}
+            baseTheme={baseTheme}
             setBaseTheme={onSetBaseTheme}
             uiTheme={uiTheme}
             setUiTheme={onSetUiTheme}

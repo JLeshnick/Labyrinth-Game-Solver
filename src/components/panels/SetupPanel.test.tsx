@@ -59,15 +59,16 @@ describe("SetupPanel — Pawns placement removed", () => {
     expect(screen.getByText(/select player/i)).toBeTruthy();
   });
 
-  it("renders the Reset button with proper label", () => {
-    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
+  it("renders the Reset button and confirms via in-app dialog", () => {
     const onResetAllDefaults = vi.fn();
     renderPanel({ setupTab: "tiles", onResetAllDefaults });
     const resetBtn = screen.getByRole("button", { name: /reset all defaults/i });
     expect(resetBtn).toBeTruthy();
     expect(resetBtn.textContent).toContain("Reset");
     fireEvent.click(resetBtn);
+    const confirmBtn = screen.getByRole("button", { name: /reset everything/i });
+    expect(confirmBtn).toBeTruthy();
+    fireEvent.click(confirmBtn);
     expect(onResetAllDefaults).toHaveBeenCalledTimes(1);
-    confirmSpy.mockRestore();
   });
 });

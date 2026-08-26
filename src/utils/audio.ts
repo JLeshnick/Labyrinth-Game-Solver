@@ -2,7 +2,7 @@
 
 let audioCtx: AudioContext | null = null;
 
-let isMutedModule = false;
+let isMutedModule = true;
 
 export function setAudioMuted(muted: boolean) {
   isMutedModule = muted;

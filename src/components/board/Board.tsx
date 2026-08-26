@@ -121,7 +121,6 @@ const BoardSpace: React.FC<BoardSpaceProps> = ({
           }
           disabled={isGameStarted}
           boardRotation={boardRotation}
-          disableRotationTransition={true}
           isObtainedTreasure={isObtainedTreasure}
           isCurrentTarget={isCurrentTarget}
           is3D={is3D}

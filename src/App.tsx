@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import {
   DndContext,
+  DragOverlay,
   type DragEndEvent,
   type DragStartEvent,
   closestCenter,
@@ -12,6 +13,7 @@ import {
 import { TREASURES, DEFAULT_PAWN_POSITIONS } from "./constants";
 import type { TileData, AppGameState } from "./types";
 import { Board } from "./components/board/Board";
+import { Tile } from "./components/board/Tile";
 import { SolverPanel } from "./components/panels/SolverPanel";
 import { SetupPanel } from "./components/panels/SetupPanel";
 import { BoardScanModal } from "./components/modals/BoardScanModal";
@@ -66,13 +68,14 @@ export default function App() {
   }, []);
 
   const [isMuted, setIsMuted] = useState(() => {
-    const muted = localStorage.getItem("labyrinth_audio_muted") === "true";
+    const saved = localStorage.getItem("labyrinth_audio_muted");
+    const muted = saved === "false" ? false : true;
     setAudioMuted(muted);
     return muted;
   });
   const [baseTheme, setBaseThemeState] = useState<"dark" | "light">(() => {
     const saved = localStorage.getItem("labyrinth_theme") ?? "";
-    return saved === "light" ? "light" : "dark";
+    return saved === "dark" ? "dark" : "light";
   });
   const [uiTheme, setUiThemeState] = useState<"brutalist" | "simplistic">(() => {
     const saved = localStorage.getItem("labyrinth_ui_theme");
@@ -86,7 +89,7 @@ export default function App() {
     () => localStorage.getItem("labyrinth_accent_color") ?? ""
   );
   const [showStats, setShowStats] = useState(false);
-  const [, setActiveId] = useState<string | null>(null);
+  const [activeDragTile, setActiveDragTile] = useState<TileData | null>(null);
   const [turnPhase, setTurnPhase] = useState<"slide" | "move">("slide");
   const [showOneMoveTargets, setShowOneMoveTargets] = useState(true);
   const [solverDepth, setSolverDepthState] = useState<number>(() => {
@@ -464,10 +467,28 @@ export default function App() {
   ]);
 
   // ── Drag and Drop ─────────────────────────────────────────────────────────────
-  const handleDragStart = (e: DragStartEvent) => setActiveId(e.active.id as string);
+  const findTile = useCallback((id: string): TileData | undefined => {
+    const inLoose = game.looseTiles.find((t) => t.id === id);
+    if (inLoose) return inLoose;
+    for (let r = 0; r < 7; r++) {
+      for (let c = 0; c < 7; c++) {
+        if (game.grid[r][c]?.id === id) return game.grid[r][c]!;
+      }
+    }
+  }, [game.looseTiles, game.grid]);
+
+  const handleDragStart = (e: DragStartEvent) => {
+    const tileId = e.active.id as string;
+    const tileData = (e.active.data?.current as TileData) || findTile(tileId);
+    setActiveDragTile(tileData ?? null);
+  };
+
+  const handleDragCancel = () => {
+    setActiveDragTile(null);
+  };
 
   const handleDragEnd = (e: DragEndEvent) => {
-    setActiveId(null);
+    setActiveDragTile(null);
     const { active, over } = e;
     if (!over) return;
 
@@ -482,13 +503,7 @@ export default function App() {
         )
       );
     };
-    const findTile = (id: string): TileData | undefined => {
-      const inLoose = game.looseTiles.find((t) => t.id === id);
-      if (inLoose) return inLoose;
-      for (let r = 0; r < 7; r++)
-        for (let c = 0; c < 7; c++)
-          if (game.grid[r][c]?.id === id) return game.grid[r][c]!;
-    };
+
     const tileToMove = findTile(tileId);
     if (!tileToMove) return;
 
@@ -751,6 +766,7 @@ export default function App() {
           collisionDetection={closestCenter}
           onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
+          onDragCancel={handleDragCancel}
         >
           <div className="flex-1 md:flex-[1.6] lg:flex-[1.8] w-full flex min-w-0 min-h-0 items-center justify-center relative z-20">
             <div
@@ -878,6 +894,20 @@ export default function App() {
               </div>
             </div>
           )}
+
+          <DragOverlay dropAnimation={null} zIndex={1000}>
+            {activeDragTile ? (
+              <div className="w-12 h-12 sm:w-14 sm:h-14 lg:w-14 lg:h-14 pointer-events-none cursor-grabbing opacity-95 scale-105 shadow-2xl">
+                <Tile
+                  tile={activeDragTile}
+                  boardRotation={boardRotation}
+                  disableRotationTransition={true}
+                  uiTheme={uiTheme}
+                  className="w-full h-full"
+                />
+              </div>
+            ) : null}
+          </DragOverlay>
         </DndContext>
       </main>
 
