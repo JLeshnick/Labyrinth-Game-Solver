@@ -34,6 +34,30 @@ export const Tile: React.FC<TileProps> = ({
   const [displayRotation, setDisplayRotation] = React.useState(boardRotation);
   const prevBoardRotationRef = React.useRef(boardRotation);
 
+  // Cumulative rotation for silky smooth clockwise/counter-clockwise spin animations
+  const [cumulativeRotation, setCumulativeRotation] = React.useState<number>(tile.rotation);
+  const prevTileRotationRef = React.useRef(tile.rotation);
+  const prevTileIdRef = React.useRef(tile.id);
+
+  React.useEffect(() => {
+    if (prevTileIdRef.current !== tile.id) {
+      prevTileIdRef.current = tile.id;
+      prevTileRotationRef.current = tile.rotation;
+      setCumulativeRotation(tile.rotation);
+      return;
+    }
+
+    const prev = prevTileRotationRef.current;
+    const current = tile.rotation;
+    if (prev !== current) {
+      let diff = current - (prev % 360);
+      if (diff < 0) diff += 360;
+      if (diff === 270) diff = -90;
+      setCumulativeRotation((c) => c + diff);
+      prevTileRotationRef.current = current;
+    }
+  }, [tile.id, tile.rotation]);
+
   React.useEffect(() => {
     if (prevBoardRotationRef.current !== boardRotation) {
       const targetRotation = boardRotation;
@@ -214,8 +238,12 @@ export const Tile: React.FC<TileProps> = ({
       <div className={cn("absolute inset-0 overflow-hidden", isSimplistic ? "rounded-[11px]" : "rounded-[14px]")} style={{ transformStyle: is3D ? "preserve-3d" : "flat" }}>
         {/* Path rotation wrapper */}
         <div
-          className={cn("absolute inset-0", !disableRotationTransition && "transition-transform duration-200")}
-          style={{ transform: `rotate(${tile.rotation}deg)`, transformStyle: is3D ? "preserve-3d" : "flat" }}
+          className="absolute inset-0"
+          style={{
+            transform: `rotate(${disableRotationTransition ? tile.rotation : cumulativeRotation}deg)`,
+            transition: disableRotationTransition ? "none" : "transform 280ms cubic-bezier(0.34, 1.4, 0.64, 1)",
+            transformStyle: is3D ? "preserve-3d" : "flat",
+          }}
         >
           {getPathSVG()}
         </div>

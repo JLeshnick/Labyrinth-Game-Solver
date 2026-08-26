@@ -1,7 +1,8 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import type { TileData, PlayerMap, UITheme } from "../../types";
 import { Button } from "../ui/button";
 import { Tooltip } from "../ui/tooltip";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
 import { SidePanel } from "./SidePanel";
 import { PAWNS, TREASURES } from "../../constants";
 import {
@@ -76,6 +77,7 @@ export const SetupPanel: React.FC<SetupPanelProps> = ({
   uiTheme = "brutalist",
 }) => {
   const isSimplistic = uiTheme === "simplistic";
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
 
   // If in coop / auto mode and on cards tab, switch back to tiles
   useEffect(() => {
@@ -220,21 +222,8 @@ export const SetupPanel: React.FC<SetupPanelProps> = ({
                   size="sm"
                   aria-label="Reset all defaults"
                   onClick={() => {
-                    let confirmed = true;
-                    try {
-                      if (typeof window !== "undefined" && typeof window.confirm === "function") {
-                        confirmed = window.confirm("Reset EVERYTHING to defaults? This will clear all placed tiles, hand cards, player settings, and start a completely fresh game.");
-                      }
-                    } catch {
-                      confirmed = true;
-                    }
-                    if (confirmed) {
-                      if (onResetAllDefaults) {
-                        onResetAllDefaults();
-                      } else {
-                        onResetBoard();
-                      }
-                    }
+                    if (!isMuted) playClickSound();
+                    setShowResetConfirm(true);
                   }}
                   className="w-full neo-brutalism-button border-2 border-stone-950 bg-red-500 hover:bg-red-400 text-stone-950 font-bold py-2.5 px-3 min-h-11 rounded-xl flex items-center justify-center gap-1.5 cursor-pointer text-xs shadow-[2px_2px_0_0_#000000]"
                 >
@@ -444,6 +433,54 @@ export const SetupPanel: React.FC<SetupPanelProps> = ({
           </div>
         )}
       </div>
+
+      {/* Reset All confirmation dialog */}
+      <Dialog
+        open={showResetConfirm}
+        onOpenChange={(open) => { if (!open) setShowResetConfirm(false); }}
+      >
+        <DialogContent
+          className="sm:max-w-[380px] text-stone-100 p-6 rounded-xl app-dialog-panel neo-brutalism-card border-2 border-stone-950"
+          onKeyDown={(e) => { if (e.key === " ") e.stopPropagation(); }}
+        >
+          <DialogHeader>
+            <DialogTitle className="text-base font-bold text-stone-100 flex items-center gap-2">
+              <RotateCcw className="w-4 h-4 text-red-500" />
+              Reset All Defaults?
+            </DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-stone-400 mt-2 leading-relaxed">
+            This will clear all placed tiles, hand cards, and player settings, resetting the game back to a clean fresh board.
+          </p>
+          <div className="flex justify-end gap-3 mt-6">
+            <Button
+              variant="outline"
+              onClick={() => {
+                if (!isMuted) playClickSound();
+                setShowResetConfirm(false);
+              }}
+              className="rounded-lg neo-brutalism-button"
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                if (!isMuted) playClickSound();
+                setShowResetConfirm(false);
+                if (onResetAllDefaults) {
+                  onResetAllDefaults();
+                } else {
+                  onResetBoard();
+                }
+              }}
+              className="rounded-lg neo-brutalism-button bg-red-500 hover:bg-red-400 text-stone-950 font-bold border-stone-950"
+            >
+              Reset Everything
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

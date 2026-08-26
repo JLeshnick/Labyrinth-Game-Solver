@@ -61,7 +61,7 @@ const BoardSpace: React.FC<BoardSpaceProps> = ({
   const id = `board_${x}_${y}`;
   const { setNodeRef, isOver } = useDroppable({
     id,
-    disabled: isGameStarted || isFixedSpace || tile !== null,
+    disabled: isGameStarted || isFixedSpace,
     data: { x, y, type: "board" },
   });
 
@@ -99,7 +99,7 @@ const BoardSpace: React.FC<BoardSpaceProps> = ({
         isFixedSpace
           ? "bg-stone-900/40 border border-stone-800/20 dark:bg-stone-800/40 dark:border-stone-700/50"
           : "border border-dashed border-stone-800/40 bg-stone-950/30 hover:bg-stone-900/10 shadow-inner dark:border-stone-600/50 dark:bg-stone-800/30 dark:hover:bg-stone-700/40",
-        isOver && !tile ? "bg-theme-primary-10" : "",
+        isOver ? "bg-theme-primary/10 ring-2 ring-theme-primary/30" : "",
         previewSlideClass,
         isReachable ? "bg-green-900/20 hover:bg-green-900/30 cursor-pointer" : "",
       )}
@@ -121,7 +121,6 @@ const BoardSpace: React.FC<BoardSpaceProps> = ({
           }
           disabled={isGameStarted}
           boardRotation={boardRotation}
-          disableRotationTransition={true}
           isObtainedTreasure={isObtainedTreasure}
           isCurrentTarget={isCurrentTarget}
           is3D={is3D}
@@ -134,7 +133,7 @@ const BoardSpace: React.FC<BoardSpaceProps> = ({
       )}
 
       {/* Highlight border overlay — rendered above the tile's box-shadow */}
-      {(isOnHoveredPath || isCustomTarget || isActiveTarget || (isOver && !tile)) && (
+      {(isOnHoveredPath || isCustomTarget || isActiveTarget || isOver) && (
         <div
           className={cn(
             "absolute inset-0 pointer-events-none z-40",
@@ -143,6 +142,7 @@ const BoardSpace: React.FC<BoardSpaceProps> = ({
             isPathEnd    ? "border-2 border-theme-primary ring-2 ring-theme-primary/30" :
             isCustomTarget ? "border-2 border-theme-primary ring-2 ring-theme-primary/30" :
             isActiveTarget ? "border-2 border-amber-400 ring-2 ring-amber-400/30" :
+            isOver       ? "border-2 border-theme-primary ring-2 ring-theme-primary/50 bg-theme-primary/15" :
             isOnHoveredPath ? "border border-theme-primary/80" :
             "border border-theme-primary"
           )}

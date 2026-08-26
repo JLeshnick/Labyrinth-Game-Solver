@@ -1,8 +1,13 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import {
   DndContext,
+  DragOverlay,
   type DragEndEvent,
   type DragStartEvent,
+  type Modifier,
+  type CollisionDetection,
+  pointerWithin,
+  rectIntersection,
   closestCenter,
   useSensor,
   useSensors,
@@ -12,6 +17,7 @@ import {
 import { TREASURES, DEFAULT_PAWN_POSITIONS } from "./constants";
 import type { TileData, AppGameState } from "./types";
 import { Board } from "./components/board/Board";
+import { Tile } from "./components/board/Tile";
 import { SolverPanel } from "./components/panels/SolverPanel";
 import { SetupPanel } from "./components/panels/SetupPanel";
 import { BoardScanModal } from "./components/modals/BoardScanModal";
@@ -38,6 +44,59 @@ import { ResumeGameDialog } from "./components/modals/ResumeGameDialog";
 import { AUTOSAVE_KEY } from "./hooks/useLabyrinthStorage";
 import { usePreviewState } from "./hooks/usePreviewState";
 import { cn } from "./lib/utils";
+
+// Modifier that centers the dragged tile under the mouse / touch pointer
+const snapCenterToCursor: Modifier = ({
+  activatorEvent,
+  activeNodeRect,
+  overlayNodeRect,
+  transform,
+}) => {
+  if (!activatorEvent || !activeNodeRect || !overlayNodeRect) {
+    return transform;
+  }
+
+  let clientX = 0;
+  let clientY = 0;
+
+  if ("clientX" in activatorEvent && typeof (activatorEvent as MouseEvent).clientX === "number") {
+    clientX = (activatorEvent as MouseEvent).clientX;
+    clientY = (activatorEvent as MouseEvent).clientY;
+  } else if ("touches" in activatorEvent && (activatorEvent as TouchEvent).touches?.length > 0) {
+    clientX = (activatorEvent as TouchEvent).touches[0].clientX;
+    clientY = (activatorEvent as TouchEvent).touches[0].clientY;
+  } else if ("changedTouches" in activatorEvent && (activatorEvent as TouchEvent).changedTouches?.length > 0) {
+    clientX = (activatorEvent as TouchEvent).changedTouches[0].clientX;
+    clientY = (activatorEvent as TouchEvent).changedTouches[0].clientY;
+  } else {
+    return transform;
+  }
+
+  const offsetX = clientX - activeNodeRect.left - overlayNodeRect.width / 2;
+  const offsetY = clientY - activeNodeRect.top - overlayNodeRect.height / 2;
+
+  return {
+    ...transform,
+    x: transform.x + offsetX,
+    y: transform.y + offsetY,
+  };
+};
+
+// Precise collision detection prioritizing the exact cursor/pointer location over droppable cells
+const collisionDetectionStrategy: CollisionDetection = (args) => {
+  // 1. First priority: is the pointer directly within a droppable container?
+  const pointerCollisions = pointerWithin(args);
+  if (pointerCollisions.length > 0) {
+    return pointerCollisions;
+  }
+  // 2. Second priority: is there a bounding rect intersection?
+  const rectCollisions = rectIntersection(args);
+  if (rectCollisions.length > 0) {
+    return rectCollisions;
+  }
+  // 3. Fallback to closest center
+  return closestCenter(args);
+};
 
 // Default solver depth. Can be overridden via the Advanced settings panel.
 const DEFAULT_SOLVER_DEPTH = 3;
@@ -66,13 +125,14 @@ export default function App() {
   }, []);
 
   const [isMuted, setIsMuted] = useState(() => {
-    const muted = localStorage.getItem("labyrinth_audio_muted") === "true";
+    const saved = localStorage.getItem("labyrinth_audio_muted");
+    const muted = saved === "false" ? false : true;
     setAudioMuted(muted);
     return muted;
   });
   const [baseTheme, setBaseThemeState] = useState<"dark" | "light">(() => {
     const saved = localStorage.getItem("labyrinth_theme") ?? "";
-    return saved === "light" ? "light" : "dark";
+    return saved === "dark" ? "dark" : "light";
   });
   const [uiTheme, setUiThemeState] = useState<"brutalist" | "simplistic">(() => {
     const saved = localStorage.getItem("labyrinth_ui_theme");
@@ -86,7 +146,7 @@ export default function App() {
     () => localStorage.getItem("labyrinth_accent_color") ?? ""
   );
   const [showStats, setShowStats] = useState(false);
-  const [, setActiveId] = useState<string | null>(null);
+  const [activeDragTile, setActiveDragTile] = useState<TileData | null>(null);
   const [turnPhase, setTurnPhase] = useState<"slide" | "move">("slide");
   const [showOneMoveTargets, setShowOneMoveTargets] = useState(true);
   const [solverDepth, setSolverDepthState] = useState<number>(() => {
@@ -464,10 +524,28 @@ export default function App() {
   ]);
 
   // ── Drag and Drop ─────────────────────────────────────────────────────────────
-  const handleDragStart = (e: DragStartEvent) => setActiveId(e.active.id as string);
+  const findTile = useCallback((id: string): TileData | undefined => {
+    const inLoose = game.looseTiles.find((t) => t.id === id);
+    if (inLoose) return inLoose;
+    for (let r = 0; r < 7; r++) {
+      for (let c = 0; c < 7; c++) {
+        if (game.grid[r][c]?.id === id) return game.grid[r][c]!;
+      }
+    }
+  }, [game.looseTiles, game.grid]);
+
+  const handleDragStart = (e: DragStartEvent) => {
+    const tileId = e.active.id as string;
+    const tileData = (e.active.data?.current as TileData) || findTile(tileId);
+    setActiveDragTile(tileData ?? null);
+  };
+
+  const handleDragCancel = () => {
+    setActiveDragTile(null);
+  };
 
   const handleDragEnd = (e: DragEndEvent) => {
-    setActiveId(null);
+    setActiveDragTile(null);
     const { active, over } = e;
     if (!over) return;
 
@@ -482,13 +560,7 @@ export default function App() {
         )
       );
     };
-    const findTile = (id: string): TileData | undefined => {
-      const inLoose = game.looseTiles.find((t) => t.id === id);
-      if (inLoose) return inLoose;
-      for (let r = 0; r < 7; r++)
-        for (let c = 0; c < 7; c++)
-          if (game.grid[r][c]?.id === id) return game.grid[r][c]!;
-    };
+
     const tileToMove = findTile(tileId);
     if (!tileToMove) return;
 
@@ -499,13 +571,47 @@ export default function App() {
       const [, sx, sy] = overId.split("_");
       const tx = parseInt(sx);
       const ty = parseInt(sy);
-      if (game.grid[ty][tx] === null) {
+      const isFixedSpace = tx % 2 === 0 && ty % 2 === 0;
+      if (isFixedSpace) return;
+
+      const existingTileAtTarget = game.grid[ty][tx];
+
+      // Find where tileToMove originally came from on the board (if any)
+      let originBoardCoords: { r: number; c: number } | null = null;
+      for (let r = 0; r < 7; r++) {
+        for (let c = 0; c < 7; c++) {
+          if (game.grid[r][c]?.id === tileId) {
+            originBoardCoords = { r, c };
+            break;
+          }
+        }
+      }
+
+      if (existingTileAtTarget === null || existingTileAtTarget.id === tileId) {
         removeTile(tileId);
         game.setGrid((prev) => {
           const next = prev.map((row) => [...row]);
           next[ty][tx] = tileToMove;
           return next;
         });
+      } else if (!existingTileAtTarget.isFixed) {
+        // Swap or replace movable tiles
+        if (originBoardCoords) {
+          game.setGrid((prev) => {
+            const next = prev.map((row) => [...row]);
+            next[ty][tx] = tileToMove;
+            next[originBoardCoords!.r][originBoardCoords!.c] = existingTileAtTarget;
+            return next;
+          });
+        } else {
+          removeTile(tileId);
+          game.setLooseTiles((prev) => [...prev, existingTileAtTarget]);
+          game.setGrid((prev) => {
+            const next = prev.map((row) => [...row]);
+            next[ty][tx] = tileToMove;
+            return next;
+          });
+        }
       }
     }
   };
@@ -748,9 +854,10 @@ export default function App() {
       <main className="flex-1 flex flex-col md:flex-row relative z-10 w-full px-2 sm:px-3 md:px-4 lg:px-6 pt-2 sm:pt-3 pb-[72px] md:pb-3 gap-3 md:gap-4 lg:gap-8 justify-center overflow-hidden min-h-0">
         <DndContext
           sensors={sensors}
-          collisionDetection={closestCenter}
+          collisionDetection={collisionDetectionStrategy}
           onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
+          onDragCancel={handleDragCancel}
         >
           <div className="flex-1 md:flex-[1.6] lg:flex-[1.8] w-full flex min-w-0 min-h-0 items-center justify-center relative z-20">
             <div
@@ -878,6 +985,24 @@ export default function App() {
               </div>
             </div>
           )}
+
+          <DragOverlay
+            dropAnimation={null}
+            zIndex={1000}
+            modifiers={[snapCenterToCursor]}
+          >
+            {activeDragTile ? (
+              <div className="w-12 h-12 sm:w-14 sm:h-14 lg:w-14 lg:h-14 pointer-events-none cursor-grabbing opacity-95 scale-105 shadow-2xl">
+                <Tile
+                  tile={activeDragTile}
+                  boardRotation={boardRotation}
+                  disableRotationTransition={true}
+                  uiTheme={uiTheme}
+                  className="w-full h-full"
+                />
+              </div>
+            ) : null}
+          </DragOverlay>
         </DndContext>
       </main>
 
