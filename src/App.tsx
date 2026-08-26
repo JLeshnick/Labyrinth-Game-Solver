@@ -4,6 +4,7 @@ import {
   DragOverlay,
   type DragEndEvent,
   type DragStartEvent,
+  type Modifier,
   closestCenter,
   useSensor,
   useSensors,
@@ -40,6 +41,43 @@ import { ResumeGameDialog } from "./components/modals/ResumeGameDialog";
 import { AUTOSAVE_KEY } from "./hooks/useLabyrinthStorage";
 import { usePreviewState } from "./hooks/usePreviewState";
 import { cn } from "./lib/utils";
+
+// Modifier that centers the dragged tile under the mouse / touch pointer
+const snapCenterToCursor: Modifier = ({
+  activatorEvent,
+  activeNodeRect,
+  overlayNodeRect,
+  transform,
+}) => {
+  if (!activatorEvent || !activeNodeRect || !overlayNodeRect) {
+    return transform;
+  }
+
+  let clientX = 0;
+  let clientY = 0;
+
+  if ("clientX" in activatorEvent && typeof (activatorEvent as MouseEvent).clientX === "number") {
+    clientX = (activatorEvent as MouseEvent).clientX;
+    clientY = (activatorEvent as MouseEvent).clientY;
+  } else if ("touches" in activatorEvent && (activatorEvent as TouchEvent).touches?.length > 0) {
+    clientX = (activatorEvent as TouchEvent).touches[0].clientX;
+    clientY = (activatorEvent as TouchEvent).touches[0].clientY;
+  } else if ("changedTouches" in activatorEvent && (activatorEvent as TouchEvent).changedTouches?.length > 0) {
+    clientX = (activatorEvent as TouchEvent).changedTouches[0].clientX;
+    clientY = (activatorEvent as TouchEvent).changedTouches[0].clientY;
+  } else {
+    return transform;
+  }
+
+  const offsetX = clientX - activeNodeRect.left - overlayNodeRect.width / 2;
+  const offsetY = clientY - activeNodeRect.top - overlayNodeRect.height / 2;
+
+  return {
+    ...transform,
+    x: transform.x + offsetX,
+    y: transform.y + offsetY,
+  };
+};
 
 // Default solver depth. Can be overridden via the Advanced settings panel.
 const DEFAULT_SOLVER_DEPTH = 3;
@@ -895,7 +933,11 @@ export default function App() {
             </div>
           )}
 
-          <DragOverlay dropAnimation={null} zIndex={1000}>
+          <DragOverlay
+            dropAnimation={null}
+            zIndex={1000}
+            modifiers={[snapCenterToCursor]}
+          >
             {activeDragTile ? (
               <div className="w-12 h-12 sm:w-14 sm:h-14 lg:w-14 lg:h-14 pointer-events-none cursor-grabbing opacity-95 scale-105 shadow-2xl">
                 <Tile
