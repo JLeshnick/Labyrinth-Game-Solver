@@ -5,6 +5,9 @@ import {
   type DragEndEvent,
   type DragStartEvent,
   type Modifier,
+  type CollisionDetection,
+  pointerWithin,
+  rectIntersection,
   closestCenter,
   useSensor,
   useSensors,
@@ -77,6 +80,22 @@ const snapCenterToCursor: Modifier = ({
     x: transform.x + offsetX,
     y: transform.y + offsetY,
   };
+};
+
+// Precise collision detection prioritizing the exact cursor/pointer location over droppable cells
+const collisionDetectionStrategy: CollisionDetection = (args) => {
+  // 1. First priority: is the pointer directly within a droppable container?
+  const pointerCollisions = pointerWithin(args);
+  if (pointerCollisions.length > 0) {
+    return pointerCollisions;
+  }
+  // 2. Second priority: is there a bounding rect intersection?
+  const rectCollisions = rectIntersection(args);
+  if (rectCollisions.length > 0) {
+    return rectCollisions;
+  }
+  // 3. Fallback to closest center
+  return closestCenter(args);
 };
 
 // Default solver depth. Can be overridden via the Advanced settings panel.
@@ -552,13 +571,47 @@ export default function App() {
       const [, sx, sy] = overId.split("_");
       const tx = parseInt(sx);
       const ty = parseInt(sy);
-      if (game.grid[ty][tx] === null) {
+      const isFixedSpace = tx % 2 === 0 && ty % 2 === 0;
+      if (isFixedSpace) return;
+
+      const existingTileAtTarget = game.grid[ty][tx];
+
+      // Find where tileToMove originally came from on the board (if any)
+      let originBoardCoords: { r: number; c: number } | null = null;
+      for (let r = 0; r < 7; r++) {
+        for (let c = 0; c < 7; c++) {
+          if (game.grid[r][c]?.id === tileId) {
+            originBoardCoords = { r, c };
+            break;
+          }
+        }
+      }
+
+      if (existingTileAtTarget === null || existingTileAtTarget.id === tileId) {
         removeTile(tileId);
         game.setGrid((prev) => {
           const next = prev.map((row) => [...row]);
           next[ty][tx] = tileToMove;
           return next;
         });
+      } else if (!existingTileAtTarget.isFixed) {
+        // Swap or replace movable tiles
+        if (originBoardCoords) {
+          game.setGrid((prev) => {
+            const next = prev.map((row) => [...row]);
+            next[ty][tx] = tileToMove;
+            next[originBoardCoords!.r][originBoardCoords!.c] = existingTileAtTarget;
+            return next;
+          });
+        } else {
+          removeTile(tileId);
+          game.setLooseTiles((prev) => [...prev, existingTileAtTarget]);
+          game.setGrid((prev) => {
+            const next = prev.map((row) => [...row]);
+            next[ty][tx] = tileToMove;
+            return next;
+          });
+        }
       }
     }
   };
@@ -801,7 +854,7 @@ export default function App() {
       <main className="flex-1 flex flex-col md:flex-row relative z-10 w-full px-2 sm:px-3 md:px-4 lg:px-6 pt-2 sm:pt-3 pb-[72px] md:pb-3 gap-3 md:gap-4 lg:gap-8 justify-center overflow-hidden min-h-0">
         <DndContext
           sensors={sensors}
-          collisionDetection={closestCenter}
+          collisionDetection={collisionDetectionStrategy}
           onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
           onDragCancel={handleDragCancel}
